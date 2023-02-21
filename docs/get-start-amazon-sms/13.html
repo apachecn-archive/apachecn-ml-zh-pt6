@@ -1,0 +1,196 @@
+<html><head/><body>
+
+
+	
+		<title>B17447_10_ePub_RK</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-135"><em class="italic"> <a id="_idTextAnchor134"/>第十章</em>:使用 SageMaker 模型监视器监控生产中的 ML 模型</h1>
+			<p>将一个用于推理的模型投入生产并不是机器学习生命周期<strong class="bold">的结束</strong> ( <strong class="bold"> ML </strong>)。这仅仅是一个重要话题的开始:我们如何确保模型在现实生活中按照设计和预期的方式运行？使用 SageMaker Studio 可以轻松监控模型在生产中的表现，尤其是对模型从未见过的数据的表现。您将学习如何为部署在 SageMaker 中的模型设置模型监控，检测数据漂移和性能漂移，并在 SageMaker Studio 中可视化结果，以便您可以让系统自动检测您的 ML 模型的降级。</p>
+			<p>在本章中，我们将学习以下内容:</p>
+			<ul>
+				<li>了解 ML 中的漂移</li>
+				<li>在 SageMaker Studio 中监控数据和模型性能漂移</li>
+				<li>在 SageMaker Studio 中查看模型监控结果</li>
+			</ul>
+			<h1 id="_idParaDest-136"><a id="_idTextAnchor135"/>技术要求</h1>
+			<p>对于本章，您需要访问<a href="https://github.com/PacktPublishing/Getting-Started-with-Amazon-SageMaker-Studio/tree/main/chapter10">https://github . com/packt publishing/Getting-Started-with-Amazon-sage maker-Studio/tree/main/chapter 10</a>中的代码。</p>
+			<h1 id="_idParaDest-137"><a id="_idTextAnchor136"/>了解 ML 中的漂移</h1>
+			<p>需要对<a id="_idIndexMarker684"/>生产中的 ML 模型的性能进行仔细和持续的监控。不能保证一旦模型经过训练和评估，它在生产环境中的表现水平与在测试环境中的表现水平相同。与软件应用程序不同，在软件应用程序中，单元测试可以被实现来在所有可能的边缘情况下测试应用程序，监视和检测 ML 模型的问题是相当困难的。这是因为 ML 模型使用概率、统计和模糊逻辑来推断每个输入数据点的结果，而测试(即模型评估)通常是在没有生产数据的真实先验知识的情况下进行的。在生产之前，数据科学家所能做的最好的事情就是从一个样本<a id="_idIndexMarker685"/>中创建训练数据，该样本能够很好地代表真实世界的数据，并使用样本外策略对模型进行评估，以便对模型在未知数据上的表现有一个公正的认识。在生产中，模型完全看不到输入的数据；如何评估活动模型的性能，以及如何根据评估采取行动，是 ML 模型生产化的一个关键问题。</p>
+			<p>模型性能<a id="_idIndexMarker686"/>可以通过两种方法进行监控。一种更直接的方法是捕捉看不见的数据的基本事实，并将预测与基本事实进行比较。第二种方法是将推断数据的统计分布和特征与作为代理的训练数据进行比较，以确定模型是否以预期的方式运行。</p>
+			<p>第一种方法要求在预测事件发生后确定基本事实，以便我们可以直接计算数据科学家在模型评估期间使用的相同性能指标。然而，在一些用例中，真实的结果(基础事实)可能会滞后于事件很长时间，甚至可能根本不可用。</p>
+			<p>第二种方法的前提是，ML 模型从训练数据中统计地和概率地学习，并且当提供来自不同统计分布的新数据集时，将表现不同。当<a id="_idIndexMarker687"/>数据不是来自同一个统计分布时，模型会返回乱码。这被称为<strong class="bold">协变量漂移</strong>。因此，检测数据中的协变量漂移可以更实时地估计模型的表现。</p>
+			<p><strong class="bold">Amazon SageMaker Model Monitor</strong>是 SageMaker 中的一项功能，它通过设置数据捕获、计算基线统计数据以及按计划监控从流量到 SageMaker 端点的漂移，来持续监控 sage maker 上托管的模型的质量。SageMaker 型号监视器有四种类型的监视器:</p>
+			<ul>
+				<li><strong class="bold">模型质量监控</strong>:通过计算预测和实际地面实况标签的准确性<a id="_idIndexMarker689"/>来监控模型的性能</li>
+				<li><strong class="bold">数据质量监控器</strong>:通过与基线训练数据的特征进行比较，监控推断<a id="_idIndexMarker690"/>数据的数据统计特征</li>
+				<li><strong class="bold">模型可解释性监视器</strong>:与 SageMaker Clarify 集成，使用 Shapley 值计算特性<a id="_idIndexMarker691"/>的属性</li>
+				<li><strong class="bold">模型偏差监控器</strong>:与 SageMaker Clarify 集成，监控数据和模型预测偏差的预测<a id="_idIndexMarker692"/></li>
+			</ul>
+			<p>一旦为端点设置了模型监控，您就可以在 SageMaker Studio 中可视化随时间推移的漂移和任何数据问题。让我们按照本章中的一个 ML 用例来学习如何在 SageMaker Studio 中设置 SageMaker 模型监视器。我们将关注模型质量和数据质量监控。</p>
+			<h1 id="_idParaDest-138"><a id="_idTextAnchor137"/>sage maker Studio 中的监控数据和性能漂移</h1>
+			<p>在本章<a id="_idIndexMarker693"/>中，让我们考虑一个 ML 场景:我们<a id="_idIndexMarker694"/>训练一个 ML <a id="_idIndexMarker695"/>模型并在一个端点中托管它。我们<a id="_idIndexMarker696"/>还创建到端点的人工推断流量，将随机扰动注入每个数据点。这将在数据中引入噪声、缺失和漂移。然后，我们继续使用 SageMaker 模型监视器创建数据质量监视器和模型质量监视器。在这个演示中，我们使用了一个简单的 ML 数据集，来自 https://archive.ics.uci.edu/ml/datasets/abalone UCI 的鲍鱼数据集。使用这个数据集，我们训练了一个回归模型来预测年轮的数量，年轮的数量与鲍鱼的年龄成比例。</p>
+			<h2 id="_idParaDest-139"><a id="_idTextAnchor138"/>培训和主持模特</h2>
+			<p>我们将<a id="_idIndexMarker697"/>按照接下来的步骤在模型监控之前设置我们需要的东西<a id="_idIndexMarker698"/>——获取数据、训练模型、托管模型以及创建流量:</p>
+			<ol>
+				<li>用<strong class="bold"> Python 3(数据科学)</strong>内核和<strong class="bold"> ml.t3.median </strong>实例在<code>Getting-Started-with-Amazon-SageMaker-Studio/chapter10/01-train_host_predict.ipynb</code>打开笔记本。</li>
+				<li>运行前三个单元来设置库和 SageMaker 会话。</li>
+				<li>从源中读取数据并执行最少的处理，即将分类变量<code>Sex</code>编码成整数，以便我们稍后可以使用<code>XGBoost</code>算法进行训练。此外，我们将目标列环的类型更改为 float，以便来自地面实况和模型预测(回归)的值始终处于 float 状态，供模型监视器计算。</li>
+				<li>将数据随机分为训练集(80%)、验证集(10%)和测试集(10%)。然后，将数据保存到本地驱动器用于模型推断，并上传到 S3 用于模型训练。</li>
+				<li>对于模型训练，我们使用<code>XGBoost</code>，一个 SageMaker 内置算法，对于回归问题的<code>reg:squarederror</code>目标:<pre>image = image_uris.retrieve(region=region,                    framework='xgboost', version='1.3-1') xgb = sagemaker.estimator.Estimator(...) xgb.set_hyperparameters(objective='reg:squarederror', num_round=20) data_channels={'train': train_input, 'validation': val_input} xgb.fit(inputs=data_channels, ...)</pre></li>
+			</ol>
+			<p>培训大约需要 5 分钟。</p>
+			<ol>
+				<li value="6">模型训练完成后，我们用 SageMaker 端点和<code>xgb.deploy()</code>托管模型，就像我们在<a href="B17447_07_ePub_RK.xhtml#_idTextAnchor099"> <em class="italic">第 7 章</em> </a>、<em class="italic">在云中托管 ML 模型:最佳实践</em>中所学的一样。但是，默认情况下，SageMaker 端点不会保存传入推断数据的副本。为了监控模型的性能和数据漂移，我们需要指示端点持久化传入的推断数据。我们使用<code>sagemaker.model_monitor.DataCaptureConfig</code>来设置端点后的数据捕获，以便进行监控:<pre>data_capture_config = DataCaptureConfig(enable_capture=True,             sampling_percentage=100,                                                     destination_s3_uri=s3_capture_upload_path)</pre></li>
+			</ol>
+			<p>我们在<code>destination_s3_uri</code>中指定了一个 S3 铲斗位置。<code>sampling_percentage</code>可以是<code>100</code> (%)或更低，这取决于您预期的实际流量。我们需要确保获得足够大的样本量，以便以后进行统计比较。如果模型推理流量很少，比如每小时 100 个推理<a id="_idIndexMarker699"/>，您可能希望使用 100%的样本进行模型监控。如果您有一个高比率的模型推理用例，您可能能够使用一个较小的百分比。</p>
+			<ol>
+				<li value="7">我们可以用<code>data_capture_config</code> : <pre>predictor = xgb.deploy(...,                data_capture_config=data_capture_config)</pre>将模型部署到端点</li>
+				<li>一旦端点准备就绪，让我们对验证数据集应用回归模型，以便为模型质量监控创建基线数据集。基线数据集应该在 CSV 文件的两列中包含地面实况和模型预测。然后，我们将 CSV 上传到 S3 存储桶位置:<pre>pred=predictor.predict(df_val[columns_no_target].values) pred_f = [float(i) for i in pred[0]] df_val['Prediction']=pred_f model_quality_baseline_suffix = 'abalone/abalone_val_model_quality_baseline.csv' df_val[['Rings', 'Prediction']].to_csv(model_quality_baseline_suffix, index=False) model_quality_baseline_s3 = sagemaker.s3.S3Uploader.upload(         local_path=model_quality_baseline_suffix,         desired_s3_uri=desired_s3_uri,         sagemaker_session=sess)</pre></li>
+			</ol>
+			<p>接下来，我们<a id="_idIndexMarker701"/>可以用测试数据集对端点<a id="_idIndexMarker702"/>进行一些预测。</p>
+			<h2 id="_idParaDest-140"><a id="_idTextAnchor139"/>创建推理流量和地面真相</h2>
+			<p>为了模拟现实生活中的推理流量，我们采用测试数据集并添加随机扰动，如随机缩放和丢弃特征。我们可以预计这将模拟<a id="_idIndexMarker703"/>数据漂移并扭曲模型性能。然后，我们将受干扰的数据发送到端点进行预测，并将地面实况保存到 S3 桶位置。请在同一个笔记本中遵循以下步骤:</p>
+			<ol>
+				<li value="1">这里，我们有两个函数来添加随机扰动:<code>add_randomness()</code>和<code>drop_randomly()</code>。前一个函数将除<code>Sex</code>函数外的每个特征值随机乘以一个小因子，并随机给<code>Sex</code>赋值一个二进制值。后一个函数随机删除一个特征，并用<code>NaN</code>(不是数字)填充。</li>
+				<li>我们还有<code>generate_load_and_ground_truth()</code>函数来读取测试数据的每一行，应用扰动，调用预测的端点，在字典中构造基本事实，<code>gt_data</code>，并将其作为 JSON 文件上传到 S3 桶。值得注意的是，为了确保我们在推理数据和基本事实之间建立对应关系，我们将每一对与<code>inference_id</code>相关联。这种关联将允许模型监视器合并推理和基础事实进行分析:<pre>def generate_load_and_ground_truth():     gt_records=[]     for i, row in df_test.iterrows():         suffix = uuid.uuid1().hex         inference_id = f'{i}-{suffix}'                  gt = row['Rings']         data = row[columns_no_target].values         new_data = drop_random(add_randomness(data))         new_data = convert_nparray_to_string(new_data)         out = predictor.predict(data = new_data,                         inference_id = inference_id)         gt_data = {'groundTruthData': {                             'data': str(gt),                              'encoding': 'CSV',                         },                    'eventMetadata': {                             'eventId': inference_id,                         },                    'eventVersion': '0',                    }         gt_records.append(gt_data)     upload_ground_truth(gt_records, ground_truth_upload_path, datetime.utcnow()) </pre></li>
+			</ol>
+			<p>我们<a id="_idIndexMarker704"/>在<code>generate_load_and_ground_truth_forever()</code>函数的<code>while</code>循环中包装这个函数，这样我们就可以使用一个线程化的进程生成持久的流量，直到笔记本关闭:</p>
+			<pre>def generate_load_and_ground_truth_forever():
+    while True:
+        generate_load_and_ground_truth()
+from threading import Thread
+thread = Thread(target=generate_load_and_ground_truth_forever)
+thread.start()</pre>
+			<ol>
+				<li value="3">最后，在<a id="_idIndexMarker705"/>我们设置第一个模型监视器之前，让我们看看推理流量是如何被捕获的:<pre>capture_file = get_obj_body(capture_files[-1]) print(json.dumps(json.loads(capture_file.split('\n')[-2]), indent=2)) <strong class="bold">{</strong> <strong class="bold">  "captureData": {</strong> <strong class="bold">    "endpointInput": {</strong> <strong class="bold">      "observedContentType": "text/csv",</strong> <strong class="bold">      "mode": "INPUT",</strong> <strong class="bold">      "data": "1.0,0.54,0.42,0.14,0.805,0.369,0.1725,0.21",</strong> <strong class="bold">      "encoding": "CSV"</strong> <strong class="bold">    },</strong> <strong class="bold">    "endpointOutput": {</strong> <strong class="bold">      "observedContentType": "text/csv; charset=utf-8",</strong> <strong class="bold">      "mode": "OUTPUT",</strong> <strong class="bold">      "data": "9.223058700561523",</strong> <strong class="bold">      "encoding": "CSV"</strong> <strong class="bold">    }</strong> <strong class="bold">  },</strong> <strong class="bold">  "eventMetadata": {</strong> <strong class="bold">    "eventId": "a9d22bac-094a-4610-8dde-689c6aa8189b",</strong> <strong class="bold">    "inferenceId": "846-01234f26730011ecbb8b139195a02686",</strong> <strong class="bold">    "inferenceTime": "2022-01-11T17:00:39Z"</strong> <strong class="bold">  },</strong> <strong class="bold">  "eventVersion": "0"</strong> <strong class="bold">}</strong></pre></li>
+			</ol>
+			<p>注意<code>captureData.endpointInput.data</code>函数有一个通过<code>predictor.predict()</code>的推理数据条目，在<code>eventMetadata.</code>T3 中有唯一的推理 ID。模型端点的输出在<code>captureData.endpointOutput.data</code>中。</p>
+			<p>我们已经做好了所有的准备工作。我们现在可以继续在 SageMaker Studio 中创建模型监视器。</p>
+			<h2 id="_idParaDest-141"><a id="_idTextAnchor140"/>创建数据质量监视器</h2>
+			<p>数据<a id="_idIndexMarker707"/>质量监视器将传入的推断数据的统计数据与基线数据集的统计数据进行比较。您可以通过 SageMaker Studio UI 或 SageMaker Python SDK 设置数据质量监视器。我将通过 Studio UI 完成简单的设置:</p>
+			<ol>
+				<li value="1">转到左侧栏中的<strong class="bold">端点</strong>注册表，找到您新托管的端点，如图<em class="italic">图 10.1 </em>所示。双击条目，在主工作区中打开它:</li>
+			</ol>
+			<div><div><img src="img/B17447_10_001.jpg" alt="Figure 10.1 – Opening the endpoint details page&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.1–打开端点详细信息页面</p>
+			<ol>
+				<li value="2">点击<a id="_idIndexMarker708"/>中的<strong class="bold">数据质量</strong>选项卡，然后<strong class="bold">创建监测计划</strong>，如图<em class="italic">图 10.2 </em>所示:</li>
+			</ol>
+			<div><div><img src="img/B17447_10_002.jpg" alt="Figure 10.2 – Creating a data quality monitoring schedule on the endpoint details page&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.2–在端点详细信息页面上创建数据质量监控计划</p>
+			<ol>
+				<li value="3">在设置的第一步中，如图<em class="italic">图 10.3 </em>所示，我们选择一个 IAM 角色，该角色拥有<a id="_idIndexMarker709"/>访问权限，可以将结果读写到我们在以下页面中指定的存储桶位置。让我们选择<code>3600</code>秒)，这样一个监控任务就不会延续到下一个小时。在页面底部，我们让<strong class="bold">启用指标</strong>打开，这样由模型监视器计算的指标也会被发送到 Amazon CloudWatch。这允许我们在 CloudWatch 中可视化和分析指标。点击<strong class="bold">继续</strong>:</li>
+			</ol>
+			<div><div><img src="img/B17447_10_003.jpg" alt="Figure 10.3 – Data quality monitor setup step 1&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.3–数据质量监控器设置步骤 1</p>
+			<ol>
+				<li value="4">在<a id="_idIndexMarker710"/>第二步中，如图<em class="italic">图 10.4 </em>所示，我们为每小时的监控作业配置基础设施和输出位置。需要配置的基础设施是 SageMaker 处理作业，每小时都会创建一次。我们将计算实例(实例类型、数量和磁盘卷大小)保留为默认值。然后，我们为监控结果和加密以及<a id="_idIndexMarker711"/>联网(VPC)选项提供一个输出存储桶位置:</li>
+			</ol>
+			<div><div><img src="img/B17447_10_004.jpg" alt="Figure 10.4 – Data quality monitor setup step 2&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.4–数据质量监控器设置步骤 2</p>
+			<ol>
+				<li value="5">第三步，如图<em class="italic">图 10.5 </em>所示，我们配置基线计算。在设置好监视器之后，将启动一个一次性的 SageMaker 处理作业来计算基线统计数据。未来的重复监视作业将使用基线统计信息来判断是否发生了漂移。我们将 S3 存储桶中的 CSV 文件位置提供给基准数据集 S3 位置。我们将训练数据上传到 S3 桶，完整路径在<code>train_data_s3</code>变量中。我们为基线 S3 输出位置提供一个 S3 输出位置。因为我们的训练数据 CSV 在第一行包含一个特性名称，所以我们选择具有 1 GB 基线卷的<code>ml.m5.xlarge</code>实例就足够了。点击<strong class="bold">继续</strong>:</li>
+			</ol>
+			<div><div><img src="img/B17447_10_005.jpg" alt="Figure 10.5 – Data quality monitor setup step 3&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.5–数据质量监控设置步骤 3</p>
+			<ol>
+				<li value="6">在最后的<strong class="bold">附加配置</strong>页面中，您可以选择为循环监视作业提供预处理和后处理脚本。您可以使用自己的脚本自定义特征和模型输出。使用自定义容器进行模型监视时，不支持此扩展。在我们的例子中，我们使用 SageMaker 的内置容器。有关预处理和后处理脚本的更多信息，请访问<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/model-monitor-pre-and-post-processing.html">https://docs . AWS . Amazon . com/sage maker/latest/DG/model-monitor-pre-and-post-processing . html</a>。</li>
+			</ol>
+			<p>如果您返回到<strong class="bold">端点详情</strong>页面，在<strong class="bold">数据质量</strong>选项卡下，如图<em class="italic">图 10.2 </em>所示，您现在可以看到一个新的监控时间表，其状态为<strong class="bold">已安排</strong>。现在启动一个基线作业，从基线训练数据集中计算各种统计数据。基线作业完成后，第一个每小时监控<a id="_idIndexMarker713"/>作业将在一小时的前 20 分钟内作为 SageMaker 处理作业启动。监视作业根据一小时内收集的推断数据计算统计信息，并将其与基线进行比较。我们将在稍后的<em class="italic">查看 SageMaker Studio </em>部分的模型监控结果中查看监控结果。</p>
+			<p>现在，让我们继续创建模型质量监视器来监视模型性能。</p>
+			<h2 id="_idParaDest-142"><a id="_idTextAnchor141"/>创建模型质量监控</h2>
+			<p>与创建数据质量监视器相比，创建<a id="_idIndexMarker714"/>模型质量监视器遵循类似的过程，额外强调在 S3 处理模型预测和地面实况标签。让我们按照下面的步骤来设置模型质量监视器，以监视模型随时间的性能:</p>
+			<ol>
+				<li value="7">在同一个端点的<strong class="bold">端点详情</strong>页面，进入<strong class="bold">模型质量</strong>页签，点击<strong class="bold">创建监控计划</strong>，如图<em class="italic">图 10.6 </em>所示:</li>
+			</ol>
+			<div><div><img src="img/B17447_10_006.jpg" alt="Figure 10.6 – Creating a model quality monitoring schedule on the endpoint details page&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.6–在端点详细信息页面上创建模型质量监控计划</p>
+			<ol>
+				<li value="8">在<a id="_idIndexMarker715"/>第一页上，<strong class="bold">调度</strong>，我们为监控作业选择 IAM 角色、调度频率等，类似于前面<em class="italic">创建数据质量监控部分</em>中的<em class="italic">步骤 3 </em>。</li>
+				<li>在第二页<strong class="bold">监控作业配置</strong>，如图<em class="italic">图 10.7 </em>所示，我们为监控作业配置实例和监控作业的输入/输出:</li>
+			</ol>
+			<div><div><img src="img/B17447_10_007.jpg" alt="Figure 10.7 – Setting up input and output for the model quality monitor&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.7–为模型质量监视器设置输入和输出</p>
+			<p>输入指的是来自端点的模型预测和我们上传到笔记本中的基本事实文件。在<code>24</code>小时内。For <code>0</code> for <strong class="bold">推理属性</strong>指定第一个值为模型输出，并将<strong class="bold">概率</strong>留空。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">如果您的模型的内容类型是 JSON/JSON Lines，您将在<code>{prediction: {"predicted_label":1, "probability":0.68}}</code>中指定一个 JSON 路径，在<strong class="bold">概率</strong>中指定<code>"prediction.probability"</code>中的<code>"prediction.predicted_label"</code>。</p>
+			<p>用于笔记本中的<code>ground_truth_upload_path</code>变量。对于<strong class="bold"> S3 输出位置</strong>，我们为模型监视器指定一个 S3 桶位置来保存输出。最后，您可以选择为监控作业配置加密和 VPC。点击<strong class="bold">继续</strong>继续。</p>
+			<ol>
+				<li value="10">在第三页，笔记本中的<code>model_quality_baseline_s3</code>变量到<strong class="bold">基线数据集的 S3 位置</strong>字段。对于<strong class="bold">基线 S3 输出位置</strong>，我们提供一个 S3 位置<a id="_idIndexMarker717"/>来保存基线结果。在<strong class="bold">基线数据集格式</strong>中选择带有标题的<strong class="bold"> CSV。将实例类型和配置保留为默认值。</strong></li>
+			</ol>
+			<p>这是为一次性基线计算配置 SageMaker 处理作业。在最后三个字段中，我们放置了相应的 CSV 标题名称——对于<code>Prediction</code>,对于<strong class="bold">基线推断属性</strong>——并将<strong class="bold">基线概率</strong>的字段留空，因为我们的模型同样不产生概率。点击<strong class="bold">继续</strong>:</p>
+			<div><div><img src="img/B17447_10_008.jpg" alt="Figure 10.8 – Configuring the baseline calculation for the model quality monitor&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.8–为模型质量监视器配置基线计算</p>
+			<ol>
+				<li value="11">在<strong class="bold">附加配置</strong>中，我们可以向监视器提供预处理和后处理脚本，就像数据质量监视器一样。让我们跳过这一步，点击<strong class="bold">启用模型监控</strong>继续完成设置。</li>
+			</ol>
+			<p>现在，我们已经创建了模型质量监视器。在<strong class="bold">终点</strong> <strong class="bold">细节</strong>页面的<strong class="bold">模型质量</strong>选项卡下，可以看到监控日程处于<strong class="bold">预定</strong>状态。类似于数据质量监视器，启动基线处理作业<a id="_idIndexMarker718"/>以使用基线数据集计算基线模型性能。每小时的监视作业也将作为 SageMaker 处理作业在一小时的前 20 分钟内启动，以便根据一小时内收集的推理数据计算模型性能指标，并将它们与基线进行比较。我们将在下一节<em class="italic">查看 SageMaker Studio </em>中的模型监控结果中查看监控结果。</p>
+			<h1 id="_idParaDest-143"><a id="_idTextAnchor142"/>在 SageMaker Studio 中查看模型监控结果</h1>
+			<p>SageMaker Model Monitor 计算传入推理数据的各种统计数据，将它们与预先计算的基线统计数据进行比较，并在指定的 S3 桶中向我们报告结果，您可以在 SageMaker Studio 中看到这些结果。</p>
+			<p>对于<a id="_idIndexMarker720"/>数据质量监视器，我们使用的是一个预先构建的默认容器 SageMaker 模型监视器，它计算基线数据集和推断数据上的每个特性的统计数据。统计数据包括平均值、总和、标准差、最小值和最大值。数据质量监视器还查看数据缺失情况，并检查传入推断数据的数据类型。你可以在<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/model-monitor-interpreting-statistics.html">https://docs . AWS . Amazon . com/sage maker/latest/DG/model-monitor-interpreting-statistics . html</a>找到完整列表。</p>
+			<p>对于模型质量监视器，SageMaker 根据配置的 ML 问题类型计算模型性能度量。对于本章中的回归示例，SageMaker 的模型<a id="_idIndexMarker721"/>质量监视器正在计算<strong class="bold">平均绝对误差</strong> ( <strong class="bold"> MAE </strong>)、<strong class="bold">均方误差</strong> ( <strong class="bold"> MSE </strong>)、<strong class="bold">均方根误差</strong> ( <strong class="bold"> RMSE </strong>)和<strong class="bold"> R 平方</strong> ( <strong class="bold"> r2 </strong>)值。你<a id="_idIndexMarker722"/>可以在<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/model-monitor-model-quality-metrics.html">https://docs . AWS . Amazon . com/sagemaker/latest/DG/model-monitor-model-quality-metrics . html</a>找到<a id="_idIndexMarker723"/>回归、二进制分类和多类<a id="_idIndexMarker724"/>分类问题<a id="_idIndexMarker725"/>的完整计算指标列表。</p>
+			<p>在<strong class="bold">端点详情</strong>页面的<strong class="bold">监控作业历史</strong>页签中可以<a id="_idIndexMarker726"/>看到一段时间内启动的监控<a id="_idIndexMarker727"/>作业列表，如图<em class="italic">图 10.9 </em>所示:</p>
+			<div><div><img src="img/B17447_10_009.jpg" alt="Figure 10.9 – Viewing a list of monitoring jobs. Double-clicking a row item takes you to the detail page of a particular job&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.9–查看监控作业列表。双击行项目会将您带到特定作业的详细信息页面</p>
+			<p>双击一个行项目，将进入一个特定监控作业的详细页面，如图<em class="italic">图 10.10 </em>所示。因为我们在将数据发送到端点之前对其进行了扰动，所以数据包含不规则性，例如丢失。这是由数据质量监视器捕获的:</p>
+			<div><div><img src="img/B17447_10_010.jpg" alt="Figure 10.10 – Details of a data quality monitoring job and violations&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.10-数据质量监控作业和违规的详细信息</p>
+			<p>我们还可以<a id="_idIndexMarker728"/>打开一个模型<a id="_idIndexMarker729"/>质量监控作业，以查明模型是否按预期执行。如<em class="italic">图 10.11 </em>所示，我们可以看到所有计算的指标都出现了违规。我们知道这将会发生，因为这很大程度上是由于我们引入数据的扰动。SageMaker 模型监视器能够检测到这样的问题:</p>
+			<div><div><img src="img/B17447_10_011.jpg" alt="Figure 10.11 – Details of a model monitoring job and violations&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.11–模型监控作业和违规的详细信息</p>
+			<p>我们还可以从监控作业中创建可视化效果。让我们按照下面的步骤为数据质量监视器创建一个图表:</p>
+			<ol>
+				<li value="1">在<strong class="bold">端点详情</strong>页面，进入<strong class="bold">数据质量</strong>选项卡，点击<strong class="bold">添加图表</strong>按钮，如图<em class="italic">图 10.12 </em>所示:</li>
+			</ol>
+			<div><div><img src="img/B17447_10_012.jpg" alt="Figure 10.12 – Adding a visualization for a data quality monitor&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.12–为数据质量监视器添加可视化</p>
+			<ol>
+				<li value="2">右侧会出现一个<a id="_idIndexMarker730"/>图表属性<a id="_idIndexMarker731"/>配置工具条，如图<em class="italic">图 10.13 </em>所示。我们可以通过指定时间线、统计数据和想要绘制的特征来创建图表。根据您启用监视器的时间长短，您可以选择一个时间范围进行可视化。例如，我选择了<strong class="bold"> 1 天</strong>、平均<strong class="bold">统计和<strong class="bold">feature _ baseline _ drift _ Length</strong>来查看过去一天在<strong class="bold">长度</strong>特性上测量的平均基线漂移<a id="_idIndexMarker732"/>:</strong></li>
+			</ol>
+			<div><div><img src="img/B17447_10_013.jpg" alt="Figure 10.13 – Visualizing feature drift in SageMaker Studio&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.13–在 SageMaker Studio 中可视化特征漂移</p>
+			<ol>
+				<li value="3">点击<strong class="bold">添加图表</strong>按钮，您<a id="_idIndexMarker733"/>可以随意添加更多图表。</li>
+				<li>类似地，我们可以使用<strong class="bold"> mse </strong>指标来可视化过去 24 小时的模型性能，如图<em class="italic">图 10.14 </em>所示:</li>
+			</ol>
+			<div><div><img src="img/B17447_10_014.jpg" alt="Figure 10.14 – Visualizing the mse regression metric in SageMaker Studio&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.14–在 SageMaker Studio 中可视化 mse 回归指标</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">为了节省<a id="_idIndexMarker734"/>成本，当您<a id="_idIndexMarker735"/>完成示例时，请确保取消注释并运行<code>01-train_host_predict.ipynb</code>中的最后一个单元格，以删除监控计划和端点，从而停止向您的 AWS 帐户收取费用。</p>
+			<h1 id="_idParaDest-144"><a id="_idTextAnchor143"/>总结</h1>
+			<p>在这一章中，我们重点讨论了 ML 中的数据漂移和模型漂移，以及如何使用 SageMaker Model Monitor 和 SageMaker Studio 来监控它们。我们演示了如何在 SageMaker Studio 中设置一个数据质量监视器和一个模型质量监视器，以便在一个场景中连续监视模型的行为和输入数据的特征，在这个场景中，一个回归模型被部署在一个 SageMaker 端点中，并且连续的推理流量到达该端点。我们在推理流量中引入了一些随机扰动，并使用 SageMaker 模型监视器来检测模型和数据中不需要的行为。通过这个例子，您还可以将 SageMaker Model Monitor 部署到您的用例中，并为生产中的模型提供可见性和护栏。</p>
+			<p>在下一章，我们将学习如何用 SageMaker 项目、管道和模型注册来操作一个 ML 项目。我们马上就要谈到 ML 的一个重要趋势，那就是<strong class="bold">持续集成/持续交付</strong> ( <strong class="bold"> CI/CD </strong>)和<strong class="bold"> ML 运营</strong> ( <strong class="bold"> MLOps </strong>)。我们将展示如何使用 SageMaker 的特性，比如项目、管道和模型注册，来使您的 ML 项目可重复、可靠和可重用，并具有强大的治理。</p>
+		</div>
+	
+
+</body></html>

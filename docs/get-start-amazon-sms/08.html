@@ -1,0 +1,183 @@
+<html><head/><body>
+
+
+	
+		<title>B17447_06_ePub_RK</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-91"><em class="italic"> <a id="_idTextAnchor090"/>第六章</em>:检测 ML 偏差，用 SageMaker Clarify 解释模型</h1>
+			<p><strong class="bold">机器学习</strong> ( <strong class="bold"> ML </strong>)模型越来越多地被用于帮助各行各业做出商业决策，例如在金融服务、医疗保健、教育和人力资源(HR)领域，这要归功于 ML 提供的自动化，其准确性高于人类。然而，ML 模型从来都不是完美的。他们可能会做出糟糕的决定——如果没有经过训练和仔细评估，甚至会做出不公平的决定。一个 ML 模型可能会以伤害弱势群体的方式产生偏见。在 ML 生命周期中理解数据和 ML 模型中的偏差的能力对于创建社会公平的 ML 模型是至关重要的。<strong class="bold"> SageMaker Clarify </strong>计算数据集和 ML 模型中的 ML 偏差，帮助您了解 ML 模型的局限性，以便您可以采取适当的措施来减轻这些偏差。</p>
+			<p>ML 模型长期以来被认为是黑箱操作，因为很难看出预测是如何进行的。SageMaker Clarify 计算特征属性，帮助您解释 ML 模型如何做出决策，以便它不再是我们的黑盒。SageMaker Clarify 与 SageMaker Studio 集成，以便您在构建 ML 模型时可以轻松查看结果。通过 SageMaker Clarify，您将能够更多地了解您的 ML 模型，提高 ML 用例的公平性和可解释性，并在需要时满足监管要求。</p>
+			<p>在本章中，我们将学习以下主题:</p>
+			<ul>
+				<li>理解偏倚、ML 中的公平性和 ML 可解释性</li>
+				<li>检测 ML 中的偏差</li>
+				<li>使用<strong class="bold">沙普利加法解释</strong> ( <strong class="bold"> SHAP </strong>)值解释 ML 模型</li>
+			</ul>
+			<h1 id="_idParaDest-92"><a id="_idTextAnchor091"/>技术要求</h1>
+			<p>对于本章，您需要访问在<a href="https://github.com/PacktPublishing/Getting-Started-with-Amazon-SageMaker-Studio/tree/main/chapter06">https://github . com/packt publishing/Getting-Started-with-Amazon-sage maker-Studio/tree/main/chapter 06</a>提供的代码。</p>
+			<h1 id="_idParaDest-93"><a id="_idTextAnchor092"/>理解偏差、ML 的公平性和 ML 的可解释性</h1>
+			<p>在 ML 中有两种<a id="_idIndexMarker380"/>类型的偏差，我们可以分析并<a id="_idIndexMarker381"/>减轻以确保公平性— <strong class="bold">数据偏差</strong>和<strong class="bold">模型偏差</strong>。<strong class="bold">数据偏差</strong>是跨不同组和类别的训练数据中的不平衡<a id="_idIndexMarker382"/>，这种不平衡可以简单地由于<a id="_idIndexMarker383"/>采样误差或者由于不幸地在社会中根深蒂固的固有<a id="_idIndexMarker384"/>原因而引入到 ML 解决方案中。数据偏差，如果被忽略，可能会转化为总体准确性差，以及在训练好的模型中对某个群体的不公平预测。能够尽早发现数据中的固有偏差并采取行动解决它们比以往任何时候都更重要。<strong class="bold">模型偏差</strong>另一方面是指模型预测引入的偏差，如<a id="_idIndexMarker386"/>优势群体和劣势群体之间的分类和误差分布。如果模型在特定结果中偏向优势群体，或者对弱势群体做出不成比例的错误预测<a id="_idIndexMarker387"/>，从而在现实世界的 ML 应用(如贷款审批预测系统)中造成不良后果，作为数据科学家，我们需要采取行动来了解为什么会发生这种情况并减轻这种行为。</p>
+			<p>确保 ML <a id="_idIndexMarker388"/>中的公平性始于理解数据并检测其中的偏差。数据偏差可能导致模型偏差，因为众所周知，模型将学习数据中呈现的内容，包括任何偏差，并将在其推理中复制该偏差。使用 ML 社区开发和接受的指标量化偏差是检测和选择缓解方法的关键。</p>
+			<p>能够解释模型如何做出决定是确保 ML 模型公平性的另一个关键因素。人们一直认为 ML 是一个神奇的黑匣子——它比人类更好地预测事物，但没有人知道为什么或如何预测。但是 ML 的研究人员已经开发出框架来帮助打开黑盒，其中最著名的是 SHAP。SHAP 为特定预测的每个特征计算并分配重要性分数。这个重要性<a id="_idIndexMarker389"/>分数被称为<strong class="bold"> Shapley 值</strong>，是合作博弈理论的一种实现，用于在模型的输入特征之间分配模型输出的信用。利用预测的每个特征的 Shapley 值，我们可以描述模型如何以及为什么做出这样的预测，以及哪个特征对此的贡献最大。如果有一个敏感特征对模型预测有很大影响，我们需要采取措施来解决这种影响。</p>
+			<p><strong class="bold"> Amazon SageMaker Clarify </strong>帮助开发人员发现训练数据和<a id="_idIndexMarker390"/>模型预测中的潜在偏差，并解释 ML 模型的特征重要性。SageMaker Clarify 计算各种指标来测量数据中的偏差，因此您不必成为 ML 偏差科学的专家。您可以将<a id="_idIndexMarker391"/> SageMaker Clarify 与 SageMaker <strong class="bold">软件开发套件</strong> ( <strong class="bold"> SDK </strong>)一起使用，以分析笔记本中的数据和模型，这将是我们在本章中重点介绍的内容。SageMaker Clarify 还与 Amazon SageMaker Data Wrangler 集成，因此您可以使用简单的图形界面来检测偏差。SageMaker <a id="_idIndexMarker392"/> Clarify 进一步与<strong class="bold">Amazon sage maker Experiments</strong>集成，为每个实验和<strong class="bold">Amazon sage maker Model Monitor</strong>提供图形结果，以便您可以识别训练模型和生产推理数据中的偏差和特性重要性<a id="_idIndexMarker393"/>。</p>
+			<p>让我们从一个 ML 示例开始，看看我们如何使用 SageMaker Clarify 来检测偏差。</p>
+			<h1 id="_idParaDest-94"><a id="_idTextAnchor093"/>检测 ML 中的偏倚</h1>
+			<p>对于这<a id="_idIndexMarker394"/>章节，我想使用来自<strong class="bold">加州大学欧文分校</strong>(<strong class="bold">https://archive.ics.uci.edu/ml/datasets/adult)ML 知识库<a href="https://archive.ics.uci.edu/ml/datasets/adult">的 ML 成人人口普查</a><a id="_idIndexMarker395"/>收入数据集。该数据集包含来自人口普查数据的人口统计信息<a id="_idIndexMarker396"/>和作为预测目标的收入水平。该数据集的目标是根据人口普查信息预测一个人的年收入是高于还是低于<strong class="bold">美元</strong> ( <strong class="bold">美元</strong>)<strong class="bold"/>(<strong class="bold"/>)5 万美元。这是一个很好的例子，也是包括性别和种族等社会敏感类别的 ML 用例类型，并且在生产 ML 模型时受到最严格的审查和监管，以确保公平性。</strong></p>
+			<p>在本节中，我们将分析数据集以检测训练数据中的数据偏差，如果存在任何偏差，则减轻偏差，训练 ML 模型，并分析是否存在针对特定组的任何模型偏差。</p>
+			<h2 id="_idParaDest-95"><a id="_idTextAnchor094"/>检测预训练偏差</h2>
+			<p>请在<code>Getting-Started-with-Amazon-SageMaker-Studio</code> <code>/chapter06/01-ml_fairness_clarify.ipynb</code>中打开<a id="_idIndexMarker398"/>笔记本，并按照以下步骤操作:</p>
+			<ol>
+				<li>我们将使用 SageMaker 实验来组织分析和培训工作。因此，我们在第一个单元中安装了<code>sagemaker-experiments</code>,我们设置了 SageMaker 会话，并在接下来的两个单元中导入了所需的库。</li>
+				<li>在第四个单元中，我们从 UCI ML 存储库中加载训练和测试数据集。<code>orig_columns</code>值解析自<a href="https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.names">https://archive . ics . UCI . edu/ml/machine-learning-databases/adult/adult . names</a>。在<code>education</code>和<code>education-num</code>要素中，原始数据集同时具有教育水平的字符串表示和序号表示。让我们只保留序号表示，去掉<code>education</code>列。我们还将<code>target</code>列移到第一列，因为我们将使用 SageMaker 的内置<code>XGBoost</code>算法来训练一个 ML 模型来预测目标。<code>target</code>列包含大于$50K ( <code>&gt;50K</code>)且小于等于$50K ( <code>&lt;=50K</code>)的收入标签。您可以在下面的屏幕截图中看到这方面的说明:</li>
+			</ol>
+			<div><div><img src="img/B17447_04_01.jpg" alt="Figure 6.1 – Screenshot of the DataFrame after step 2&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.1–步骤 2 后的数据帧截图</p>
+			<ol>
+				<li value="3">我们用来自<code>sklearn</code>的<code>OrdinalEncoder</code>对训练数据(<code>df</code>)和测试数据(<code>df_valtest</code>)中的分类特征进行<a id="_idIndexMarker399"/>编码，以使数据集与 XGBoost 算法兼容。编码后，值为<code>&gt;50K</code>和<code>&lt;=50K</code>的<code>target</code>变量分别编码为<code>1</code>和<code>0</code>；有一个潜在敏感的<code>sex</code>类别，其<code>Male</code>和<code>Female</code>值分别编码为<code>1</code>和<code>0</code>。我们进一步将测试数据集的 10%作为模型训练的验证数据集。</li>
+				<li>有了这个数据集，我们可以从多个角度分析数据的公正性和公平性。直觉上，性别收入平等是我们可以着手的一个角度。我们来做一些可视化来定性理解，如下:<pre>df['sex'].value_counts(sort=False).plot(kind='bar', title='Total count by sex', rot=0) plt.xlabel('Sex (0: Female, 1: Male)') df['target'].value_counts(sort=False).plot(kind='bar', title='Target distribution', rot=0) plt.xlabel('target (0: &lt;=50K, 1: &gt;50K)') df[df['target']==1]['sex'].value_counts(sort=False).plot(kind='bar', title='Earning &gt;$50K by sex', rot=0) plt.xlabel('Sex (0: Female, 1: Male)')</pre></li>
+			</ol>
+			<p>在下一张<a id="_idIndexMarker400"/>截图中，我们可以观察到以下内容:</p>
+			<ul>
+				<li>女性总数大约是男性的一半。</li>
+				<li>还有更多人的收入低于 5 万美元。</li>
+				<li>收入超过 5 万美元的男性多于女性。</li>
+			</ul>
+			<p>您可以在这里看到输出:</p>
+			<div><div><img src="img/B17447_04_02.jpg" alt="Figure 6.2 – Output of the plotting, showing the distribution of sex and income level; an imbalanced distribution in sex and income level can be observed&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.2-绘图输出，显示性别和收入水平的分布；可以看到性别和收入水平的不平衡分布</p>
+			<p>这种分布可能反映了社会不平等，但我们如何量化这些偏斜的分布，以便我们可以自动地和有计划地更好地意识到数据集中的偏差？这就是 SageMaker Clarify 发挥作用的地方。</p>
+			<p>SageMaker SDK ( <code>sagemaker.clarify</code>)中的 SageMaker Clarify 使用专用容器和 SageMaker 处理来计算 ML 偏差并解释 ML 预测。我们可以从使用适合数据集的计算资源类型实例化<code>sagemaker.clarify.SageMakerClarifyProcessor</code>开始，如下所示:</p>
+			<pre>from sagemaker import clarify
+clarify_processor = clarify.SageMakerClarifyProcessor(
+         role=role, 
+         instance_count=1, 
+         instance_type='ml.m5.xlarge', 
+         sagemaker_session=sess)</pre>
+			<ol>
+				<li value="5">在训练 ML 模型之前，我们将专门使用<code>SageMakerClarifyProcessor.run_pre_training_bias()</code>来计算数据偏差。它返回的指标允许我们根据我们选择的目标和方面来量化数据偏差，并允许我们采取措施来减轻偏差。但是首先，<code>run_pre_training_bias()</code>需要<a id="_idIndexMarker403"/>两个配置:一个<code>clarify.DataConfig()</code>，如下面的代码块所示:<pre>pretraining_bias_report_output_path = f's3://{bucket}/{prefix}/{experiment_name}-{exp_trial_1.trial_name}/clarify-pretraining-bias' bias_data_config = clarify.DataConfig(     s3_data_input_path=train_s3_uri,     s3_output_path=pretraining_bias_report_output_path,     label='target',     headers=df.columns.tolist(),     dataset_type='text/csv')</pre></li>
+			</ol>
+			<p>因为<code>train_s3_uri</code>中的训练数据不包含列标题，所以在<code>headers</code>参数中提供了特征列。在<code>label</code>参数中，我们从数据集中指定目标变量，它必须是<code>headers</code>参数中输入内容的列名之一。</p>
+			<p>在偏差配置中，我们指定方面，即我们希望使用<code>clarify.BiasConfig()</code>分析的敏感类别，如下所示:</p>
+			<pre>bias_config = clarify.BiasConfig(
+    label_values_or_threshold=[1], 
+    facet_name=['sex', 'race'], 
+    facet_values_or_threshold=[[0], None])</pre>
+			<p>我们希望分析数据集中有多少性别偏见(<code>sex</code>列)，特别是性别对结果(<code>target</code>列)的影响。为此，我们从列表中的目标到<code>label_values_or_threshold</code>参数指定一个正类(<code>&gt;50K</code>或<code>1</code>)。我们指定面为<code>sex</code>和<code>race</code>。虽然在这个例子中，我们主要关注性别偏见，但我们添加了一个<code>race</code>特性来展示你可以使用多个特性作为方面，而<a id="_idIndexMarker405"/>sage maker Clarify 将一次分析所有方面的偏见。最后一个必需的参数<code>facet_values_or_threshold</code>用于指定 SageMaker Clarify 在量化偏差时关注的方面中的敏感类别。<code>facet_values_or_threshold=[[0], None]</code>对应<code>facet_name=['sex', 'race']</code>。这意味着我们要求 Clarify 只计算<code>sex</code>中的类<code>0</code>的偏差度量，该类为女性，而不指定<code>race</code>的类(<code>None</code>，这将迫使 Clarify 计算<code>race</code>中所有类的偏差度量。</p>
+			<ol>
+				<li value="6">设置完成后，我们可以使用配置运行处理作业，如下所示:<pre>clarify_processor.run_pre_training_bias(     data_config=bias_data_config,     data_bias_config=bias_config,     methods='all',     job_name=jobname,     experiment_config=experiment_config)</pre></li>
+			</ol>
+			<p>我们要求 Clarify 用<code>methods='all'</code>计算所有可能的预训练偏差。SageMaker Clarify 与 SageMaker Experiments 集成在一起，因此我们也为这项工作提供了一个实验和试验配置。在笔记本上，我们把这个实验命名为<code>experiment_name = 'adult-income-clarify'</code>。</p>
+			<ol>
+				<li value="7">我们可以在<code>adult-income-clarify</code>条目中可视化 Clarify 结果，右键单击名称为时间戳的新试验条目<a id="_idIndexMarker406"/>，选择<strong class="bold">在试验组件列表</strong>中打开，如以下截图所示:</li>
+			</ol>
+			<div><div><img src="img/B17447_04_03.jpg" alt="Figure 6.3 – Selecting a trial to view the SageMaker Clarify result&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.3–选择一项试验以查看 SageMaker Clarify 结果</p>
+			<p>带有<strong class="bold">试验组件</strong>列表的新页面将出现在主工作区。我们可以打开<strong class="bold">试验详情</strong>页面，通过右键点击条目并选择<strong class="bold">在试验详情</strong>中打开来查看结果，如下图<a id="_idIndexMarker407"/>截图所示:</p>
+			<div><div><img src="img/B17447_04_04.jpg" alt="Figure 6.4 – Selecting a trial component to view the SageMaker Clarify result&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.4–选择试验组件查看 SageMaker Clarify 结果</p>
+			<ol>
+				<li value="8">在<strong class="bold">试验</strong> <strong class="bold">组件</strong>页面，移动到<strong class="bold">偏差报告</strong>页签，找到分析结果，如下图所示。在这里，您可以找到由 SageMaker Clarify 计算的指标:</li>
+			</ol>
+			<div><div><img src="img/B17447_04_05.jpg" alt="Figure 6.5 – Reviewing the pretraining bias report on the trial details page in SageMaker Studio&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.5–在 SageMaker Studio 的试验详情页面上查看预训练偏倚报告</p>
+			<p>对于每个<a id="_idIndexMarker408"/>指标，您可以看到一个描述来理解它的含义。有关更多信息，您可以展开一个行项目，通过示例和解释来查看指标是如何计算的。此外，您可以在详细信息的描述中找到更多的文章，以了解所有指标的数学定义。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">为了<a id="_idIndexMarker409"/>方便起见，这个<strong class="bold">统一资源定位符</strong> ( <strong class="bold"> URL </strong>)带<a id="_idIndexMarker410"/>你到技术白皮书:<a href="https://pages.awscloud.com/rs/112-TZM-766/images/Amazon.AI.Fairness.and.Explainability.Whitepaper.pdf">https://pages.awscloud.com/rs/112-TZM-766/images/Amazon.AI.Fairness.and.Explainability.Whitepaper.pdf</a>。如果你对指标背后的数学感兴趣，这是一本好书。</p>
+			<p>让我们回顾一下数据中的偏差。最值得注意的是，据报道存在<code>sex</code>特征，因为女性比男性少 0.34 或 34%。<code>&gt;50K</code>男性和女性相比。数据集中收入&gt; 50K 的男性比女性多 0.2%或 20%。这两个<a id="_idIndexMarker411"/>指标不仅证实了我们在笔记本上绘制的图表中看到的不平衡，还量化了不平衡。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout"><code>clarify.BiasConfig(group_name=None)</code>没有有效结果。</p>
+			<p class="callout">您可以查看我们在<code>clarify.BiasConfig()</code> — <code>race</code>中指定的其他方面和类别的分析，例如，通过切换<strong class="bold">列分析偏差</strong>和<strong class="bold">列值或阈值分析偏差</strong>下拉列表。</p>
+			<p class="callout">SageMaker <a id="_idIndexMarker412"/> Clarify 也在<code>pretraining_bias_report_output_path</code>和<code>variable</code>中保存了一份分析副本。</p>
+			<p>数据中的这种不平衡<a id="_idIndexMarker413"/>如果不加以缓解，很可能在训练后根深蒂固地成为 ML 模型，并且它可能开始重复它从有偏差的数据中学到的东西。让我们看看如何减轻它。</p>
+			<h2 id="_idParaDest-96"><a id="_idTextAnchor095"/>减轻偏差和训练模型</h2>
+			<p>有几个<a id="_idIndexMarker414"/>数据科学方法可以缓解数据失衡，例如匹配、过采样和欠采样。在本例中，让我们根据性别和目标结果尝试一个简单的匹配，以平衡男性和女性样本以及阳性结果中的比例(<code>&gt;50K</code>)。我们将如下进行:</p>
+			<ol>
+				<li value="1">回到笔记本，我们继续用数据来解决偏差，如下:<pre>max_female_sample=df.groupby(['sex', 'target'],             group_keys=False).count().loc[(0, 1)]['age'] df_sampled=df.groupby(['sex', 'target'],  group_keys=False).apply(lambda x: x.sample(max_female_sample))</pre></li>
+			</ol>
+			<p>这将生成一个采样和匹配的数据集，其中两性数量相等，在目标结果中所占比例相等。</p>
+			<ol>
+				<li value="2">我们可以<a id="_idIndexMarker416"/>通过绘制<a id="_idIndexMarker417"/>相同的图表，并使用 SageMaker Clarify 为这个具有相同偏差配置的采样和匹配数据集创建另一个预训练偏差分析，来验证这种方法的有效性。请注意，我们在 SageMaker 实验中创建了另一个试验来跟踪这次运行，并将输出定向到不同的输出 S3 位置。代码如下面的代码片段所示:<pre>pretraining_bias_report_output_path = f's3://{bucket}/{prefix}/{experiment_name}-{exp_trial_2.trial_name}/clarify-pretraining-bias' bias_data_config = clarify.DataConfig(     s3_data_input_path=train_sampled_s3_uri,     s3_output_path=pretraining_bias_report_output_path,     label='target',     headers=df_sampled.columns.tolist(),     dataset_type='text/csv')</pre></li>
+			</ol>
+			<p>然后，我们使用相同的<code>bias_config</code>并像之前一样调用<code>clarify_processor.run_pre_training_bias()</code>方法，在偏差缓解后运行训练前偏差分析作业。</p>
+			<ol>
+				<li value="3">SageMaker Clarify 工作完成后，我们可以在新的预训练偏倚分析工作的试验详细信息页面上打开<strong class="bold">偏倚报告</strong>功能。你可以看到<strong class="bold">等级不平衡(CI) </strong>和<strong class="bold">标签中的正比例差异(DPL) </strong>现在都为零。事实上，所有偏差指标都为零。</li>
+				<li>我们已经成功地消除了之前观察到的数据偏差。让我们从 SageMaker 的内置<code>XGBoost</code>算法开始模型训练，这是一个针对我们拥有的结构化数据的伟大工具。我们在第二个试验<code>exp_trial_2</code>中运行这个培训任务作为一个新的试验<a id="_idIndexMarker418"/>组件。对于超参数，我们选择一个<code>binary:logistic</code>目标用于二元分类，<code>error</code>作为<a id="_idIndexMarker419"/>评估度量，以及<code>50</code>轮优化。代码如下面的代码片段所示:<pre>experiment_config={'ExperimentName': experiment_name,                    'TrialName': exp_trial_2.trial_name,                    'TrialComponentDisplayName': 'Training'} ... xgb = sagemaker.estimator.Estimator(         image,         role,         instance_type='ml.m5.xlarge',         instance_count=1,         output_path=train_s3_output,         enable_sagemaker_metrics=True,         sagemaker_session=sess) xgb.set_hyperparameters(objective='binary:logistic',                         eval_metric='error',                         num_round=50) ... data_channels={'train': train_input, 'validation': val_input} xgb.fit(inputs=data_channels,          job_name=jobname,          experiment_config=experiment_config,          wait=True)</pre></li>
+			</ol>
+			<p>培训工作大约在 5 分钟内完成，包括基础架构配置。</p>
+			<ol>
+				<li value="5">我们从培训工作中创建了一个 SageMaker 模型，以便稍后我们可以在 SageMaker Clarify 工作中使用它来分析模型偏差。下面是完成这项工作的代码:<pre>model = xgb.create_model(name=model_name) container_def = model.prepare_container_def() sess.create_model(model_name, role, container_def)</pre></li>
+			</ol>
+			<p>对模型进行训练后，我们可以使用 SageMaker Clarify 来检测和测量预测中出现的偏差。</p>
+			<h2 id="_idParaDest-97"><a id="_idTextAnchor096"/>检测训练后偏差</h2>
+			<p>以下步骤在模型定型后分析预测和数据中的偏差。为了使用 SageMaker Clarify 运行训练后<a id="_idIndexMarker422"/>偏差分析，我们需要<a id="_idIndexMarker423"/>准备<a id="_idIndexMarker424"/>三个配置:一个<strong class="bold">数据配置</strong>，一个<strong class="bold">偏差配置</strong>，以及一个<strong class="bold">模型配置</strong>。按照以下步骤进行<a id="_idIndexMarker425"/>:</p>
+			<ol>
+				<li value="1">创建一个新的<code>clarify.DataConfig()</code>实例来分析匹配的训练数据，并将输出定向到不同的输出 S3 位置，如下所示:<pre>posttraining_bias_report_output_path = f's3://{bucket}/{prefix}/{experiment_name}-{exp_trial_2.trial_name}/clarify-posttraining-bias'  bias_data_config = clarify.DataConfig(     s3_data_input_path=train_sampled_s3_uri,     s3_output_path=posttraining_bias_report_output_path,     label='target',     headers=df_sampled.columns.tolist(),     dataset_type='text/csv')</pre></li>
+				<li>偏置配置与我们在预训练偏置分析中使用的配置相同。我们继续分析模型预测如何受到<code>sex</code>、<code>race</code>和<code>target</code>分布的影响。</li>
+				<li>当训练后分析作业开始时，将创建一个具有 ML 模型的 SageMaker 实时端点，以对输入数据进行短期<a id="_idIndexMarker426"/>预测，从而避免生产端点的额外流量(如果有的话)。该端点也称为影子端点，将在分析作业完成后取消调配。对于模型配置，我们指定一个模型并配置端点。<code>accept_type</code>表示端点响应有效载荷格式，<code>content_type</code>表示对端点请求的有效载荷格式。</li>
+			</ol>
+			<p>我们还将概率阈值指定为 0.5，以将 XGBoost 模型的概率输出转换为二进制硬标签，如下所示:</p>
+			<pre>model_config = clarify.ModelConfig(
+    model_name=model_name,
+    instance_type='ml.m5.xlarge',
+    instance_count=1,
+    accept_type='text/csv',
+    content_type='text/csv')
+predictions_config = clarify.ModelPredictedLabelConfig(probability_threshold=0.5)</pre>
+			<p>高于 0.5 的预测被预测为 1(<code>&gt;50K</code>)；否则为 0 ( <code>&lt;=50K</code>)。</p>
+			<ol>
+				<li value="4">最后，我们使用配置运行作业。我们要求计算所有有效的训练后偏差指标，如下:<pre>clarify_processor.run_post_training_bias(     data_config=bias_data_config,     data_bias_config=bias_config,     model_config=model_config,     model_predicted_label_config=predictions_config,     methods='all',         job_name=jobname,     experiment_config=experiment_config)</pre></li>
+				<li>我们也可以<a id="_idIndexMarker427"/>在二审(<code>exp_trial_2.trial_name</code>)的审判详情页面查看结果，如下图截图所示。我们看到，与训练前偏差分析相比，显示了一组不同的指标。训练后偏倚工作侧重于分析预测的标签或将预测值与数据中观察到的目标值进行比较，这些目标值与具有不同属性的组相关:</li>
+			</ol>
+			<div><div><img src="img/B17447_04_06.jpg" alt="Figure 6.6 – Reviewing the post-training bias report on the trial details page in SageMaker Studio&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.6–在 SageMaker Studio 的试验详情页面上查看培训后偏倚报告</p>
+			<p>在大多数测量方法中，如<strong class="bold">精确度差异(AD) </strong>，都存在<a id="_idIndexMarker428"/>非常低的偏差，这意味着该模型在预测两性收入水平方面同样准确。然而，有一个指标有相当高的偏差:<strong class="bold">待遇平等(TE) </strong>。这测量一个<em class="italic">类型 1 </em>错误(假阳性)和一个<em class="italic">类型 2 </em>错误(假阴性)是否以相同的方式影响两性。这是男女组之间假阴性与假阳性比率的差异。正值表示女性的假阴性与假阳性的比率较低。这意味着该模型更经常错误地预测女性是高收入者，而事实上她们不是；相反，情况正好相反。与男性相比，女性具有更高的假阳性率有些令人担忧，并且可能导致这种模型的不公平后果。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">我在<em class="italic">检测训练前偏差</em>部分分享的技术白皮书也有更多关于训练后指标的详细信息。你可以在这里找到论文:<a href="https://pages.awscloud.com/rs/112-TZM-766/images/Amazon.AI.Fairness.and.Explainability.Whitepaper.pdf">https://pages.awscloud.com/rs/112-TZM-766/images/Amazon.AI.Fairness.and.Explainability.Whitepaper.pdf</a>。</p>
+			<p>在了解了<a id="_idIndexMarker429"/>如何在预训练和后训练中测量偏差之后，我们还应该探索 ML 模型如何像 SageMaker Clarify 那样做出决策。</p>
+			<h1 id="_idParaDest-98"><a id="_idTextAnchor097"/>使用 SHAP 值解释 ML 模型</h1>
+			<p>SageMaker Clarify 还基于 Shapley 值的概念计算与模型无关的特征属性。Shapley 值可用于确定每个特征<a id="_idIndexMarker430"/>对模型预测的贡献。特征属性有助于解释模型如何做出决策。用一种可量化的<a id="_idIndexMarker431"/>方法来描述一个模型如何做出决策，使我们能够信任一个满足监管要求并支持人类决策过程的 ML 模型。</p>
+			<p>类似于使用 SageMaker Clarify 设置配置来运行偏差分析作业，需要三个配置来设置模型可解释性作业:一个<strong class="bold">数据配置</strong>，一个<strong class="bold">模型配置</strong>，以及一个<strong class="bold">可解释性配置</strong>。让我们按照同一个笔记本中的以下步骤进行操作:</p>
+			<ol>
+				<li value="1">使用训练数据集创建数据配置(匹配)。这类似于我们之前创建的数据配置。代码如下面的代码片段所示:<pre>explainability_data_config = clarify.DataConfig(     s3_data_input_path=train_sampled_s3_uri,     s3_output_path=explainability_output_path,     label='target',     headers=df_sampled.columns.tolist(),     dataset_type='text/csv')</pre></li>
+				<li>创建或重用之前为培训后偏差分析作业创建的<code>model_config</code>参数。</li>
+				<li>创建一个带有基线的<code>clarify.SHAPConfig()</code>实例。基线是一个数据点的实例，可用于计算输入数据的 Shapley 值。对于同一个模型，不同的<a id="_idIndexMarker433"/>基线会有不同的解释<a id="_idIndexMarker432"/>，因此基线的选择至关重要。希望选择具有非常低的信息内容的一般基线，例如平均或中间特征向量。在这种情况下，在我们的例子中，我们会将模型归因解释为为什么与普通人相比，特定的人被预测为高收入者。或者，您可以选择根据特定类型的数据来解释模型。例如，我们可以从相似的人口统计中选择一个基线来代表推断中的人。代码如下面的代码片段所示:<pre>baseline = df_sampled.query('target == 1').mode().iloc[0, 1:].astype(int).tolist() shap_config = clarify.SHAPConfig(     baseline=[baseline],     num_samples=15,     agg_method='mean_abs')</pre></li>
+			</ol>
+			<p>在我们的例子中，让我们使用<code>mode</code>作为基线，从训练数据中模拟一个“平均”高收入(<code>&gt;50K</code>)的人。<code>num_samples</code>参数用于确定生成的合成数据集的大小，以计算 SHAP 值。您也可以将其留空，让 Clarify 自动选择一个数字。<code>agg_method='mean_abs'</code>表示如何聚合全局 SHAP 值。</p>
+			<ol>
+				<li value="4">之后，我们<a id="_idIndexMarker434"/>使用<a id="_idIndexMarker435"/>配置开始分析工作，如下所示:<pre>clarify_processor.run_explainability(     data_config=explainability_data_config,     model_config=model_config,     explainability_config=shap_config,     job_name=jobname,     experiment_config=experiment_config,     wait=False,     logs=False)</pre></li>
+				<li>处理工作完成后，我们可以在 SageMaker Experiments 中的试验详细信息页面上查看<code>education-num</code>功能下的结果，该功能代表最高教育水平，对预测收入水平的贡献最大(<code>&gt;50K</code>或<code>&lt;=50K</code>):</li>
+			</ol>
+			<div><div><img src="img/B17447_04_07.jpg" alt="Figure 6.7 – Reviewing the model explainability results in SHAP values in SageMaker Studio&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.7–在 SageMaker Studio 中查看模型可解释性结果中的 SHAP 值</p>
+			<ol>
+				<li value="6">除了<a id="_idIndexMarker436"/>全局 SHAP 值，我们还可以<a id="_idIndexMarker437"/>查看任何给定数据点的本地 SHAP 解释，以解释模型如何对该特定数据点进行预测。SageMaker Clarify 计算并保存整个数据集的本地解释<a id="_idIndexMarker438"/>，该解释在<code>explainability_output_path</code>中的<code>clarify.DataConfig()</code>中提供。我们可以用下面的代码绘制特定数据点(第 500 行)的每个特征的局部 SHAP 值:<pre>S3Downloader.download(f'{explainability_output_path}/explanations_shap/out.csv', './', sagemaker_session=sess) local_explanations_out = pd.read_csv('out.csv') feature_names = [str.replace(c, '_label0', '') for c in local_explanations_out.columns.to_series()] local_explanations_out.columns = feature_names selected_example = 500 print(f'Example number: {selected_example}') print(f'with model prediction: {sum(local_explanations_out.iloc[selected_example]) &gt; 0}') print() print(f'Feature values: \n{df_sampled.iloc[selected_example].to_frame().T}') local_explanations_out.iloc[selected_example].plot(     kind='barh',      title=f'Local explanation for the {selected_example}th example.',      rot=0)</pre></li>
+			</ol>
+			<p>如<em class="italic">图 6.8 </em>所示，我们可以看到 XGBoost 模型是如何预测这个数据点为&lt; =50K 的。<code>marital-status</code>、<code>education-num</code>和<code>capital-gain</code>因素是模型认为这个人是低收入者的前三个因素。由于 SageMaker Clarify 计算的 SHAP 值，我们也可以理解和解释该模型如何在个体基础上进行预测。</p>
+			<div><div><img src="img/B17447_06_008.jpg" alt="Figure 6.8 – Explaining individual prediction&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.8–解释个人预测</p>
+			<p>完成<a id="_idIndexMarker440"/>示例后，让我们<a id="_idIndexMarker439"/>总结一下这一章</p>
+			<h1 id="_idParaDest-99"><a id="_idTextAnchor098"/>总结</h1>
+			<p>在这一章中，我们通过一个成人收入的例子探讨了 ML 和 ML 可解释性中的偏差。我们了解到，数据可能包含对数据集中某个群体或类别的不公平偏见，这可能转化为 ML 模型做出不公平的预测。我们通过 SageMaker Studio 中的一个成人收入水平预测示例，在使用<strong class="bold"> SageMaker Clarify </strong>进行模型训练之前分析和计算任何偏差。Clarify 生成量化数据集中可能导致不公平偏见的不平衡的指标。我们使用采样和匹配技术来减轻不平衡，并继续训练 ML 模型。我们使用 SageMaker Clarify 进一步分析了所得 ML 模型在预测中的潜在偏差。最后，我们回顾了 ML 模型如何使用 SageMaker Clarify 和 SHAP 值进行决策。</p>
+			<p>在下一章中，我们将学习在 SageMaker 中训练一个 ML 模型后去哪里。在云中托管一个 ML 模型对于大多数 ML 用例来说是至关重要的，能够使用 SageMaker 提供的合适的模型托管工具是您的组织成功采用 ML 的关键。我们将了解托管 ML 模型的各种选项，以及如何使用 SageMaker 的托管功能优化计算资源和成本。</p>
+		</div>
+	
+
+</body></html>

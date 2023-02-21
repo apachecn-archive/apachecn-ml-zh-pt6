@@ -1,0 +1,800 @@
+<html><head/><body><html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Naive Bayes and Discriminant Analysis</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">朴素贝叶斯和判别分析</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>朴素贝叶斯算法是一系列功能强大且易于训练的分类器，在给定一组条件的情况下，使用贝叶斯定理确定结果的概率。这种动态是基于条件概率(与原因相关)的反演，因此查询可以表示为可测量数量的函数。这种方法很简单，形容词<em> naive </em>被归因于不是因为这些算法有限或效率较低，而是因为关于我们将要讨论的因果因素的一个基本假设。朴素贝叶斯算法是多用途分类器，很容易在许多不同的上下文中找到它们的应用。然而，在所有这些情况下，它们的性能特别好，在这些情况下，类的概率是由一些因果因素的概率决定的。许多理想的例子来源于<strong>自然语言处理</strong> ( <strong> NLP </strong>)，其中一段文本可以被视为字典的一个特定实例，所有术语的相对频率提供了足够的信息来推断所属的类别。</p>
+
+<p>在本章中，我们将讨论以下内容:</p>
+
+<ul>
+
+<li>贝叶斯定理及其应用</li>
+
+<li>朴素贝叶斯分类器(伯努利、多项式和高斯)</li>
+
+<li>判别分析(线性和二次)</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Bayes' theorem</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">贝叶斯定理</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>让我们考虑两个概率事件，<em> A </em>和<em> B </em>。我们可以使用乘积规则将边际概率<em> P(A) </em>和<em> P(B) </em>与条件概率<em> P(A|B) </em>和<em>P(B | A)</em>相关联:</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/11f65b5b-df64-4600-8059-97f6befbd34d.png" style="width:13.83em;height:3.08em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">考虑到交集是可交换的，第一个成员是相等的，所以我们可以推导出贝叶斯定理:</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/9baeae5c-f042-427a-83a1-7de56e7bc494.png" style="width:12.00em;height:2.92em;"/></p>
+
+<p>在一般的离散情况下，考虑到随机变量<em> A </em>的所有可能结果，公式可以重新表达:</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/2837efd2-6c93-4aab-9408-fa14d96d0f76.png" style="width:15.08em;height:3.08em;"/></p>
+
+<p>由于分母是归一化因子，该公式通常表示为比例关系:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/67427b4f-99fe-4051-982a-b6db6aad39e4.png" style="width:12.50em;height:1.50em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">这个公式有非常深刻的哲学含义，它是统计学习的一个基本要素。首先我们来考虑边际概率，<em> P(A)。</em>这通常是一个确定目标事件发生概率的值，如<em> P(垃圾)</em>或<em> P(下雨)</em>。由于没有其他因素，这种概率被称为<strong>先验</strong>，因为它通常由数学或上下文考虑因素决定。例如，假设我们想要实现一个非常简单的垃圾邮件过滤器，我们已经收集了 100 封电子邮件。我们知道 30 封是垃圾邮件，70 封是普通邮件。所以，我们可以说<em> P(垃圾)</em> = <em> 0.3 </em>。</p>
+
+<p class="CDPAlignLeft CDPAlign">然而，我们希望使用一些标准进行评估(为了简单起见，让我们考虑一个标准)——例如，电子邮件文本短于 50 个字符<em xmlns:epub="http://www.idpf.org/2007/ops">。因此，我们的查询变成如下:</em></p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/83a33269-5e83-4465-969d-f69f30c55847.png" style="width:33.75em;height:3.08em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">第一项类似于<em> P(垃圾邮件)</em>，因为它是给定特定条件下垃圾邮件的概率。正因如此，它被称为<strong>后验</strong>(换句话说，它是我们在知道一些附加元素后可以估计的概率)。在右边，我们需要计算缺失值，但这很简单。我们假设 35 封邮件的文本短于 50 个字符，那么<em>P(Text&lt;50 chars)</em><em>= 0.35</em>。只查看我们的<kbd>spam</kbd>文件夹，我们发现只有 25 封垃圾邮件有简短的文本，因此<em>P(Text&lt;50 chars | Spam)= 25/30 = 0.83</em>。结果是这样的:</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/4b9b5c6f-b719-441a-a3ed-478e6180ed83.png" style="width:25.42em;height:2.83em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">所以，收到一封很短的邮件后，有 71%的概率是垃圾邮件。现在，我们可以理解<em>P(Text&lt;50 chars | Spam)</em>的作用了；由于我们有实际的数据，我们可以衡量我们的假设给定查询的可能性有多大。换句话说，我们已经定义了一个似然性(将这个概念与逻辑回归进行比较)，它是先验概率和后验概率之间的一个权重:</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/15292b03-6c8b-4fc4-a301-ce9fe874b340.png" style="width:20.25em;height:1.42em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">归一化因子通常用字母α表示，因此原始公式为:</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/65d188ed-a291-4d31-adbe-d9e8b7c3fb0f.png" style="width:14.00em;height:1.58em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">最后一步是考虑有更多并发条件的情况(这在现实问题中更现实):</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/5bd90b4c-dc06-4cd2-895d-9ce762915670.png" style="width:13.25em;height:1.50em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">通常，当考虑联合先验概率时，这个问题会变得非常复杂。事实上，考虑单个因素的影响很容易，但当问题以下列方式表达时，就会变得棘手:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/f841689f-464c-464b-a154-ff945f30b05c.png" style="width:29.75em;height:1.42em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">因此，一个常见的假设是，当这些原因涉及到引起相同的结果时，就认为它们是相互独立的。形式上，这个假设被称为<strong>条件独立性</strong>，它允许使用一个简化的表达式:</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/ac11b0bc-b04c-4680-ba91-44768940ec4a.png" style="width:31.58em;height:1.42em;"/></p>
+
+<p>很明显，计算单打<em> P(C <sub> i </sub> |A) </em>并相乘比考虑联合概率更容易。例如，考虑到垃圾邮件检测问题，我们可以以这种形式设想一个联合概率:</p>
+
+<div><img class="fm-editor-equation" src="img/ba1b24ce-812e-4c80-8233-a91673858b86.png" style="width:22.25em;height:1.33em;"/></div>
+
+<p>即使问题非常简单，我们也需要考虑所有文本长度小于 50 个字符且包含单词 s <em> hop </em>的电子邮件的交集。在更复杂的情况下，由于各种因素之间的交叉影响，很难确定这个概率。条件独立性仅仅是建立在零(或完全可以忽略)交叉影响的基础上，正如我们将要讨论的，即使当我们期望不同原因之间的相互作用时，这样的条件也是经常遇到的。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Naive Bayes classifiers</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">朴素贝叶斯分类器</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>朴素贝叶斯分类器之所以被称为朴素贝叶斯分类器，是因为它基于一个朴素的条件，这意味着原因的条件独立性。在许多特定特征的概率与另一个特征严格相关的情况下，这似乎很难接受。例如，在垃圾邮件过滤中，短于 50 个字符的文本可能会增加图像出现的概率，或者如果该域已经因为向数百万用户发送相同的垃圾邮件而被列入黑名单，它可能会找到特定的关键字。换句话说，一个原因的存在通常不会独立于其他原因的存在。然而，在<em>朴素贝叶斯的最优性</em>、<em>1</em>、<em>2(2004):3</em>、<em>张 H. </em>中，作者证明了在特定的条件下(并非很少发生)，不同的依赖关系相互清除，并且即使条件独立性不确定，朴素贝叶斯分类器也能成功地实现非常高的性能。</p>
+
+<p class="CDPAlignLeft CDPAlign">让我们考虑一个数据集:</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/80599ad7-312d-4841-956a-c170627c6586.png" style="width:25.42em;height:1.83em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">为简单起见，每个特征向量将表示如下:</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/a11f262b-b512-4de0-8ff0-bf0b114806e7.png" style="width:18.17em;height:3.33em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">我们还需要一个目标数据集(带有<em> P </em>个可能的类):</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/5509d1fa-3c9c-459f-acb7-6575d842c717.png" style="width:28.67em;height:1.58em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">这里，每个<em> y </em>可以属于<em> P-1 </em>不同类别中的一个。考虑条件独立下的贝叶斯定理，我们可以写出如下:</p>
+
+<div><img class="fm-editor-equation" src="img/f5e517ac-7e9a-4fc8-8026-bd12ee8fff04.png" style="width:28.92em;height:3.58em;"/></div>
+
+<p class="CDPAlignLeft CDPAlign">边际先验概率<em xmlns:epub="http://www.idpf.org/2007/ops"> P(y <sub> i </sub> ) </em>和条件概率<em xmlns:epub="http://www.idpf.org/2007/ops">P(x<sub>I</sub>T24】(j)| y<sub>I</sub>)</em>的值一般是通过频数或最大似然估计得到的，因此，给定一个输入向量<em xmlns:epub="http://www.idpf.org/2007/ops"> x </em>，预测的类别就是后验概率最大的类别。然而，在许多实现中(包括 scikit-learn)，也可以为每个类指定一个先验<em xmlns:epub="http://www.idpf.org/2007/ops"> P(y <sub> i </sub>)，</em>，以便将训练集中在给定可能性的后验分布的优化上。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Naive Bayes in scikit-learn</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">scikit-learn 中的朴素贝叶斯</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>scikit-learn 基于相同数量的不同概率分布实现了三种朴素贝叶斯变体:伯努利分布、多项式分布和高斯分布。第一种是二元分布，当一个特征存在或不存在时很有用。第二种是离散分布，每当一个特征必须用整数表示时使用(例如，在 NLP 中，它可以是一个词的频率)，而第三种是以其均值和方差为特征的连续分布。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Bernoulli Naive Bayes</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">伯努利朴素贝叶斯</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>如果<em> X </em>是一个伯努利分布的随机变量，它只能有两种可能的结果(为简单起见，我们称它们为<em> 0 </em>和<em> 1 </em>)，它们的概率是这样的:</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/3fe575a7-6e95-412f-82c4-1699a2381ecf.png" style="width:32.25em;height:3.42em;"/></p>
+
+<p>通常，输入向量<em xmlns:epub="http://www.idpf.org/2007/ops">x<sub>I</sub>T45】被假设为多元伯努利分布，并且每个特征是二元且独立的。根据频率计数学习模型的参数。因此，如果存在具有<em xmlns:epub="http://www.idpf.org/2007/ops"> m </em>特征的<em xmlns:epub="http://www.idpf.org/2007/ops"> n </em>个样本，则第<em xmlns:epub="http://www.idpf.org/2007/ops"> i <sup>第</sup>第</em>个特征的概率是这样的(<em xmlns:epub="http://www.idpf.org/2007/ops">N<sub>x<sup>(I)</sup></sub></em>计算第<em xmlns:epub="http://www.idpf.org/2007/ops"> i <sup>第</sup> = 1 </em>)个特征的次数:</em></p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/f69e4156-9e88-4e18-ac63-fa477449e034.png" style="width:8.83em;height:3.25em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">为了用 scikit-learn 测试这个算法，我们将生成一个虚拟数据集。伯努利朴素贝叶斯期望二元特征向量；然而，<kbd>BernoulliNB</kbd>类有一个<kbd>binarize</kbd>参数，它允许我们指定一个阈值，该阈值将在内部用于转换特性:</p>
+
+<pre>from sklearn.datasets import make_classification<br/><br/>nb_samples = 300<br/><br/>X, Y = make_classification(n_samples=nb_samples, n_features=2, n_informative=2, n_redundant=0)</pre>
+
+<p class="CDPAlignLeft CDPAlign">我们已经生成了下图所示的二维数据集:</p>
+
+<div><img class="image-border" src="img/43625659-01f1-4032-888d-03ab1874273b.png" style="width:30.58em;height:24.83em;"/></div>
+
+<p>伯努利朴素贝叶斯检验的数据集</p>
+
+<p class="mce-root">我们决定使用<kbd>0.0</kbd>作为二进制阈值，这样每个点都可以通过它所在的象限来表征。当然，对于我们的数据集来说，这是一个合理的选择，但伯努利朴素贝叶斯适用于二进制特征向量或连续值，它们可以用预定义的阈值精确分割:</p>
+
+<pre>from sklearn.naive_bayes import BernoulliNB<br/>from sklearn.model_selection import train_test_split<br/><br/>X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.25)<br/><br/>bnb = BernoulliNB(binarize=0.0)<br/>bnb.fit(X_train, Y_train)<br/><br/>print(bnb.score(X_test, Y_test))<br/>0.85333333333333339</pre>
+
+<p class="CDPAlignLeft CDPAlign">分数相当不错，但如果我们想了解二进制分类器是如何工作的，了解数据是如何在内部二进制化的是很有用的:</p>
+
+<div><img class="image-border" src="img/9211a278-2832-4eea-8ede-8a56d2bed8ce.png" style="width:35.58em;height:27.25em;"/></div>
+
+<p>二值化数据集的结构</p>
+
+<p class="mce-root">现在，检查朴素贝叶斯预测，我们得到以下结果:</p>
+
+<pre>data = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])<br/><br/>print(bnb.predict(data))<br/>[0, 0, 1, 1]</pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Multinomial Naive Bayes</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">多项式朴素贝叶斯</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>多项式分布有助于对特征向量进行建模，其中每个值代表例如某个术语的出现次数或其相对频率。如果特征向量具有<em xmlns:epub="http://www.idpf.org/2007/ops"> n 个</em>元素，并且它们中的每一个可以以概率<em xmlns:epub="http://www.idpf.org/2007/ops">p<sub>k</sub>T10】假定<em xmlns:epub="http://www.idpf.org/2007/ops"> k </em>个不同的值，则:</em></p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/3c554d27-b57c-46c8-be02-29c4682d27df.png" style="width:31.58em;height:3.67em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">条件概率<em>P(x</em><sup><sub>(I)</sub></sup><em>| y<sub>j</sub>)</em>是用频率计数计算的(这对应于应用最大似然法)，但在这种情况下，重要的是还要考虑校正参数α(称为<strong>拉普拉斯</strong>或<strong>李德斯通平滑因子</strong>)，以避免零概率:</p>
+
+<div><img class="fm-editor-equation" src="img/e6e5629a-65f1-4147-8ff9-423b83cdc41e.png" style="width:17.08em;height:3.75em;"/></div>
+
+<p class="CDPAlignLeft CDPAlign">在前面的表达式中，分子类似于伯努利情况(加上了α)，实际上它统计的是输入样本的第<em> i <sup> th </sup> </em>特征中<em> y <sub> j </sub> </em>类的出现次数。相反，分母是<em>y<sub>j</sub>j</em>类(在所有特征中)出现的总次数加上与输入维数成比例的校正因子。在空计数的情况下，概率默认为一个常数值。当评估其特征不包括在训练集中的样本时，这种校正非常有用。即使这是一种应该被适当管理的情况，如果没有纠正，它们的概率将是零。例如，在 NLP 中，通常从文档语料库开始构建字典，然后分割矢量化数据集(其中每个元素包含 n 个特征，代表特定单词的出现次数(或其函数)。如果某个单词没有出现在属于训练集的任何文档中，则在大多数情况下，非平滑模型将无法正确管理该文档(也就是说，仅考虑已知元素来分配最可能的类别)。</p>
+
+<p class="mce-root"/>
+
+<p class="CDPAlignLeft CDPAlign"><em> α </em>的默认值是<em> 1.0 </em>(在这种情况下，它被称为拉普拉斯因子)，它防止模型在频率为零时设置零概率。可以给所有非负值赋值；但是，较大的值会将较高的概率分配给缺失的要素，这种选择可能会改变模型的稳定性。当<em> α &lt; 1.0 </em>时，通常称为<strong>滑动系数</strong>。很明显，如果<em> α → 0 </em>，效果变得越来越可以忽略，回到非常类似于伯努利朴素贝叶斯的场景。在我们的例子中，我们将考虑默认值<em> 1.0 </em>。</p>
+
+<p class="CDPAlignLeft CDPAlign">出于我们的目的，我们将使用已经在第 2 章<a xmlns:epub="http://www.idpf.org/2007/ops" href="" target="_blank">中分析过的<kbd xmlns:epub="http://www.idpf.org/2007/ops">DictVectorizer</kbd>，<em xmlns:epub="http://www.idpf.org/2007/ops">机器学习中的重要元素</em>。有自动工具来计算术语的频率，但我们将在以后讨论它们。让我们只考虑两个记录:第一个代表城市，第二个代表乡村。我们的字典包含假设的频率，就好像这些术语是从文本描述中提取的一样:</a></p>
+
+<pre>from sklearn.feature_extraction import DictVectorizer<br/><br/>data = [<br/>   {'house': 100, 'street': 50, 'shop': 25, 'car': 100, 'tree': 20},<br/>   {'house': 5, 'street': 5, 'shop': 0, 'car': 10, 'tree': 500, 'river': 1}<br/>]<br/><br/>dv = DictVectorizer(sparse=False)<br/>X = dv.fit_transform(data)<br/>Y = np.array([1, 0])<br/><br/>print(X)<br/>[[ 100.,  100.,    0.,   25.,   50.,   20.],<br/> [  10.,    5.,    1.,    0.,    5.,  500.]]</pre>
+
+<p class="CDPAlignLeft CDPAlign">请注意，第一组中缺少了术语<kbd>'river'</kbd>，因此让α等于<kbd>1.0</kbd>以给出一个小概率是有用的。城市的输出等级为<kbd>1</kbd>，农村的输出等级为<kbd>0</kbd>。现在我们可以训练一个<kbd>MultinomialNB</kbd>实例:</p>
+
+<pre>from sklearn.naive_bayes import MultinomialNB<br/><br/>mnb = MultinomialNB()<br/>mnb.fit(X, Y)<br/><br/>MultinomialNB(alpha=1.0, class_prior=None, fit_prior=True)</pre>
+
+<p class="CDPAlignLeft CDPAlign">为了测试这个模型，我们创建了一个带有<kbd>river</kbd>的虚拟城市和一个没有<kbd>river</kbd>的虚拟乡村:</p>
+
+<pre>test_data = data = [<br/>   {'house': 80, 'street': 20, 'shop': 15, 'car': 70, 'tree': 10, 'river': 1},<br/>   {'house': 10, 'street': 5, 'shop': 1, 'car': 8, 'tree': 300, 'river': 0}<br/>]<br/><br/>print(mnb.predict(dv.fit_transform(test_data)))<br/>[1, 0]</pre>
+
+<p class="CDPAlignLeft CDPAlign">不出所料，预测是正确的。稍后，当讨论 NLP 的一些元素时，我们将使用一个<strong>多项朴素贝叶斯</strong>用于具有较大语料库的文本分类。即使多项式分布是基于出现的次数，它也可以成功地用于频率或更复杂的函数。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>An example of Multinomial Naive Bayes for text classification</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">多项式朴素贝叶斯文本分类的一个例子</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在这个例子中，我们想要展示如何使用多项式朴素贝叶斯模型来有效地对文本数据进行分类。数据集被称为<em xmlns:epub="http://www.idpf.org/2007/ops"> 20 新闻组</em>(【http://qwone.com/~jason/20Newsgroups/】T21)，它已经内置在 scikit-learn 中(所有预处理步骤都已经执行)。有 20，000 个职位分成 20 个类别，训练集包含 11，314 个职位，测试集包含 7，532 个职位。在<a xmlns:epub="http://www.idpf.org/2007/ops" href="5afb3604-3bdd-49d1-aea7-df0e414e34ff.xhtml">第 13 章</a>、<em xmlns:epub="http://www.idpf.org/2007/ops">自然语言处理简介</em>中，我们将讨论将文本转换成数字向量所必需的最常见的技术，然而，对于这个例子，知道字典包含 130，107 个单词并且每个文档是一个向量<em xmlns:epub="http://www.idpf.org/2007/ops">x<sub>I</sub>∈ℜ<sup>130107</sup>t32 就足够了，其中每个特征代表一个特定单词的频率。由于帖子通常很短(相对于字典而言)，向量非常稀疏，大多数值等于<em xmlns:epub="http://www.idpf.org/2007/ops"> 0.0 </em>(意味着一个单词不在文档中)。我们的目标是训练一个模型，能够将未知的帖子分配到正确的类别。换句话说，我们想要检查多项式分布是否能够有效地表示数据集。</em></p>
+
+<p>让我们开始使用<kbd>fetch_20newsgroups_vectorized()</kbd>函数加载训练和测试数据块(已经矢量化)，并将<kbd>subset</kbd>参数设置为等于<kbd>'train'</kbd>和<kbd>'test'</kbd>:</p>
+
+<pre>from sklearn.datasets import fetch_20newsgroups_vectorized<br/><br/>train_data = fetch_20newsgroups_vectorized(subset='train')<br/>test_data = fetch_20newsgroups_vectorized(subset='test')</pre>
+
+<p>此时，我们可以实例化和训练多项式朴素贝叶斯模型(由于向量非常稀疏，我们更倾向于设置 Lidstone 系数，<kbd>alpha=0.01</kbd>，因为缺少一个单词会产生错误的分类结果。较高的值可以平滑向量，但是在这种情况下，许多不太可能的单词会对准确性产生负面影响):</p>
+
+<pre>from sklearn.naive_bayes import MultinomialNB<br/><br/>mnb = MultinomialNB(alpha=0.01)<br/>mnb.fit(train_data['data'], train_data['target'])<br/><br/>print(mnb.score(test_data['data'], test_data['target']))<br/>0.835103558152</pre>
+
+<p>验证准确性相当高(83%)，证实了文档可以使用多项式分布来建模，并且不令人惊讶的是，特定单词的组成足以在大多数情况下确定正确的类别。为了进一步确认，让我们绘制混淆矩阵:</p>
+
+<div><img src="img/8c228a1b-e1f8-4b78-aa6e-9f4f3aa0c0de.png"/></div>
+
+<p>使用多项式朴素贝叶斯分类的 20 个新闻组数据集的混淆矩阵</p>
+
+<p>以最小的混乱正确地检测到大量的类别。此外，我们还可以观察到很大比例的错误是由于非常相似的类别(例如，<strong> sci.electronics </strong>和<strong> comp.sys.ibm.pc.hardware </strong>或<strong> comp.sys.mac.hardware </strong>)。即使不分析每个帖子的内容，我们也可以假设在所有这些情况下都很有可能观察到高度的相似性，并且分类可能只依赖于非常小的区分词子集。我邀请读者使用不同的拉普拉斯/李德斯通系数值和伯努利朴素贝叶斯来重复这个练习。在这种情况下，有必要使用略高于<kbd>0.0</kbd>的阈值<kbd>binarize</kbd>数据集(以便移除所有那些概率非常低的元素)，例如:</p>
+
+<pre>from sklearn.preprocessing import binarize<br/><br/>X_train_binary = binarize(train_data['data'], threshold=0.01)<br/>X_test_binary = binarize(test_data['data'], threshold=0.01)</pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Gaussian Naive Bayes</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">高斯朴素贝叶斯</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>高斯朴素贝叶斯在处理连续值时非常有用，连续值的概率可以使用高斯分布来建模，高斯分布的均值和方差与每个特定的类相关联(在这种情况下，假设<em> j=1，2，...P </em>):</p>
+
+<div><img class="fm-editor-equation" src="img/ee71732f-6e59-47dd-9402-b82b9ee51887.png" style="width:18.33em;height:6.25em;"/></div>
+
+<p class="CDPAlignLeft CDPAlign">我们的目标是使用最大似然法估计每个条件分布的均值和方差，考虑到高斯分布的数学本质，这是非常容易的。整个数据集的可能性如下所示:</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/9a929734-7c08-4b13-9e48-2286125b65ab.png" style="width:28.08em;height:3.08em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">现在，扩展最后一项，我们得到下面的表达式(为了避免混淆，由于均值和方差与<em xmlns:epub="http://www.idpf.org/2007/ops">y<sub>I</sub>T16】类相关联，我们将使用索引<em xmlns:epub="http://www.idpf.org/2007/ops"> j </em>来表示它们，因此它们被排除在总和之外):</em></p>
+
+<div><img class="fm-editor-equation" src="img/fc919687-d54b-40f4-a1d8-3e0ec76bc946.png" style="width:31.17em;height:4.00em;"/></div>
+
+<p>为了最大化可能性，我们需要计算关于<em xmlns:epub="http://www.idpf.org/2007/ops">μ<sub>j</sub>T22】和<em xmlns:epub="http://www.idpf.org/2007/ops">σ<sub>j</sub>T26】的偏导数(第一项是常数，可以去掉):</em></em></p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/64e3c7a3-0caf-4afa-9f6b-7e1a19a65ddb.png" style="width:29.25em;height:3.50em;"/></p>
+
+<p class="mce-root">设偏导数等于零，我们得到平均值<em xmlns:epub="http://www.idpf.org/2007/ops">μ<sub>j</sub>T31】的公式:</em></p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/990beb28-ed3c-4758-a237-5cfe43c1314f.png" style="width:7.50em;height:3.33em;"/></p>
+
+<p>类似地，我们可以计算关于<em xmlns:epub="http://www.idpf.org/2007/ops">σ<sub>j</sub>T36】的导数:</em></p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/64aa44c2-ff8c-414e-8f75-be81d012eaae.png" style="width:30.25em;height:3.42em;"/></p>
+
+<p class="mce-root">因此，方差<em xmlns:epub="http://www.idpf.org/2007/ops">σ<sub>j</sub>T41】2T43】的表达式为:</em></p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/0c62c59f-d659-437b-a048-f0e815b27e57.png" style="width:10.50em;height:3.08em;"/></p>
+
+<p>重要的是要记住，索引<em xmlns:epub="http://www.idpf.org/2007/ops"> j </em>是作为一个辅助术语引入的，但在实际的可能性计算中，它指的是分配给样本<em xmlns:epub="http://www.idpf.org/2007/ops">x<sub>I</sub>T50】的标签。</em></p>
+
+<p class="CDPAlignLeft CDPAlign">作为一个例子，我们使用 ROC 曲线比较高斯朴素贝叶斯和逻辑回归。该数据集包含 300 个样本，具有两个特征。每个样本属于一个类别:</p>
+
+<pre>from sklearn.datasets import make_classification<br/><br/>nb_samples = 300<br/><br/>X, Y = make_classification(n_samples=nb_samples, n_features=2, n_informative=2, n_redundant=0)</pre>
+
+<p class="CDPAlignLeft CDPAlign">下图显示了数据集的曲线图:</p>
+
+<div><img class="image-border" src="img/d6315407-58f4-4dbf-81a0-8565c0d7f312.png" style="width:41.58em;height:33.50em;"/></div>
+
+<p>高斯朴素贝叶斯检验数据集</p>
+
+<p class="mce-root">现在我们可以训练这两个模型并生成 ROC 曲线(朴素贝叶斯的<kbd>Y</kbd>得分通过<kbd>predict_proba</kbd>方法获得):</p>
+
+<pre>from sklearn.naive_bayes import GaussianNB<br/>from sklearn.linear_model import LogisticRegression<br/>from sklearn.metrics import roc_curve, auc<br/>from sklearn.model_selection import train_test_split<br/><br/>X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.25)<br/><br/>gnb = GaussianNB()<br/>gnb.fit(X_train, Y_train)<br/>Y_gnb_score = gnb.predict_proba(X_test)<br/><br/>lr = LogisticRegression()<br/>lr.fit(X_train, Y_train)<br/>Y_lr_score = lr.decision_function(X_test)<br/><br/>fpr_gnb, tpr_gnb, thresholds_gnb = roc_curve(Y_test, Y_gnb_score[:, 1])<br/>fpr_lr, tpr_lr, thresholds_lr = roc_curve(Y_test, Y_lr_score)</pre>
+
+<p class="CDPAlignLeft CDPAlign">生成的 ROC 曲线(以与上一章相同的方式生成)如下图所示:</p>
+
+<div><img class="image-border" src="img/1b5b8cf5-587a-4a42-a98a-632a08e10785.png" style="width:38.00em;height:38.75em;"/></div>
+
+<p>比较朴素贝叶斯和逻辑回归得分的 ROC 曲线</p>
+
+<p class="CDPAlignLeft CDPAlign">朴素贝叶斯的性能略好于逻辑回归。然而，这两个分类器具有相似的准确度和曲线下面积 ( <strong xmlns:epub="http://www.idpf.org/2007/ops"> AUC </strong>)。用 MNIST 数字数据集比较高斯和多项式朴素贝叶斯的性能是很有趣的。每个样本(属于 10 个类)是一个编码为无符号整数(0-255)的 8×8 图像；因此，即使每个特征不代表实际的计数，它也可以被认为是一种幅度或频率:</p>
+
+<pre>from sklearn.datasets import load_digits<br/>from sklearn.model_selection import cross_val_score<br/><br/>digits = load_digits()<br/><br/>gnb = GaussianNB()<br/>mnb = MultinomialNB()<br/><br/>cross_val_score(gnb, digits.data, digits.target, scoring='accuracy', cv=10).mean()<br/>0.81035375835678214<br/><br/>cross_val_score(mnb, digits.data, digits.target, scoring='accuracy', cv=10).mean()<br/>0.88193962163008377<strong><br/></strong></pre>
+
+<p class="CDPAlignLeft CDPAlign">多项式朴素贝叶斯比高斯变量表现更好，结果并不令人惊讶。事实上，每个样本可以被认为是从 64 个符号的字典中导出的特征向量，拉普拉斯系数的影响可以减轻在相同数字类别的子集中观察到的变形。每个要素(强度介于 0 和 16 之间的像素)的值与每次出现的次数成比例，因此多项式分布可以更好地拟合数据，而高斯分布受其均值和方差的限制稍大。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Discriminant analysis</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">判别分析</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>让我们假设考虑一个多类分类问题，其中样本<em> x <sub> i </sub> ∈ ℜ <sup> m </sup> </em>属于<em> y <sub> j </sub> </em>类的条件概率可以建模为多元高斯分布(<em> X </em>被假设为由具有极低共线性的<strong>独立且同分布的</strong> ( <strong> i.i.d </strong>)变量组成</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/57b8607c-db18-46a0-a4cd-4dcdecce5bff.png" style="width:25.58em;height:4.17em;"/></p>
+
+<p>在这种情况下，类<em xmlns:epub="http://www.idpf.org/2007/ops"> j </em>完全由均值向量<em xmlns:epub="http://www.idpf.org/2007/ops">μ<sub>j</sub>T26】和协方差矩阵<em xmlns:epub="http://www.idpf.org/2007/ops">σ<sub>j</sub>T30】决定。如果应用贝叶斯定理，我们可以得到后验概率<em xmlns:epub="http://www.idpf.org/2007/ops">p(y<sub>j</sub>| x<sub>I</sub>)</em>:</em></em></p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/6885f033-0285-4ed1-823f-1d10911e281d.png" style="width:15.42em;height:3.83em;"/></p>
+
+<p>考虑到高斯朴素贝叶斯的讨论，不难理解如何使用训练集来估计<em xmlns:epub="http://www.idpf.org/2007/ops">μ<sub>j</sub>T41】和<em xmlns:epub="http://www.idpf.org/2007/ops">σ<sub>j</sub>T45】的可能性，事实上，它们对应于样本均值和协方差，并且可以容易地以封闭形式计算。</em></em></p>
+
+<p>现在，为了简单起见，我们来考虑一个二元问题使得参数为(<em xmlns:epub="http://www.idpf.org/2007/ops"> μ <sub> 0 </sub> </em>，<em xmlns:epub="http://www.idpf.org/2007/ops">σ<sub>0</sub></em>)和(<em xmlns:epub="http://www.idpf.org/2007/ops"> μ <sub> 1 </sub> </em>，<em xmlns:epub="http://www.idpf.org/2007/ops">σ<sub>1</sub></em>)。在<strong xmlns:epub="http://www.idpf.org/2007/ops">二次判别分析</strong> ( <strong xmlns:epub="http://www.idpf.org/2007/ops"> QDA </strong>)中，我们通过比较对数似然性来预测 a 类样本<em xmlns:epub="http://www.idpf.org/2007/ops"> x <sub> i </sub> </em>，如果比值小于预先设定的阈值<em xmlns:epub="http://www.idpf.org/2007/ops"> λ </em>，则将其分配给 0 类，如果比值大于阈值，则分配给 1 类:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/267a2b29-f05a-4840-bcfd-01dbc281a6ee.png" style="width:65.42em;height:14.25em;"/></p>
+
+<p class="mce-root">换句话说，一旦确定了参数，就将样本分配给对应于最高对数似然性的类别:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/80d3f620-4047-402d-bf94-115ce2ffbbf0.png" style="width:57.83em;height:2.17em;"/></p>
+
+<p class="mce-root">前面的表达式可以快速计算并扩展到多类问题。如果我们没有任何可以增加对一个类的偏好的先验信息，阈值也可以被设置为零。当协方差矩阵<em>σ<sub>0</sub>=σ<sub>1</sub>=</em><em>σ</em>相等时，该问题称为<strong>线性判别分析</strong> ( <strong> LDA </strong>)，计算可以进一步简化。事实上，考虑到前面的表述，我们可以展开所有的产品:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/3dc0a6ab-e0ae-43b2-bdbe-e030cc63eac7.png" style="width:62.33em;height:4.58em;"/></p>
+
+<p>由于协方差矩阵是埃尔米特矩阵(在实际情况下，它仅仅意味着<em>σ=σ<sup>T</sup></em>)，我们重新组合这些项并取消一些元素:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/e9e47f38-c72f-4500-85aa-0dcd7feddc17.png" style="width:31.17em;height:1.58em;"/></p>
+
+<p class="mce-root">如果我们只在左侧保留依赖于<em xmlns:epub="http://www.idpf.org/2007/ops">x<sub>I</sub>T11】的项，我们将获得更实用的表达式:</em></p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/0b0e90cb-1290-4420-92b2-36ff42144478.png" style="width:26.67em;height:2.67em;"/></p>
+
+<p>因此，这个问题变得类似于感知器(只是形式上)；其实可以表示为点积<em>a x<sub>I</sub>T41】b</em>，其中<em> a </em>和<em> b </em>项为常数，只需要计算一次。现在让我们用二维数据集检查这两种算法，其中类的方差分别为<em> 1.0 </em>和<em> 100.0 </em>:</p>
+
+<pre>from sklearn.datasets import make_blobs<br/><br/>nb_samples = 1000<br/><br/>X, Y = make_blobs(n_samples=nb_samples, n_features=2, centers=2, cluster_std=[1.0, 10.0], random_state=1000)</pre>
+
+<p>下图显示了数据集的曲线图:</p>
+
+<div><img src="img/3ecc829b-933b-4117-8593-9b320223e4cc.png" style="width:33.75em;height:21.75em;"/></div>
+
+<p>用于判别分析的数据集</p>
+
+<p>两个类别的协方差矩阵如下:</p>
+
+<pre>import numpy as np<br/><br/>print(np.cov(X[Y==0].T))<br/>[[ 1.00845543  0.0231022 ]
+
+ [ 0.0231022   0.99716302]]<br/><br/>print(np.cov(X[Y==1].T))<br/>[[ 109.48898805   -0.84146872]
+
+ [  -0.84146872  104.89575589]]</pre>
+
+<p class="mce-root">由于协方差之间有很大的差异(即使它们都是去相关的)，我们期望使用 QDA 获得更高的精度。让我们使用类<kbd>LinearDiscriminantAnalysis</kbd>和<kbd>QuadraticDiscriminantAnalysis</kbd>以及 10 重交叉验证来检查这两种方法:</p>
+
+<pre>from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis<br/><br/>lda = LinearDiscriminantAnalysis()<br/>print(cross_val_score(lda, X, Y, cv=10).mean())<br/>0.831<br/><br/>qda = QuadraticDiscriminantAnalysis()<br/>print(cross_val_score(qda, X, Y, cv=10).mean())<br/>0.98</pre>
+
+<p>正如所料，QDA 达到 98%的准确率(而线性变量约为 83%)。我邀请读者理解关于其他分类器(例如，逻辑回归)的判别分析的动态。在标准的线性模型中，我们通常寻找一个分离的超平面，在 LDA 和 QDA 中，我们考虑属于每个类的可能性。这个概念如下图所示(针对二元问题):</p>
+
+<div><img src="img/7e8b7c85-80ad-4127-80dc-dda48254bb83.png" style="width:60.92em;height:27.75em;"/></div>
+
+<p>使用多元高斯分布对数据集进行建模的二元分类问题</p>
+
+<p>一个点<em xmlns:epub="http://www.idpf.org/2007/ops">x<sub>I</sub>T28】相对于两个高斯函数总是具有非负的可能性，但是<em xmlns:epub="http://www.idpf.org/2007/ops"> y=1 </em>的可能性比<em xmlns:epub="http://www.idpf.org/2007/ops"> y=0 </em>的可能性高得多(记住概率必须作为<em xmlns:epub="http://www.idpf.org/2007/ops"> -∞ </em>和<em xmlns:epub="http://www.idpf.org/2007/ops"> x <sub> i </sub> </em>之间的定积分来计算)。通过这种方式，数据集也可以由部分(甚至完全)重叠的子集组成，如果满足假设，模型总是能够以很高的置信度进行区分。显然，有一些缺点。首先，共线性的存在极大地降低了性能。此外，数据集的高斯性通常是一个很难满足的要求。最后，即使我们有一个完美的数据集(就假设而言)，如果两个类的同质性不同，似然比也会产生错误的估计。如果我们考虑前面的例子，并想象一个属于类别 1 并与类别 0 重叠的密集斑点，则该子集中的所有点被分类为<em xmlns:epub="http://www.idpf.org/2007/ops"> y=0，</em>并且对最终精度的影响可能是显著的。为了更好地理解特性和限制，我邀请读者重复修改数据集的示例(例如，可以创建非常密集的重叠区域或在其他区域添加许多样本，以便条件概率不再是高斯分布)。</em></p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Summary</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">摘要</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在这一章中，我们从贝叶斯定理及其内在原理出发，揭示了一般的朴素贝叶斯方法。这种算法的天真是由于选择假设所有的原因是条件独立的。这意味着，在每种组合中，每种贡献都是相同的，特定原因的存在不会改变其他原因的概率。这通常是不现实的；然而，在某些假设下，有可能显示内部依赖关系相互清除，因此结果概率看起来不受它们之间关系的影响。</p>
+
+<p>scikit-learn 提供了三种朴素贝叶斯实现:伯努利、多项式和高斯。它们之间唯一的区别是采用的概率分布。第一个是二进制算法，当一个特征存在或不存在时，它特别有用。多项式假设具有特征向量，其中每个元素代表它出现的次数(或者，通常是它的频率)。这种技术在 NLP 中或者从公共字典开始合成样本时非常有效。相反，高斯是基于连续分布的，它适合于更一般的分类任务。</p>
+
+<p>在下一章，<a href="f0008ecc-15b7-4f9b-8576-05e1d4d12ecf.xhtml" target="_blank">第 7 章</a>，<em>支持向量机</em>我们将介绍一种新的分类技术，叫做<strong>支持向量机</strong>。这些算法对于解决线性和非线性问题都非常有效。它们通常是更复杂场景的首选，因为尽管它们效率很高，但内部动力学非常简单，并且它们可以在很短的时间内得到训练。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html></body></html>

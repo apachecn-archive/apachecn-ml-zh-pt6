@@ -1,0 +1,557 @@
+<html><head/><body>
+
+
+
+
+
+
+
+
+
+<title>Chapter 4: Developing and Deploying ML Models</title>
+
+
+
+
+
+
+
+<div><div><h1 class="chapter-number" id="_idParaDest-94"><a id="_idTextAnchor094"/> 4</h1>
+
+<h1 id="_idParaDest-95"><a id="_idTextAnchor095"/>开发和部署 ML 模型</h1>
+
+<p>在前一章中，我们讨论了 ML 过程的准备阶段，包括问题框架和数据准备。在我们框定了问题并有了一个干净的数据集之后，是时候开发和部署 ML 模型了。在本章中，我们将讨论模型开发过程。我们将从模型数据输入和硬件/软件平台设置开始，然后关注模型开发管道，包括模型培训、验证、测试，最后部署到生产。我们的重点是理解基本概念及其背后的思维过程，并通过实践来强化知识和技能。本章包括以下主题:</p>
+
+<ul>
+
+<li>分割数据集</li>
+
+<li>搭建平台</li>
+
+<li>训练模型</li>
+
+<li>验证模型</li>
+
+<li>调整模型</li>
+
+<li>测试和部署模型</li>
+
+<li>使用 scikit 练习-学习</li>
+
+</ul>
+
+<p>在<a href="B18333_13.xhtml#_idTextAnchor209"> <em class="italic">附录 3 </em> </a>中，我们提供了使用 Python 数据科学包 scikit-learn 开发 ML 模型的实践示例。</p>
+
+<h1 id="_idParaDest-96"><a id="_idTextAnchor096"/>分割数据集</h1>
+
+<p>通过数据准备过程，我们已经获得了一个准备好用于模型<a id="_idIndexMarker205"/>开发的数据集。为了避免模型欠拟合和过拟合，最佳做法是根据模型开发过程将数据集随机但按比例地分成独立的子集:训练数据集、验证数据集和测试数据集:</p>
+
+<ul>
+
+<li><strong class="bold">训练数据集</strong>:用于训练模型的数据子集<a id="_idIndexMarker206"/>。该模型将从训练数据集中学习。</li>
+
+<li><strong class="bold">验证数据集</strong>:用于验证训练模型的<a id="_idIndexMarker207"/>数据子集。模型超参数将根据验证进行优化。</li>
+
+<li><strong class="bold">测试数据集</strong>:数据子集<a id="_idIndexMarker208"/>，用于在最终模型部署到生产之前对其进行评估。</li>
+
+</ul>
+
+<p>常见的做法是将 80%的数据用于训练子集，10%用于验证，10%用于测试。当您拥有大量数据时，您可以将它分成 70%的训练、15%的验证和 15%的测试。</p>
+
+<h1 id="_idParaDest-97"><a id="_idTextAnchor097"/>准备平台</h1>
+
+<p>虽然数据输入对模型质量有很大的影响，但是我们培训/验证/测试模型的硬件/软件平台也会影响模型和开发过程。选择合适的平台对 ML 流程非常重要。</p>
+
+<p>当然，您可以选择使用台式机或笔记本电脑进行 ML 模型开发，但是推荐使用云平台，因为云计算提供了巨大的优势:在全球范围内的自供应、按需、弹性和可伸缩性。云计算中提供了许多工具来帮助数据科学家进行数据准备和模型开发。</p>
+
+<p>在云服务提供商中，谷歌云平台为数据科学家提供了出色的 ML 平台:灵活、有弹性、高性能，端到端。我们将在本书的第三部分讨论 Google Cloud ML 平台的更多细节。</p>
+
+<p>现在我们已经准备好了数据集和 ML 平台，让我们直接进入 ML 模型<a id="_idIndexMarker210"/>开发过程，从模型训练开始。</p>
+
+<h1 id="_idParaDest-98"><a id="_idTextAnchor098"/>训练模型</h1>
+
+<p>使用训练数据子集，在平台上，我们训练 ML 模型来学习目标和特征之间的关系<a id="_idIndexMarker211"/>。ML 模型训练是一个迭代过程:它从具有初始参数的假设模型开始，并继续学习过程，直到它适合训练数据集。<em class="italic">图 4.1 </em>显示了一个样本 ML 模型训练过程，其中我们选择了一个线性回归模型(<em class="italic"> z=wx+b </em>)并选择了初始参数(<em class="italic"> w </em>和<em class="italic"> b </em>)。我们计算模型预测误差——模型输出和实际数据标签之间的差距——这一步称为正向传播。如果<a id="_idIndexMarker212"/>误差没有优化(精度不在规定范围内)，我们将<a id="_idIndexMarker213"/>需要回移并调整模型的参数(<em class="italic"> w </em>和<em class="italic">b</em>)——这一步称为反向传播。然后，我们将再次重新计算误差。这个模型训练过程重复<em class="italic">前向传播</em>、<em class="italic">后向传播</em>和<em class="italic">前向传播</em>的步骤，直到我们得到一个模型，该模型产生预期范围内的预测误差，即满足商业目标定义的精度。然后，模型训练过程完成。</p>
+
+<div><div><img alt="Figure 4.1 – ML model training process&#10;&#10;" height="143" src="img/Figure_4.1.jpg" width="1097"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 4.1–ML 模型培训流程</p>
+
+<p>您可能已经注意到，在前面的例子中，我们选择了一个线性模型(<em class="italic"> z=wx+b </em>)。在现实生活中，当选择一个 ML 模型时，我们经常使用领域知识和某些假设。它可以是线性的、多项式的，甚至是只能用神经网络表达的东西。</p>
+
+<p>接下来我们来看上一章框定的样本 ML 问题(<em class="italic">例 1 </em>、<em class="italic">例 2 </em>、<em class="italic">例 3 </em>)，讨论线性回归和二元分类，然后扩展到高级模型和算法。</p>
+
+<h2 id="_idParaDest-99"><a id="_idTextAnchor099"/>线性回归</h2>
+
+<p>在<a href="B18333_03.xhtml#_idTextAnchor072"> <em class="italic">第三章</em> </a> <em class="italic">准备 ML 开发</em>中，我们谈到了<em class="italic">例 1 </em> : Zeellow 需要从自己的历史数据集准确<a id="_idIndexMarker214"/>预测房价。由于问题的输入被标记，它是一个监督学习问题，并且由于输出是一个连续值，它是一个回归问题。</p>
+
+<p>从数学的角度来看，这是一个典型的寻找目标和特征之间的函数(关系)的问题，我们唯一拥有的就是样本数据集。那么，我们如何计算这个函数呢？让我们检查一个简单的数据集<em class="italic">例 1 </em>:某个时间段，某个地点的 10 套房子的销售价格。样本数据集如<em class="italic">表 4.2 </em>所示。</p>
+
+<div><div><img alt="Table 4.2 – Example 1 housing dataset&#10;&#10;" height="656" src="img/Figure_4.2.jpg" width="1631"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">表 4.2–示例 1 住房数据集</p>
+
+<p>与目标(房价)相关的特征有多个。我们将从研究房价和房子的一个特征之间的关系开始。让我们看看房屋销售价格(目标，用<em class="italic"> y </em>表示)和房屋面积(特征，用<em class="italic"> x </em>表示)，引出一元回归的话题。</p>
+
+<h3>一元回归</h3>
+
+<p>正如您可以从<em class="italic">表 4.2 </em>中看到的<a id="_idIndexMarker216"/>，样本训练数据集中有 10 行，我们需要找到一个函数<em class="italic"> y=f(x) </em>来最好地描述目标<em class="italic"> y </em>和特征<em class="italic"> x </em>之间的关系。自然，我们会用一个图表来形象化它们的关系。如果我们把数据集中的 10 个项目放到一个坐标系中，我们得到<em class="italic">图 4.3 </em>。如您所见，第一象限中分布有 10 个点，我们需要对房价(<em class="italic"> y </em>)和房屋面积(<em class="italic"> x </em>)之间的关系进行假设。代表<em class="italic"> y </em>和<em class="italic"> x </em>关系的是一次函数(如直线 l1 和 l2 所示)还是二次函数(曲线 d1 所示)？显然，d1 不起作用，因为直观上我们知道当<em class="italic"> x </em>增加时<em class="italic"> y </em>将增加<a id="_idIndexMarker217"/>。现在，在 l1 和 l2 线中，我们选择哪一条？这就变成了一元线性回归问题:找到最符合训练数据集的最佳直线<em class="italic"> y=w*x+b* </em>(带参数<em class="italic"> w* </em>和<em class="italic"> b* </em>)。</p>
+
+<div><div><img alt="Figure 4.3 – Linear regression&#10;&#10;" height="604" src="img/Figure_4.3.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 4.3–线性回归</p>
+
+<p>我们的目标是找到最适合现有数据的函数，并预测新数据的最佳目标值(最接近实际值)。你如何定义最适合的<em class="italic"/>？为了回答这个问题，我们提出了一个<em class="italic">成本函数</em>的数学概念来衡量模型的性能:预测值和实际值之间的差异或距离。</p>
+
+<p>有几种方法可以测量预测值和实际值之间的差异。用第<em class="italic"> i </em>个数据点的坐标表示(<em class="italic"> x </em> i，<em class="italic">y</em>I)；也就是说，<em class="italic"> y </em> i 是<em class="italic"> x </em> i 的实际值，<img alt="" height="42" src="img/B18333_04_001.png" width="25"/>是<em class="italic"> x </em> i 的预测值。成本函数可以定义为以下函数之一(这里<em class="italic"> N </em>是样本数，<em class="italic"> N=10 </em>是我们的<em class="italic">示例 1 </em>):</p>
+
+<ul>
+
+<li><strong class="bold">平均绝对误差</strong> ( <strong class="bold"> MAE </strong>)是<a id="_idIndexMarker218"/>预测值和真实值之间的绝对差值之和:</li>
+
+</ul>
+
+<div><div><img alt="" height="115" src="img/B18333_04_002.jpg" width="341"/>
+
+</div>
+
+</div>
+
+<ul>
+
+<li><strong class="bold">均方误差</strong> ( <strong class="bold"> MSE </strong>)是<a id="_idIndexMarker219"/>预测值和真实值之间的平方差之和:<div> <img alt="" height="128" src="img/B18333_04_003.jpg" width="399"/> </div></li>
+
+</ul>
+
+<p>虽然 MSE 和 MAE 都可以用作成本函数，但它们之间存在一些差异:最小化<a id="_idIndexMarker220"/>MAE 往往会减少每个点的差距，并可能导致一些为零(从而移除一些特征并使模型变得稀缺)。最小化 MSE 将避免大的间隙，但不会导致零间隙。</p>
+
+<p>现在问题变成了:我们如何选择正确的参数(<em class="italic"> w，b </em>)使得 MSE 或 MAE 最小化？我们将使用 MSE 作为成本函数，我们的重点是找到正确的参数(<em class="italic"> w，b </em>)，以便针对训练数据集最小化成本函数 MSE。为此，我们引入了<strong class="bold">梯度下降</strong>的概念。</p>
+
+<h3>梯度下降</h3>
+
+<p>从数学<a id="_idIndexMarker221"/>的角度来看，如果我们将 MSE 函数简化为<a id="_idIndexMarker222"/>只有一个变量<em class="italic"> w </em>，那么图表将类似于<em class="italic">图 4.4。</em>数学上，我们可以通过使用导数找到使<em class="italic"> f(w) </em>最小的值<em class="italic"> w* </em>，因为<em class="italic"> f(w) </em>的导数在<em class="italic"> w* </em>处为零。</p>
+
+<p>从计算机编程的角度来看，我们将需要使用一种叫做梯度下降的算法来寻找最佳点<em class="italic"> w* </em>。对于一个变量，梯度是成本函数的导数。从一个初始点(<em class="italic"> w </em> 0，<em class="italic"> f </em> 0)开始，我们想在(<em class="italic"> w </em> 1，<em class="italic"> f </em> 1)处找到下一个点，其中<em class="italic">f</em>1<em class="italic">= f(w</em>1<em class="italic">)</em>小于<em class="italic">f</em>0<em class="italic">= f(w</em>0<em class="italic">)</em>由于<em class="italic"> f(w) </em>在<em class="italic"> w </em> 0 处的导数为负，并且我们想要使<em class="italic"> f </em>最小化，所以从<em class="italic"> w </em> 0 到<em class="italic"> w </em> 1 的移动方向将会增加，并且移动幅度(也称为步长或学习率)需要调整，使得它既不会太小而导致许多步到达<em class="italic"> w* </em>也不会太大而导致偏离</p>
+
+<div><div><img alt="Figure 4.4 – Gradient descent&#10;&#10;" height="850" src="img/Figure_4.4.jpg" width="1197"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 4.4–梯度下降</p>
+
+<p><em class="italic">图 4.4 </em>也<a id="_idIndexMarker223"/>显示了梯度下降算法的步骤:将<a id="_idIndexMarker224"/>从初始点<em class="italic"> (w </em> 0 <em class="italic">，f </em> 0 <em class="italic"> ) </em>移动到<em class="italic"> (w </em> 1 <em class="italic">，f </em> 1 <em class="italic"> ) </em>，到<em class="italic"> (w </em> 2 请注意，起点对于非凸成本函数非常重要，因为对于<em class="italic"> w </em>存在多个最小值，如图<em class="italic">图 4.5 </em>所示。</p>
+
+<div><div><img alt="Figure 4.5 – Non-convex cost functions&#10;&#10;" height="480" src="img/Figure_4.5.jpg" width="907"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 4.5–非凸成本函数</p>
+
+<p>梯度下降算法让我们通过从<em class="italic"> (w </em> i <em class="italic">，f </em> i <em class="italic"> ) </em>到<em class="italic"> (w </em> i <em class="italic"> +1 </em> <em class="italic">，f</em>I<em class="italic">+1</em><em class="italic">)</em>的重复移动，找到最小的<em class="italic"> f </em>值否则，将<a id="_idIndexMarker225"/>向减小<em class="italic"> w </em>的方向移动。经过一定的移动后，如果我们能在点<em class="italic"> (w* f*) </em>找到<a id="_idIndexMarker226"/>最小值<em class="italic"> f* </em>，我们称模型收敛于权重<em class="italic"> w* </em>，我们就找到了参数<em class="italic"> w* </em>。否则，模型是不收敛的。在我们找到收敛的<em class="italic"> w* </em>之后，找到参数<em class="italic"> b* </em>就相对容易了，我们找到了最佳拟合线:<em class="italic"> f(x) = w*x + b* </em>，可以用来预测<em class="italic"> x </em>新值的房价。</p>
+
+<h3>扩展到多个特征(变量)</h3>
+
+<p>使用梯度下降算法，我们能够找到适合样本数据集的最佳模型。我们<a id="_idIndexMarker227"/>将使用它根据新数据预测销售价格(目标<em class="italic"> y </em>)。在现实生活中，有很多因素会影响房子的售价，比如房龄、卧室和卫生间的数量，当然还有房子的位置。因此，我们需要将我们的模型扩展到多个特征(变量)。</p>
+
+<p>扩展到多个特征时，我们用一个向量<em class="italic"> X=(x </em> 1 <em class="italic">，x </em> 2 <em class="italic">，x </em> 3 <em class="italic">，…，x </em> n <em class="italic"> ) </em> T 来表示多个特征值<em class="italic"> x </em> 1 <em class="italic">，x </em> 2 <em class="italic">，x </em> 3 <em class="italic">，…，x </em> n，线性函数会变成这样:</p>
+
+<pre class="source-code">Y=WX+B</pre>
+
+<p>其中<em class="italic"> W </em>是一个矩阵，<em class="italic"> B </em>是一个向量。</p>
+
+<p>那么，成本函数可以写成如下:</p>
+
+<pre class="source-code">F(W)=WTAW/2 </pre>
+
+<p>其中<em class="italic"> A </em>是从数据集构建的矩阵。</p>
+
+<p>数学上，我们可以利用多元的偏导数<a id="_idIndexMarker228"/>求出使<em class="italic"> F(W) </em>最小的值<em class="italic"> W </em>。相应地，我们还可以将梯度下降算法从一维扩展到多维，以通过最小化成本函数<em class="italic"> F(W) </em>来找到最适合数据集的矩阵<em class="italic"> W </em>。</p>
+
+<h3>扩展到非线性回归</h3>
+
+<p>在之前的<a id="_idIndexMarker229"/>讨论中，我们假设销售价格(目标<em class="italic"> y </em>)和房屋面积<em class="italic"> x </em>之间的关系是线性的。在许多现实生活中的 ML 模型中，总是存在非线性关系，例如，多项式关系(这里有一个特征/变量<em class="italic"> x </em>):</p>
+
+<pre class="source-code">y = w1x + w2x2 + w3x3 + …. + wnxn</pre>
+
+<p>从线性到非线性，数理逻辑是一样的——我们需要找到模型参数<em class="italic"> (w </em> 1 <em class="italic">，w </em> 2 <em class="italic">，...w </em> n <em class="italic"> ) </em>通过最小化成本函数。</p>
+
+<p>通过从线性单变量解决方案扩展到非线性和多变量，回归模型解决了预测连续值的 ML 问题类型。由于问题的数学复杂性，我们将不在此进一步讨论。在下一节中，我们将看看另一种类型的 ML 问题，<strong class="bold">分类</strong>，我们将从二进制分类的最简单情况开始。</p>
+
+<h2 id="_idParaDest-100"><a id="_idTextAnchor100"/>二元分类</h2>
+
+<p>在前一章中，我们还谈到了另一个 ML 问题示例(<em class="italic">示例 2</em>)—Zeellow Lender<a id="_idIndexMarker230"/>正在尝试自动化新贷款申请的<a id="_idIndexMarker231"/>批准或拒绝的决策过程。由于模型输出是<em class="italic">是</em>还是<em class="italic">否</em>，这是一个二元分类问题。另一类分类问题是多类别分类。例如，给定一幅图像，我们需要判断它是一只狗、一只猫还是一头牛。</p>
+
+<p>对于分类问题，我们总是使用<em class="italic">概率</em>的概念。对于<em class="italic">例 2 </em>，ML 模型将根据客户的贷款违约概率输出<em class="italic">是</em>或<em class="italic">否</em>:如果违约概率高于阈值，我们将拒绝申请。对于图像分类的例子，我们会说图像是猫、狗或牛的可能性有多大。先说<em class="italic">例 2 </em>的二元问题。</p>
+
+<h3>逻辑回归</h3>
+
+<p>从数学<a id="_idIndexMarker232"/>的角度来看，<em class="italic">例 2 </em>是一个寻找目标(<em class="italic">是</em> / <em class="italic">否</em>)与应用特征之间的函数(关系)的问题，而我们唯一拥有的就是样本数据集。那么，我们如何计算这个函数呢？让我们用<em class="italic">示例 2 </em>来检查一个简单的数据集:在某个地点的某个时间段，10 个申请的贷款申请决策。样本数据集如<em class="italic">表 4.6 所示。</em></p>
+
+<div><div><img alt="Table 4.6 – Example 2 loan dataset&#10;&#10;" height="735" src="img/Figure_4.6.jpg" width="1502"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">表 4.6–示例 2 贷款数据集</p>
+
+<p>从<em class="italic">表 4.6 </em>中，我们可以看到申请人有许多特征会影响其贷款申请的批准或拒绝。为了简化，我们选择申请人的收入<em class="italic"> x </em>作为单一特征/变量，并使用<em class="italic"> z </em>作为<em class="italic"> x </em>的线性函数:</p>
+
+<p><em class="italic"> z = wx + b </em></p>
+
+<p>由于最终的输出目标是 yes ( <em class="italic"> 1 </em>或 no ( <em class="italic"> 0 </em>)，我们需要一个函数将上面的<em class="italic"> z </em>值<a id="_idIndexMarker233"/>映射到一个概率<em class="italic"> p </em>，该概率的值在<em class="italic"> 0 </em>和<em class="italic"> 1 </em>之间:批准贷款的概率(目标变量<em class="italic"> y=1 </em>)。</p>
+
+<p>从统计数据来看，我们有以下几点:</p>
+
+<pre class="source-code">p=ez/(1+ez)=1/(1+e-z)</pre>
+
+<p>而这就是所谓的<strong class="bold"> sigmoid 函数</strong> <em class="italic">(图 4.7) </em>，用<em class="italic"> z </em>的值来映射贷款<a id="_idIndexMarker234"/>审批<em class="italic"> p </em>的概率。</p>
+
+<div><div><img alt="Figure 4.7 – Sigmoid function" height="431" src="img/Figure_4.7.jpg" width="626"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 4.7–Sigmoid 函数</p>
+
+<p>使用 sigmoid 函数，输出将实际值<em class="italic"> z </em>转换为概率值<em class="italic"> p </em>，该概率值在<em class="italic"> 0 </em>和<em class="italic"> 1 </em>之间。这就引入了<em class="italic">逻辑回归</em>的概念，一种用于预测目标值为 yes 的概率的分类算法(<em class="italic"> 1 </em>)。简单来说，logistic 回归可以认为是以目标的概率为<em class="italic"> 1 </em>的线性回归，范围在(<em class="italic"> 0，1 </em>)。</p>
+
+<h3>二元分类的阈值</h3>
+
+<p>正如我们从前面的二元分类模型中看到的，逻辑回归返回一个在<em class="italic"> 0 </em>和<em class="italic"> 1 </em>之间的概率<a id="_idIndexMarker235"/>值。要把一个概率值转换成一个分类，我们需要确定阈值——当概率在阈值以上时，这个分类就是<em class="italic"> 1 </em>(是)；否则为<em class="italic"> 0 </em>(否)。对于<em class="italic">例 2 </em>，如果你设置门槛为<em class="italic"> 0.9 </em>，那么你会在概率高于 90%的情况下批准贷款申请；否则，你会拒绝申请。但是我们如何定义门槛呢？答案与业务案例和称为<strong class="bold">混淆矩阵</strong>的模型度量<a id="_idIndexMarker236"/>有关。我们将在模型验证部分详细讨论它们。</p>
+
+<h3>扩展到多类分类</h3>
+
+<p>我们可以将<a id="_idIndexMarker237"/>二元分类问题推广到多类分类问题。从二进制到多类有不同的方法。给定一个多分类模型，我们可以将其分解为多个二元分类问题。请参考以下链接了解更多详情:</p>
+
+<p><a href="https://svivek.com/teaching/lectures/slides/multiclass/multiclass-full.pdf">https://svivek . com/teaching/lessons/slides/multi class/multi class-full . pdf</a></p>
+
+<p>到目前为止，我们已经讨论了回归和分类问题，并介绍了梯度下降算法。现在我们来看看一些高级算法。</p>
+
+<h2 id="_idParaDest-101"><a id="_idTextAnchor101"/>支持向量机</h2>
+
+<p>一种流行的高级 ML 算法被称为<strong class="bold">支持向量机</strong>，或<strong class="bold"> SVM </strong>。这是一个通常用于分类问题的模型<a id="_idIndexMarker238"/>。SVM 的想法<a id="_idIndexMarker239"/>很简单:算法找到一条线(二维)或一个超平面(三维或更多维)将数据分成不同的类。</p>
+
+<p>让我们用一个二维分离问题来说明 SVM。如图<em class="italic">图 4.8 </em>所示，我们试图找到一条线，将点分成两组:一组圆和一组正方形。这两点之间有三条线隔开。三条线中，哪一条是最佳选择？</p>
+
+<div><div><img alt="Figure 4.8 – SVM illustration&#10;&#10;" height="439" src="img/Figure_4.8.jpg" width="751"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 4.8-SVM 图解</p>
+
+<p>让我们仔细看看这张图。对于每条线，都有最接近两个类中的线的点，我们称这些点为支持向量，线和支持向量之间的距离为边距。SVM 的目标是使利润最大化。在<em class="italic">图 4.8 </em>中的三条线中，您可以看到线 1 是我们的选择，因为它在三条线中具有最大的余量。</p>
+
+<div><div><img alt="Figure 4.9 – Non-linear curve separating the data&#10;&#10;" height="420" src="img/Figure_4.9.jpg" width="647"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 4.9–分离数据的非线性曲线</p>
+
+<p>如果我们将这个二维问题扩展到三维，那么<a id="_idIndexMarker243"/>边缘最大的超平面就是最优的<a id="_idIndexMarker244"/>超平面。尽管如此，两者仍然是线性模型。然而，在现实生活中，分离往往不是线性的。<em class="italic">图 4.9 </em>显示了一个分离为圆形(非线性)的例子。</p>
+
+<h2 id="_idParaDest-102"><a id="_idTextAnchor102"/>决策树和随机森林</h2>
+
+<p>对于具有多个特征的分类 ML 问题，自然想到要做的事情是对特征值进行分类——对每个特征进行二元分类。另一种流行的 ML 算法，决策树模型，使用这种逻辑来构建决策树，其中<a id="_idIndexMarker245"/>每个内部节点代表对一个特性的测试，每个叶节点<a id="_idIndexMarker246"/>代表一个类标签，而分支代表导致叶节点的特性组合——类标签。从根到叶，路径代表分类规则。构建决策树是为了根据每个特征的不同条件来分割数据集。</p>
+
+<p>决策树是监督学习中使用最广泛的方法之一。<em class="italic">图 4.10 </em>展示了前面讨论的<em class="italic">例 2 </em>的决策树逻辑流程:贷款申请决策流程。决策树从信用历史开始:</p>
+
+<ul>
+
+<li>如果信用记录(分数)良好，它将检查申请人的收入和贷款金额——如果收入低，贷款金额大，它将拒绝申请。否则，贷款申请将被批准。</li>
+
+<li>如果信用记录不良，它将检查申请人的收入和贷款额——如果收入高，贷款额小，它将批准申请。否则，贷款申请将被拒绝:</li>
+
+</ul>
+
+<div><div><img alt="Figure 4.10 – Decision tree for example 2&#10;&#10;" height="853" src="img/Figure_4.10.jpg" width="1277"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 4.10–示例 2 的决策树</p>
+
+<p>使用决策树模型，您可以基于新的特性数据预测结果，例如新的<a id="_idIndexMarker248"/>应用程序的特性值。然而，在<a id="_idIndexMarker249"/>数据集规模很大的情况下，决策树可能会很复杂，并可能导致过度拟合。为了解决这个问题，我们经常使用随机森林，它由许多决策树组成。随机森林从<a id="_idIndexMarker250"/>这些单独的决策树中获得预测，并通过将<a id="_idIndexMarker251"/>决策树预测值与投票或平均过程相结合来进行最终优化。随机森林通常比单一决策树更好，因为它避免了使用平均或投票机制的过度拟合。</p>
+
+<p>在本节中，我们讨论了各种 ML 模型训练算法:从单变量线性回归<a id="_idIndexMarker252"/>到多变量非线性回归；从<a id="_idIndexMarker253"/>二元分类到多类分类；从<a id="_idIndexMarker254"/>支持向量机到决策树和随机森林。ML 训练的结果<a id="_idIndexMarker255"/>是很好地符合训练数据集的模型。这样的模型会对新的生产数据做出好的预测吗？答案是，在部署模型来测试和预测生产数据之前，我们需要使用验证数据集来验证模型。</p>
+
+<h1 id="_idParaDest-103"><a id="_idTextAnchor103"/>验证模型</h1>
+
+<p>训练完模型后，您需要确定它在预测未来新数据的目标时是否表现良好，这就是验证过程:您必须在训练中未使用的带标签数据集(在数据集拆分阶段构建的验证数据集)上验证模型性能。</p>
+
+<h2 id="_idParaDest-104"><a id="_idTextAnchor104"/>模型验证</h2>
+
+<p>回想一下我们在第 3 章 中讨论的内容:在 ML 问题框架阶段，您定义业务<a id="_idIndexMarker256"/>问题，并设计一个业务指标来衡量模型的成功。现在，在这个模型验证阶段，模型验证度量需要尽可能紧密地链接到业务度量。</p>
+
+<p>在本章的前面，我们已经定义了成本函数，该函数用于找到优化的模型。成本函数也用于 ML 模型验证。对于回归问题，成本函数(模型值和实际值之间的差距)通常是 MSE，这在上一节已经讨论过了。对于二进制分类，成本函数通常用称为混淆矩阵的度量来表示。让我们仔细看看混淆矩阵，以及改变分类阈值对混淆矩阵的影响。</p>
+
+<h2 id="_idParaDest-105"><a id="_idTextAnchor105"/>混淆矩阵</h2>
+
+<p>混淆矩阵用于<a id="_idIndexMarker257"/>衡量二元分类<a id="_idIndexMarker258"/>模型的预测，如图<em class="italic">图 4.11 所示。</em></p>
+
+<div><div><img alt="Figure 4.11 – Confusion matrix&#10;&#10;" height="361" src="img/Figure_4.11.jpg" width="608"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 4.11-混淆矩阵</p>
+
+<p>根据模型是否预测实际类别，有四种情况:</p>
+
+<ul>
+
+<li><strong class="bold">真正</strong> ( <strong class="bold"> TP </strong>)就是<a id="_idIndexMarker259"/>模型<em class="italic">正确</em>预测<em class="italic">正</em>类的地方。</li>
+
+<li><strong class="bold">真负</strong> ( <strong class="bold"> TN </strong>)就是<a id="_idIndexMarker260"/>模型<em class="italic">正确</em>预测<em class="italic">负</em>类的地方。</li>
+
+<li><strong class="bold">假阳性</strong> ( <strong class="bold"> FP </strong>)是<a id="_idIndexMarker261"/>模型<em class="italic">错误地</em>预测<em class="italic">阳性</em>类的地方。</li>
+
+<li><strong class="bold">假阴性</strong> ( <strong class="bold"> FN </strong>)是<a id="_idIndexMarker262"/>其中模型<em class="italic">错误地</em>预测了<em class="italic">阴性</em>类。</li>
+
+</ul>
+
+<p>让我们来看一个计算机视觉 ML 问题:你训练了两个图像识别模型——来<a id="_idIndexMarker263"/>将一张图像分类为是否是猫。您已经在验证数据集上运行了<a id="_idIndexMarker264"/>两个模型，并将结果与标签进行了比较，<em class="italic">图 4.12 </em>显示了两个 ML 模型的混淆矩阵。我们如何衡量哪个模型表现更好？</p>
+
+<div><div><img alt="Figure 4.12 – Confusion matrices for two ML models&#10;&#10;" height="340" src="img/Figure_4.12.jpg" width="1195"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 4.12-两个 ML 模型的混淆矩阵</p>
+
+<p>为了帮助我们<a id="_idIndexMarker265"/>比较分类模型的性能，我们<a id="_idIndexMarker266"/>需要定义更多的指标:</p>
+
+<ul>
+
+<li><code>Recall</code> ( <code>sensitivity</code>)测量被正确识别的实际阳性的比例:<pre>Recall =TP/(TP+FN)</pre></li>
+
+<li><code>Specificity</code>测量被正确识别的实际否定的比例:<pre>Specificity =TN/(FP+TN)</pre></li>
+
+</ul>
+
+<p>将上述指标应用于这两个模型，我们得出了下表:</p>
+
+<div><div><img alt="Table 4.13 – Recall and specificity for two ML models&#10;&#10;" height="245" src="img/Figure_4.13.jpg" width="1304"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">表 4.13-两种 ML 模型的召回率和特异性</p>
+
+<p>根据业务目标，这两种模式的绩效可以从不同的角度进行衡量和解释<a id="_idIndexMarker267"/>。如果目标是识别尽可能多的猫，并且假阳性的数量并不重要，那么模型 2 表现得更好，因为它具有高召回指标。然而，如果您的目标是识别非猫，那么模型一可能是一个更好的选择，因为它具有高特异性指标。</p>
+
+<p>您可以使用更多的指标来帮助您做出决策。接下来，我们介绍接收机工作特性曲线和曲线下面积的概念。</p>
+
+<h2 id="_idParaDest-106"><a id="_idTextAnchor106"/> ROC 曲线和 AUC</h2>
+
+<p>在之前的<a id="_idIndexMarker269"/>章节中，我们讨论了将概率转换为<a id="_idIndexMarker270"/> a 类的截止时间。阈值将影响混淆矩阵。</p>
+
+<p>一条<strong class="bold">受试者工作特性</strong> ( <strong class="bold"> ROC </strong>)曲线是<a id="_idIndexMarker271"/>一个曲线图<a id="_idIndexMarker272"/>显示在所有阈值<a id="_idIndexMarker273"/>下<strong class="bold">真阳性率</strong> ( <strong class="bold"> TPR </strong>)和<strong class="bold">假阳性率</strong> ( <strong class="bold"> FPR </strong>)为二维。</p>
+
+<p>TPR 是召回的同义词，因此定义如下:</p>
+
+<pre class="source-code">TPR =TP/(TP+FN) (Of all the positive cases, the proportion of cases identified as positive)</pre>
+
+<p>FPR 的定义如下:</p>
+
+<pre class="source-code">FPR =FP/(FP+TN) (Of all the native cases, the proportion of cases identified as positive)</pre>
+
+<div><div><img alt="Figure 4.14 – ROC curves&#10;&#10;" height="742" src="img/Figure_4.14.jpg" width="931"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 4.14–ROC 曲线</p>
+
+<p>要构建 ROC 曲线，您需要针对每个阈值计算 TPR(或召回)与 FPR，并将其绘制在图表上。<em class="italic">图 4.14 </em>显示了一个样本 ROC。如果我们仔细观察图表，我们会发现(<em class="italic"> 0，0 </em>)处的点表示零真阳性和零假阳性。(<em class="italic"> 1，1 </em>)处的点表示所有阳性都被正确识别，但所有阴性也都被错误识别<a id="_idIndexMarker276"/>。从(<em class="italic"> 0，0 </em>)到(<em class="italic"> 1，1 </em>)的虚线称为<strong class="bold">随机分类器</strong>，代表<em class="italic"> TPR=FPR </em>。在图中，理想线是<em class="italic">完美分类器</em>，它代表<em class="italic"> TPR=1 </em>，没有<em class="italic">误报</em>:</p>
+
+<div><div><img alt="Figure 4.15 – AUC: the area under the curve" height="543" src="img/Figure_4.15.jpg" width="647"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 4.15-AUC:曲线下的面积</p>
+
+<p>由于<a id="_idIndexMarker277"/>分类问题的目标是具有高<a id="_idIndexMarker278"/> TPR 和低 FPR 的模型——尽可能接近<em class="italic">完美分类器</em>——我们经常使用曲线 ( <strong class="bold"> AUC </strong> )-ROC 下的<strong class="bold">面积作为分类模型性能的度量:AUC-ROC 越大越好。AUC-ROC 样本如图 4.15 所示。</strong></p>
+
+<h2 id="_idParaDest-107"><a id="_idTextAnchor107"/>更多分类指标</h2>
+
+<p>如您所见，利用混淆矩阵中的四个数字<a id="_idIndexMarker279"/>，您可以计算模型的召回率和特异性，这里我们介绍准确度、精确度和 F1 分数:</p>
+
+<ul>
+
+<li><code>Accuracy</code>测量案例总数中正确预测的比例:<pre>Accuracy=(TP+TN)/(TP+TN+FP+FN)</pre></li>
+
+<li><code>Precision</code>测量实际上正确的肯定识别的比例:<pre>Precision=TP/(TP+FP)</pre></li>
+
+<li><code>F1-score</code>结合精度和灵敏度，测量整体性能:<pre>F1-score =2 X Precision X Recall/(Precision + Recall)</pre></li>
+
+</ul>
+
+<p>到目前为止，我们已经介绍了许多分类指标，您应该选择哪一个？这实际上取决于业务环境和目标。对于识别电子邮件是垃圾邮件还是非垃圾邮件的分类模型，虽然精确度有助于识别垃圾邮件，但您也希望避免将合法的电子邮件标记为垃圾邮件。对于识别患者是否患有晚期疾病的分类模型来说，识别实际患有该疾病的患者的疾病是至关重要的。在这种情况下，灵敏度是比精度更好的度量标准。</p>
+
+<p>F1 分数结合了精确度和召回率，给你一个量化整体表现的数字。当类别不平衡时，您可能希望使用 F1 分数，但是您希望保持精确度和灵敏度之间的平衡。</p>
+
+<h1 id="_idParaDest-108"><a id="_idTextAnchor108"/>调整模型</h1>
+
+<p>在模型验证过程中，我们评估模型的性能，有时模型不符合验证数据集。让我们检查不同的情况。</p>
+
+<h2 id="_idParaDest-109"><a id="_idTextAnchor109"/>过度拟合和欠拟合</h2>
+
+<p>虽然欠拟合描述了预测误差没有被最小化的情况，但是过拟合是指<a id="_idIndexMarker281"/>模型非常适合训练数据集，但是<a id="_idIndexMarker282"/>不适合验证数据集的情况。过度拟合模型在训练期间获得非常低的成本函数值，但是对新数据的预测很差。<em class="italic">图 4.16 </em>描述了欠拟合、稳健和过拟合的情况。</p>
+
+<div><div><img alt="Figure 4.16 – Model fittings&#10;&#10;" height="360" src="img/Figure_4.16.jpg" width="1106"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 4.16–模型配件</p>
+
+<p>当我们试图最小化成本函数并避免欠拟合时，我们需要确保我们的模型是<a id="_idIndexMarker283"/>通用的，不容易过拟合。从我们的 ML 实践中，我们<a id="_idIndexMarker284"/>知道过度拟合通常是由于使模型比必要的更复杂而引起的。在<em class="italic">图 4.16 </em>中可以看到，过拟合使一个训练模型记忆数据。ML 的基本原则是在不失一般性的情况下使模型很好地适应数据。为了避免过度拟合，我们引入正则化来降低模型复杂度。</p>
+
+<h2 id="_idParaDest-110"><a id="_idTextAnchor110"/>正规化</h2>
+
+<p>为了避免过度拟合，我们需要降低模型的复杂性。模型复杂性可以从两个方面来考虑:</p>
+
+<ul>
+
+<li>作为具有非零权重的特征总数的函数的模型复杂度</li>
+
+<li>作为模型中所有特征的<em class="italic">权重</em>的函数的模型复杂度</li>
+
+</ul>
+
+<p>引入正则化的思想，增加一个惩罚模型复杂度的因子，增强模型的泛化能力。对应于前面的两种复杂性，我们有两种正则化/一般化:</p>
+
+<ul>
+
+<li>使用<em class="italic"> L2 正则化</em>公式量化复杂性，该公式将正则化项定义为所有要素权重的平方和——接近于零的权重对模型复杂性几乎没有影响，而异常值权重会产生巨大影响。<em class="italic">岭回归</em>使用 L2 正则化:通过添加一个等价于权重平方的惩罚来改变成本函数。设<em class="italic"> p </em>为特征个数，第<em class="italic"> i </em>个特征的系数(权重)为<em class="italic">w</em>I；然后，成本函数被写成如下:</li>
+
+</ul>
+
+<div><div><img alt="" height="133" src="img/B18333_04_004.jpg" width="532"/>
+
+</div>
+
+</div>
+
+<ul>
+
+<li>使用<em class="italic"> L1 正则化</em>公式量化复杂性，该公式将正则化项定义为所有特征权重的绝对值之和——接近零的权重<a id="_idIndexMarker286"/>对模型复杂性有很大影响，而异常值权重影响较小。Lasso 回归使用 L1 正则化:通过添加一个等价于权重绝对值的惩罚来改变成本函数:</li>
+
+</ul>
+
+<div><div><img alt="" height="132" src="img/B18333_04_005.jpg" width="546"/>
+
+</div>
+
+</div>
+
+<p>对于前面的公式，应该如何选择参数 lambda？如果 lambda 值太高，模型将会很简单，并且存在数据拟合不足的风险。如果 lambda 值太低，模型将会更复杂，存在过度拟合数据并导致新数据泛化的风险。lambda 的理想值会生成一个模型，该模型符合训练数据并能很好地推广到新数据。模型调优的一个目标是平衡模型的复杂性和泛化能力。</p>
+
+<p>除了正则化，我们可以使用早期停止来避免过度拟合。早期停止是一种正则化形式，用于在使用迭代方法(如梯度下降)训练学习者时避免过度拟合。这意味着当训练结果足够好时，并且在模型完全达到收敛之前，结束训练。</p>
+
+<h2 id="_idParaDest-111"><a id="_idTextAnchor111"/>超参数调谐</h2>
+
+<p>超参数<a id="_idIndexMarker287"/>调整是通过在数据集上运行许多训练作业来寻找模型的最佳<a id="_idIndexMarker288"/>版本的过程。它使用您指定的算法和超参数范围，然后选择产生最佳模型的超参数值，该模型由您选择的度量进行测量。</p>
+
+<p>有两种基本类型的超参数。第一类是模型超参数。它们与所选的<a id="_idIndexMarker289"/>型号直接相关，因此对该型号的性能有直接影响。它们有助于定义模型本身，例如，神经网络模型中的层数和使用的激活函数。</p>
+
+<p>第二类是算法超参数。它们不直接影响算法的性能，但是<a id="_idIndexMarker290"/>影响模型训练的效率和速度。例如，梯度下降算法的学习速率可能影响 ML 模型收敛的速度。</p>
+
+<p>调整超参数的过程包括改变超参数值，并试图找到产生最佳结果的<a id="_idIndexMarker291"/>。经常调整的常见<a id="_idIndexMarker292"/>超参数包括:</p>
+
+<ul>
+
+<li><strong class="bold">批量大小</strong>:在模型更新之前，训练期间处理的样本数量</li>
+
+<li><strong class="bold">训练时期数</strong>:在模型训练期间，我们运行全套训练数据的次数</li>
+
+<li><strong class="bold">学习率</strong>:当我们试图找到一个参数的最佳值时所走过的距离</li>
+
+</ul>
+
+<p>通过 ML 模型训练、验证和超参数调整，我们已经提出了一个可以部署用于测试的模型。</p>
+
+<h1 id="_idParaDest-112"><a id="_idTextAnchor112"/>测试和部署模型</h1>
+
+<p>为了测试并从您的模型中获得<a id="_idIndexMarker293"/>性能指标，您必须从模型中做出<a id="_idIndexMarker294"/>推论或预测——这通常需要部署。部署阶段的目标是提供一个托管环境来安全且低延迟地托管推理模型。您可以通过以下两种方式之一部署您的模型:</p>
+
+<ul>
+
+<li><strong class="bold">单一预测</strong>:使用永久端点在线部署您的模型。例如，我们可以部署带有在线端点的住房模型(价格预测)。</li>
+
+<li><code>.csv</code>文件或多组记录一次被发送，模型将返回一批预测。</li>
+
+</ul>
+
+<p>在将一个模型部署到测试中之后，您评估该模型以查看它是否满足性能需求和业务需求，这是任何 ML <a id="_idIndexMarker295"/>问题的最终目标。所有利益相关者都需要评估 ML 解决方案的优势<a id="_idIndexMarker296"/>并批准将模型部署到生产中。请记住，最准确的模型可能不是 ML 问题的最佳解决方案。</p>
+
+<p>在所有的涉众批准了模型之后，我们将模型部署到生产中。否则，我们需要回到模型训练、验证和调整、重新测试和重新评估的过程。</p>
+
+<p>在将模型部署到生产中之后，您仍然需要监视生产数据，因为新数据会随着时间的推移而积累，并且可能会发现替代的或新的结果。因此，部署模型是一个持续的过程，而不是一次性的练习。</p>
+
+<h1 id="_idParaDest-113"><a id="_idTextAnchor113"/>使用 scikit-learn 练习模型开发</h1>
+
+<p>Scikit-learn 是 Python 中最有用的 ML 库之一<a id="_idIndexMarker297"/>。scikit-learn <a id="_idIndexMarker298"/>库包含许多用于 ML 的<a id="_idIndexMarker299"/>工具，包括用于分类和回归的工具。</p>
+
+<p>在本书的<a href="B18333_13.xhtml#_idTextAnchor209"> <em class="italic">附录 3 </em> </a>中，我们提供了一个使用 scikit 的分步练习练习——学习开发 ML 模型。练习这些步骤对于掌握 scikit-learn 技能至关重要。请参考<a href="B18333_13.xhtml#_idTextAnchor209"> <em class="italic">附录 3 </em> </a>、<em class="italic">使用 scikit-learn 练习</em>，学习并练习使用 Scikit-Learn 进行 ML 模型训练、验证和测试的示例。</p>
+
+<h1 id="_idParaDest-114"><a id="_idTextAnchor114"/>总结</h1>
+
+<p>在这一章中，我们讨论了 ML 模型开发过程的基本概念:数据分割、平台设置、ML 模型训练、验证、测试和部署。</p>
+
+<p>自 20 世纪 50 年代人工智能的概念出现以来，一直没有大的突破，直到 2012 年使用神经网络发明了<strong class="bold">深度学习</strong> ( <strong class="bold"> DL </strong>)。DL 极大地提高了 ML 模型的性能，并为将 ML 应用于许多业务用例开辟了一条巨大的途径。在下一章，我们将讨论神经网络和 DL。</p>
+
+<h1 id="_idParaDest-115"><a id="_idTextAnchor115"/>延伸阅读</h1>
+
+<p>要进一步了解本章的主题，您可以参考以下内容:</p>
+
+<ul>
+
+<li><a href="https://scikit-learn.org/stable/tutorial/basic/tutorial.xhtml">https://sci kit-learn . org/stable/tutorial/basic/tutorial . XHTML</a></li>
+
+<li>https://scikit-learn.org/stable/tutorial/index.xhtml<a href="https://scikit-learn.org/stable/tutorial/index.xhtml"/></li>
+
+<li><a href="B18333_13.xhtml#_idTextAnchor209"> <em class="italic">附录 3 </em> </a> <em class="italic">，用 ScikitLearn </em>练习</li>
+
+</ul>
+
+</div>
+
+<div><div/>
+
+</div>
+
+</div>
+
+
+
+</body></html>

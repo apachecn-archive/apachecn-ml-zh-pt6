@@ -1,0 +1,1156 @@
+<html><head/><body><html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Introducing Natural Language Processing</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">介绍自然语言处理</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p><strong>自然语言处理</strong> ( <strong> NLP </strong>)是一套机器学习技术，允许处理文本文档，考虑它们的内部结构和单词的分布。在这一章中，我们将讨论所有收集文本、将它们分解成原子并将其转换成数字向量的常用方法。特别是，我们将比较不同的方法来标记文档(分隔每个单词)，过滤它们，应用特殊的转换来避免屈折或变形形式，并最终建立一个通用的词汇表。使用该词汇表，可以应用不同的矢量化方法来构建可轻松用于分类或聚类目的的特征向量。为了向您展示如何实现整个管道，在本章的最后，我们将为新闻行设置一个简单的分类器。</p>
+
+<p>特别是，我们将讨论以下主题:</p>
+
+<ul>
+
+<li><strong>自然语言工具包</strong> ( <strong> NLTK </strong>)语料库以及如何访问它们来训练模型</li>
+
+<li><strong>单词包</strong>策略(标记化、停用词移除、词干化和矢量化)</li>
+
+<li><strong>词性</strong> ( <strong>词性</strong>)标注和<strong>命名实体识别</strong> ( <strong> NER </strong>)</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>NLTK and built-in corpora</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">NLTK 和内置语料库</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>NLTK 是一个非常强大的 Python 框架，它实现了大多数 NLP 算法，本章将与 scikit-learn 一起采用它。而且，NLTK 提供了一些内置的语料库，可以用来测试算法。在开始使用 NLTK 之前，通常需要使用特定的图形界面下载所有附加元素(语料库、词典等等)。这可以通过以下方式实现:</p>
+
+<pre>import nltk<br/><br/>nltk.download()</pre>
+
+<p>该命令将启动用户界面，如下面的屏幕截图所示:</p>
+
+<div><img class="image-border" src="img/6ee2172f-f22a-405d-ab71-f430e257ecd8.png" style="width:40.42em;height:33.83em;"/></div>
+
+<p>NLTK 下载程序窗口</p>
+
+<p>可以选择每一个特性或下载所有元素(如果有足够的空闲空间，我建议使用这个选项)来立即利用所有 NLTK 功能。或者，可以使用以下命令安装所有依赖项:</p>
+
+<pre><strong>python -m nltk.downloader all</strong></pre>
+
+<p>NLTK 可以使用<kbd>pip</kbd> ( <kbd>pip install -U nltk</kbd>)或者在<a href="http://www.nltk.org">http://www.nltk.org</a>可用的二进制发行版之一来安装。在同一个网站上，有完整的文档可用于深入了解每个主题。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Corpora examples</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">语料库示例</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>提供了古腾堡项目的子集，可以通过以下方式免费访问:</p>
+
+<pre>from nltk.corpus import gutenberg<br/><br/>print(gutenberg.fileids())<br/><br/>[u'austen-emma.txt', u'austen-persuasion.txt', u'austen-sense.txt', u'bible-kjv.txt', u'blake-poems.txt', u'bryant-stories.txt', u'burgess-busterbrown.txt', u'carroll-alice.txt', u'chesterton- ...</pre>
+
+<p>单个文档可以作为原始版本访问，也可以分成句子或单词:</p>
+
+<pre>print(gutenberg.raw('milton-paradise.txt'))<br/><br/>[Paradise Lost by John Milton 1667] <br/> <br/>Book I <br/><br/>Of Man's first disobedience, and the fruit <br/>Of that forbidden tree whose mortal taste...<br/><br/>print(gutenberg.sents('milton-paradise.txt')[0:2])<br/><br/>[[u'[', u'Paradise', u'Lost', u'by', u'John', u'Milton', u'1667', u']'], [u'Book', u'I']]<br/><br/>print(gutenberg.words('milton-paradise.txt')[0:20])<br/><br/>[u'[', u'Paradise', u'Lost', u'by', u'John', u'Milton', u'1667', u']', u'Book', u'I', u'Of', u'Man', u"'", u's', u'first', u'disobedience', u',', u'and', u'the', u'fruit']</pre>
+
+<p>正如我们将要讨论的，在许多情况下，使用定制策略将原始文本拆分成单词是非常有用的。在许多其他情况下，直接访问句子允许使用原始的结构细分。其他语料库包括网络文本、路透社新闻专线、布朗语料库等等。例如，Brown Corpus 是一个著名的按流派划分的文档集合:</p>
+
+<pre class="doctest">from nltk.corpus import brown<br/><br/>print(brown.categories())<br/><br/>[u'adventure', u'belles_lettres', u'editorial', u'fiction', u'government', u'hobbies', u'humor', u'learned', u'lore', u'mystery', u'news', u'religion', u'reviews', u'romance', u'science_fiction']<br/><br/>print(brown.sents(categories='editorial')[0:100])<br/><br/>[[u'Assembly', u'session', u'brought', u'much', u'good'], [u'The', u'General', u'Assembly', u',', u'which', u'adjourns', u'today', u',', u'has', u'performed', u'in', u'an', u'atmosphere', u'of', u'crisis', u'and', u'struggle', u'from', u'the', u'day', u'it', u'convened', u'.'], ...]</pre>
+
+<p>关于语料库的进一步信息可以在 http://www.nltk.org/book/ch02.html 找到。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>The Bag-of-Words strategy</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">词汇袋策略</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在 NLP 中，一个非常常见的管道可以细分为以下步骤:</p>
+
+<ol>
+
+<li>将文档收集到语料库中</li>
+
+<li>标记化、停用词(冠词、介词等)删除和词干化(简化为基数形式)</li>
+
+<li>建立共同的词汇</li>
+
+<li>向量化文档</li>
+
+<li>对文档进行分类或聚类</li>
+
+</ol>
+
+<p>这种管道被称为单词包，将在本章中讨论。一个基本的假设是，句子中每个单词的顺序并不重要。事实上，在定义特征向量时，正如我们将要看到的，所考虑的度量总是与频率相关，因此它们对所有元素的局部定位不敏感。从某些观点来看，这是一种限制，因为在自然语言中，句子的内部顺序是保持意思所必需的；然而，有许多模型可以有效地处理文本，而不需要复杂的局部排序。当绝对有必要考虑小序列时，将通过采用标记组(称为<strong> n-grams </strong>)来完成，但在向量化步骤中将它们视为单个原子元素。</p>
+
+<p>在下图中，有一个示例文档(句子)的流程示意图(不包括第五步):</p>
+
+<div><img class="image-border" src="img/0bf6b9d5-bd9b-4279-8e5c-fcc2854ad27c.png" style="width:40.17em;height:23.58em;"/></div>
+
+<p>描述单词袋策略的一系列步骤</p>
+
+<p class="mce-root">有许多不同的方法用于执行每个步骤，其中一些是特定于上下文的。然而，目标总是相同的:最大化文档的信息，并通过删除过于频繁或源自相同基数的术语(如动词)来减少公共词汇表的大小。文档的信息内容实际上是由特定术语(或一组术语)的存在决定的，这些术语在语料库中的出现频率是有限的。在上图所示的例子中，<strong> &lt; &lt;狐狸&gt; &gt; </strong>和<strong> &lt; &lt;狗&gt; &gt; </strong>是重要的术语，而<strong>&lt;&lt;&gt;&gt;</strong>是无用的(通常称为<strong>停用词</strong>)。而且<strong> &lt; &lt;跳&gt; &gt; </strong>可以转换成标准形式<strong> &lt; &lt;跳&gt; &gt; </strong>，以不同形式呈现时表达一个特定的动作(如<em>跳</em>或<em>跳</em>)。最后一步是转换成数字向量，因为我们的算法处理数字，限制向量的长度以提高学习速度和内存消耗是很重要的。在接下来的部分中，我们将详细讨论每个步骤，最后，我们将为新闻行构建一个样本分类器。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Tokenizing</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">符号化</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>处理一段文本或一个语料库的第一步是将它分成原子(句子、单词或单词的一部分)，通常定义为<strong>记号</strong>。这样的过程相当简单；然而，解决特定问题可以有不同的策略。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Sentence tokenizing</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">句子标记化</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在许多情况下，将大文本分成句子是很有用的，句子通常由句号或另一个等价的符号分隔。由于每种语言都有自己的拼写规则，NLTK 提供了<kbd>sent_tokenize()</kbd>方法<strong> </strong>，它接受一种语言(默认为英语)并根据特定的规则拆分文本。在下面的示例中，我们展示了该函数在不同语言中的用法:</p>
+
+<pre>from nltk.tokenize import sent_tokenize<br/><br/>generic_text = 'Lorem ipsum dolor sit amet, amet minim temporibus in sit. Vel ne impedit consequat intellegebat.'<br/><br/>print(sent_tokenize(generic_text))<br/><br/>['Lorem ipsum dolor sit amet, amet minim temporibus in sit.',<br/> 'Vel ne impedit consequat intellegebat.']<br/><br/>english_text = 'Where is the closest train station? I need to reach London'<br/><br/>print(sent_tokenize(english_text, language='english'))<br/><br/>['Where is the closest train station?', 'I need to reach London']<br/><br/>spanish_text = u'¿Dónde está la estación más cercana? Inmediatamente me tengo que ir a Barcelona.'<br/><br/>for sentence in sent_tokenize(spanish_text, language='spanish'):<br/>    print(sentence)<br/><br/>¿Dónde está la estación más cercana?<br/>Inmediatamente me tengo que ir a Barcelona.</pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Word tokenizing</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">单词标记化</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>将句子标记成单词的最简单方法是由<kbd>TreebankWordTokenizer</kbd>类提供的；然而，这有一些限制:</p>
+
+<pre>from nltk.tokenize import TreebankWordTokenizer<br/><br/>simple_text = 'This is a simple text.'<br/><br/>tbwt = TreebankWordTokenizer()<br/><br/>print(tbwt.tokenize(simple_text))<br/><br/>['This', 'is', 'a', 'simple', 'text', '.']<br/><br/>complex_text = 'This isn\'t a simple text'<br/><br/>print(tbwt.tokenize(complex_text))<br/><br/>['This', 'is', "n't", 'a', 'simple', 'text']</pre>
+
+<p>正如您所看到的，在第一种情况下，句子被正确地拆分成单词，保持标点符号独立(这不是一个真正的问题，因为它可以在第二步中删除)。然而，在复杂的例子中，收缩<kbd>isn't</kbd>已经被拆分为<kbd>is</kbd>和<kbd>n't</kbd>。不幸的是，如果没有进一步的处理步骤，将带缩写的标记转换成其正常形式就不那么容易了(在本例中是<kbd>not</kbd>)；因此，必须采用另一种策略。<kbd>RegexpTokenizer</kbd>类提供了一种解决标点符号分离问题的好方法，它提供了一种根据正则表达式拆分单词的灵活方法:</p>
+
+<pre>from nltk.tokenize import RegexpTokenizer<br/><br/>complex_text = 'This isn\'t a simple text.'<br/><br/>ret = RegexpTokenizer('[a-zA-Z0-9\'\.]+')<br/><br/>print(ret.tokenize(complex_text))<br/><br/>['This', "isn't", 'a', 'simple', 'text.']</pre>
+
+<p>使用这个类可以轻松解决大多数常见问题，所以我建议您学习如何编写可以匹配特定模式的简单正则表达式。例如，我们可以删除句子中的所有数字、逗号和其他标点符号:</p>
+
+<pre>complex_text = 'This isn\'t a simple text. Count 1, 2, 3 and then go!'<br/><br/>ret = RegexpTokenizer('[a-zA-Z\']+')<br/><br/>print(ret.tokenize(complex_text))<br/><br/>['This', "isn't", 'a', 'simple', 'text', 'Count', 'and', 'the', 'go']</pre>
+
+<p>即使 NLTK 提供了其他类，它们也可以使用定制的<kbd>RegexpTokenizer</kbd>来实现，它足够强大，可以解决几乎每一个特定的问题，所以我不想在本章中更深入地讨论这个主题。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Stopword removal</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">停用词删除</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>停用词是正常语音的一部分(冠词、连词等等)，但是它们的出现频率非常高，并且它们不提供任何有用的语义信息。出于这些原因，通过删除所有句子和语料库来过滤它们是一个很好的做法。NLTK 为最常见的语言提供了停用词列表，并且可以立即使用:</p>
+
+<pre>from nltk.corpus import stopwords<br/><br/>sw = set(stopwords.words('english'))</pre>
+
+<p>下面的代码片段显示了英语停用词的子集:</p>
+
+<pre>print(sw)<br/><br/>{u'a',<br/> u'about',<br/> u'above',<br/> u'after',<br/> u'again',<br/> u'against',<br/> u'ain'...</pre>
+
+<p>要过滤一个句子，可以采用功能方法:</p>
+
+<pre>complex_text = 'This isn\'t a simple text. Count 1, 2, 3 and then go!'<br/><br/>ret = RegexpTokenizer('[a-zA-Z\']+')<br/>tokens = ret.tokenize(complex_text)<br/>clean_tokens = [t for t in tokens if t not in sw]<br/>print(clean_tokens)<br/>['This', "isn't", 'simple', 'text', 'Count', 'go']</pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Language detection</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">语言检测</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>停用词和其他重要特性一样，都与特定的语言密切相关，因此在进行任何其他步骤之前，通常有必要检测该语言。<kbd>langdetect</kbd>库提供了一个简单、免费、可靠的解决方案，它是从 Google 的语言检测系统移植过来的。它的使用是即时的:</p>
+
+<pre>from langdetect import detect<br/><br/>print(detect('This is English'))<br/>en<br/><br/>print(detect('Dies ist Deutsch'))<br/>de</pre>
+
+<p>该函数返回 ISO 639-1 代码(<a href="https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes">https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes</a>)，该代码可用作字典中的关键字来获取完整的语言名称。文本越复杂，检测就越困难，知道是否有歧义是很有用的。可以通过<kbd>detect_langs()</kbd>方法获得预期语言的概率:</p>
+
+<pre>from langdetect import detect_langs<br/><br/>print(detect_langs('I really love you mon doux amour!'))<br/>[fr:0.714281321163, en:0.285716747181]</pre>
+
+<div><kbd>langdetect</kbd> can be installed using <kbd>pip</kbd> (<kbd>pip install --upgrade langdetect</kbd>). Further information is available at <a href="https://pypi.python.org/pypi/langdetect">https://pypi.python.org/pypi/langdetect</a>.</div>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Stemming</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">堵塞物</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>词干化是用于将特定单词(例如动词或复数)转换成其部首形式的过程，以便保留语义而不增加唯一标记的数量。例如，如果我们考虑三种表达方式<em>我跑</em>、<em>他跑</em>和<em>跑</em>，它们可以简化成一种有用的(虽然语法不正确)形式:<em>我跑</em>、<em>他跑</em>、<em>跑</em>。这样，我们就有了一个定义相同概念的单个标记(<em> run </em>)，为了聚类或分类的目的，可以在没有任何精度损失的情况下使用这个标记。NLTK 提供了许多词干分析器实现。最常见(也最灵活)的是基于多语言算法的<kbd>SnowballStemmer</kbd>:</p>
+
+<pre>from nltk.stem.snowball import SnowballStemmer<br/><br/>ess = SnowballStemmer('english', ignore_stopwords=True)<br/>print(ess.stem('flies'))<br/>fli<br/><br/>fss = SnowballStemmer('french', ignore_stopwords=True)<br/>print(fss.stem('courais'))<br/>cour</pre>
+
+<p><kbd>ignore_stopwords</kbd>参数通知词干分析器不要处理停用词。其他实现还有<kbd>PorterStemmer</kbd>和<kbd>LancasterStemmer</kbd>。通常，结果是相同的，但在某些情况下，词干分析器可以实现更具选择性的规则，例如:</p>
+
+<pre>from nltk.stem.snowball import PorterStemmer<br/>from nltk.stem.lancaster import LancasterStemmer<br/><br/>print(ess.stem('teeth'))<br/>teeth<br/><br/>ps = PorterStemmer()<br/>print(ps.stem('teeth'))<br/>teeth<br/><br/>ls = LancasterStemmer()<br/>print(ls.stem('teeth'))<br/>tee</pre>
+
+<p>如你所见，雪球和波特算法保持单词不变，而兰开斯特提取一个基数(无意义)。另一方面，后一种算法实现了许多特定的英语规则，这确实可以减少唯一令牌的数量:</p>
+
+<pre>print(ps.stem('teen'))<br/>teen<br/><br/>print(ps.stem('teenager'))<br/>teenag<br/><br/>print(ls.stem('teen'))<br/>teen<br/><br/>print(ls.stem('teenager'))<br/>teen</pre>
+
+<p>不幸的是，Porter 和 Lancaster 词干分析器在 NLTK 中都只有英语版本，所以默认选择通常是 Snowball，它在许多语言中都有，并且可以与适当的停用词集结合使用。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Vectorizing</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">矢量化</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>这是单词包管道的最后一步，是将文本标记转换成数字向量所必需的。最常见的技术基于计数或频率计算，它们都可以在 scikit-learn 中使用稀疏矩阵表示(考虑到许多标记只出现几次，而向量必须具有相同的长度，这是一个可以节省大量空间的选择)。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Count vectorizing</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">计数矢量化</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>该算法非常简单，它基于表示一个令牌，考虑它在文档中出现的次数。当然，必须对整个语料库进行处理，以确定存在多少独特的标记及其频率。让我们看一个简单语料库上的<kbd>CountVectorizer</kbd>类的例子:</p>
+
+<pre>from sklearn.feature_extraction.text import CountVectorizer<br/><br/>corpus = [<br/>       'This is a simple test corpus',<br/>       'A corpus is a set of text documents',<br/>       'We want to analyze the corpus and the documents',<br/>       'Documents can be automatically tokenized'<br/>]<br/><br/>cv = CountVectorizer()<br/>vectorized_corpus = cv.fit_transform(corpus)<br/>print(vectorized_corpus.todense())<br/>[[0 0 0 0 0 1 0 1 0 0 1 1 0 0 1 0 0 0 0]<br/> [0 0 0 0 0 1 1 1 1 1 0 0 1 0 0 0 0 0 0]<br/> [1 1 0 0 0 1 1 0 0 0 0 0 0 2 0 1 0 1 1]<br/> [0 0 1 1 1 0 1 0 0 0 0 0 0 0 0 0 1 0 0]]</pre>
+
+<p>如您所见，每个文档都被转换成了一个固定长度的向量，其中<kbd>0</kbd>表示相应的标记不存在，而正数表示出现的次数。如果需要排除所有文档频率小于预定义值的令牌，可以通过<kbd>min_df</kbd>参数设置(默认值为<em> 1 </em>)。有时，避免使用非常常见的术语会很有用；然而，下一个策略将以更可靠和完整的方式管理这个问题。</p>
+
+<p>词汇表可以通过<kbd>vocabulary_</kbd>实例变量来访问:</p>
+
+<pre>print(cv.vocabulary_)<br/>{u'and': 1, u'be': 3, u'we': 18, u'set': 9, u'simple': 10, u'text': 12, u'is': 7, u'tokenized': 16, u'want': 17, u'the': 13, u'documents': 6, u'this': 14, u'of': 8, u'to': 15, u'can': 4, u'test': 11, u'corpus': 5, u'analyze': 0, u'automatically': 2}</pre>
+
+<p>给定一个通用向量，可以通过逆变换检索相应的记号列表:</p>
+
+<pre>vector = [0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1]<br/>print(cv.inverse_transform(vector))<br/>[array([u'corpus', u'is', u'simple', u'test', u'this', u'want', u'we'], <br/>       dtype='&lt;U13')]</pre>
+
+<p>这种方法和下面的方法都可以使用外部标记器(通过<kbd>tokenizer</kbd>参数)；可以使用前面章节中讨论的技术对其进行定制:</p>
+
+<pre>ret = RegexpTokenizer('[a-zA-Z0-9\']+')<br/>sw = set(stopwords.words('english'))<br/>ess = SnowballStemmer('english', ignore_stopwords=True)<br/><br/>def tokenizer(sentence):<br/>    tokens = ret.tokenize(sentence)<br/>    return [ess.stem(t) for t in tokens if t not in sw]<br/><br/>cv = CountVectorizer(tokenizer=tokenizer)<br/>vectorized_corpus = cv.fit_transform(corpus)<br/>print(vectorized_corpus.todense())<br/>[[0 0 1 0 0 1 1 0 0 0]<br/> [0 0 1 1 1 0 0 1 0 0]<br/> [1 0 1 1 0 0 0 0 0 1]<br/> [0 1 0 1 0 0 0 0 1 0]]</pre>
+
+<p>有了我们的标记器(使用停用词和词干)，词汇表更短了，向量也更短了。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>N-grams</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">N-grams</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>到目前为止，我们只考虑了单个标记(也称为<strong> unigrams </strong>)，但是，在许多上下文中，将单词的短序列(<strong>二元模型</strong>或<strong>三元模型</strong>)视为我们的分类器的原子是有用的，就像所有其他标记一样。例如，如果我们正在分析一些文本的情感，考虑二元模型可能是个好主意，比如<em>相当好</em>、<em>非常差</em>等等。事实上，从语义的角度来看，重要的是不仅要考虑副词，还要考虑整个复合形式。可以告知我们的矢量器我们想要考虑的 n 元文法的范围。例如，如果我们需要 unigrams 和 bigrams，我们可以使用下面的代码片段:</p>
+
+<pre>cv = CountVectorizer(tokenizer=tokenizer, ngram_range=(1, 2))<br/>vectorized_corpus = cv.fit_transform(corpus)<br/>print(vectorized_corpus.todense())<br/>[[0 0 0 0 0 1 0 1 0 0 1 1 0 0 1 0 0 0 0]<br/> [0 0 0 0 0 1 1 1 1 1 0 0 1 0 0 0 0 0 0]<br/> [1 1 0 0 0 1 1 0 0 0 0 0 0 2 0 1 0 1 1]<br/> [0 0 1 1 1 0 1 0 0 0 0 0 0 0 0 0 1 0 0]]<br/><br/>print(cv.vocabulary_)<br/>{u'and': 1, u'be': 3, u'we': 18, u'set': 9, u'simple': 10, u'text': 12, u'is': 7, u'tokenized': 16, u'want': 17, u'the': 13, u'documents': 6, u'this': 14, u'of': 8, u'to': 15, u'can': 4, u'test': 11, u'corpus': 5, u'analyze': 0, u'automatically': 2}</pre>
+
+<p>如您所见，词汇表现在包含了二元模型，向量包含了它们的相对频率。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>TF-IDF vectorizing</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">TF-IDF 矢量化</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>计数矢量化最常见的限制是算法在考虑每个标记的频率时没有考虑整个语料库。矢量化的目标通常是为分类器准备数据；因此，有必要避免经常出现的要素，因为当全局出现次数增加时，它们的信息会减少。例如，在关于一项运动的语料库中，单词<kbd>match</kbd>可能出现在大量的文档中；所以作为分类特征几乎没什么用。为了解决这个问题，我们需要一种不同的方法。如果我们有一个语料库<em> C </em>和<em> n </em>个文档，我们定义<strong>词频</strong> ( <strong> TF </strong>)，一个标记在一个文档中出现的次数如下:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/ef64b160-619c-4449-ad18-75ce7b47211d.png" style="width:16.58em;height:1.67em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">我们将<strong>逆文档频率</strong> ( <strong> IDF </strong>)定义为以下度量:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/79afd8ed-8685-4f5a-85c1-26d184ff0eab.png" style="width:36.42em;height:3.08em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">换句话说，<em> idf(t，C) </em>衡量每一项提供了多少信息。事实上，如果<em> count(D，t) = n </em>，则意味着令牌始终存在并且<em> idf(t，C) </em>接近<em> 0 </em>，反之亦然。分母中的<em> 1 </em>项是一个修正因子，它避免了当 count <em> (D，t) = n </em>时出现空<em> idf </em>。因此，我们不是只考虑 TF，而是通过定义一个新的度量来衡量每个令牌:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/ecfc7db7-354b-49a1-a265-888fd42920fa.png" style="width:20.25em;height:1.67em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">scikit-learn 提供了<kbd>TfIdfVectorizer</kbd>类，我们可以将它应用于上一段中使用的相同玩具语料库:</p>
+
+<pre class="CDPAlignLeft CDPAlign">from sklearn.feature_extraction.text import TfidfVectorizer<br/><br/>tfidfv = TfidfVectorizer()<br/>vectorized_corpus = tfidfv.fit_transform(corpus)<br/>print(vectorized_corpus.todense())<br/>[[ 0.          0.          0.          0.          0.          0.31799276<br/>   0.          0.39278432  0.          0.          0.49819711  0.49819711<br/>   0.          0.          0.49819711  0.          0.          0.          0.        ]<br/>...</pre>
+
+<p>现在让我们检查一下词汇表，以便与简单的计数矢量化进行比较:</p>
+
+<pre>print(tfidfv.vocabulary_)<br/>{u'and': 1, u'be': 3, u'we': 18, u'set': 9, u'simple': 10, u'text': 12, u'is': 7, u'tokenized': 16, u'want': 17, u'the': 13, u'documents': 6, u'this': 14, u'of': 8, u'to': 15, u'can': 4, u'test': 11, u'corpus': 5, u'analyze': 0, u'automatically': 2}</pre>
+
+<p>术语<kbd>documents</kbd>是两个矢量器的第六个特征，出现在最后三个文档中。你可以看到，它的权重大约是 0.3，而<kbd>the</kbd>这个词只在第三个文档中出现了两次，它的权重大约是 0.64。一般规则是这样的:如果一个术语代表一个文档，它的权重接近 1.0，而如果在一个样本文档中找到它，我们就不能很容易地确定它的类别，那么它的权重就会降低。</p>
+
+<p>此外，在这种情况下，可以使用外部标记器并指定所需的 n 元语法范围。此外，可以规范化向量(通过<kbd>norm</kbd>参数)并决定是否包含或排除<kbd>idf</kbd>分母的加数<kbd>1</kbd>(通过<kbd>smooth_idf</kbd>参数)。还可以使用<kbd>min_df</kbd>和<kbd>max_df</kbd>参数定义接受文档频率的范围，以便排除出现次数低于或超过最小/最大阈值的标记。它们既接受整数(出现次数)，也接受在<em>【0.0，1.0】</em>(文档比例)范围内的浮点数。在下一个示例中，我们使用其中一些参数:</p>
+
+<pre>tfidfv = TfidfVectorizer(tokenizer=tokenizer, ngram_range=(1, 2), norm='l2')<br/>vectorized_corpus = tfidfv.fit_transform(corpus)<br/>print(vectorized_corpus.todense())<br/>[[ 0.          0.          0.          0.          0.30403549  0.          0.<br/>   0.          0.          0.          0.          0.47633035  0.47633035<br/>   0.47633035  0.47633035  0.          0.          0.          0.          0.        ]<br/>...<br/><br/>print(tfidfv.vocabulary_)<br/>{u'analyz corpus': 1, u'set': 9, u'simpl test': 12, u'want analyz': 19, u'automat': 2, u'want': 18, u'test corpus': 14, u'set text': 10, u'corpus set': 6, u'automat token': 3, u'corpus document': 5, u'text document': 16, u'token': 17, u'document automat': 8, u'text': 15, u'test': 13, u'corpus': 4, u'document': 7, u'simpl': 11, u'analyz': 0}</pre>
+
+<p>特别是，如果向量必须用作分类器的输入，归一化向量总是一个好的选择，我们将在下一章<a href="11d3e480-6542-411f-96de-642633c42ad8.xhtml" target="_blank">第 14 章</a>、<em>自然语言处理</em>中的主题建模和情感分析中看到。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Part-of-Speech</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">词性</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在某些情况下，检测文本的单个语法成分来执行特定的分析是有帮助的。例如，给定一个句子，我们可能有兴趣找到代表动作意图的动词。或者，我们可能需要提取其他属性，比如位置、名称和时间依赖性。尽管这个主题非常复杂，超出了本书的范围，但我们还是想提供一些可以立即应用于更复杂场景的示例。</p>
+
+<p>这个过程的第一步叫做<strong>词性标注</strong>，包括给每个单词添加一个语法标识符。NLTK 有一个基于<strong> Penn Treebank </strong> POS 语料库的内置模型，它为英语提供了大量的标准标签(完整列表请查看<a href="https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html">https://www . ling . upenn . edu/courses/Fall _ 2003/ling 001/Penn _ tree bank _ POS . html</a>)。为了更好地理解这种动态，让我们考虑几个简单的句子，这些句子使用标准的<kbd>work_tokenize()</kbd>函数进行标记化(当然，标记化策略没有限制)，并使用<kbd>pos_tag()</kbd>函数进行处理:</p>
+
+<pre>from nltk import word_tokenize, pos_tag<br/><br/>sentence_1 = 'My friend John lives in Paris'<br/><br/>tokens_1 = word_tokenize(sentence_1)<br/>tags_1 = pos_tag(tokens_1)<br/><br/>print(tags_1)<br/>[('My', 'PRP$'), ('friend', 'NN'), ('John', 'NNP'), ('lives', 'VBZ'), ('in', 'IN'), ('Paris', 'NNP')]</pre>
+
+<p>如您所见，每个令牌都被转换成一个包含 POS 标记的元组。在前面提到的链接中，读者可以找到每个标签的描述；然而，很容易直观地理解其中的一些。例如，<kbd>PRP$</kbd>标识物主代词，<kbd>NNP</kbd>是专有名词，<kbd>VBZ</kbd>是第三人称单数形式的动词。如果我们需要识别动作，我们可以跳过除了<kbd>'lives'</kbd>(动词)之外的所有标记，专注于意图。一个非常简单的聊天机器人可以解析以下请求:</p>
+
+<pre>sentence_2 = 'Search a hotel in Rome'<br/><br/>print(tags_2)<br/>[('Search', 'VB'), ('a', 'DT'), ('hotel', 'NN'), ('in', 'IN'), ('Rome', 'NNP')]</pre>
+
+<p>动词是<kbd>'Search'</kbd>，可以和一个具体动作联系起来。介词<kbd>'in'</kbd>后跟<kbd>'Rome'</kbd>提供了额外的信息来完成请求。然而，由于<kbd>'Rome'</kbd>是一个专有名词，我们不能确定它是否匹配意图(例如，对于一个搜索动作，我们期望一个位置)。因此，我们需要引入一个更复杂的工具来帮助消除歧义。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Named Entity Recognition</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">命名实体识别</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p><strong>命名实体识别</strong> ( <strong> NER </strong>)是一种从标记中提取特定语义信息的方法。考虑最后一个例子:我们有兴趣了解罗马是一个城市、一个湖还是一个公司。我们的简单聊天机器人所执行的动作实际上与通用专有名词所指示的上下文元素严格相关(例如，如果罗马是一个城市，则可以很容易地满足请求，而如果是一家公司，则聊天机器人应该询问确切的位置)。让我们考虑另一个例子(第一步与前面的步骤相同):</p>
+
+<pre>from nltk import word_tokenize, pos_tag, ne_chunk, tree2conlltags<br/><br/>sentence_2 = 'Search a hotel in Cambridge near the MIT'<br/><br/>print(tree2conlltags(ne_chunk(tags_2)))<br/>[('Search', 'VB', 'O'), ('a', 'DT', 'O'), ('hotel', 'NN', 'O'), ('in', 'IN', 'O'), ('Cambridge', 'NNP', 'B-GPE'), ('near', 'IN', 'O'), ('the', 'DT', 'O'), ('MIT', 'NNP', 'B-ORGANIZATION')]</pre>
+
+<p><kbd>ne_chunk()</kbd>函数执行 NER，但是它输出一个显示关系的树。因为我们想要获得一个元组列表，所以我们需要使用<kbd>tree2colltags()</kbd>函数。现在每个元组都有一个额外的元素，指示被识别的实体。让我们来关注一下<kbd>'Cambridge'</kbd>和<kbd>'MIT'</kbd>。标签<kbd>'B-GPE'</kbd>表示一个<strong>地缘政治实体</strong> ( <strong> GPE </strong>)(可以是一个城市或一个州，但在很多情况下，这足以限制我们的研究)，而<kbd>'B-ORGANIZATION'</kbd>则明确表示一家通用公司(上市公司或私营公司)。有了这两条附加信息，我们可以使用 intent <kbd>'Search'</kbd>并在<kbd>Cambridge</kbd>中执行对<kbd>MIT</kbd>的查找。一旦我们获得了一个有效的地址(例如，使用 Google Maps API)，我们就可以寻找离想要的目的地很近的目标(一个酒店)。</p>
+
+<p>由于这是对 NLP 的介绍，我们不能分析更复杂的场景；然而，我邀请读者查阅《用 Python 进行自然语言处理的实践》(hand-On Natural Language Processing)一书<em>，</em>，<em> Arumugam R，Shanmugamani R，Packt Publishing，</em>，<em> 2018，</em>以了解更多信息和示例。我还建议阅读标准的 NLTK 文档，在那里可以找到每个特定函数中使用的语言算法和方法的详细描述。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>A sample text classifier based on the Reuters corpus</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">基于路透社语料库的样本文本分类器</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>我们将基于 NLTK Reuters 语料库构建一个样本文本分类器。这条新闻由数千条新闻组成，分为 90 个类别:</p>
+
+<pre>from nltk.corpus import reuters<br/><br/>print(reuters.categories())<br/>[u'acq', u'alum', u'barley', u'bop', u'carcass', u'castor-oil', u'cocoa', u'coconut', u'coconut-oil', u'coffee', u'copper', u'copra-cake', u'corn', ...</pre>
+
+<p>为了简化这个过程，我们将只选取两个类别，它们具有相似数量的文档:</p>
+
+<pre>import numpy as np<br/><br/>Xr = np.array(reuters.sents(categories=['rubber']))<br/>Xc = np.array(reuters.sents(categories=['cotton']))<br/>Xw = np.concatenate((Xr, Xc))</pre>
+
+<p>由于每个文档已经被分割成标记，并且我们想要应用我们的定制标记化器(通过停用词移除和词干化)，我们需要重新构建完整的句子:</p>
+
+<pre>X = []<br/><br/>for document in Xw:<br/>    X.append(' '.join(document).strip().lower())</pre>
+
+<p>现在我们需要准备标签向量，将<kbd>0</kbd>分配给<kbd>rubber</kbd>并将<kbd>1</kbd>分配给<kbd>cotton</kbd>:</p>
+
+<pre>Yr = np.zeros(shape=Xr.shape)<br/>Yc = np.ones(shape=Xc.shape)<br/>Y = np.concatenate((Yr, Yc))</pre>
+
+<p>此时，我们可以向量化我们的语料库:</p>
+
+<pre>tfidfv = TfidfVectorizer(tokenizer=tokenizer, ngram_range=(1, 2), norm='l2')<br/>Xv = tfidfv.fit_transform(X)</pre>
+
+<p>现在数据集准备好了，我们可以继续将它分成训练和测试子集，最后训练我们的分类器。我决定采用随机森林，因为它对于这种任务特别有效，但是读者可以尝试不同的分类器并比较结果:</p>
+
+<pre>from sklearn.model_selection import train_test_split<br/>from sklearn.ensemble import RandomForestClassifier<br/><br/>X_train, X_test, Y_train, Y_test = train_test_split(Xv, Y, test_size=0.25, random_state=1000)<br/><br/>rf = RandomForestClassifier(n_estimators=25)<br/>rf.fit(X_train, Y_train)<br/>score = rf.score(X_test, Y_test)<br/>print('Score: %.3f' % score)<br/>Score: 0.874</pre>
+
+<p>评分在 88%左右，是相当不错的成绩，但是我们用一句假新闻台词来试一试预测:</p>
+
+<pre>test_newsline = ['Trading tobacco is reducing the amount of requests for cotton and this has a negative impact on our economy']<br/><br/>yvt = tfidfv.transform(test_newsline)<br/>category = rf.predict(yvt)<br/>print('Predicted category: %d' % int(category[0]))<br/>Predicted category: 1</pre>
+
+<p>分类结果正确；然而，通过采用我们将在下一章讨论的一些技术，<a href="11d3e480-6542-411f-96de-642633c42ad8.xhtml" target="_blank">第 14 章</a>，<em>自然语言处理中的主题建模和情感分析，</em>也有可能在更复杂的现实生活问题中获得更好的性能。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Summary</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">摘要</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在这一章中，我们讨论了所有基本的自然语言处理技术，从语料库的定义开始，直到最终转换成特征向量。我们分析了不同的标记化方法来解决将文档拆分成单词的特定问题或情况。然后，我们介绍了一些过滤技术，这些技术对于删除所有无用的元素(也称为停用词)以及将变形形式转换为标准标记是必要的。</p>
+
+<p>这些步骤对于通过删除常用术语来增加信息内容非常重要。当文档被成功清理后，可以使用一种简单的方法对它们进行矢量化，比如由计数矢量化工具实现的方法，或者一种考虑到术语全局分布的更复杂的方法，比如 TF-IDF。引入后者是为了完成词干提取阶段所做的工作；其实它的目的就是定义在信息量大的情况下，每个分量会接近<em> </em> 1 的向量，反之亦然。通常，出现在许多文档中的单词对于分类器来说不是一个好的标记；因此，如果没有被前面的步骤移除，TF-IDF 将自动减少其重量。在本章的最后，我们构建了一个简单的文本分类器，实现了整个单词包管道，并使用随机森林对新闻行进行分类。</p>
+
+<p>在下一章中，<a href="11d3e480-6542-411f-96de-642633c42ad8.xhtml" target="_blank">第 14 章</a>，<em>自然语言处理中的主题建模和情感分析，</em>我们将简要讨论一些高级技术，如主题建模、潜在语义分析和情感分析，以此来结束这个介绍。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html></body></html>

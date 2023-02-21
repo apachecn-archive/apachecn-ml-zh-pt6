@@ -1,0 +1,933 @@
+<html><head/><body>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>LUIS Entities and Additional Information on Linguistic Analysis</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body id="77NOM0-747158f676dc47cd8e179786efb4ebe5" class="calibre">
+        
+
+                            
+                    <h1 class="header-title" id="calibre_pb_0">LUIS 实体和关于语言分析的附加信息</h1>
+                
+            
+            
+                
+<p class="calibre2">在本附录中，我们将首先列出 LUIS 预构建的实体，然后浏览词性标签，接着是短语类型。</p>
+
+
+            
+
+            
+        
+    </body></html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>LUIS pre-built entities</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body id="78M980-747158f676dc47cd8e179786efb4ebe5" class="calibre">
+        
+
+                            
+                    <h1 class="header-title" id="calibre_pb_0">LUIS 预建实体</h1>
+                
+            
+            
+                
+<div><p class="calibre2">以下列表显示了可以添加到应用程序中的所有可用实体:</p>
+<ul class="calibre15">
+<li class="calibre16"><kbd class="calibre12">DatetimeV2</kbd></li>
+<li class="calibre16"><kbd class="calibre12">Datetime</kbd></li>
+<li class="calibre16"><kbd class="calibre12">Number</kbd></li>
+<li class="calibre16"><kbd class="calibre12">Ordinal</kbd></li>
+<li class="calibre16"><kbd class="calibre12">Percentage</kbd></li>
+<li class="calibre16"><kbd class="calibre12">Temperature</kbd></li>
+<li class="calibre16"><kbd class="calibre12">Dimension</kbd></li>
+<li class="calibre16"><kbd class="calibre12"><kbd class="calibre35">Money</kbd> </kbd></li>
+<li class="calibre16"><kbd class="calibre12">Age</kbd></li>
+<li class="calibre16"><kbd class="calibre12">Geography</kbd></li>
+<li class="calibre16"><kbd class="calibre12">Encyclopedia</kbd></li>
+<li class="calibre16"><kbd class="calibre12">URL</kbd></li>
+<li class="calibre16"><kbd class="calibre12">Email</kbd></li>
+<li class="calibre16"><kbd class="calibre12">Phone Number</kbd></li>
+</ul>
+</div>
+<p>可以在<a href="https://docs.microsoft.com/en-us/azure/cognitive-services/LUIS/pre-builtentities" class="calibre24">https://docs . Microsoft . com/en-us/azure/cognitive-services/LUIS/pre-builtentities</a>中找到完整且更新的预构建实体列表。</p>
+
+
+            
+
+            
+        
+    </body></html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Part-of-speech tags</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body id="79KPQ0-747158f676dc47cd8e179786efb4ebe5" class="calibre">
+        
+
+                            
+                    <h1 class="header-title" id="calibre_pb_0">词性标签</h1>
+                
+            
+            
+                
+<p class="calibre2">下表描述了所有可用的<strong class="calibre1">词性</strong>标签:</p>
+<table class="msotablegrid">
+<tbody class="calibre6">
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><strong class="calibre1">标签</strong></p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><strong class="calibre1">描述</strong></p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><strong class="calibre1">示例</strong></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">$</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">美元</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">$</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">``</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">开始引号</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">` ``</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">''</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">结束引号</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">' ''</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">(</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">左括号</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">( [ {</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">)</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">右括号</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">) ] }</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">,</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">逗号</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">,</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">--</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">破折号</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">-</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">.</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">句子结束符</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">。！？</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">:</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">冒号或省略号</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">: ;...</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">CC</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">合取，协调</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">和</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">CD</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">数字，基数</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">九</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">DT</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">限定词</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">这</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">EX</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">存在主义</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">在那里</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">FW</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">外来词</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">我不知是什么</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">IN</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">介词或从属连词</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">在</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">JJ</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">形容词、数词或序数</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">第九</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">JJR</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">形容词，比较级</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">较好的</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">JJS</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">形容词，最高级</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">便宜的</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">LS</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">列表项目标记</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">12 A B A B A B。</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">MD</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">情态助动词</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">能</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">NN</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">名词、普通、单数或复数</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">马铃薯</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">NNP</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">专有名词，单数</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">芝加哥</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">NNPS</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">名词，专有名词，复数</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">斯普林菲尔德</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">NNS</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">名词，普通，复数</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">老鼠</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">PDT</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">前置限定词</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">一半</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">POS</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">所有格标记</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">的</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">PRP</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">代词，人称</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">她</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">PRP$</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">代词，所有格</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">她的</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">RB</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">副词</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">客观地</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">RBR</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">副词，比较</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">进一步地</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">RBS</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">副词，最高级</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">最好的</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">RP</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">颗粒</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">在</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">SYM</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">标志</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">% &amp;</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">TO</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">到</em>作介词或不定式标记</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">到</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">UH</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">感叹词</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">呃万岁</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">VB</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">动词，基本形式</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">分配</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">VBD</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">动词，过去式</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">给予</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">VBG</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">动词、现在式、分词或动名词</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">分配</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">VBN</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">动词，过去分词</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">分配</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">VBP</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">动词，现在时态，不是第三人称单数</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">分配</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">VBZ</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">动词，现在时态，第三人称单数</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">分配</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">WDT</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">WH 限定词</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">那</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">WP</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">WH 代词</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">谁</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">WP$</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">WH-代词，所有格</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">谁的</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">WRB</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">疑问副词</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">然而</p>
+</td>
+</tr>
+</tbody>
+</table>
+
+
+            
+
+            
+        
+    </body></html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Phrase types</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body id="7AJAC0-747158f676dc47cd8e179786efb4ebe5" class="calibre">
+        
+
+                            
+                    <h1 class="header-title" id="calibre_pb_0">短语类型</h1>
+                
+            
+            
+                
+<p>完整和更新的短语类型列表可以在 https://www . Microsoft . com/cognitive-services/en-us/language-Analysis-API/documentation/constituent-Parsing 找到。</p>
+<p class="calibre2">下表描述了所有可用的短语类型:</p>
+<table class="msotablegrid">
+<tbody class="calibre6">
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><strong class="calibre1">标签</strong></p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><strong class="calibre1">描述</strong></p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><strong class="calibre1">示例</strong></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">ADJP</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">形容词短语</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">如此无礼</em></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12"><em class="calibre13">ADVP</em></kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">副词短语</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">清除通过</em></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">CONJP</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">连接短语</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">以及</em></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">FRAG</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">片段，用于不完整或不完整的输入</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">强烈推荐...</em></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">INTJ</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">感叹词</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">万岁</em></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">LST</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">列表标记，包括标点符号</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13"> #4) </em></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">NAC</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">非成分的，用于表示非成分短语的范围</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">和 for a good deal </em>在你得到的东西和 for a good deal</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">NP</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">名词短语</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">一道美味的土豆煎饼</em></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">NX</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">在某些复杂名词短语中用来标记头部</p>
+</td>
+<td class="calibre8"/>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">PP</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">介词短语</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">在水池里</em></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">PRN</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">附加说明的</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">(如此称呼)</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">PRT</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">颗粒</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">剔除</em>中的“剔除”</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">QP</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">名词短语中的数量短语(即复杂的度量/数量)</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">75 美元左右</em></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">RRC</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">简化关系从句</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">仍未解决</em>见“许多问题仍未解决”</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">S</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">句子或从句</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">这是一个句子。</em></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">SBAR</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">从句，通常由从属连词引出</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">我离开时</em>在《我离开时环顾四周》</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">SBARQ</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">由 WH 词或 WH 短语引入的直接问句</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">有什么意义？</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">SINV</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">倒置陈述句</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">他们从未意识到。(注意普通主语<em xmlns:epub="http://www.idpf.org/2007/ops" class="calibre13">他们</em>是如何被移动到动词<em xmlns:epub="http://www.idpf.org/2007/ops" class="calibre13">之后</em>)</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">SQ</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">倒置的是非问句，或 WH 问句的主句</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">他们拿到车了吗？</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">UCP</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">不同于协调短语</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">小而有缺陷</em>(注意形容词和介词短语如何与<em class="calibre13">和</em>连接)</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">VP</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">动词短语</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">跑进树林</em></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">WHADJP</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">WH-形容词短语</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">多不舒服</em></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">WHADVP</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">WH 副词短语</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">当</em></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">WHNP</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">WH 名词短语</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">哪个土豆</em>，<em class="calibre13">多少汤</em></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">WHPP</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">WH-介词短语</p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><em class="calibre13">在哪个国家</em></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">X</kbd></p>
+</td>
+<td class="calibre8">
+<p class="calibre2">未知、不确定或无法破解。</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">第一个<em class="calibre13">中的</em>...汤”</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>完整和更新的词性标签列表可以在<a href="https://docs.microsoft.com/en-gb/azure/cognitive-services/linguisticanalysisapi/pos-tagging" class="calibre24">https://www . Microsoft . com/cognitive-services/en-us/language-Analysis-API/documentation/POS-tagging</a>找到。</p>
+
+
+            
+
+            
+        
+    </body></html>
+</body></html>

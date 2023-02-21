@@ -1,0 +1,372 @@
+<html><head/><body>
+
+
+	
+		<title>B18024_05_ePub</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-79">第五章:模型训练和推理</h1>
+			<p>在最后一章中，我们讨论了 AWS 云中的<strong class="bold">盛宴部署</strong>，并将 S3 设置为模型的线下商店，将 DynamoDB 设置为在线商店。我们还使用<a href="B18024_01_ePub.xhtml#_idTextAnchor014"> <em class="italic">第 1 章</em> </a>、<em class="italic">机器学习生命周期概述</em>中内置的<strong class="bold">客户终身价值</strong> ( <strong class="bold"> LTV </strong> / <strong class="bold"> CLTV </strong>)模型，重新审视了 ML 生命周期的几个阶段。在模型开发过程中，我们执行数据清理和特性工程，并生成特性集，为其创建特性定义并应用到 Feast。最后，我们成功地将这些特性摄取到 Feast 中，并且我们还能够查询摄取的数据。</p>
+			<p>在这一章中，我们将继续 ML 生命周期的剩余部分，包括模型训练、打包、批处理和使用特征库的在线模型推理。本章的目标是继续使用上一章创建的特性存储基础设施，并完成 ML 生命周期的剩余部分。当我们经历这个过程时，它将提供一个机会来学习如何在 ML 开发中使用特征库来缩短模型的生产时间，分离 ML 生命周期的不同阶段，并有助于协作。我们还将回顾<a href="B18024_01_ePub.xhtml#_idTextAnchor014"> <em class="italic">第 1 章</em> </a>、<em class="italic">机器学习生命周期概述</em>，并在我们经历这些步骤时比较不同的阶段。本章将帮助您了解如何使用特征库进行模型训练，然后进行模型推理。我们还将了解在线商店服务的用例以及线下商店服务的用例。</p>
+			<p>我们将依次讨论以下主题:</p>
+			<ul>
+				<li>使用特征库进行模型训练</li>
+				<li>模型包装</li>
+				<li>带盛宴的批量模型推理</li>
+				<li>基于盛宴的在线模型推理</li>
+				<li>在开发过程中处理功能集的更改</li>
+			</ul>
+			<h1 id="_idParaDest-80"><a id="_idTextAnchor079"/>先决条件</h1>
+			<p>为了浏览示例并更好地理解本章，需要在<a href="B18024_04_ePub.xhtml#_idTextAnchor065"> <em class="italic">第 4 章</em> </a>、<em class="italic">向 ML 模型添加特征库</em>中创建的资源。在本章中，我们将使用在前一章中创建的资源，还将使用在本章中创建的功能库。以下 GitHub 链接指向我创建的特征库:<a href="https://github.com/PacktPublishing/Feature-Store-for-Machine-Learning/tree/main/customer_segmentation">https://GitHub . com/packt publishing/Feature-Store-for-Machine-Learning/tree/main/customer _ segmentation</a>。</p>
+			<h1 id="_idParaDest-81"><a id="_idTextAnchor080"/>技术要求</h1>
+			<p>要遵循本章中的代码示例，您只需要熟悉 Python 和任何笔记本环境，可以是本地设置(如 Jupyter)或在线笔记本环境(如 Google Colab、Kaggle 或 SageMaker)。您还需要一个 AWS 帐户，完全访问资源，如红移，S3，胶水，DynamoDB，IAM 控制台，等等。您可以创建一个新帐户，并在试用期内免费使用所有服务。在最后一部分，您将需要一个 IDE 环境来开发在线模型的 REST 端点。你可以在下面的 GitHub 链接找到该书的代码示例:<a href="https://github.com/PacktPublishing/Feature-Store-for-Machine-Learning/tree/main/Chapter05">https://GitHub . com/packt publishing/Feature-Store-for-Machine-Learning/tree/main/chapter 05</a>。</p>
+			<h1 id="_idParaDest-82"><a id="_idTextAnchor081"/>使用特征库进行模型训练</h1>
+			<p>在<a href="B18024_01_ePub.xhtml#_idTextAnchor014"> <em class="italic">第一章</em> </a>，<em class="italic">机器学习生命周期概述</em>中，在特征工程之后，我们直接跳到了同一个笔记本中的模型训练<a id="_idIndexMarker295"/>。鉴于<a href="B18024_04_ePub.xhtml#_idTextAnchor065"> <em class="italic">第四章</em></a><em class="italic">中的<a id="_idIndexMarker296"/>将特征库添加到 ML 模型</em>，生成的特征被摄取到特征库中。这是特性库在 ML 生命周期中帮助实现的标准化之一。通过将要素纳入要素存储，创建了一个可发现、可共享、可重用和版本化的数据集/要素集。</p>
+			<p>现在让我们假设两位数据科学家 Ram 和 Dee 正在研究同一个模型。两者都可以使用这个特性集，而不必做任何额外的事情。不仅如此，如果后台数据每天都得到刷新，那么需要做的就是在数据科学家进来的时候，每天运行一次特性工程笔记本，最新的特性就可供消费了。一个<a id="_idIndexMarker297"/>更好的事情是使用编排框架安排特征工程<a id="_idIndexMarker298"/>笔记本，比如<strong class="bold">气流</strong>、<strong class="bold"> AWS 步骤功能</strong>，甚至<strong class="bold"> GitHub </strong>工作流。一旦完成，当 Dee 和 Ram 开始工作时，最新的特性<a id="_idIndexMarker299"/>就可供他们进行试验。</p>
+			<p>正如我们一直在讨论的，数据工程师和科学家从功能存储中获得的最大优势之一是协作。让我们试着看看我们的两位数据科学家 Dee 和 Ram 如何在模型构建中合作/竞争。每天当 Dee 和 Ram 开始工作时，假设预定的特征工程已经成功运行，他们从模型训练开始。这里要注意的另一件重要事情是，对于模型训练，源是特征存储。数据科学家不需要进入原始数据源来生成要素，除非他们对现有要素生成的模型不满意。在这种情况下，数据科学家将再次进行数据探索，生成额外的要素集，并将其纳入要素存储。每个人都可以再次使用摄取的功能。这将持续下去，直到团队/数据科学家对模型的性能感到满意。</p>
+			<p>在我们拆分两位数据科学家 Dee 和 Ram 的工作流程之前，让我们先来看一下他们的模型培训笔记本的常见步骤。我们打开一个新的 Python 笔记本，命名为<code>model-training.ipynb</code>，生成训练数据。离线存储将用于生成训练数据集，因为它存储历史数据并使用时间戳对数据进行版本化。在 Feast 中，数据存储的接口是通过 API 实现的，正如我们在第 3 章  <em class="italic">的<a href="B18024_03_ePub.xhtml#_idTextAnchor050"> <em class="italic">中所看到的，特性存储的基本原理、术语和用法。</em>和第四章</a></em><em class="italic">中的<a href="B18024_04_ePub.xhtml#_idTextAnchor065"> <em class="italic">向 ML 模型添加特征库</em>。因此，为了生成训练数据集，我们将使用<code>get_historical_features</code>。<code>get_historical_features</code> API 的输入之一是实体 id。通常，在企业中，实体 id 可以从原始数据源中获取</a><a id="_idIndexMarker300"/>。典型的原始数据源<a id="_idIndexMarker301"/>包括数据库、数据仓库、对象存储等等。获取实体的查询可以像<code>select unique {entity_id} from {table};</code>一样简单。让我们在这里做一些类似的事情。我们的原始数据源是 CSV 文件。让我们用它来获取实体 id。在我们继续之前，让我们安装所需的软件包:</em></p>
+			<ol>
+				<li>下面的代码块安装模型训练所需的包:<pre>!pip install feast[aws]==0.19.3 pandas xgboost</pre></li>
+				<li>安装所需的软件包后，如果您还没有克隆功能库，请进行克隆，因为我们需要连接到功能库来生成训练数据集。下面的代码克隆了存储库:<pre>!git clone &lt;repo_url&gt;</pre></li>
+				<li>现在我们有了特性库，让我们连接到 Feast/特性库，并确保在我们继续之前一切都按预期运行:<pre># change directory %cd customer_segmentation """import feast and load feature store object with the path to the directory which contains <strong class="bold">feature_story.yaml</strong>.""" from feast import FeatureStore store = FeatureStore(repo_path=".") for entity in store.list_entities():   print(f"entity: {entity}")</pre></li>
+			</ol>
+			<p><a id="_idIndexMarker302"/>前面的代码块连接到 Feast 特性<a id="_idIndexMarker303"/>库<code>repo_path="."</code>参数表明<code>feature_store.yaml</code>在当前工作目录中。它还列出了<code>customer_segmentation</code>特征库中可用的实体</p>
+			<p>既然我们能够连接到特性存储库，那么让我们创建训练模型所需的实体 id 列表。为了获得实体 id 的列表，在本例中是<code>CustomerId</code>，让我们使用原始数据集并从中过滤出实体 id。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">我们使用的是在第 4 章 、<em class="italic">将特征库添加到 ML 模型</em>中使用的同一原始数据集。这里是数据集的 URL:<a href="https://www.kaggle.com/datasets/vijayuv/onlineretail">https://www.kaggle.com/datasets/vijayuv/onlineretail</a>。</p>
+			<ol>
+				<li value="4">The following code block loads the raw data:<pre>import pandas as pd
+##Read the OnlineRetail.csv
+retail_data = pd.read_csv('/content/OnlineRetail.csv',
+                          encoding= 'unicode_escape')
+retail_data['InvoiceDate'] = pd.to_datetime(
+  retail_data['InvoiceDate'], errors = 'coerce')</pre><p class="callout-heading">重要说明</p><p class="callout">你可能会问为什么我们需要原始数据。Feast 允许对实体进行查询。因此，我们需要特性所需的实体 id。</p></li>
+				<li>让我们<a id="_idIndexMarker304"/>过滤掉<a id="_idIndexMarker305"/>感兴趣的客户 id，类似于特征创建期间的过滤。以下代码块选择了不属于英国的数据集以及存在于三个月数据集中的客户 id(选择三个月数据集中的客户的原因是，在生成 RFM 要素后，我们在要素工程笔记本中对数据集执行了左连接)。</li>
+			</ol>
+			<p>下面的代码块执行所描述的过滤:</p>
+			<pre>## filter data for <strong class="bold">United Kingdom</strong>
+uk_data = retail_data.query("Country=='United Kingdom'").reset_index(drop=True)
+t1 = pd.Timestamp("2011-06-01 00:00:00.054000")
+t2 = pd.Timestamp("2011-03-01 00:00:00.054000")
+uk_data_3m = uk_data[(uk_data.InvoiceDate &lt; t1) &amp; (uk_data.InvoiceDate &gt;= t2)].reset_index(drop=True)</pre>
+			<p>从<code>uk_data_3m</code>开始，我们需要获取唯一的<code>CustomerId</code>。实体数据中需要的附加列是执行时间点连接的时间戳。现在，我将对所有实体 id 使用最新的时间戳。</p>
+			<ol>
+				<li value="6">下面的<a id="_idIndexMarker306"/>代码块创建了查询历史存储所需的实体数据帧<a id="_idIndexMarker307"/>:<pre>from datetime import datetime entity_df = pd.DataFrame(data = {     "customerid": [str(item) for item in uk_data_3m.CustomerID.unique().tolist()],     "event_timestamp": datetime.now() }) entity_df.head()</pre></li>
+			</ol>
+			<p>前面的代码块产生以下输出:</p>
+			<div><div><img src="img/B18024_05_001.jpg" alt="Figure 5.1 – Entity DataFrame for generating the training dataset&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.1-用于生成训练数据集的实体数据框架</p>
+			<p>如<em class="italic">图 5.1 </em>所示，实体数据框包含两列:</p>
+			<ul>
+				<li><strong class="bold"> CustomerID </strong>:需要提取特征<a id="_idIndexMarker309"/>的客户列表<a id="_idIndexMarker308"/>。</li>
+				<li><code>event_timestamp</code>。</li>
+			</ul>
+			<p>现在，Dee 和 Ram 的模型培训笔记本中的通用步骤已经完成，让我们拆分他们的工作流程，看看他们如何协作。</p>
+			<h2 id="_idParaDest-83"><a id="_idTextAnchor082"/>迪伊的模型训练实验</h2>
+			<p>从最后一步<a id="_idIndexMarker310"/>继续(随意复制代码块并在不同的笔记本中运行它们，并将其命名为<code>dee-model-training.ipynb</code>)，是时候挑选训练模型所需的特性集了:</p>
+			<ol>
+				<li value="1">为了挑选特性，Dee 将运行以下命令来查看现有特性视图中的可用特性:<pre>feature_view = store.get_feature_view("customer_rfm_features") print(feature_view.to_proto())</pre></li>
+			</ol>
+			<p>前面的命令输出特征视图。以下块显示了输出的一部分，包括作为特征视图一部分的特征和实体:</p>
+			<pre>  name: "customer_rfm_features"
+  entities: "customer"
+  features {
+    name: "recency"
+    value_type: INT32
+  }
+  features {
+    name: "frequency"
+    value_type: INT32
+  }
+  features {
+    name: "monetaryvalue"
+    value_type: DOUBLE
+  }
+  …
+  
+meta {
+  created_timestamp {
+    seconds: 1647301293
+    nanos: 70471000
+  }
+  last_updated_timestamp {
+    seconds: 1647301293
+    nanos: 70471000
+  }
+}</pre>
+			<p>从特征集来看，让我们假设 Dee 想要省去与频率相关的特征，看看模型的性能是如何受到影响的。因此，她为查询选择所有其他特征，并省略了指示频率组的<em class="italic">频率</em>和<em class="italic"> F </em>。</p>
+			<ol>
+				<li value="2">下面的<a id="_idIndexMarker312"/>代码块使用<em class="italic">图 5.1 </em> : <pre>import os from datetime import datetime os.environ["AWS_ACCESS_KEY_ID"] = "&lt;aws_key_id&gt;" os.environ["AWS_SECRET_ACCESS_KEY"] = "&lt;aws_secret&gt;" os.environ["AWS_DEFAULT_REGION"] = "us-east-1" job = store.get_historical_features(     entity_df=entity_df,     features=[               "customer_rfm_features:recency",                "customer_rfm_features:monetaryvalue",                "customer_rfm_features:r",                "customer_rfm_features:m",               "customer_rfm_features:rfmscore",               "customer_rfm_features:segmenthighvalue",               "customer_rfm_features:segmentlowvalue"               "customer_rfm_features:segmentmidvalue",               "customer_rfm_features:ltvcluster"               ]     ) feature_data = job.to_df() feature_data = feature_data.dropna() feature_data.head()</pre>中所示的实体数据帧查询历史/离线商店以获取所需的特征</li>
+			</ol>
+			<p><a id="_idIndexMarker313"/>前一个代码块输出如下所示的数据帧:</p>
+			<div><div><img src="img/B18024_05_002.jpg" alt="Figure 5.2 – Training dataset for Dee's model&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.2-Dee 模型的训练数据集</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">用在第 4 章<em class="italic">中<a href="B18024_04_ePub.xhtml#_idTextAnchor065"> <em class="italic">创建的用户凭证替换前面代码块中的<code>&lt;aws_key_id&gt;</code>和<code>&lt;aws_secret&gt;</code>【添加特性库到 ML 模型</em>。</a></em></p>
+			<ol>
+				<li value="3">既然 Dee 已经生成了训练数据集，下一步就是模型训练。让我们用<a href="B18024_01_ePub.xhtml#_idTextAnchor014"> <em class="italic">第 1 章</em> </a>、<em class="italic">机器学习生命周期概述</em>中使用的相同参数构建 XGBoost 模型。下面的代码块将数据集分为定型和测试:<pre>from sklearn.metrics import classification_report,confusion_matrix import xgboost as xgb from sklearn.model_selection import KFold, cross_val_score, train_test_split #Drop prediction column along with event time and customerId columns from X X = feature_data.drop(['ltvcluster', 'customerid',                         'event_timestamp'], axis=1) y = feature_data['ltvcluster'] X_train, X_test, y_train, y_test = \  train_test_split(X, y, test_size=0.1)</pre></li>
+				<li>下面的<a id="_idIndexMarker314"/>代码块使用前一个示例中创建的训练和测试数据集，并训练一个<code>XGBClassifier</code>模型:<pre>xgb_classifier = xgb.XGBClassifier(max_depth=5, objective='multi:softprob') #model training xgb_model = xgb_classifier.fit(X_train, y_train) #Model scoring acc = xgb_model.score(X_test,y_test) print(f"Model accuracy: {acc}")</pre></li>
+			</ol>
+			<p>前面的代码块显示了模型的准确性:</p>
+			<pre>Model accuracy: 0.8840579710144928</pre>
+			<ol>
+				<li value="5">下面的代码块对测试数据集运行<code>predict</code>函数，并打印分类报告:<pre>#Run prediction on the test dataset y_pred = xgb_model.predict(X_test) print(classification_report(y_test, y_pred))</pre></li>
+			</ol>
+			<p>前面的代码块产生以下输出:</p>
+			<div><div><img src="img/B18024_05_003.jpg" alt="Figure 5.3 – Classification report of Dee's model&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.3-Dee 模型的分类报告</p>
+			<p>不仅如此，Dee 还可以尝试不同的功能集和算法。现在，让我们假设 Dee 对她的模型很满意。让我们继续，看看 Ram 是干什么的。</p>
+			<h2 id="_idParaDest-84"><a id="_idTextAnchor083"/>拉姆的模型训练实验</h2>
+			<p>同样，我们将在笔记本中从<em class="italic">图 5.1 </em>之后的步骤<a id="_idIndexMarker316"/>继续(随意复制代码块，在不同的笔记本中运行，并将其命名为<code>ram-model-training.ipynb</code>)。是时候挑选训练模型所需的特征集了。为了挑选特征，Ram 将遵循与 Dee 相似的步骤。让我们假设 Ram 有不同的想法——他不是放弃一个特定的类别，而是放弃具有实际值的特征，只使用 R、F 和 M 分类特征，并对分类特征进行分段。根据 Ram 的说法，这些分类变量是实际值的一些转换:</p>
+			<ol>
+				<li value="1">The following code block produces the features set required by Ram to train the model:<pre>import os
+from datetime import datetime
+os.environ["AWS_ACCESS_KEY_ID"] = "&lt;aws_key_id&gt;"
+os.environ["AWS_SECRET_ACCESS_KEY"] = "&lt;aws_secret&gt;"
+os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
+job = store.get_historical_features(
+    entity_df=entity_df,
+    features=[
+             "customer_rfm_features:r", 
+             "customer_rfm_features:m",
+             "customer_rfm_features:f",
+             "customer_rfm_features:segmenthighvalue",
+             "customer_rfm_features:segmentlowvalue",
+             "customer_rfm_features:segmentmidvalue",
+             "customer_rfm_features:ltvcluster"
+             ]
+    )
+feature_data = job.to_df()
+feature_data = feature_data.dropna()
+feature_data.head()</pre><p class="callout-heading">重要说明</p><p class="callout">将前面代码块中的<code>&lt;aws_key_id&gt;</code>和<code>&lt;aws_secret&gt;</code>替换为在<a href="B18024_04_ePub.xhtml#_idTextAnchor065"> <em class="italic">第 4 章</em> </a>、<em class="italic">向 ML 模型添加特征库</em>中创建的用户凭证。</p></li>
+			</ol>
+			<p>前面的<a id="_idIndexMarker317"/>代码块产生以下输出:</p>
+			<div><div><img src="img/B18024_05_004.jpg" alt="Figure 5.4 – Training dataset for Ram's model&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.4–Ram 模型的训练数据集</p>
+			<ol>
+				<li value="2">接下来是<a id="_idIndexMarker318"/>类似于 Dee 执行的，就是训练模型，看它的分类报告。就这么办吧。</li>
+			</ol>
+			<p>以下代码块根据图 5.4 中<em class="italic">的特征集训练模型:</em></p>
+			<pre>from sklearn.metrics import classification_report,confusion_matrix
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import KFold, cross_val_score, train_test_split
+X = feature_data.drop(['ltvcluster', 'customerid',
+                       'event_timestamp'], axis=1)
+y = feature_data['ltvcluster']
+X_train, X_test, y_train, y_test = \ 
+train_test_split(X, y, test_size=0.1)
+model =  (random_state=0).fit(X_train, y_train)
+acc = model.score(X_test,y_test)
+print(f"Model accuracy: {acc}")</pre>
+			<p>在对测试集上的模型进行训练和评分之后，前面的代码块打印出模型的准确性。代码类似于 Dee 使用的代码，但是使用了<code>LogisticRegression</code>而不是<code>XGBClassifier</code>。代码块产生以下输出:</p>
+			<pre>Model accuracy: 0.8623188405797102</pre>
+			<ol>
+				<li value="3">让我们在测试数据集上打印<a id="_idIndexMarker319"/>分类报告，以便我们可以比较 Ram 和 Dee 的模型。下面的代码块为模型生成分类报告:<pre>y_pred = model.predict(X_test) print(classification_report(y_test, y_pred))</pre></li>
+			</ol>
+			<p>前面的代码块产生以下输出:</p>
+			<div><div><img src="img/B18024_05_005.jpg" alt="Figure 5.5 – Classification report of Ram's model&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.5–Ram 模型的分类报告</p>
+			<p>Ram 和 Dee 现在可以通过查看他们各自进行的实验来比较彼此的工作。不仅是这两个实验，他们还可以运行多个实验，并在所有比较后得出最佳模型。不仅如此，他们还可以通过编写代码来尝试功能集的所有组合，并在这些实验运行时查看和探索更多数据或在其他方面工作，从而实现实验的自动化。</p>
+			<p>我在这里建议的另一件事是使用一个实验跟踪工具/软件。市场上有很多。其中一些是您使用的笔记本电脑基础架构附带的。以<a id="_idIndexMarker320"/>为例，<strong class="bold"> Databricks </strong>提供<strong class="bold"> MLflow </strong>，<strong class="bold"> SageMaker </strong>自有<a id="_idIndexMarker321"/>，还有<a id="_idIndexMarker322"/>第三方实验跟踪<a id="_idIndexMarker323"/>工具，如<a id="_idIndexMarker324"/>如<strong class="bold"> Neptune </strong>，<strong class="bold"> ClearML </strong>等。更多实验跟踪和比较的工具可以在下面的博客中找到:<a href="https://neptune.ai/blog/best-ml-experiment-tracking-tools">https://neptune.ai/blog/best-ml-experiment-tracking-tools</a>。</p>
+			<p>让我们假设 Dee 和<a id="_idIndexMarker325"/> Ram 在所有的实验之后，得出结论<code>XGBClassifier</code>表现更好，并决定使用该模型。让我们在下一节看看模型包装。</p>
+			<h1 id="_idParaDest-85"><a id="_idTextAnchor084"/>模型包装</h1>
+			<p>在上一节中，我们构建了<a id="_idIndexMarker326"/>模型的两个版本。在这一节中，让我们打包其中一个模型，并保存它用于模型评分和部署。如前一节所述，我们来包装一下<code>XGBClassifier</code>模型。同样，对于打包，有不同的解决方案和工具可用。为了避免设置另一个工具，我将使用<code>joblib</code>库来打包模型:</p>
+			<ol>
+				<li value="1">继续使用生产了<code>XGBClassifier</code>模型的笔记本，下面的代码块安装了<code>joblib</code>库:<pre>#install job lib library for model packaging !pip install joblib</pre></li>
+				<li>安装完<code>joblib</code>库之后，下一步是使用它来打包模型对象。下面的代码块将模型打包，并将模型写入文件系统上的特定位置:<pre>import joblib joblib.dump(xgb_model, '/content/customer_segment-v0.0')</pre></li>
+			</ol>
+			<p>前面的代码块在<code>/content</code>文件夹中创建一个文件。要验证这一点，运行一个<code>ls</code>命令并检查文件是否存在。让我们也验证一下模型是否可以被加载，以及我们是否可以在它上面运行<code>predict</code>函数。</p>
+			<ol>
+				<li value="3">下面的代码块从位置<code>/content/customer_segment-v0.0</code>加载模型，并对样本数据集运行预测:<pre>loaded_model = joblib.load('/content/customer_segment-v0.0') prediction = loaded_model.predict(X_test.head()) prediction.tolist()</pre></li>
+			</ol>
+			<p>前面的代码块应该没有任何错误地运行，并打印以下预测输出:</p>
+			<pre>[0.0, 0.0, 0.0, 2.0, 0.0]</pre>
+			<ol>
+				<li value="4">既然我们已经有了<a id="_idIndexMarker327"/>打包的模型，下一步就是在模型库中注册它。同样，有很多工具可以用来管理模型，比如 MLflow、SageMaker 等等。我强烈推荐使用它们中的一个，因为它们可以处理大量的共享、部署、标准版本等用例。为了简单起见，我将使用一个 S3 桶作为这里的模型注册表，并将训练好的模型上传到其中。</li>
+			</ol>
+			<p>以下代码将打包的模型上传到 S3 存储桶中:</p>
+			<pre>import boto3
+s3_client = boto3.client('s3')
+s3_client.upload_file(
+  '/content/customer_segment-v0.0', 
+  "feast-demo-mar-2022", 
+  "model-repo/customer_segment-v0.0")</pre>
+			<p>前面的代码块将文件 S3 桶<code>feast-demo-mar-2022</code>上传到下面的前缀中:<code>model-repo/customer_segment-v0.0</code>。请通过访问 AWS 控制台来验证这一点，以确保模型已上传到指定位置。</p>
+			<p>到目前为止，我们已经完成了模型训练和实验，并在模型注册中心(S3 桶)注册了一个候选模型。让我们在下一节中为批处理模型用例创建模型预测笔记本。</p>
+			<h1 id="_idParaDest-86"><a id="_idTextAnchor085"/>批量模型推断同宴</h1>
+			<p>在<a id="_idIndexMarker328"/>这一节中，我们来看看如何对批量<a id="_idIndexMarker329"/>模型进行预测。要对批处理模型执行预测，我们需要两件东西:一个是模型，另一个是客户列表及其用于预测的特性集。在上一节中，我们在模型注册中心(S3)创建并注册了一个模型。此外，所需的功能也可以在功能库中找到。我们所需要的只是我们需要为其运行预测的客户列表。客户列表可以像我们之前在模型训练期间所做的那样从原始数据集生成。但是，出于本练习的目的，我们将选取一小部分客户，并对他们进行预测。</p>
+			<p>让我们创建一个模型预测笔记本，并加载在模型注册表中注册的模型:</p>
+			<ol>
+				<li value="1">以下代码块为预测笔记本安装所需的依赖项<a id="_idTextAnchor086"/>:<pre>!pip install feast[aws]==0.19.3 pandas xgboost joblib</pre></li>
+				<li>安装完依赖项后，另一个必需的步骤是获取特性库(如果还没有的话)。这是所有使用 Feast 的笔记本中的共同要求之一。但是，该过程在其他功能存储中可能并不相同。这是盛宴的原因之一是面向 SDK/CLI。其他特性存储，比如 SageMaker 和 Databricks，可能只需要凭证就可以访问它。我们将在下一章中看到一个例子。</li>
+				<li>假设您已经克隆了在上一章中创建的 Feast 存储库(它也在模型创建过程中使用)，下一步是从模型注册中心 S3 获取模型。</li>
+			</ol>
+			<p>下面的代码块从 S3 位置(模型上载到的同一位置)下载模型:</p>
+			<pre>import boto3
+import os
+#aws Credentials
+os.environ["AWS_ACCESS_KEY_ID"] = "&lt;aws_key_id&gt;"
+os.environ["AWS_SECRET_ACCESS_KEY"] = "&lt;aws_secret&gt;"
+os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
+#Download model from s3
+model_name = "customer_segment-v0.0"
+s3 = boto3.client('s3')
+s3.download_file("feast-demo-mar-2022", 
+                 f"model-repo/{model_name}", 
+                 model_name)</pre>
+			<p>在执行了前面的代码块之后，您应该在当前工作目录中看到一个名为<code>customer_segment-v0.0</code>的文件。您可以使用<code>ls</code>命令或通过文件夹浏览器来验证它。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">将前面代码块中的<code>&lt;aws_key_id&gt;</code>和<code>&lt;aws_secret&gt;</code>替换为在<a href="B18024_04_ePub.xhtml#_idTextAnchor065"> <em class="italic">第 4 章</em> </a>、<em class="italic">向 ML 模型添加特性库</em>中创建的用户凭证。</p>
+			<ol>
+				<li value="4">下一步是获取需要评分的客户列表。如前所述，这可以从原始数据源中获取，但是出于练习的目的，我将硬编码一个客户列表示例。为了模拟从原始数据源获取客户，我将调用一个返回客户列表的函数。</li>
+			</ol>
+			<p>下面的代码块显示了从原始数据源获取客户的模拟函数:</p>
+			<pre>def fetch_customers_from_raw_data():
+  ## todo: code to fetch customers from raw data
+  return ["12747.0", "12841.0", "12849.0", 
+          "12854.0", "12863.0"]
+customer_to_be_scored=fetch_customers_from_raw_data()</pre>
+			<ol>
+				<li value="5">现在<a id="_idIndexMarker332"/>我们有了要评分的客户列表，下一步<a id="_idIndexMarker333"/>是获取这些客户的特性。做这件事有不同的方法。一种方式是使用线上商店，另一种方式是使用线下商店。对于批量模型，由于延迟不是一个要求，所以最划算的方法是使用线下商店；只是线下店需要查询最新的功能。这可以通过使用<code>event_timestamp</code>列来完成。让我们使用离线商店并查询给定客户列表所需的特性。为此，我们需要实体数据框架。接下来让我们创建它。</li>
+				<li>以下代码块创建了获取最新特性所需的实体数据帧:<pre>import pandas as pd from datetime import datetime entity_df = pd.DataFrame(data={     "customerid": customer_to_be_scored,     "event_timestamp": datetime.now() }) entity_df.head()</pre></li>
+			</ol>
+			<p>前面的代码块输出以下实体数据帧:</p>
+			<div><div><img src="img/B18024_05_006.jpg" alt="Figure 5.6 – Entity DataFrame for prediction&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.6–用于预测的实体数据框架</p>
+			<p>要为任何客户获取<a id="_idIndexMarker334"/>最新功能，您<a id="_idIndexMarker335"/>需要将<code>event_timestamp</code>设置为<code>datetime.now()</code>。下面我们用<em class="italic">图 5.4 </em>中的实体数据框来查询线下店铺。</p>
+			<ol>
+				<li value="7">以下代码块获取给定实体数据帧的特性:<pre>%cd customer_segmentation from feast import FeatureStore store = FeatureStore(repo_path=".") job = store.get_historical_features(     entity_df=entity_df,     features=[               "customer_rfm_features:recency",                "customer_rfm_features:monetaryvalue",                "customer_rfm_features:r",                "customer_rfm_features:m",               "customer_rfm_features:rfmscore",               "customer_rfm_features:segmenthighvalue",               "customer_rfm_features:segmentlowvalue",               "customer_rfm_features:segmentmidvalue"           ]     ) pred_feature_data = job.to_df() pred_feature_data = pred_feature_data.dropna() pred_feature_data.head()</pre></li>
+			</ol>
+			<p>前面的代码块产生以下输出:</p>
+			<div><div><img src="img/B18024_05_007.jpg" alt="Figure 5.7 – Features for prediction&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.7–预测功能</p>
+			<ol>
+				<li value="8">既然我们<a id="_idIndexMarker336"/>已经有了预测功能，那么<a id="_idIndexMarker337"/>下一步就是加载下载的模型，并使用<em class="italic">图 5.5 </em>中的功能为客户运行预测。下面的代码块就是这么做的:<pre>import joblib ## Drop unwanted columns features = pred_feature_data.drop(     ['customerid', 'event_timestamp'], axis=1) loaded_model = joblib.load('/content/customer_segment-v0.0') prediction = loaded_model.predict(features)</pre></li>
+				<li>运行预测后的最后一步是将预测结果存储在数据库或对象存储中，供以后使用。在本练习中，我将把预测结果写入 S3 存储桶。请随意将结果存储到其他数据存储中。</li>
+				<li>以下代码块将预测结果和特征一起保存在 S3 位置:<pre>file_name = f"customer_ltv_pred_results_{datetime.now()}.parquet" pred_feature_data["predicted_ltvcluster"] = prediction.tolist() s3_url = f's3://feast-demo-mar-2022/prediction_results/{file_name}' pred_feature_data.to_parquet(s3_url)</pre></li>
+			</ol>
+			<p>有了最后一个<a id="_idIndexMarker338"/>代码块，我们就完成了批量模型的实现<a id="_idIndexMarker339"/>。你脑海中的问题会是<em class="italic">到目前为止，特性商店的引入如何改变了 ML 的生命周期？</em>。它的早期采用分离了特征工程、模型训练和模型评分的步骤。它们中的任何一个都可以独立运行，而不必干扰管道的其他部分。这是一个巨大的好处。另一部分是部署。我们在第一步中创建的笔记本是具体的，并且执行特定的工作，例如特征工程、模型训练和模型评分。</p>
+			<p>现在，为了将模型生产化，我们需要做的就是使用编排框架安排功能工程笔记本和模型评分笔记本，然后模型将全面运行。我们将在下一章研究模型的生产。</p>
+			<p>在下一节中，让我们看看在线模型用例需要做些什么。</p>
+			<h1 id="_idParaDest-87"><a id="_idTextAnchor087"/>在线模型推断与盛宴</h1>
+			<p>在上一节中，我们<a id="_idIndexMarker340"/>讨论了如何在批处理模型<a id="_idIndexMarker341"/>推理中使用 Feast。现在，是时候看看在线模型用例了。在线模型推理的一个要求是它应该以低延迟返回结果，并且可以从任何地方调用。常见的范例之一是将模型公开为 REST API 端点。在<em class="italic">模型打包</em>部分，我们使用<code>joblib</code>库记录了模型。该模型需要用 RESTful 框架包装，以便作为 REST 端点进行部署。不仅如此，当调用推理端点时，还需要实时获取特性。不像在<a href="B18024_01_ePub.xhtml#_idTextAnchor014"> <em class="italic">第一章</em> </a>，<em class="italic">机器学习生命周期概述</em>中，我们没有实时提供功能的<a id="_idIndexMarker342"/>基础设施，在这里，我们<a id="_idIndexMarker343"/>已经有了，这要感谢 Feast。但是，我们需要运行命令，使用 Feast 库将离线特性同步到在线商店。让我们先做那件事。稍后，我们将研究包装。</p>
+			<h2 id="_idParaDest-88"><a id="_idTextAnchor088"/>将最新功能从线下同步到在线商店</h2>
+			<p>要将功能从线下加载到在线商店，我们需要盛宴库:</p>
+			<ol>
+				<li value="1">让我们打开笔记本，安装所需的依赖项:<pre>!pip install feast[aws]==0.19.3</pre></li>
+				<li>安装完所需的依赖项后，如前所述克隆特性存储库，这是对所有笔记本的要求。假设您已经在当前工作目录中克隆了存储库，下面的命令将把最新的特性从离线商店加载到在线商店:<pre>%cd customer_segmentation/ from datetime import datetime import os #aws Credentials os.environ["AWS_ACCESS_KEY_ID"] = "&lt;aws_key_id&gt;" os.environ["AWS_SECRET_ACCESS_KEY"] = "&lt;aws_secret&gt;" os.environ["AWS_DEFAULT_REGION"] = "us-east-1" # Command to sync offline features into online. !feast materialize-incremental {datetime.now().isoformat()}</pre></li>
+			</ol>
+			<p>前面的命令输出进度，如下面的屏幕截图所示:</p>
+			<div><div><img src="img/B18024_05_008.jpg" alt="Figure 5.8 – Sync the offline to the online store&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.8–将离线商店与在线商店同步</p>
+			<ol>
+				<li value="3">将离线数据加载到在线商店后，让我们对在线商店运行一个查询，并确保它按预期工作。要查询在线商店，初始化特性商店对象并调用<code>get_online_features</code> API，如下面的代码块所示:<pre>import pandas as pd from feast import FeatureStore store = FeatureStore(repo_path=".") feature_vector = store.get_online_features(     features=[         "customer_rfm_features:recency",          "customer_rfm_features:monetaryvalue",          "customer_rfm_features:r",          "customer_rfm_features:m",     ],     entity_rows=[         {"customer": "12747.0"},         {"customer": "12841.0"}, {"customer": "abcdef"},     ], ).to_dict() df = pd.DataFrame(feature_vector) df.head()</pre></li>
+			</ol>
+			<p>前面的<a id="_idIndexMarker346"/>代码块以低延迟从在线商店(<strong class="bold"> DynamoDB </strong>)获取数据。当您运行前面的块时，您会注意到与历史存储查询相比，它的响应速度有多快。代码块的输出如下面的屏幕截图所示:</p>
+			<div><div><img src="img/B18024_05_009.jpg" alt="Figure 5.9 – Query the online store&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.9-查询在线商店</p>
+			<p>在<em class="italic">图 5.7 </em>中，最后一行包含<code>NaN</code>值。这是一个例子，说明如果在线商店中不存在任何给定的实体 id，Feast 将如何响应。在本例中，ID 为<code>abcdef</code>的客户在功能存储中不存在，因此它返回相应行的<code>NaN</code>值。</p>
+			<p>现在，在线商店已经准备好了最新的特性，接下来让我们看看如何将模型打包成 RESTful API。</p>
+			<h2 id="_idParaDest-89"><a id="_idTextAnchor089"/>使用盛宴代码将在线模型打包为 REST 端点</h2>
+			<p>这部分更多的是关于软件工程，而不是数据工程或数据科学技能。有许多针对 Python 的 REST API 框架可用，即<code>POST</code>方法端点，它将接受一列客户 id 作为输入并返回预测列表:</p>
+			<ol>
+				<li value="1">下面的代码块显示了将要实现的 API 契约:<pre>POST /invocations {    "customer_list": ["id1", "id2", …] } Response: status 200 { "predictions": [0, 1, …] }</pre></li>
+				<li>现在我们有了 API 契约，下一步是选择我们将要使用的 REST 框架。在现有的 REST 框架中选择一个有不同的权衡。由于这超出了本书的范围，我将使用<code>fastapi</code>(<a href="https://fastapi.tiangolo.com/">https://fastapi.tiangolo.com/</a>)，因为它是一个异步框架。如果你熟悉其他框架，比如<code>flask</code>或者<code>django</code>，可以随意使用。无论使用什么框架，预测结果都是一样的。无论您选择什么框架，只要记住我们将在部署之前对 REST API 进行 dockerizing。</li>
+			</ol>
+			<p>为了构建 API，我将使用 PyCharm IDE。如果您有其他喜欢的 IDE，请随意使用。此外，对于 API 的开发和运行，我们需要以下库:<code>feast[aws]</code>、<code>uvicorn[standard]</code>、<code>fastapi</code>、<code>joblib</code>和<code>xgboost</code>。您可以使用<code>pip install</code>命令安装这些库。我将把它留给你，因为安装的步骤根据 IDE 和你使用的平台以及个人喜好而不同。然而，我将使用<code>virtualenv</code>来管理我的 Python 环境。</p>
+			<p>我的项目的文件夹<a id="_idIndexMarker351"/>结构如下图所示。如果您还没有注意到，特性存储库也被复制到同一个文件夹中，因为我们需要初始化特性存储对象以及特性的在线存储:</p>
+			<div><div><img src="img/B18024_05_010.jpg" alt="Figure 5.10 – Online model folder structure in the IDE&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.10–IDE 中的在线模型文件夹结构</p>
+			<ol>
+				<li value="3">在<code>main.py</code>文件中，让我们定义将要实现的 API。复制下面的代码并粘贴到<code>main.py</code>文件中:<pre>from fastapi import FastAPI app = FastAPI() @app.get("/ping") def ping():     return {"ping": "ok"} @app.post("/invocations") def inference(customers: dict):     return customers</pre></li>
+			</ol>
+			<p>正如您在前面的代码块中看到的，有两个 API:<code>ping</code>和<code>inference</code>:</p>
+			<ul>
+				<li><code>ping</code>:<code>ping</code>API 是一个健康检查端点，在部署应用程序时将需要它。基础设施(如 ECS 或 Kubernetes)将使用 ping URL 来检查应用程序是否健康。</li>
+				<li><code>inference</code>:另一方面，<code>inference</code> API 将包含从特性存储中获取给定客户的特性、根据模型评分并返回结果的逻辑。</li>
+			</ul>
+			<ol>
+				<li value="4">一旦<a id="_idIndexMarker352"/>复制了前面的代码，并将其粘贴到<code>main.py</code>中并保存，请到终端运行以下命令:<pre><strong class="bold">cd &lt;project_folder&gt;</strong> <strong class="bold">uvicorn main:app --reload</strong></pre></li>
+				<li>The preceding commands will run the FastAPI server in a local server and print output similar to the following code block:<pre><strong class="bold">$ uvicorn main:app --reload</strong>
+<strong class="bold">INFO:     Will watch for changes in these directories: ['&lt;folder path&gt;']</strong>
+<strong class="bold">INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)</strong>
+<strong class="bold">INFO:     Started reloader process [24664] using watchgod</strong>
+<strong class="bold">WARNING:  The --reload flag should not be used in production on Windows.</strong>
+<strong class="bold">INFO:     Started server process [908]</strong>
+<strong class="bold">INFO:     Waiting for application startup.</strong>
+<strong class="bold">INFO:     Application startup complete.</strong></pre><p class="callout-heading">重要说明</p><p class="callout">在运行该命令之前，请确保您已经在终端中激活了虚拟环境。</p></li>
+				<li>一旦<a id="_idIndexMarker353"/>应用程序运行，请访问 URL<a href="http://127.0.0.1:8000/docs">http://127 . 0 . 0 . 1:8000/docs</a>。您应该会看到一个 Swagger UI，如下面的屏幕截图所示:</li>
+			</ol>
+			<div><div><img src="img/B18024_05_011.jpg" alt="Figure 5.11 – Swagger UI for the API&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.11–API 的 Swagger UI</p>
+			<p>稍后我们将使用图 5.9 中的 Swagger UI 来调用 API。现在，您可以随意试验，探索可用的东西，并调用 API。</p>
+			<ol>
+				<li value="7">现在我们已经建立了 API 结构，接下来让我们实现<code>inference</code> API。如上所述，<code>inference</code> API 将从特性库中读取特性并运行预测。</li>
+				<li>我们还需要从模型库中加载模型。在我们的例子中，存储库是 S3。因此，我们需要代码从 S3 位置下载模型，并将模型加载到内存中。下面的代码块从 S3 下载模型，并将其加载到内存中。请注意，这是应用程序初始加载期间的一次性活动。因此，让我们在<code>main.py</code>文件中的函数之外添加以下代码:<pre>import boto3 Import joblib model_name = "customer_segment-v0.0" s3 = boto3.client('s3') ## download file from s3 s3.download_file(     "feast-demo-mar-2022",     f"model-repo/{model_name}",     model_name) ## Load the model into memory. loaded_model = joblib.load('customer_segment-v0.0')</pre></li>
+				<li>既然模型已经加载到内存中，下一步就是初始化特征库对象。初始化也可以在方法之外，因为它是一次性的活动:<pre>#initialize the feature store object. store = FeatureStore(repo_path=os.path.join(os.getcwd(), "customer_segmentation"))</pre></li>
+				<li>由于<code>customer_segmentation</code>特征库与<code>main.py</code>文件处于同一级别，如<em class="italic">图 5.8 </em>所示，我适当设置了<code>repo_path</code>。从在线商店获取特性、运行预测并返回结果的剩余逻辑放入<code>inference</code>方法定义中。下面的<a id="_idIndexMarker355"/>代码块包含同样的内容。复制方法并将其替换到<code>main.py</code>文件中:<pre>@app.post("/invocations") def inference(customers: dict):     ##Step1: list of features required for scoring the model     required_features = [         "customer_rfm_features:recency",         "customer_rfm_features:monetaryvalue",         "customer_rfm_features:r",         "customer_rfm_features:m",         "customer_rfm_features:rfmscore",         "customer_rfm_features:segmenthighvalue",         "customer_rfm_features:segmentlowvalue",         "customer_rfm_features:segmentmidvalue"     ]     ##step 2: get entity rows from the input     entity_rows = [{"customer": cust_id} for cust_id in customers["customer_list"]]     ##Step 3: query online store     feature_vector = store.get_online_features(         features=required_features,         entity_rows=entity_rows,     ).to_dict()     ##Step 4: convert features to dataframe and reorder the feature columns in the same order that model expects.     features_in_order = ['recency', 'monetaryvalue',                           'r', 'm', 'rfmscore',                           'segmenthighvalue',                           'segmentlowvalue',                           'segmentmidvalue']     df = pd.DataFrame(feature_vector)     features = df.drop(['customerid'], axis=1)     features = features.dropna()     features = features[features_in_order]     ##Step 5: run prediction and return the list     prediction = loaded_model.predict(features)     return {"predictions": prediction.tolist()}</pre></li>
+				<li>现在<a id="_idIndexMarker356"/>预测逻辑已经完成，让我们运行应用程序并尝试运行预测。要运行应用程序，命令与之前使用的命令相同:<pre><code>&lt;aws_key_id&gt;</code> and <code>&lt;aws_secret&gt;</code> in the preceding code block with the user credentials created in <a href="B18024_04_ePub.xhtml#_idTextAnchor065"><em class="italic">Chapter 4</em></a>, <em class="italic">Adding Feature Store to ML Models</em>.</pre></li>
+				<li>一旦<a id="_idIndexMarker357"/>应用程序成功加载，访问 Swagger UI URL(<a href="http://localhost:8000/docs">http://localhost:8000/docs</a>)。在 Swagger UI 中，展开<code>invocations</code> API 并点击<strong class="bold">试用</strong>。您应该会看到类似于图 5.12 中的屏幕。</li>
+			</ol>
+			<div><div><img src="img/B18024_05_012.jpg" alt="Figure 5.12 – Swagger UI invocation API&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.12–Swagger UI 调用 API</p>
+			<ol>
+				<li value="13">在请求体中，提供如图<em class="italic">图 5.12 </em>(以下代码块中的那个)所示的输入:<pre>{"customer_list":["12747.0", "12841.0"]}</pre></li>
+				<li>输入后，点击<strong class="bold">执行</strong>提交请求。API 应该在几毫秒内做出响应，当您向下滚动屏幕时，输出将是可见的。下图显示了一个输出示例:</li>
+			</ol>
+			<div><div><img src="img/B18024_05_013.jpg" alt="Figure: 5.13 – Online model response&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图:5.13-在线模型响应</p>
+			<p>这就完成了用代码为在线模型构建 REST API 以从 Feast 获取特性的步骤。现在我们已经有了在线和批量模型，在下一章中，我们将看看如何生产这些模型，以及从开发到生产的过渡如何简单，因为我们很早就采用了功能商店和 MLOps。</p>
+			<p>我们还需要考虑的一件事是如何改变/更新或添加额外的功能。在我们继续之前，让我们简单地看一下这个。</p>
+			<h1 id="_idParaDest-90"><a id="_idTextAnchor090"/>在开发过程中处理特性集的变更</h1>
+			<p>发展是一个不断进化的过程。模型也是如此——它们会随着时间而演变。今天，我们可能会为特定的模型使用一些功能，但是当我们发现并尝试新功能时，如果性能比当前模型更好，我们可能会在模型训练和评分中包含新功能。因此，功能集可能会随时间而变化。这意味着我们在<a href="B18024_04_ePub.xhtml#_idTextAnchor065"> <em class="italic">第 4 章</em> </a>、<em class="italic">中执行的一些步骤可能需要重新考虑。让我们看看这些步骤是什么。</em></p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">这里的假设是特征定义在模型开发期间改变，而不是在生产之后。在后面的章节中，我们将会看到在模型投入生产后，如何处理特性集的变化。</p>
+			<h2 id="_idParaDest-91"><a id="_idTextAnchor091"/>步骤 1–更改特征定义</h2>
+			<p>如果特征或<a id="_idIndexMarker361"/>实体在模型开发过程中发生变化，第一步是更新特征库中的特征定义，如果您记得没错，当特征最终确定时，我们做的第一件事是创建特征定义。在特征库中，文件<code>rfm_features.py</code>包含定义。做出更改后，运行<code>feast apply</code>命令来更新资源中的特征定义。如果您创建或删除新的实体或视图，相应的在线商店资源(DynamoDB 表)将被创建或删除。您可以在控制台中验证这一点。如果有微小的更改，如更改数据类型或功能名称，这些更改将保存在功能库注册表中。</p>
+			<h2 id="_idParaDest-92"><a id="_idTextAnchor092"/>步骤 2–在胶水/湖形成控制台中添加/更新模式</h2>
+			<p>第二步<a id="_idIndexMarker362"/>是在我们创建的胶水/湖形成数据库中定义新的表格。如果不需要旧表，可以删除它们以避免以后的混乱。如果模式发生变化(如果特性名称或数据类型发生变化)，您需要更新现有的模式以反映这些变化。如果模式未根据更改进行更新，则当您查询历史存储或尝试将最新要素从离线存储加载到在线存储时，将会出现错误。这里要注意的另一件事是，在定义模式时，我们为特征视图设置了一个 S3 位置。现在这个位置包含了旧的数据，它只适用于旧的模式，您需要定义一个新的路径，遵循新模式的数据将被写入这个路径。</p>
+			<p>另一种方法是用新的模式定义和新的数据 S3 路径定义一个全新的表，并用新的表名更新特征库中的红移源定义。如果这样做，您可以查询旧定义和新定义中的数据。但是，请记住，您可能正在管理特性集的两个版本，一个版本使用旧模式，另一个版本使用新模式。还有，会有<a id="_idIndexMarker363"/>两个 DynamoDB 表。</p>
+			<h2 id="_idParaDest-93"><a id="_idTextAnchor093"/>第 3 步——根据变更更新笔记本</h2>
+			<p>最后一步<a id="_idIndexMarker364"/>很简单，就是去更新所有受影响的笔记本。在特征工程笔记本中，更新是将数据写入新位置，而在模型训练和评分笔记本中，更新是分别在训练和评分期间更新特征名称或获取附加特征。</p>
+			<p>这是每次更新特性定义时需要执行的三个步骤。至此，让我们总结一下我们在本章中学到的内容，在下一章，我们将看看如何生产我们在本章中建立的在线和批量模型，以及生产之外的挑战。</p>
+			<h1 id="_idParaDest-94"><a id="_idTextAnchor094"/>总结</h1>
+			<p>在这一章中，我们的目的是了解模型训练和评分如何随着特征库而变化。为了经历 ML 生命周期的培训和评分阶段，我们使用了上一章中创建的资源。在模型培训阶段，我们研究了数据工程师和数据科学家如何协作，努力构建更好的模型。在模型预测中，我们讨论了批量模型评分，以及使用离线商店是如何经济高效地运行批量模型的。我们还为在线模型构建了一个 REST 包装器，并添加了 Feast 代码来获取运行时预测的特性。在本章的最后，我们看了如果在开发过程中有特性更新的话需要做的改变。</p>
+			<p>在下一章中，我们将继续使用我们在本章中构建的批量模型和在线模型，将它们生产化，并看看模型投入生产后会面临哪些挑战。</p>
+			<h1 id="_idParaDest-95"><a id="_idTextAnchor095"/>延伸阅读</h1>
+			<p>您可以在以下参考资料中找到有关 Feast 的更多信息:</p>
+			<ul>
+				<li>盛宴:<a href="https://docs.feast.dev/">https://docs.feast.dev/</a></li>
+				<li>盛宴 AWS 信用评分教程:<a href="https://github.com/feast-dev/feast-aws-credit-scoring-tutorial">https://github . com/feast-dev/feast-AWS-信用评分-教程</a></li>
+			</ul>
+		</div>
+	
+
+</body></html>

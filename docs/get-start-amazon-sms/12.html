@@ -1,0 +1,229 @@
+<html><head/><body>
+
+
+	
+		<title>B17447_09_ePub_RK</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-126"><em class="italic"> <a id="_idTextAnchor125"/>第九章</em>:在 SageMaker 工作室大规模培训 ML 模特</h1>
+			<p>典型的 ML 生命周期从原型开始，并将过渡到生产规模，在生产规模中，数据变得更大，模型变得更复杂，运行时环境变得更复杂。完成培训工作需要一套合适的工具。使用多台计算机分担负载的分布式培训解决了涉及大型数据集和大型模型的情况。然而，由于复杂的 ML 训练工作使用更多的计算资源和更昂贵的基础设施(例如<strong class="bold">图形处理单元</strong>(<strong class="bold">GPU</strong>))，能够有效地在大数据上训练复杂的 ML 模型对于数据科学家和 ML 工程师来说非常重要。能够查看和监控训练脚本如何与数据和计算实例交互，对于优化训练脚本中的模型训练策略至关重要，这样可以节省时间和成本。说到大规模训练的成本，你知道在 SageMaker 中训练模型可以轻松节省 70%以上吗？SageMaker Studio 使大规模训练 ML 模型变得更加容易和划算。</p>
+			<p>在本章中，我们将学习以下内容:</p>
+			<ul>
+				<li>在 SageMaker Studio 中执行分布式培训</li>
+				<li>使用 SageMaker 调试器监控模型训练和计算资源</li>
+				<li>通过检查点和现场培训管理长时间运行的作业</li>
+			</ul>
+			<h1 id="_idParaDest-127"><a id="_idTextAnchor126"/>技术要求</h1>
+			<p>对于本章，您需要访问在<a href="https://github.com/PacktPublishing/Getting-Started-with-Amazon-SageMaker-Studio/tree/main/chapter09">https://github . com/packt publishing/Getting-Started-with-Amazon-sage maker-Studio/tree/main/chapter 09</a>提供的代码。</p>
+			<h1 id="_idParaDest-128"><a id="_idTextAnchor127"/>在 SageMaker Studio 中执行分布式培训</h1>
+			<p>随着深度学习领域的发展，ML 模型和训练数据正在增长到一个点<a id="_idIndexMarker576"/>，一个单独的设备不再<a id="_idIndexMarker577"/>足以进行有效的模型训练。神经网络变得越来越深，并获得越来越多的用于训练的参数:</p>
+			<ul>
+				<li><strong class="bold"> LeNet-5 </strong>，第一个<strong class="bold">卷积神经网络</strong> ( <strong class="bold"> CNN </strong>)模型<a id="_idIndexMarker579"/>中的一个<a id="_idIndexMarker578"/>，于 1989 年提出<a id="_idIndexMarker580"/>使用 2 个卷积层和 3 个密集层，有大约 60000 个可训练参数。</li>
+				<li><strong class="bold"> AlexNet </strong>，一个更深层次的<a id="_idIndexMarker581"/> CNN 架构<a id="_idIndexMarker582"/>于 2012 年提出，具有 5 层卷积层和 3 层密集层，拥有大约 6200 万个可训练参数。</li>
+				<li><strong class="bold">用于语言理解的双向转换器</strong> ( <strong class="bold"> BERT </strong>)，2018 年<a id="_idIndexMarker584"/>提出的使用转换器的语言<a id="_idIndexMarker583"/>表示模型，在基模型和大模型中分别有 1.1 亿和 3.4 亿个可训练参数。</li>
+				<li><strong class="bold">生成式预训练变压器 2 </strong> ( <strong class="bold"> GPT-2 </strong>)，2019 年<a id="_idIndexMarker586"/>提出的基于大型变压器的生成式<a id="_idIndexMarker585"/>模型，拥有 15 亿个可训练参数。</li>
+				<li><strong class="bold"> GPT-3 </strong>是<a id="_idIndexMarker587"/>的下一个版本，2020 年提出，<a id="_idIndexMarker588"/>达到 1750 亿个可训练参数。</li>
+			</ul>
+			<p>要训练的参数越多，意味着训练期间内存占用越大。此外，适合复杂模型所需的训练数据量也显著增加。对于计算机视觉，最常用的训练数据集之一 ImageNet 有 120 万张<a id="_idIndexMarker589"/>图像。对于<strong class="bold">自然语言处理</strong> ( <strong class="bold"> NLP </strong>)，比如 GPT-3 就是用 4990 亿个令牌训练出来的。</p>
+			<p>然而，最新最棒的 GPU 设备仍然难以满足这样的训练要求。NVIDIA 的最新 GPU 设备，AWS P4d.24xlarge instances 上提供的 A100 Tensor Core GPU，拥有 40 GB 的 GPU 内存，但它不足以容纳拥有 1750 亿个参数的 GPT-3 <a id="_idIndexMarker591"/>模型，因为这样的网络在使用<em class="italic"> FP32 </em> precision 时需要<em class="italic"> 175 x 109 x 4 字节= 700 GB </em>。因此，开发人员正在超越单个 GPU 设备培训，转向分布式培训——即使用多个 GPU 设备和多个计算实例的培训。</p>
+			<p>让我们来了解一下分布式培训为什么以及如何有所帮助。</p>
+			<h2 id="_idParaDest-129"><a id="_idTextAnchor128"/>了解分布式培训的概念</h2>
+			<p>在 ML 模型训练中，训练数据被送入损失优化过程，以便为下一步计算<a id="_idIndexMarker592"/>梯度和权重。当数据和参数大得多时，如在深度学习的情况下，由于设备上可用的 GPU 内存<a id="_idIndexMarker593"/>，拥有适合优化的完整数据集变得不太可行。通常使用<strong class="bold">随机梯度下降优化</strong>方法，在每一步中使用完整训练数据集的子集<strong class="bold">批量</strong>来估计梯度，以克服 GPU 内存限制。然而，当一个模型或每个数据点太大而没有一个对模型训练有意义的批量时，我们将不能在合理的时间框架内收敛到一个最优的、精确的模型。</p>
+			<p>分布式训练是一种将部分计算分配给多个 GPU 设备和多个计算实例(也称为节点)的实践，并在<a id="_idIndexMarker595"/>进行下一次迭代之前同步来自所有设备的计算<a id="_idIndexMarker594"/>。分布式训练有两种策略:<strong class="bold">数据并行</strong>和<strong class="bold">模型并行</strong>。</p>
+			<p>数据并行性<a id="_idIndexMarker596"/>在历元期间将训练数据集从磁盘分发到多个设备和实例，而每个设备包含一部分数据和模型的一个<em class="italic">完整副本</em>。每个节点使用不同批次的数据执行前向和后向传播传递，并在传递结束时与其他节点共享可训练权重更新以进行同步。通过数据并行，您可以将批处理大小增加<em class="italic"> n </em>倍，其中<em class="italic"> n </em>是跨节点的 GPU 设备数量。适当大的批量允许在估计梯度期间更好地概括，并且还减少了运行整个过程所需的步骤数量(<strong class="bold">一个时期</strong>)。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">在实践中还观察到，过大的批量会损害模型的质量和泛化能力。这是依赖于模型和数据集的，需要实验和调整来找出合适的批量大小。</p>
+			<p>数据并行度<a id="_idIndexMarker597"/>如图<em class="italic">图 9.1 </em>所示:</p>
+			<div><div><img src="img/B17447_09_001.jpg" alt="Figure 9.1 – The training data is distributed across GPU devices in data parallelism. A complete replica of the model is placed on each GPU device&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.1–训练数据以数据并行方式分布在 GPU 设备上。模型的完整副本被放置在每个 GPU 设备上</p>
+			<p>或者，模型并行性<a id="_idIndexMarker598"/>跨节点分布一个大的模型。在层和权重级别执行模型的划分。每个节点拥有模型的一个分区。前向和后向传播作为一个管道发生，在权重更新之前，数据批次通过所有节点上的模型分区。更具体地说，每个数据批次被分成微批次，并馈入模型的每个部分，位于向前和向后传递的设备上。通过模型并行，您可以更有效地训练大型模型，该模型需要比单个 GPU 设备更高的 GPU 内存占用量，而不是使用多个 GPU 设备的内存。模型平行度如<em class="italic">图 9.2 </em>所示:</p>
+			<div><div><img src="img/B17447_09_002.jpg" alt="Figure 9.2 – The model is partitioned across GPU devices in model parallelism. The training data is split into micro-batches and fed into the GPUs, each of which has a part of the model as a pipeline&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.2–模型以模型并行方式跨 GPU 设备进行划分。训练数据被分成小批，并被送入 GPU，每个 GPU 都有模型的一部分作为管道</p>
+			<p><em class="italic">什么时候应该使用数据并行或者模型并行？</em>这取决于训练中的数据大小、批次和模型大小。数据并行适用于单个数据<a id="_idIndexMarker599"/>点太大而无法在训练期间获得理想的批量时的情况。小批量的直接代价是有更长的运行时间来完成一个时期。您可能希望增加批量大小，以便在合理的时间范围内完成一个时期。您可以使用数据并行性将较大的批量分配给多个 GPU 设备。然而，如果您的模型很大，并且在单个设备中占用了大部分 GPU 内存，您将不会享受到数据并行的规模优势。这是因为，在数据并行中，ML 模型被完全复制到每个 GPU 设备上，几乎没有为任何数据留下空间。当您拥有与 GPU 内存相关的大型模型时，您应该使用模型并行性。</p>
+			<p>SageMaker 使得在<a id="_idIndexMarker600"/>云中运行大型数据集和大型模型的分布式训练变得容易。SageMaker 的<strong class="bold">分布式训练库</strong>在 SageMaker 中使用时，支持两个最流行的深度学习<a id="_idIndexMarker601"/>框架<strong class="bold"> TensorFlow </strong>和<strong class="bold"> PyTorch </strong>的数据并行和模型并行。SageMaker 的<strong class="bold">分布式数据并行库</strong>以<a id="_idIndexMarker602"/>接近线性的缩放效率缩放您的模型训练，这意味着与节点数量相关的训练时间的减少<a id="_idIndexMarker603"/>接近线性。SageMaker 的<strong class="bold">分布式模型并行库</strong>自动分析你的神经网络架构，并在 GPU 设备间拆分模型，高效地编排流水线执行。</p>
+			<p>在接下来的章节中，我们将学习如何在 SageMaker Studio 中为我们用 TensorFlow 和 PyTorch 编写的训练脚本实现数据并行和模型并行<a id="_idIndexMarker604"/>。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">TensorFlow 和 PyTorch 都受到两个分布式培训库的支持。两个深度学习框架之间的分布式训练概念保持相同。我们将重点关注 TensorFlow 的数据并行库和 PyTorch 的模型并行库。</p>
+			<h2 id="_idParaDest-130"><a id="_idTextAnchor129"/>采用 TensorFlow 的数据并行库</h2>
+			<p>SageMaker 的分布式数据并行库实现了简单的 API，这些 API 看起来类似于 TensorFlow 以分布式方式执行模型训练的方式，但执行的分布式训练是通过 AWS 的计算基础设施优化的。这意味着您可以轻松采用 SageMaker 的 API，而无需对您现有的用 TensorFlow 编写的分布式训练代码进行复杂的更改。如果这是您第一次使用 distribution 进行模型训练，我们将演示如何修改 SageMaker 的分布式数据并行库以适应您现有的模型训练脚本。</p>
+			<p>我们去 SageMaker 工作室，开始用<code>Getting-Started-with-Amazon-SageMaker-Studio/chapter09/01-smdp_tensorflow_sentiment_analysis.ipynb</code>笔记本工作吧。这个例子建立在我们在<a href="B17447_05_ePub_RK.xhtml#_idTextAnchor077"> <em class="italic">第 5 章</em> </a>、<em class="italic">使用 sage maker Studio IDE</em>(<a href="http://Getting-Started-with-Amazon-SageMaker-Studio/chapter05/02-tensorflow_sentiment_analysis.ipynb">Getting-Started-with-Amazon-sage maker-Studio/Chapter 05/02-tensor flow _ 情操 _ 分析. ipynb </a>)中走过的训练例子之上，其中我们在 IMDB 评论数据集上使用 TensorFlow Keras API 训练了一个深度学习模型。回到<a href="B17447_05_ePub_RK.xhtml#_idTextAnchor077"> <em class="italic">第 5 章</em> </a>，<em class="italic">用 SageMaker Studio IDE </em>构建和训练 ML 模型，我们在一个<code>ml.p3.2xlarge</code>实例上运行了训练脚本，该实例只有一个 NVIDIA Tesla V100 GPU。现在，在这一章中，我们将使用 SageMaker 的分布式数据并行库来扩展代码，以与多个 GPU 设备一起工作，无论是从一个实例还是从多个实例。记住，我们总是可以在<code>sagemaker.tensorflow.TensorFlow</code>估算器中<a id="_idIndexMarker607"/>轻松地指定实例的数量<a id="_idIndexMarker608"/>和实例的类型。让我们打开笔记本，选择<code>%%writefile code/smdp_tensorflow_sentiment.py</code>来修改分布式培训脚本。按照下面的步骤查看启用分布式数据并行库所需的更改:</p>
+			<ol>
+				<li>首先导入数据并行库的 TensorFlow 模块:<pre>import smdistributed.dataparallel.tensorflow as sdp</pre></li>
+				<li>在库被导入后，我们需要初始化 SageMaker 分布式数据并行库，以便在运行时使用它。我们可以在<code>import</code>语句之后或者在<code>main</code> ( <code>if __name__ == "__main__"</code> ): <pre>sdp.init()</pre>中实现它</li>
+				<li>然后，我们发现计算实例群中可用的所有 GPU 设备，并配置 GPU，以便它们知道实例中的排名。如果一个实例有八个 GPU 设备，每个设备将被分配一个从 0 到 7 的等级。思考这个问题的方式是，每个 GPU 设备建立一个进程来运行脚本，并从<code>sdp.local_rank()</code> : <pre>gpus = tf.config.experimental.list_physical_devices('GPU') if gpus:     local_gpu = gpus[sdp.local_rank()]     tf.config.experimental.set_visible_devices(local_gpu, 'GPU')</pre>获得一个唯一的排名</li>
+				<li>我们还配置 GPU 以允许内存增长。这是针对使用 SageMaker 分布式数据并行库运行 TensorFlow 的:<pre>for gpu in gpus:     tf.config.experimental.set_memory_growth(gpu, True)</pre></li>
+			</ol>
+			<p>计算环境现在准备好执行分布式培训。</p>
+			<ol>
+				<li value="5">我们用设备的数量<a id="_idIndexMarker610"/>来衡量<a id="_idIndexMarker609"/>学习率。由于数据并行性，我们将能够适应更大的批量。批量较大时，建议按比例缩放学习率:<pre>args.learning_rate = args.learning_rate * sdp.size()</pre></li>
+				<li>之前在<a href="B17447_05_ePub_RK.xhtml#_idTextAnchor077"> <em class="italic">第五章</em> </a>，<em class="italic">用 SageMaker Studio IDE </em>构建和训练 ML 模型，我们用 Keras 的<code>model.fit()</code> API 训练了模型，但是我们要对模型训练做一些改动。SageMaker 的分布式数据并行库尚不支持 Keras' <code>.fit()</code> API，仅支持 TensorFlow 核心模块。要使用 SageMaker 的分布式数据并行库，我们可以使用 TensorFlow 2.x 中的自动微分(<code>tf.GradientTape</code>)和急切执行。在<code>get_model()</code>函数中使用 Keras 层定义模型后，我们使用<code>loss</code>函数、优化器以及明确定义的准确性指标<pre>model = get_model(args) loss = tf.losses.BinaryCrossentropy(name = 'binary_crossentropy') acc = tf.metrics.BinaryAccuracy(name = 'accuracy') optimizer = tf.optimizers.Adam(learning_rate = args.learning_rate) with tf.GradientTape() as tape:     probs = model(x_train, training=True)     loss_value = loss(y_train, probs)     acc_value = acc(y_train, probs)</pre>明确编写向前和向后传递，而不是使用优化器进行编译</li>
+			</ol>
+			<p>然后我们用 SMDataParallel 的<code>DistributedGradientTape</code>包装<code>tf.GradientTape</code>来优化多 GPU 训练期间的<code>AllReduce</code>操作。<code>AllReduce</code>是对所有分布式进程的矩阵进行约简的操作:</p>
+			<pre>tape = sdp.DistributedGradientTape(tape, sparse_as_dense = True)</pre>
+			<p>请注意，<code>sparse_as_dense</code>参数被设置为<code>True</code>，因为我们在模型中有一个嵌入层，它将生成一个备用矩阵。</p>
+			<ol>
+				<li value="7">在<a id="_idIndexMarker611"/>训练开始时，从头节点(<code>rank 0</code>)向所有其他工作节点(<code>rank 1</code>以后)广播<a id="_idIndexMarker612"/>初始模型变量。我们使用一个<code>first_batch</code>变量来表示训练时期的开始:<pre>if first_batch:     sdp.broadcast_variables(model.variables, root_rank=0)     sdp.broadcast_variables(optimizer.variables(), root_rank=0)</pre></li>
+				<li>平均设备间的<a id="_idIndexMarker613"/>损耗和精度；这个过程叫做<strong class="bold">全减</strong> : <pre>loss_value = sdp.oob_allreduce(loss_value) acc_value = sdp.oob_allreduce(acc_value)</pre></li>
+				<li>将这些步骤放在一个<code>training_step()</code>函数中，执行向前和向后的传递，用<code>@tf.function</code>修饰。在嵌套的<code>for</code>循环中运行这个训练步骤，检查训练数据的时期和批次。我们需要确保所有的 GPU 设备在一次通过中获得等量的数据。我们通过获取可被内部<code>for</code>循环中的 GPU 设备总数整除的数据来做到这一点:<pre>train_dataset.take(len(train_dataset)//sdp.size())</pre></li>
+				<li>在训练<code>epoch</code>循环后，我们保存模型，只使用引导设备:<pre>if sdp.rank() == 0:     model.save(os.path.join(args.model_dir, '1'))</pre></li>
+				<li>最后但同样重要的是，在训练脚本中，我们将训练数据转换成一个<code>tf.data.Dataset</code>对象，并在<code>get_train_data()</code>函数中设置批处理，这样它将与我们的 eager execution 实现一起工作。请注意，我们需要<code>drop_remainder</code>来防止数据集在不同设备上具有相同的 batch _ size:<pre>dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train)) dataset = dataset.batch(batch_size, drop_remainder=True)</pre></li>
+				<li>然后<a id="_idIndexMarker614"/>我们继续 SageMaker 的 TensorFlow <a id="_idIndexMarker615"/>估算器构造。为了在培训作业中启用 SageMaker 分布式数据并行库，我们需要提供一个字典:<pre>distribution = {'smdistributed': {'dataparallel': {'enabled': True}}}</pre></li>
+			</ol>
+			<p>这被提供给估计器，如下。</p>
+			<pre>train_instance_type = 'ml.p3.16xlarge'
+estimator = TensorFlow(source_dir='code',
+     entry_point='smdp_tensorflow_sentiment.py',
+     ...
+     distribution=distribution)</pre>
+			<p>另外，我们需要从以下支持 SageMaker 分布式数据并行库的实例类型中选择一个 SageMaker 实例:<strong class="bold"> ml.p4d.24xlarge </strong>、<strong class="bold"> ml.p3dn.24xlarge </strong>和<strong class="bold"> ml.p3.16xlarge </strong>:</p>
+			<ol>
+				<li><code>ml.p4d.24xlarge</code>实例<a id="_idIndexMarker616"/>配备 8 颗 NVIDIA A100 张量核 GPU，每颗 GPU 内存 40 GB。</li>
+				<li><code>ml.p3dn.24xlarge</code>实例<a id="_idIndexMarker617"/>自带 8 个 NVIDIA Tesla V100 GPUs，每个 GPU 内存 32 GB。</li>
+				<li><code>ml.p3.16xlarge</code>实例<a id="_idIndexMarker618"/>也配有 8 个 NVIDIA Tesla V100 GPUs，每个 GPU 内存为 16 GB。</li>
+			</ol>
+			<p>出于演示的目的，我们会选择 ml.p3.16xlarge，这是三个选项中最便宜的<a id="_idIndexMarker619"/>一个。一个<a id="_idIndexMarker620"/>单个 ml.p3.16xlarge 足以在 SageMaker 中运行分布式数据并行训练，因为将有 8 个 GPU 设备来执行训练。</p>
+			<p>由于一个纪元内有更多的 GPU 设备和 GPU 内存来执行批处理，我们现在可以增加<code>batch_size</code>。我们将第五章<em class="italic">中使用的<code>batch_size</code>缩放 8 倍，用 SageMaker Studio IDE </em>构建和训练 ML 模型——即<em class="italic"> 64 x 8 = 512 </em>。</p>
+			<ol>
+				<li value="13">有了估计器，我们可以开始呼叫<code>estimator.fit()</code>开始训练。</li>
+			</ol>
+			<p>要验证训练是否在多个 GPU 设备上运行，最简单的方法是从标准输出中进行判断。您可以看到添加了一个前缀<code>[x, y]&lt;stdout&gt;: message</code>来表示产生消息的进程等级，如图<em class="italic">图 9.3 </em>所示。我们将在<em class="italic">监控模型培训和使用 SageMaker 调试器的计算资源</em>部分了解有关该主题的更多信息:</p>
+			<div><div><img src="img/B17447_09_003.jpg" alt="Figure 9.3 – The standard output from the cell, showing messages printed from process ranks – [1,0] to [1,7]. In our example, we use one ml.p3.16xlarge instance that has eight GPU devices&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.3–单元格的标准输出，显示从流程等级–[ 1，0]到[1，7]打印的消息。在我们的示例中，我们使用一个 ml.p3.16xlarge 实例，它有八个 GPU 设备</p>
+			<p>尽管在这里我没有使用 PyTorch 来演示 SageMaker 的分布式数据并行库，但是 PyTorch 确实受到了<code>smdistributed.dataparallel.torch</code>模块下的库的支持。这个模块有一组类似于 PyTorch 的本地分布式数据并行库的 API。这意味着您不需要做很多编码<a id="_idIndexMarker621"/>更改就可以采用 SageMaker 为 PyTorch 提供的分布式<a id="_idIndexMarker622"/>数据并行库，该库使用 SageMaker 的基础设施针对培训进行了优化。你可以在<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/data-parallel-modify-sdp-pt.html">https://docs . AWS . Amazon . com/sage maker/latest/DG/data-parallel-modify-SDP-pt . html</a>找到关于如何在 PyTorch 脚本中采用它的更多细节。</p>
+			<p>在下一节中，我们将运行 PyTorch 示例并采用模型并行。</p>
+			<h2 id="_idParaDest-131"><a id="_idTextAnchor130"/>用 PyTorch 模拟并行性</h2>
+			<p>当您的<a id="_idIndexMarker625"/>大型网络模型不适合单个 GPU 设备的内存时，模型并行性<a id="_idIndexMarker624"/>特别有用。SageMaker 的分布式模型并行库实现了两个特性，可以对大型模型进行有效的训练，因此您可以轻松地根据现有的训练脚本调整该库:</p>
+			<ul>
+				<li><strong class="bold">自动模型分区</strong>，最大化 GPU 利用率，平衡<a id="_idIndexMarker626"/>内存占用，最小化 GPU 设备间的通信。相反，您也可以使用库来手动划分模型。</li>
+				<li><strong class="bold">流水线执行</strong>，它决定了<a id="_idIndexMarker628"/>在不同 GPU 设备上的模型各部分之间的计算和数据移动<a id="_idIndexMarker627"/>的顺序。流水线实现有两种:<strong class="bold">交错</strong>和<strong class="bold">简单</strong>。一个交错的流水线<a id="_idIndexMarker629"/>尽可能优先处理反向传递。它更有效地使用 GPU 内存，并最大限度地减少设备群中任何 GPU 设备的空闲时间，而无需等待正向传递完成来启动反向传递，如<em class="italic">图 9.4 </em>所示:</li>
+			</ul>
+			<div><div><img src="img/B17447_09_004.jpg" alt="Figure 9.4 – An interleaved pipeline over two GPUs (GPU0 and GPU1). F0 represents a forward pass for the first micro-batch and B1 represents a backward pass for the second micro-batch. Backward passes are prioritized whenever possible&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.4–两个 GPU(GPU 0 和 GPU1)上的交错流水线。F0 表示第一微批次的正向通过，B1 表示第二微批次的反向通过。尽可能优先考虑向后传球</p>
+			<p>另一方面，一个简单的流水线在开始向后传递之前等待向前传递完成，从而产生一个更简单的执行时间表，如图<em class="italic">图 9.5 </em>所示:</p>
+			<div><div><img src="img/B17447_09_005.jpg" alt="Figure 9.5 – A simple pipeline over two GPUs. Backward passes are run only after &#13;&#10;the forward passes finish&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.5–两个 GPU 上的简单管道。反向刀路仅在正向刀路完成后运行</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout"><em class="italic">图 9.4 </em>和<em class="italic"> 9.5 </em>中的图片来自:<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/model-parallel-core-features.html">https://docs . AWS . Amazon . com/sagemaker/latest/DG/model-parallel-core-features . html</a></p>
+			<p>让我们从<code>chapter09/02-smmp-pytorch_mnist.ipynb</code>中的笔记本开始<a id="_idIndexMarker630"/>一个例子，我们将应用 SageMaker 的分布式模型<a id="_idIndexMarker631"/>并行库来训练 PyTorch 模型，使用著名的 MNIST 数字数据集对数字笔迹进行分类。在 SageMaker Studio 中打开笔记本并使用<code>ml.t3.medium</code>实例:</p>
+			<ol>
+				<li value="1">像往常一样，设置 SageMaker 会话并在第一个单元中导入依赖项。</li>
+				<li>然后，创建一个用 PyTorch 编写的模型训练脚本。这是一个新的培训脚本。本质上，它正在对来自<code>torchvision</code>图书馆的 MNIST 手写数字数据集训练一个卷积神经网络模型。使用<code>torch.nn</code>模块定义模型。使用的优化器是 AdamW 优化算法。我们实现了训练时期和批处理，因为它允许我们最灵活地采用 SageMaker 的分布式模型并行库。</li>
+				<li>SageMaker 的 PyTorch 分布式模型并行库可以从<code>smdistributed.modelparallel.torch</code> : <pre>import smdistributed.modelparallel.torch as smp</pre>导入</li>
+				<li>导入库之后，初始化 SageMaker 分布式模型并行库，以便在运行时使用它。我们可以在 import 语句之后或者在<code>main</code> ( <code>if __name__ == "__main__"</code> ): <pre>smp.init()</pre>中实现它</li>
+				<li>然后，我们将 ping 并设置 GPU 设备的本地等级:<pre>torch.cuda.set_device(smp.local_rank()) device = torch.device('cuda')</pre></li>
+				<li>从<code>torchvision</code>开始的数据下载过程应该只发生在 leader 节点(<code>local_rank</code> = <code>0</code>)，而所有其他过程(在其他 GPU 上)应该等到 leader 节点完成下载:<pre>if smp.local_rank() == 0:     dataset1 = datasets.MNIST('../data', train=True,                    download=True, transform=transform)         smp.barrier() # Wait for all processes to be ready</pre></li>
+				<li>然后，用<a id="_idIndexMarker633"/> SageMaker 的分布式模型并行库的实现来包装<a id="_idIndexMarker632"/>模型和优化器:<pre>model = smp.DistributedModel(model) optimizer = smp.DistributedOptimizer(optimizer)</pre></li>
+			</ol>
+			<p>到目前为止，SageMaker 的分布式数据并行库和模型并行库之间的实现已经相当相似。下面是模型并行库的不同之处。</p>
+			<ol>
+				<li value="8">我们为函数向前和向后传递创建了一个<code>train_step()</code>，并用<code>@smp.step</code> : <pre>@smp.step def train_step(model, data, target):     output = model(data)     loss = F.nll_loss(output, target, reduction='mean')     model.backward(loss)     return output, loss</pre>来修饰它</li>
+			</ol>
+			<p>创建另一个<code>train()</code>函数，在一个 epoch 内实现批处理。这就是我们调用<code>train_step()</code>对一批数据执行向前和向后传递的地方。重要的是，与数据相关的<code>to.(device)</code>呼叫需要放在<code>train_step()</code>之前，而典型的<code>model.to(device)</code>则不需要。将模型放置到设备是由库自动完成的。</p>
+			<p>在<a id="_idIndexMarker634"/>进入下一批次之前，我们需要<a id="_idIndexMarker635"/>用<code>.reduce_mean()</code>计算微批次的平均损耗。另外，请注意<code>optimizer.step()</code>需要发生在<code>train_step()</code>之外:</p>
+			<pre>def train(model, device, train_loader, optimizer, epoch):
+    model.train()
+    for batch_idx, (data, target) in enumerate(train_loader):
+        data, target = data.to(device), target.to(device)
+        optimizer.zero_grad()
+        _, loss_mb = train_step(model, data, target)
+        # Average the loss across microbatches.
+        loss = loss_mb.reduce_mean()
+        optimizer.step()</pre>
+			<ol>
+				<li value="9">执行<code>test_step()</code>，用<code>@smp.step</code>装饰，模型评估类似<code>test()</code>。这也允许模型评估中的模型并行性。</li>
+				<li>在 epochs 循环之后，用<code>smp.dp_rank()==0</code>保存模型，以避免数据竞争，并确保收集正确发生。注意，如果我们希望能够稍后加载模型并进一步训练它，我们设置<code>partial=True</code>:<pre>if smp.dp_rank() == 0:     model_dict = model.local_state_dict()     opt_dict = optimizer.local_state_dict()     model = {'model_state_dict': model_dict, 'optimizer_state_dict': opt_dict}     model_output_path = f'{args.model_dir}/pt_mnist_checkpoint.pt'     smp.save(model, model_output_path, partial=True)</pre></li>
+				<li>然后，我们继续研究 SageMaker PyTorch 估计量的构造。为了在培训作业中启用 SageMaker 的分布式模型并行库，我们需要提供一个<a id="_idIndexMarker636"/>字典来配置 SageMaker 的分布式模型并行库和<code>'partitions': 2</code>，以优化划分模型<code>'optimize': 'speed'</code>时的速度，使用四个<code>'microbatches': 4</code>的微批处理，采用交错管道调度(“管道”:“交错”)，并禁用分布式数据并行<code>'ddp': False</code>。MPI 每台主机启用四个进程<code>mpi':{'enabled': True</code>、<code>'processes_per_host': 2}}</code>，应该小于等于 GPU 设备的数量:<pre>distribution = {'smdistributed': {                     'modelparallel': {                         'enabled': True,                         'parameters': {                             'partitions': 2,                              'optimize': 'speed',                             'microbatches': 4,                             'pipeline': 'interleaved',                             'ddp': False                         }                     }                 },                 'mpi': {                     'enabled': True,                     'processes_per_host': 2                 }             }</pre></li>
+			</ol>
+			<p>你可以在<a href="https://sagemaker.readthedocs.io/en/stable/api/training/smd_model_parallel_general.html#smdistributed-parameters">https://sagemaker . readthe docs . io/en/stable/API/training/SMD _ model _ parallel _ general . html # sm distributed-parameters</a>找到<code>distribution</code>的完整参数列表。</p>
+			<ol>
+				<li value="12">然后，我们将<code>distribution</code>字典应用于 PyTorch 估计器，并使用一个 ml.p3.8xlarge 实例，它有四个 NVIDIA Tesla V100 GPUs。与 SageMaker 的分布式数据并行库不同，SageMaker 的分布式模型并行库支持所有具有多个 GPU 设备的实例。</li>
+				<li>然后，我们可以呼叫<code>estimator.fit()</code>开始培训。</li>
+			</ol>
+			<p>通过 SageMaker 的<a id="_idIndexMarker639"/>分布式模型并行库采用<a id="_idIndexMarker638"/> TensorFlow 训练脚本采用了类似的概念，我们可以简单浏览一下。你可以在<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/model-parallel-customize-training-script-tf.html#model-parallel-customize-training-script-tf-23">https://docs . AWS . Amazon . com/sage maker/latest/DG/model-parallel-customize-training-script-TF . html # model-parallel-customize-training-script-TF-23</a>了解更多关于<a id="_idIndexMarker640"/>如何使用<code>smdistributed.modelparallel.tensorflow</code>模块的信息。</p>
+			<p>当使用多个 GPU 设备进行训练时，一个主要的挑战是了解如何利用昂贵的 GPU 资源。在下一节中，我们将讨论 SageMaker 调试器，这是一个帮助我们分析 SageMaker 培训作业期间计算资源利用率的特性。</p>
+			<h1 id="_idParaDest-132"><a id="_idTextAnchor131"/>使用 SageMaker 调试器监控模型训练和计算资源</h1>
+			<p>使用<code>sagemaker.estimator.Estimator</code>和相关的类，比如<code>sagemaker.pytorch.estimator.PyTorch</code>和<code>sagemaker.tensorflow.estimator.TensorFlow</code>来训练<a id="_idIndexMarker641"/> ML 模型<a id="_idIndexMarker642"/>，给了我们在 SageMaker Studio 中开发<a id="_idIndexMarker644"/>时所需要的<a id="_idIndexMarker643"/>的灵活性和可伸缩性。然而，由于远程计算资源的使用，在本地机器或单个 EC2 机器上的调试和监控培训工作与在 SageMaker Studio 笔记本上的工作有很大不同。作为一个 ML 的 IDE，SageMaker Studio <a id="_idIndexMarker645"/>通过<strong class="bold"> SageMaker 调试器</strong>提供了一个管理培训任务的综合视图。SageMaker Debugger 帮助开发人员监控计算资源利用率，检测建模相关问题，分析深度学习操作，并在您的培训作业运行期间识别瓶颈。</p>
+			<p>SageMaker 调试器支持 TensorFlow、PyTorch、MXNet 和 XGBoost。默认情况下，每个 SageMaker 估计器中都启用了 SageMaker 调试器。它每 500 毫秒收集一次实例指标，如 GPU、CPU 和内存利用率，每 500 步收集一次基本张量输出，如损失和准确性。数据保存在您的 S3 存储桶中。您可以在 SageMaker Studio IDE 中实时检查监控结果，也可以在作业完成后检查。您还可以将 S3 的监测结果检索到笔记本中，并运行额外的分析和自定义可视化。如果缺省设置不够，您可以为您的<code>Estimator</code>编程配置 SageMaker 调试器，以获得您需要的信息级别。</p>
+			<p>首先，我们可以从默认调试器配置中检查我们在<code>Machine-Learning-Development-with-Amazon-SageMaker-Studio/chapter09/01-smdp_tensorflow_sentiment_analysis.ipynb</code>中运行的作业的信息:</p>
+			<ol>
+				<li value="1">查找您运行的作业名称。它在<code>jobname</code>变量中，以<code>imdb-smdp-tf-YYYY-mm-DD-HH-MM-SS</code>的形式出现。您也可以在最后一个单元格的输出中找到它。</li>
+				<li>导航到<code>jobname</code>；双击该条目。你会看到一个名为<strong class="bold"> Training </strong>的试用组件，如图<em class="italic">图 9.6 </em>所示。右键单击该条目并选择<strong class="bold">打开调试器以查看</strong>:</li>
+			</ol>
+			<div><div><img src="img/B17447_09_006.jpg" alt="Figure 9.6 – Opening the SageMaker Debugger UI from Experiments and trials&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.6–从实验和试验中打开 SageMaker 调试器用户界面</p>
+			<ol>
+				<li value="3">主<a id="_idIndexMarker648"/>工作区的<a id="_idIndexMarker646"/>新窗口<a id="_idIndexMarker647"/>将弹出<a id="_idIndexMarker649"/>。该窗口将在几分钟后变得可用，因为 SageMaker Studio 正在启动一个专用实例<a id="_idIndexMarker650"/>来处理和呈现 UI 中的数据。这被称为<strong class="bold"> SageMaker 调试器洞察仪表板</strong>。一旦可用，您可以在<strong class="bold">概述</strong>和<strong class="bold">节点</strong>选项卡中看到结果，如图<em class="italic">图 9.7 </em>所示:</li>
+			</ol>
+			<div><div><img src="img/B17447_09_007.jpg" alt="Figure 9.7 – The SageMaker Debugger insights dashboard showing the CPU and network utilization over the course of the training&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.7–sage maker Debugger insights 仪表板显示了培训过程中的 CPU 和网络利用率</p>
+			<p>在<a id="_idIndexMarker651"/>的<strong class="bold">节点</strong>选项卡中，<a id="_idIndexMarker652"/>表示<a id="_idIndexMarker653"/> CPU、网络、GPU 和<a id="_idIndexMarker654"/>GPU 内存的利用率，如图表所示。您可以将图表缩小到特定的 CPU 或 GPU，以查看设备上是否存在任何不均衡的利用率，如图<em class="italic">图 9.8 </em>所示。从这些图表中，我们可以看出以下几点:</p>
+			<ul>
+				<li>平均 CPU 利用率在作业开始 3 分钟后达到峰值，约为 60%。这表明训练正在进行，CPU 端有许多活动来读取数据批次并馈入 GPU 设备。</li>
+				<li>八个设备<a id="_idIndexMarker658"/>上的<a id="_idIndexMarker655"/>平均 GPU <a id="_idIndexMarker656"/>利用率达到 25%左右的峰值，也是在作业开始后 3 分钟。同时，平均使用了大约 5%的 GPU 内存。这被认为是低 GPU 利用率，可能是因为与 ml.p3.16xlarge 实例中现在大得多的计算能力相比，批量较小。</li>
+				<li>另一方面，在前 3 分钟有一些网络利用。这是 SageMaker 完全管理的训练从 S3 桶下载训练数据的时期:</li>
+			</ul>
+			<div><div><img src="img/B17447_09_008.jpg" alt="Figure 9.8 – The SageMaker Debugger insights dashboard showing the GPU utilization over the course of the training&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.8–sage maker Debugger insights 仪表板显示了培训过程中的 GPU 利用率</p>
+			<p>在页面的<a id="_idIndexMarker659"/>底部，显示了整体<a id="_idIndexMarker662"/>视图中 CPU/GPU <a id="_idIndexMarker661"/>利用率的<a id="_idIndexMarker660"/>热图。作为练习，您可以随意打开在<code>Getting-Started-with-Amazon-SageMaker-Studio/chapter06/02-tensorflow_sentiment_analysis.ipynb</code>提交的培训作业的调试器，并比较单设备培训和分布式培训之间 CPU/GPU 利用率的差异。</p>
+			<p>接下来，我们将继续学习如何在 SageMaker Studio 中使用完全管理的现场训练来降低训练 ML 模型的成本，以及如何为长时间运行的作业和现场作业创建检查点。</p>
+			<h1 id="_idParaDest-133"><a id="_idTextAnchor132"/>通过检查点和现场培训管理长时间运行的作业</h1>
+			<p>大规模训练 ML 模型可能成本高昂。即使在<a id="_idIndexMarker663"/>训练实例上使用 SageMaker 的现收现付定价模型，执行<a id="_idIndexMarker664"/>长期运行的深度学习训练和使用多个昂贵的实例也可以很快增加。SageMaker 全面管理的现场培训和检查点功能使我们能够轻松管理和恢复长期运行的作业，帮助我们将培训实例的成本比按需实例降低高达 90%。</p>
+			<p>SageMaker 管理的<a id="_idIndexMarker665"/> Spot training <a id="_idIndexMarker666"/>使用了 Amazon EC2 中 Spot 实例的概念。EC2 spot 实例允许您以比常规的按需实例低得多的成本利用 AWS 区域中任何未使用的实例容量。spot 实例更便宜，但是当 AWS 上的其他用户对实例有更高的需求时，可以中断。SageMaker 管理的 spot training 管理 spot 实例的使用，包括安全中断和在 spot 实例再次可用时及时恢复您的训练。</p>
+			<p>除了现场培训功能，托管检查点是管理长期运行作业的关键。ML 中的检查点指的是在训练期间保存的中间 ML 模型。数据科学家会定期创建检查点，并跟踪各个时期的最佳准确性。它们将精确度与前进过程中的最佳精确度进行比较，并使用精确度最高的检查点模型，而不是来自上一个时期的模型。</p>
+			<p>如果数据科学家想要微调模型，他们还可以从任何特定的检查点恢复并继续训练。当 SageMaker 使用容器在远程计算实例上训练模型时，检查点保存在容器的本地目录中。SageMaker 自动将检查点从本地存储桶上传到您的 S3 存储桶。通过指定检查点在 S3 的位置，您可以在另一个培训工作中轻松地重用这些检查点。在 SageMaker 管理的 spot training 环境中，您不需要担心上传和下载检查点文件，以防培训作业出现任何中断和恢复。SageMaker 为我们处理它。</p>
+			<p>让我们运行一个例子来看看事情是如何工作的。使用<strong class="bold">Python 3(tensor flow 2.3 Python 3.7 CPU 优化)</strong>内核和一个<strong class="bold"> ml.t3.medium </strong>实例打开<code>Getting-Started-with-Amazon-SageMaker-Studio/chapter09/03-spot_training_checkpointing.ipynb</code>。在本笔记本中，我们将重用来自第 5 章<a href="B17447_05_ePub_RK.xhtml#_idTextAnchor077"/>、<em class="italic">使用 SageMaker Studio IDE </em>构建和训练 ML 模型的用于 IMDB 审查数据集的 TensorFlow 模型训练，并对代码进行一些更改，以演示<a id="_idIndexMarker667"/>如何使用 SageMaker 启用<a id="_idIndexMarker668"/>检查点和<a id="_idIndexMarker669"/>托管点训练:</p>
+			<ol>
+				<li value="1">运行<a id="_idIndexMarker670"/>前五个单元以设置 SageMaker 会话，并准备数据集。如果您运行了第一个<code>chapter09/01-smdp_tensorflow_sentiment_analysis.ipynb</code>笔记本，数据集应该已经可用了。</li>
+				<li>以<code>%%writefile code/tensorflow_sentiment_with_checkpoint.py</code>开头的单元格是我们将对 TensorFlow/Keras 代码进行修改的地方。首先，我们在<code>parse_args()</code>函数中添加了一个新的<code>--checkpoint_dir</code>参数，来分配一个由 SageMaker 设置的默认<code>/opt/ml/checkpoints</code>位置。</li>
+				<li>在<code>__name__ == '__main__'</code>中，我们将添加一个检查来查看<code>checkpoint_dir</code>是否本地存在于容器中。如果有，列出目录以查看是否有任何现有的检查点文件:<pre>if not os.listdir(args.checkpoint_dir):     model = get_model(args)     initial_epoch_number = 0 else:         model, initial_epoch_number = load_model_from_checkpoints(args.checkpoint_dir)</pre></li>
+			</ol>
+			<p>如果<code>checkpoint_dir</code>不包含有效的检查点文件，这意味着没有先前的训练作业和检查点附加到容器，并且<code>checkpoint_dir</code>是为全新的模型训练新创建的。如果它包含文件，这意味着先前的检查点文件被插入到该训练作业中，并且应该被用作训练的起点，在<code>load_model_from_checkpoints()</code>功能中实现。</p>
+			<ol>
+				<li value="4">实现<code>load_model_from_checkpoints()</code>列出所有检查点文件，以<code>.h5</code>结尾，因为这是 Keras 在给定目录中保存模型的方式，并使用<code>re</code>库中的<code>regex</code>过滤文件名中的纪元编号。然后，我们可以确定要加载的最新检查点，并继续使用这样的模型进行训练。我们假设在正则表达式操作中纪元编号的范围是从<code>0</code>到<code>999</code>。</li>
+				<li>在<a id="_idIndexMarker671"/>模型被加载后，无论是<a id="_idIndexMarker672"/>一个新的还是来自一个检查点，在 Keras 中实现一个<code>tf.keras.callbacks.ModelCheckpoint</code>回调以在每个时期后将一个模型检查点保存到<code>args.checkpoint_dir</code>。</li>
+				<li>当<a id="_idIndexMarker673"/>设置<code>sagemaker.tensorflow.TensorFlow</code>估算器时，向<a id="_idIndexMarker675"/>估算器提供以下额外的<a id="_idIndexMarker674"/>参数:<ol><li><code>use_spot_instances</code>:选择使用 SageMaker spot 实例进行训练的布尔值。</li><li><code>max_wait</code>:当<code>use_spot_instances</code>为<code>True</code>时的必选项。这是等待现场培训作业的超时时间(秒)。超时后，作业将停止。</li><li><code>checkpoint_s3_uri</code>:永久保存检查点文件的 S3 桶位置。如果您经过一个已经有检查点模型的 S3 存储桶位置，并经过一个更高的纪元编号，脚本将选取最新的检查点并继续训练。例如，通过提供<code>checkpoint_s3_uri</code>，其具有来自之前 50 个时期运行的检查点和 60 的<code>epochs</code>超参数，我们的脚本将从第 50 个检查点开始恢复训练，并继续另外 10 个时期。</li><li><code>max_run</code>:训练允许的最大运行时间(秒)。超时后，作业将停止。该值需要小于或等于<code>max_wait</code>。</li></ol></li>
+			</ol>
+			<p>下面的代码片段<a id="_idIndexMarker677"/>将构造一个估计器<a id="_idIndexMarker678"/>来训练一个带有管理点实例和检查点的模型<a id="_idIndexMarker679"/>:</p>
+			<pre>use_spot_instances = True
+max_run = 3600
+max_wait = 3600
+checkpoint_suffix = str(uuid.uuid4())[:8]
+checkpoint_s3_uri = f's3://{bucket}/{prefix}/checkpoint-{checkpoint_suffix}'
+estimator = TensorFlow(use_spot_instances=use_spot_instances,
+                       checkpoint_s3_uri=checkpoint_s3_uri,
+                       max_run=max_run,
+                       max_wait=max_wait,
+                       ...)</pre>
+			<ol>
+				<li value="7">其余步骤保持不变。在调用<code>.fit()</code>开始训练工作之前，我们指定超参数、数据输入和实验配置。</li>
+				<li>想知道通过使用 spot 实例我们节省了多少吗？从左侧边栏的<strong class="bold">实验和试验</strong>中，我们可以调出试验的 AWS 设置细节，如图<em class="italic">图 9.9 </em>所示，并通过简单地使用管理的现场训练实例看到一个<strong class="bold"> 70% </strong>节省:</li>
+			</ol>
+			<div><div><img src="img/B17447_09_009.jpg" alt="Figure 9.9 – A 70% saving using managed spot training, as seen in the trial details&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.9–使用管理现场培训节省了 70%，如试验详情所示</p>
+			<p>70%的节约是相当可观的。这对于需要昂贵的计算实例并且训练时间很长的大规模<a id="_idIndexMarker682"/>模型训练用例<a id="_idIndexMarker683"/>来说<a id="_idIndexMarker681"/>尤其有益。仅仅是评估器的四个额外参数和训练脚本的一些变化就为我们节省了 70%。</p>
+			<h1 id="_idParaDest-134"><a id="_idTextAnchor133"/>总结</h1>
+			<p>在这一章中，我们走过了如何使用 SageMaker 分布式训练库来训练深度学习模型:数据并行和模型并行。我们运行了一个 TensorFlow 示例，以展示如何修改脚本来使用 SageMaker 的分布式数据并行库和八个 GPU 设备，而不是我们之前所学的一个。这使我们能够增加批量大小，并减少在一个时期内遍历整个数据集所需的迭代次数，从而改进模型训练运行时间。然后，我们展示了如何将 SageMaker 的分布式模型并行库应用于用 PyTorch 编写的模型训练。这使我们能够通过将大模型划分到所有 GPU 设备来训练更大的神经网络模型。我们进一步向您展示了如何使用 SageMaker Debugger 轻松监控培训作业中的计算资源利用率，并在 SageMaker Debugger insights 仪表板中可视化指标。最后，我们解释了在 SageMaker 中训练模型时，如何修改您的训练脚本以使用完全管理的点训练和检查点来节省成本。</p>
+			<p>在下一章中，我们将切换话题，学习如何监控生产中的 ML 模型。生产中的 ML 模型采用看不见的推断数据，可能会也可能不会产生如部署前进行的评估所预期的质量预测。在 ML 生命周期中，建立监控策略以确保您的模型在令人满意的水平上运行是至关重要的。SageMaker Studio 具有帮助您轻松设置模型监控所需的功能，以监控生产中的 ML 模型。我们将学习如何配置 SageMaker 模型监视器，以及如何在 ML 生命周期中使用它。</p>
+		</div>
+	
+
+</body></html>

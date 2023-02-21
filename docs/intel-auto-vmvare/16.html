@@ -1,0 +1,2067 @@
+<html><head/><body><html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Cloud Application Scaling</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">云应用扩展</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>本章将指导您如何通过向开发人员提供对传统、云原生和现代应用程序开发框架和资源的访问来支持下一代云应用程序开发，包括生产级容器服务和开放 API。这些应用将在通用 vSphere 平台上使用，还将在虚拟化环境中与云原生应用和容器化应用一起支持传统应用。</p>
+
+<p>您将学习如何通过定义参数和假设情景来优化资源以获得最大产出。这些将在未来的可扩展性中考虑，以便我们可以跨不同的云配置和自动扩展参数。</p>
+
+<p>在本章中，我们将讨论以下主题:</p>
+
+<ul>
+
+<li class="h1">云原生应用</li>
+
+<li class="h1">vSphere 上的<strong> Pivotal 容器服务</strong> ( <strong> PKS </strong>)</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Technical requirements</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">技术要求</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>你可以从 https://cloud.vmware.com/vmware-enterprise-pks/resources 的<a xmlns:epub="http://www.idpf.org/2007/ops" href="https://cloud.vmware.com/vmware-enterprise-pks/resources">下载 VMware 企业 PKS。</a></p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Cloud-native applications</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">云原生应用</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>由于当今不断变化的业务目标，数字技术总是在不断变化。一切都通过移动设备、社交网络、可穿戴设备、联网汽车等连接在一起，它们都在影响着我们今天的行为方式和与技术的互动。由于这种技术创新，客户需要更加创新、灵活和快速的方式来体验产品和服务。</p>
+
+<p>让我们来看一下彼此独立运行的系统、职责和技能集。<strong> </strong>我们正在经历数字化转型，需要所有这些跨不同领域的运营。数字化转型重新设计了许多环境中的组织结构，使它们具有协作性。技术可以提高绩效和组织在全球的影响力。</p>
+
+<p>云原生应用有四个特征:</p>
+
+<ul>
+
+<li><strong>云原生应用由微服务组成</strong>:云原生应用采用微服务架构，其中每个应用都是一些小服务的集合，可以彼此独立运行。微服务通常由单独的开发团队拥有，他们按照自己的时间表开发、部署、扩展和升级他们的服务。</li>
+
+<li><strong>云原生 app 封装在容器中</strong>:容器为微服务提供隔离上下文。它们具有高度的可访问性、可伸缩性、从一个环境到另一个环境的可移植性，并且创建或拆除速度很快，这使它们成为构建和运行由微服务组成的应用程序的理想选择。</li>
+
+<li><strong>云原生应用以连续交付模式运行</strong>:软件开发人员和 IT 运营团队在这种模式下协作，构建、测试并在软件更新准备就绪后立即发布，不会影响其他团队的最终用户或开发人员。</li>
+
+<li><strong>云原生应用在云中进行动态管理</strong>:它们通常在现代云原生平台上构建和运行，这提供了轻松的横向扩展和硬件解耦，有助于应用的编排、管理和自动化。</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Automation with containers</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">集装箱自动化</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>大量部署了 VMware 自动化工具的客户可以轻松提高敏捷性并简化 IT 服务的使用。VMware 将帮助客户提供应用程序和容器服务。这个平台将把 BOSH 的好处(自动伸缩、自我修复、负载平衡等等)扩展到<strong>容器即服务</strong> ( <strong> CaaS </strong>)解决方案(PKS)。BOSH 是一个开源工具，有助于分布式系统的部署和生命周期管理。PKS 是唯一一个能够在本地交付完全托管的 Kubernetes 集群以及公共<strong>基础设施即服务</strong> ( <strong> IaaS </strong>)的 CaaS 解决方案。这个平台还将包括<strong>服务功能</strong> ( <strong> FaaS </strong>)。这将允许组织通过在一个平台上提供应用程序部署和运行时构造来保护他们的抽象规划，而不考虑 IaaS。正因为如此，我们必须与负责应用合理化和后续业务和技术需求相关迁移的各个团队一起进行详细规划。</p>
+
+<p><strong>Pivotal Cloud Foundry</strong>(<strong>PCF</strong>)包括作为关键组件的<strong> Pivotal 应用服务</strong> ( <strong> PAS </strong>)和 PKS。PAS 是部署和运行现代应用程序的云原生平台。PKS 支持客户和服务提供商在 VMware SDDC 和其他公共云环境上交付生产就绪的 Kubernetes。</p>
+
+<p>例如，如果我们有一个在容器中运行的 10 个应用程序的系统，这 10 个应用程序将有 10 个独立用户空间的实例。假设两个应用程序安装在同一个操作系统上，但是每个应用程序都需要该文件的不同版本。我们可以通过使用一个公共共享库文件来管理容器的这种情况。容器(更确切地说，是 Linux 容器)已经存在了一段时间，Oracle、HP 和 IBM 等公司已经使用容器几十年了。然而，Docker 在用户中变得更受欢迎。</p>
+
+<p>用于部署支持名称空间和资源限制的应用程序的易于使用的 API 和 CLI 工具降低了部署和管理容器的复杂性。容器是运行容器的映像的运行实例。我们需要下载一个图像来使用它。映像是分层的文件系统，其中每一层都有自己的文件系统。</p>
+
+<p>当您想要进行更改时，没有必要打开一个单一的、大型的、整体式的应用程序，并加入新的更改。如果我们必须做出改变，那么我们可以把它们添加到一个新的层。</p>
+
+<p>容器对操作系统的影响就像虚拟机对服务器硬件的影响一样。运行和操作容器所需的工具和组织过程通常没有定义。VMware 和 Pivotal 在解决这些新挑战方面处于独特的地位，并成为了<strong>现任</strong>。容器通过限制我们需要在操作系统上安装的应用程序依赖项的数量来虚拟化操作系统。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Container use cases </title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">容器用例</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>以下是容器的使用案例:</p>
+
+<ul>
+
+<li><strong>对开发人员沙箱的需求</strong> : <strong> </strong>开发人员通常希望访问运行特定框架的机器集群，以构建或快速测试和验证他们的应用。配置此类环境非常耗时，并且经常涉及票证和批准。因此，开发人员要么请求虚拟机并根据他们的需求对其进行定制，从而创建雪花部署，要么他们永远不会放弃这些资源，因为他们担心获得新的资源，这可能是一个繁琐的过程。</li>
+
+<li><strong>应用重新打包</strong> : <strong> </strong>客户可以将自己现有的应用打包成一个容器。您不需要折射代码或对架构进行更改。虽然这是客户集装箱化之旅的第一步，但它让客户获得了一定的好处。修补和维护应用程序是一个主要优势，其中更新可以仅限于映像的各个层。这确保了其他层完好无损，减少了可能出现的错误和配置问题。</li>
+
+<li><strong>可移植性</strong> : <strong> </strong>将应用程序打包成容器可以实现可移植性。容器映像不仅打包了应用程序代码，还打包了它的所有依赖项，这保证了它可以在任何地方工作。现在，我们能够将此映像从开发人员的笔记本电脑移动到您的测试/开发或生产环境中，而无需投入时间和资源来让目标环境精确模拟开发环境(反之亦然)。</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Challenges with containers</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">集装箱面临的挑战</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>我们专注于使开发人员代码能够实例化开发人员需要的所有资源，即使是遗留系统，以在瀑布方法中提供高级别的自动化，并使客户能够自助满足他们的资源需求。</p>
+
+<p>传统模型使用传统的应用程序架构、工具和流程，开发人员必须为云交付模型中的资源开出罚单。资源通过自助服务提供。云原生应用通过代码发起这些请求，并以代码 ( <strong xmlns:epub="http://www.idpf.org/2007/ops"> IaC </strong>)的形式提供服务<strong xmlns:epub="http://www.idpf.org/2007/ops">基础设施。</strong></p>
+
+<p>代码取代了服务标签，API 扮演着重要的角色。借助自动化的 VMware SDDC 工具，通过提供有助于将 OpenStack、PCF 等容器作为普通虚拟机环境运行的 API，可以实现面向开发人员的基础架构。容器可以从现有的操作模型中管理，因为开发人员获得了所有的好处。这是因为 IT 必须以一致的方式管理底层资源。</p>
+
+<p>全球一致的基础设施层在微服务架构中具有优势，因为每个服务都定义了它与其他微服务的关系。如果基础网络很复杂并且没有可见性，这种情况可能会被打破。网络应该是完全开放的，以避免这个问题。Pivotal value VMware NSX 和开发人员就绪型基础架构具有相同的代码，这些代码定义了微服务之间的关系，并实例化了安全的微分段网络连接。即使是无服务器架构也可能有内部服务器错误消息。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>PKS on vSphere</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">vSphere 上的 PKS</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p><strong> vSphere 集群组</strong>是一组拥有通用计算实体的 ESXi 主机；当 vSphere HA 和 DRS 在集群级别激活时，每个 vSphere 集群有 2 到 64 台主机。资源池是在一个 vSphere 群集实例下创建的，vCenter 能够管理多个 vSphere 群集实例，因为对 vSphere 群集的数量没有硬性限制。我们可以创建不同类型的 vSphere 集群，如管理集群、计算集群和边缘集群，因为 PKS 完全利用了 vSphere 集群结构。</p>
+
+<p>在典型的 PKS 部署中，建议使用以下 vSphere 集群:</p>
+
+<ul>
+
+<li><strong>管理集群</strong>:<ul>
+
+<li><strong>托管组件</strong> : vCenter、NSX 管理器和控制器虚拟机</li>
+
+<li>启用 vSphere HA 和 DRS</li>
+
+<li>ESXi 主机需要为 NSX 做好准备，因为微分段会在托管的虚拟机上强制执行</li>
+
+</ul>
+
+</li>
+
+<li><strong>计算集群</strong>:<ul>
+
+<li><strong>托管组件</strong> : Kubernetes (K8s)集群节点虚拟机</li>
+
+<li>应启用 vSphere HA 和 DRS，因为 BOSH 将检查 DRS 是否已打开</li>
+
+<li>ESXi 主机需要为 NSX 做好准备</li>
+
+</ul>
+
+</li>
+
+<li><strong>边缘簇</strong>:<ul>
+
+<li><strong>托管组件</strong> : NSX 边缘节点虚拟机</li>
+
+<li>启用 vSphere HA 和 DRS</li>
+
+<li>ESXi 主机不需要做好 NSX 准备</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+<p>PKS 管理平面可以驻留在管理集群或计算集群上，具体取决于所选的设计方案。PKS 管理平面虚拟机是 Ops Manager、BOSH、PKS 控制平面和 Harbor。</p>
+
+<p>PKS 数据平面(或计算平面)将仅驻留在计算集群中。每个 K8s 集群最多允许三个 K8s 主节点和 50 个工作节点，并且可以在同一个 PKS 环境中创建许多 K8s 集群。</p>
+
+<p>K8s 主节点还托管 etcd 组件。vSphere DRS 和 HA 必须在 vSphere 计算群集上启用。vSphere DRS Automation 必须设置为半自动或全自动。vSphere HA 设置为主机故障=重启虚拟机。</p>
+
+<p>以下是 PKS 组件的计算和存储要求:</p>
+
+<table border="1" style="border-collapse: collapse;width: 100%">
+
+<tbody>
+
+<tr>
+
+<td>
+
+<p class="CDPAlignCenter CDPAlign"><strong> PKS 组件</strong></p>
+
+</td>
+
+<td>
+
+<p class="CDPAlignCenter CDPAlign"><strong> CPU </strong></p>
+
+</td>
+
+<td>
+
+<p class="CDPAlignCenter CDPAlign"><strong>内存(国标)</strong></p>
+
+</td>
+
+<td>
+
+<p class="CDPAlignCenter CDPAlign"><strong>储存(国标)</strong></p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>运营经理</p>
+
+</td>
+
+<td>
+
+<p>一</p>
+
+</td>
+
+<td>
+
+<p>8</p>
+
+</td>
+
+<td>
+
+<p>HD1: 160</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>PKS 控制平面虚拟机</p>
+
+</td>
+
+<td>
+
+<p>2</p>
+
+</td>
+
+<td>
+
+<p>8</p>
+
+</td>
+
+<td>
+
+<p>HD1: 3</p>
+
+<p>HD2: 16</p>
+
+<p>HD3: 10</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>胡说</p>
+
+</td>
+
+<td>
+
+<p>2</p>
+
+</td>
+
+<td>
+
+<p>8</p>
+
+</td>
+
+<td>
+
+<p>HD1: 3</p>
+
+<p>HD2: 50</p>
+
+<p>HD3: 50</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>海港</p>
+
+</td>
+
+<td>
+
+<p>2</p>
+
+</td>
+
+<td>
+
+<p>8</p>
+
+</td>
+
+<td>
+
+<p>HD1: 3</p>
+
+<p>HD2: 64</p>
+
+<p>HD3: 30</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>K8s 主节点</p>
+
+</td>
+
+<td>
+
+<p>可根据 PKS 计划进行配置</p>
+
+</td>
+
+<td>
+
+<p>可根据 PKS 计划进行配置</p>
+
+</td>
+
+<td>
+
+<p>临时磁盘:8 到 256 GB</p>
+
+<p>永久磁盘:1 GB 到 32 TB <br/>(可根据 PKS 计划进行配置)</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>K8s 工作节点</p>
+
+</td>
+
+<td>
+
+<p>可根据 PKS 计划进行配置</p>
+
+</td>
+
+<td>
+
+<p>可根据 PKS 计划进行配置</p>
+
+</td>
+
+<td>
+
+<p>临时磁盘:8 到 256 GB</p>
+
+<p>永久磁盘:1 GB 到 32 TB <br/>(可根据 PKS 计划进行配置)</p>
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>PKS availability zone </title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">PKS 可用性区域</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>PKS 支持<strong>可用性区域</strong> ( <strong> AZ </strong>)的概念，即<em> AZ = vSphere 集群+资源池</em>。AZ 规定了由 BOSH/PKS 创建的虚拟机在相应 vSphere 集群/资源池中的位置。</p>
+
+<p>有两种类型的 AZ:</p>
+
+<ul>
+
+<li><strong>管理 AZ </strong>:用于 BOSH、PKS 控制平面和港口虚拟机</li>
+
+<li><strong>计算 AZ </strong>:用于 K8s 主节点和工作节点虚拟机</li>
+
+</ul>
+
+<p>PKS 支持多个计算可用性区域，每个 PKS 计划最多支持三个不同的区域。每个 K8s 主节点(最多三个)将位于一个单独的 AZ 中。K8s 工作节点将跨三个区域进行调度。</p>
+
+<p>允许三个 PKS 计划(总共九个不同的计算区域)。每个 PKS 计划可以使用相同的三个区域或完全不同的三个 az 集。AZ 通常用于针对不同的位置设置虚拟机的位置；或者，我们可以说 AZ =物理机架(或房间)。</p>
+
+<p>以下是 PKS 设计拓扑:</p>
+
+<ul>
+
+<li><strong>物理拓扑(与 vSphere 集成)</strong>:可以通过 PKS/NSX-T 集成部署多种拓扑</li>
+
+<li><strong>管理集群中的 PKS 管理平面</strong>:多计算集群:<ul>
+
+<li>PKS 管理平面位于管理集群中，并连接到 DVS 虚拟交换机</li>
+
+<li>多个计算集群，支持 K8s 集群节点</li>
+
+<li>每个 AZ 映射到不同的 vSphere 集群(AZ 和 vSphere 集群之间的映射为 1:1)。</li>
+
+<li><strong> AZ 可以代表一个物理位置</strong>:每个计算集群可以位于一个专用机架或房间内</li>
+
+</ul>
+
+</li>
+
+<li><strong>管理集群中的 PKS 管理平面为</strong> <strong>单个计算集群</strong> : <br/><ul>
+
+<li>PKS 管理平面位于管理集群中，并连接到 DVS 虚拟交换机</li>
+
+<li>支持 K8s 集群节点的单个计算集群</li>
+
+<li>每个 AZ 映射到一个唯一的 vSphere 集群/不同的资源池</li>
+
+<li>AZs 可用于限制每个 PKS 计划的 CPU/内存</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+<ul>
+
+<li><strong>计算集群中的 PKS 管理平面为</strong> <strong>多计算集群</strong>:<ul>
+
+<li>PKS 管理平面位于计算集群中，并连接到 NSX T 逻辑交换机</li>
+
+<li>多个计算集群，支持 K8s 集群节点</li>
+
+<li>每个 AZ 映射到不同的 vSphere 集群(AZs 和 vSphere 集群之间的映射为 1:1)</li>
+
+<li><strong>一个 AZ 可以代表一个物理位置</strong>:每个计算集群可以位于一个专用的机架或房间内</li>
+
+</ul>
+
+</li>
+
+<li><strong>计算集群或单个计算集群中的 PKS 管理平面</strong>:<ul>
+
+<li>PKS 管理平面位于计算集群中，并连接到 NSX T 逻辑交换机</li>
+
+<li>单计算集群，支持 K8s 集群节点</li>
+
+<li>每个 AZ 映射到一个唯一的 vSphere 集群/不同的资源池:</li>
+
+<li>AZ 可用于限制每个 PKS 计划的 CPU/内存</li>
+
+</ul>
+
+</li>
+
+<li><strong> PKS AZ(单/多计算和管理集群)设计模型</strong>:<ul>
+
+<li><strong> PKS AZ 配备单个 vSphere 计算集群</strong>:默认情况下，不能保证 K8s 主节点位于不同的 ESXi 主机上。一种解决方法是在 vSphere 计算集群上创建 DRS 相似性规则。</li>
+
+<li><strong>类型</strong>:单独的虚拟机。</li>
+
+<li><strong>成员</strong>:所有 K8s 主节点虚拟机。</li>
+
+<li>vSphere 集群必须至少有三台 ESXi 主机(这是 vSAN 的先决条件)。但是，为了防止一台主机出现故障(并确保 DRS 相似性规则正常运行)，建议从集群中的四台 ESXi 主机开始。</li>
+
+<li>NSX-T 2.2 支持 VDS 北部所有类型的流量。这意味着计算集群中的 ESXi 主机可以从两个物理网卡开始。</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+<p>生产环境的最低 vSphere 集群配置如下:</p>
+
+<ul>
+
+<li><strong>管理集群</strong>:<ul>
+
+<li><strong>非 vSAN </strong>:最小主机:两台</li>
+
+<li><strong> vSAN </strong>:最小主机:三个(为了保证 vSAN 对象的数据保护，您必须有两个副本和一个见证)</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+<ul>
+
+<li><strong>计算集群</strong>:<ul>
+
+<li><strong>单一计算集群拓扑</strong>:<ul>
+
+<li><strong>非 vSAN </strong>:最少主机:三台(通过使用 DRS 相似性规则，确保每台 ESXi 主机有一个 K8s 主节点虚拟机)</li>
+
+<li>vSAN :最小主机:三个(为了保证 vSAN 对象的数据保护，您必须有两个副本和一个见证)</li>
+
+</ul>
+
+</li>
+
+<li><strong>多计算集群拓扑</strong>:<ul>
+
+<li><strong>非 vSAN </strong>:最少主机:每个 AZ 两个，总共三个 AZ(K8s 主节点跨不同的计算集群实例化。每个计算集群与一个 AZ 1:1 映射)</li>
+
+<li><strong> vSAN </strong>:最少主机:每个 AZ 三个，总共三个 AZ(为了保证 vSAN 对象的数据保护，您必须使用两个副本和一个见证)</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+<li><strong>边缘簇</strong>:<ul>
+
+<li><strong>非 vSAN </strong>:最小主机:两台。</li>
+
+<li><strong> vSAN </strong>:最小主机:三(为了保证 vSAN 对象的数据保护，您必须使用两个副本和一个见证。)注意:如果您需要减少启动 ESXi 主机的数量，边缘群集可以与计算群集(甚至管理群集)一起折叠。</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+<p>下表给出了有关 PKS/NSX-T 网络的信息:</p>
+
+<table border="1" style="border-collapse: collapse;width: 100%">
+
+<tbody>
+
+<tr>
+
+<td>
+
+<p class="CDPAlignCenter CDPAlign"><strong>网络</strong></p>
+
+</td>
+
+<td>
+
+<p class="CDPAlignCenter CDPAlign"><strong>描述</strong></p>
+
+</td>
+
+<td>
+
+<p class="CDPAlignCenter CDPAlign"><strong> CIDR </strong></p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p><strong> PKS 管理网</strong></p>
+
+</td>
+
+<td>
+
+ 
+
+</td>
+
+<td>
+
+<p>192.168.1.0/28(例如)</p>
+
+<p>带有/28 的 CIDR 是一个很好的起点。</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p><strong>节点 IP 块</strong></p>
+
+</td>
+
+<td>
+
+ 
+
+</td>
+
+<td>
+
+<p>取决于 NAT 或无 NAT 拓扑。</p>
+
+<p>172.23.0.0/16(例如)</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p><strong>吊舱 IP 模块</strong></p>
+
+</td>
+
+<td>
+
+ 
+
+</td>
+
+<td>
+
+<p>172.16.0.0/16(例如)</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p><strong>浮动 IP 池</strong></p>
+
+</td>
+
+<td>
+
+ 
+
+</td>
+
+<td>
+
+<p>192.168.20.2-192.168.20.254(例如)</p>
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+<p class="mce-root"/>
+
+<p><strong>节点 IP 块的 CIDR</strong>:</p>
+
+<ul>
+
+<li>在可路由的情况下必须是唯一的(无 NAT 拓扑)</li>
+
+<li>在不可路由的情况下可以复制(NAT 拓扑)</li>
+
+</ul>
+
+<p>不能在所有情况下都使用<kbd>172.17.0.0/16</kbd> <strong> </strong> CIDR，因为 K8s worker 节点上的 Docker 正在使用子网。</p>
+
+<p>如果 PKS 与 Harbor 一起部署，则不得使用以下 CIDR，因为 Harbor 将其用于其内部码头桥:</p>
+
+<pre> 172.18.0.0/16 ;172.19.0.0/16 ;172.20.0.0/16 ;172.21.0.0/16 ;172.22.0.0/16</pre>
+
+<p>对于 Kubernetes 服务，每个 K8s 集群使用以下 IP 块，因此避免将其用于节点 IP 块:<kbd>10.100.200.0/24</kbd>。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>PKS/NSX-T logical topologies</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">PKS/NSX-T 逻辑拓扑</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>当 PKS 与 NSX-T 集成时，它支持两种类型的拓扑。NAT 和无 NAT 拓扑选择在 PKS 分块|网络部分完成。NAT 拓扑是默认的，但是您可以取消选中 NAT 模式以使用无 NAT 拓扑。NAT 和无 NAT 术语主要适用于 PKS 管理网络和 K8s 集群节点网络(即，是否使用可路由子网)。不管是 NAT 还是无 NAT 拓扑，访问 K8s API 都使用相同的过程。</p>
+
+<p>在分配给 K8s 集群的 NSX-T LB 实例上创建一个虚拟服务器的目的如下:</p>
+
+<ul>
+
+<li>从 PKS 浮动 IP 池中抽取一个 IP(此处<kbd>1x.x0.1x.1xx</kbd>，端口为<kbd>8443</kbd></li>
+
+<li>相同的 IP 地址显示在<kbd>pks cluster &lt;cluster name&gt;</kbd>命令的输出中</li>
+
+</ul>
+
+<p>以下是不同 NAT 拓扑的目标:</p>
+
+<ul>
+
+<li><strong> NAT 拓扑</strong>:适用于 DC 中可用的可路由 IP 地址数量有限，并且希望使用 concourse 管道自动部署 PKS 的客户(例如)</li>
+
+<li><strong>无 NAT 拓扑</strong> : <strong> </strong>适用于避免 NAT 的客户，因为 NAT 破坏了全路径可见性，并且拥有大量可路由的 IP 地址资源</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Use cases with different configurations</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">不同配置的用例</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>以下是不同配置的使用案例:</p>
+
+<ul>
+
+<li>从公司网络访问 PKS 管理平面组件(运营经理、BOSH、PKS 控制平面虚拟机、Harbor ):<ul>
+
+<li><strong>无 NAT 拓扑</strong>:无需任何操作，因为这些组件使用可路由的 IP 地址</li>
+
+<li><strong> NAT 拓扑</strong>:用户需要在 T0 创建 DNAT 规则</li>
+
+</ul>
+
+</li>
+
+<li>对 K8s API 的访问(例如，使用 kubectl CLI):<ul>
+
+<li><strong>无 NAT 拓扑</strong>:使用来自 PKS 浮动 IP 块的 1 个可路由 IP 自动创建 1 个虚拟服务器(在专用于 K8s 集群的 NSX-T LB 实例上)</li>
+
+<li><strong> NAT 拓扑</strong>:用户需要指向这个 IP 才能访问 K8s API</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+<ul>
+
+<li>使用 PKS 浮动 IP 块中的一个可路由 IP 自动创建一个虚拟服务器(在专用于 K8s 集群的 NSX-T LB 实例上):<ul>
+
+<li><strong>无 NAT 拓扑</strong>:用户需要指向这个 IP 才能访问 K8s API</li>
+
+<li><strong> NAT 拓扑</strong>:用户需要访问 K8s 节点虚拟机(比如 BOSH SSH)</li>
+
+</ul>
+
+</li>
+
+<li>使用可路由 IP 地址的组件:<br/><ul>
+
+<li><strong>无 NAT 拓扑</strong>:用户需要 SSH 到 Ops Manager，以针对 K8s 节点虚拟机执行 BOSH 命令</li>
+
+<li><strong> NAT 拓扑</strong>:替代方案是在同一子网上安装 jumpbox 服务器，而不是 PKS 管理平面组件</li>
+
+</ul>
+
+</li>
+
+<li>使用 K8s 节点虚拟机访问公司网络(或互联网):<ul>
+
+<li><strong>无 NAT 拓扑</strong>:不需要任何操作，因为这些组件使用可路由的 IP 地址</li>
+
+<li><strong> NAT 拓扑</strong> : PKS 使用 PKS 浮动 IP 池中的一个 IP 地址，在 T0 时刻为每个 K8s 集群自动创建一个 SNAT 规则</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>PKS and NSX-T Edge Nodes and Edge Cluster</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">PKS 和 NSX-T 边节点和边簇</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>PKS 仅支持大型 NSX-T 边缘节点虚拟机配置。PKS 仅支持 T0 的一个边缘集群实例(8 个 vCPU，16 GB RAM)。T0 路由器必须配置为活动/备用模式，因为 PKS 将在那里应用 SNAT 规则。一个 NSX-T 边缘簇可以包含多达八个边缘<strong>传输节点</strong> ( <strong> TN </strong>)。您可以在边缘集群中添加新的边缘节点(最多 8 个),以增加整体容量(例如 LB ),并为 NSX-T 边缘集群提供可扩展性。您可以对 T0 上行链路 IP 地址使用两个不同的边缘节点(总共两个 IP ),以便在边缘群集中为 NSX-T0 提供高可用性。我们应该在 T0 上启用 HA VIP，以便它总是可操作的，即使一个 T0 上行链路关闭。物理路由器将仅与 T0 HA VIP 进行互操作。</p>
+
+<p>以下是 NSX-T 和负载平衡器的规模数字:</p>
+
+<table border="1" style="border-collapse: collapse;width: 100%">
+
+<tbody>
+
+<tr>
+
+<td style="width: 22%"> </td>
+
+<td style="width: 10%">
+
+<p><strong>磅小</strong></p>
+
+</td>
+
+<td style="width: 14%">
+
+<p><strong> LB 介质</strong></p>
+
+</td>
+
+<td style="width: 10%">
+
+<p><strong>磅大</strong></p>
+
+</td>
+
+<td colspan="5" style="width: 38%">
+
+<p class="CDPAlignCenter CDPAlign"><strong>人才库成员</strong></p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="width: 22%">
+
+<p><strong> NSX-T 发布</strong></p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>2.1</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>2.2</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>2.1</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>2.2</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>2.1</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>2.2</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>2.1</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>2.2</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="width: 22%">
+
+<p><strong>边缘虚拟机:小</strong></p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>-</p>
+
+</td>
+
+<td style="width: 14%">
+
+<p>-</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>-</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>-</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>-</p>
+
+</td>
+
+<td style="width: 3%">
+
+<p>-</p>
+
+</td>
+
+<td style="width: 7%">
+
+<p>-</p>
+
+</td>
+
+<td style="width: 8%">
+
+<p>-</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="width: 22%">
+
+<p><strong>边缘虚拟机:中等</strong></p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>一</p>
+
+</td>
+
+<td style="width: 14%">
+
+<p>一</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>-</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>-</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>-</p>
+
+</td>
+
+<td style="width: 3%">
+
+<p>-</p>
+
+</td>
+
+<td style="width: 7%">
+
+<p>30</p>
+
+</td>
+
+<td style="width: 8%">
+
+<p>30</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="width: 22%">
+
+<p><strong>边缘虚拟机:大</strong></p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>四</p>
+
+</td>
+
+<td style="width: 14%">
+
+<p>40</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>一</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>一</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>-</p>
+
+</td>
+
+<td style="width: 3%">
+
+<p>-</p>
+
+</td>
+
+<td style="width: 7%">
+
+<p>120</p>
+
+</td>
+
+<td style="width: 8%">
+
+<p>1,200</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="width: 22%">
+
+<p><strong>边缘:裸金属</strong></p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>100</p>
+
+</td>
+
+<td style="width: 14%">
+
+<p>750</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>10</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>100</p>
+
+</td>
+
+<td style="width: 10%">
+
+<p>一</p>
+
+</td>
+
+<td style="width: 3%">
+
+<p>一</p>
+
+</td>
+
+<td style="width: 7%">
+
+<p>3,000</p>
+
+</td>
+
+<td style="width: 8%">
+
+<p>22,500</p>
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>PKS and NSX-T communications</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">PKS 和 NSX-T 通信公司</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>多个 PKS 组件需要与 NSX-T 管理器通信。需要使用 NSX-T 超级用户主体身份证书作为认证机制的 PKS 控制平面虚拟机来为每个 K8s 集群节点网络创建 T1/LS，并为每个 K8s 集群创建 LB 实例。</p>
+
+<p>BOSH 使用凭据作为身份验证机制，用特殊的 BOSH ID 标记和 NCP pod 标记虚拟机的所有逻辑端口。它使用 NSX-T 超级用户主体身份证书作为身份验证机制，为每个名称空间创建 T1/LS，为每个名称空间创建 T0 上的 SNAT 规则，并为 LB 类型的每个 K8s 服务创建 LB 虚拟服务器。</p>
+
+<p>以下是为每个 K8s 集群创建的 NSX-T 对象的列表。</p>
+
+<p>创建新的 K8s 集群时，默认情况下会创建以下 NSX-T 对象:</p>
+
+<ul>
+
+<li><strong> NSX-T LS </strong>:<ul>
+
+<li>一个 LS 用于 K8s 主节点和工作节点</li>
+
+<li>每个 K8s 名称空间一个 LS，即 kube-public、kube-system 和 pks-infrastructure</li>
+
+<li>一个 LS 用于与 K8s 星团相关的 NSX-T LB</li>
+
+</ul>
+
+</li>
+
+<li><strong> NSX-T T1 </strong>:<ul>
+
+<li>一个 T1 用于 K8s 主节点和工作节点(称为集群路由器)</li>
+
+<li>每个 K8s 命名空间一个 T1(默认、kube-public、kube-system 和 pks-infrastructure)</li>
+
+<li>一个 T1 用于与 K8s 集群相关联的 NSX-T LB</li>
+
+</ul>
+
+</li>
+
+<li>NSX-T LB :<ul>
+
+<li>一个 NSX-T LB 小型实例，包含以下对象:<ul>
+
+<li>一台虚拟服务器，用于访问 K8s 控制平面 API(使用端口 8443)</li>
+
+<li>一个包含三个 K8s 主节点的服务器池</li>
+
+<li>入口控制器(HTTP)的一个虚拟服务器</li>
+
+<li>入口控制器(HTTPS)的一台虚拟服务器</li>
+
+<li>每个虚拟服务器都分配有一个来自 PKS 浮动 IP 地址池的 IP 地址</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+<p>默认情况下，创建新的 K8s 集群时，会创建以下 NSX-T 对象:</p>
+
+<ul>
+
+<li><strong> NSX-T DDI/IPAM </strong>:节点 IP 块中的 A /24 子网将被提取并分配给 K8s 主节点和工作节点。</li>
+
+<li><strong> NSX-T DDI/IPAM </strong>:将从 PODs IP 块中提取/24 子网，并分配给每个 K8s 命名空间(默认、kube-public、kube-system 和 pks-infrastructure)。<ul>
+
+<li><strong> NSX-T T0 路由器</strong>:<ul>
+
+<li>为每个 K8s 命名空间(默认、kube-public、kube-system、pks-infrastructure)创建一个 SNAT 规则，使用浮动 IP 池中的一个 IP 作为转换后的 IP 地址。</li>
+
+<li>为每个 K8s 群集创建一个 SNAT 规则(在使用 NAT 拓扑的情况下)，使用浮动 IP 池中的 1 个 IP 作为转换后的 IP 地址。K8s 群集子网是使用/24 网络掩码从节点 IP 块派生的。</li>
+
+</ul>
+
+</li>
+
+<li>NSX-DFW<strong>:</strong><ul>
+
+<li>kubernetes-dashboard 的一个 DFW 规则:Source=K8s worker 节点(托管仪表板 POD/Destination=仪表板 POD IP/Port:TCP/8443/Action:allow</li>
+
+<li>kube-dns 的一个 DFW 规则:源=K8s 工作节点(托管 DNS POD)/目的地= DNS POD IP/端口:TCP/8081 和 TCP/10054/操作:允许</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Storage for K8s cluster node VMs</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">K8s 群集节点虚拟机的存储</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>您可以使用<strong>持久卷</strong> ( <strong> PV </strong>)为 K8s PODs 提供存储。通过使用<strong>vCP</strong>(<strong>云提供商</strong>的简称)插件，可以将 PV 映射到 vSphere 上的<strong>虚拟机磁盘</strong> ( <strong> VMDK </strong>)文件。然后，VMDK 文件将作为磁盘连接到工作节点虚拟机。然后，我们可以从该磁盘装载该卷。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Datastores</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">数据存储</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>下表列出了有关数据存储的信息:</p>
+
+<table border="1" style="border-collapse: collapse;width: 100%">
+
+<tbody>
+
+<tr>
+
+<td>
+
+<p class="CDPAlignCenter CDPAlign"><strong>部署拓扑/存储技术</strong></p>
+
+</td>
+
+<td>
+
+<p class="CDPAlignCenter CDPAlign"><strong>虚拟存储区域网络数据存储</strong></p>
+
+</td>
+
+<td>
+
+<p class="CDPAlignCenter CDPAlign"><strong>NFS/iSCSI/光纤通道数据存储区上的 VMFS</strong></p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>单个 vSphere 计算群集(单个 AZ，如果使用 RPs，则为多个 AZ ),数据存储区位于单个 vSphere 计算群集的本地</p>
+
+</td>
+
+<td>
+
+ 
+
+</td>
+
+<td>
+
+ 
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>多个 vSphere 计算集群(多个 az ),数据存储位于每个 vSphere 计算集群的本地</p>
+
+</td>
+
+<td>
+
+ 
+
+</td>
+
+<td>
+
+ 
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>多 vSphere 计算集群(多个 az ),数据存储在所有 vSphere 计算集群之间共享</p>
+
+</td>
+
+<td>
+
+ 
+
+</td>
+
+<td>
+
+ 
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+<p> </p>
+
+<p>以下是供应静态 PV 的步骤:</p>
+
+<ol>
+
+<li>手动创建 VMDK 文件</li>
+
+<li>创建一个引用上述 VMDK 文件的 PV</li>
+
+<li>创建 PVC</li>
+
+<li>通过使用对 PVC 的引用来部署有状态的 POD 或有状态的 set</li>
+
+</ol>
+
+<p>以下是动态光伏供应的步骤:</p>
+
+<ol>
+
+<li>创建一个 PVC (vCP K8s 存储插件；舱口将自动创建 PV 和 VMDK 文件)</li>
+
+<li>使用对 PVC 的引用部署有状态 POD 或有状态 set</li>
+
+</ol>
+
+<p>以下是与 PKS/NSX-T 相关的一些 vSAN 注意事项:</p>
+
+<ul>
+
+<li>使用 vSAN 时，vSphere 集群必须从至少三台 ESXi 主机开始，以保证数据保护(在这种情况下，对于容错设置为 1 的 RAID1)</li>
+
+<li>PKS AZ 不与 vSAN 断层域对应</li>
+
+<li>vSAN 目前支持具有单个计算群集的 PKS(所有 ESXi 主机位于同一站点)</li>
+
+<li><strong>警告</strong>:目前不支持带有 vSAN 扩展集群的 PKS 配置(没有 AZs 与 vSAN 容错域的映射)</li>
+
+</ul>
+
+<ul>
+
+<li>仅包含 vSAN 的数据存储不支持包含多个计算集群的 PKS 配置</li>
+
+<li>可以跨不同的 ESXi 集群创建主节点和工作节点(BOSH tile 允许您为虚拟机指定多个永久和临时数据存储)</li>
+
+<li>仅为一个 vSAN 数据存储区创建 PV VMDK 磁盘(不会自动执行跨不同 vSAN 数据存储区的复制)</li>
+
+</ul>
+
+<p>数据中心维护独立的 PKS 实例、NSX 部署、Kubernetes (K8s)集群和 vSphere 基础架构。通过第三方提供的<strong>全局服务器负载平衡器</strong> ( <strong> GSLB </strong>)监控站点的 K8s 集群 API 和 PKS 控制器 API 的可用性。运营和开发部门将 API 请求定向到 GSLB 虚拟服务器 URL，以创建和管理 K8s 集群并部署应用程序。手动部署的应用程序(例如通过 kubectl)不会在环境之间自动复制，需要在故障转移到站点 b 后重新部署。</p>
+
+<p>您可以配置 CI/CD automation server 在每个环境中根据 K8s 的 URL 执行构建管道，或者根据 GSLB 虚拟服务器 URL 执行单个构建。基于策略的复制是一项内置功能，可管理将映像克隆到备用位置。您可以在环境之间复制数据存储以支持 PV。在站点 A 出现故障后，pod 被重新部署到站点 B，挂载原始持久卷的 VMDK 文件。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Summary</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">摘要</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在这种数字化趋势的背后有一种新的 IT 方法，称为云原生，这是业务数字化的驱动力之一。云原生方法允许企业大大提高开发人员的工作效率，允许他们以比以前更快的速度向市场提供新的应用和服务；因此，他们可以改善客户体验和满意度。如果成功采用，云原生方法还可以帮助削减运营和基础设施成本，并增强应用程序的安全性。</p>
+
+<p>在下一章<a href="557b79e8-1cf1-4c07-be7d-29ad5d965c3e.xhtml" target="_blank">第 14 章</a>、<em>面向机器学习的高性能计算</em>，您将了解虚拟化的具体方面，这些方面可以提高<strong>高性能计算</strong> ( <strong> HPC </strong>)环境的工作效率。我们将探索 VMware vSphere 支持的功能，以满足研究计算、学术、科学和工程 HPC 工作负载的要求。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html></body></html>

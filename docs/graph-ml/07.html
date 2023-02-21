@@ -1,0 +1,291 @@
+<html><head/><body>
+
+
+	
+		<title>B16069_05_Final_JM_ePub</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-76"><a id="_idTextAnchor079"/>第五章:图上机器学习的问题</h1>
+			<p>图形<strong class="bold">机器学习</strong> ( <strong class="bold"> ML </strong>)方法可以用于广泛的任务，应用范围从药物设计到社交网络中的推荐系统。此外，考虑到这些方法在设计上是通用的(这意味着它们不是为特定问题定制的)，相同的算法可以用来解决不同的问题。</p>
+			<p>使用基于图形的学习技术可以解决一些常见的问题。在本章中，我们将通过提供关于特定算法的细节来提及其中一些研究得最好的算法，这些算法是我们已经在第 3 章 、<em class="italic">无监督图学习、</em>和<em class="italic"> </em> <a href="B16069_04_Final_JM_ePub.xhtml#_idTextAnchor064"> <em class="italic">第 4 章</em> </a>、<em class="italic">有监督图学习</em>中学习过的算法，可以用来解决一个任务。读完这一章后，你会意识到在处理图形时可能遇到的许多常见问题的正式定义。此外，您将学习有用的 ML 管道，您可以在将来处理的实际问题中重用这些管道。</p>
+			<p>更确切地说，本章将涵盖以下主题:</p>
+			<ul>
+				<li>预测图中缺失的链接</li>
+				<li>检测有意义的结构，如社区</li>
+				<li>检测图形相似性和图形匹配</li>
+			</ul>
+			<h1 id="_idParaDest-77"><a id="_idTextAnchor080"/>技术要求</h1>
+			<p>我们将在所有练习中使用 Python 3.8 版的 Jupyter 笔记本。在下面的代码块中，您可以看到使用<code>pip</code>为本章安装的 Python 库的列表(例如，在命令行上运行<code>pip install networkx==2.5</code>):</p>
+			<pre>Jupyter==1.0.0
+networkx==2.5
+karateclub==1.0.19
+scikit-learn==0.24.0
+pandas==1.1.3
+node2vec==0.3.3
+numpy==1.19.2
+tensorflow==2.4.1
+stellargraph==1.2.1
+communities==2.2.0
+git+https://github.com/palash1992/GEM.git </pre>
+			<p>与本章相关的所有代码文件都可以在<a href="https://github.com/PacktPublishing/Graph-Machine-Learning/tree/main/Chapter05">https://github . com/packt publishing/Graph-Machine-Learning/tree/main/chapter 05</a>获得。</p>
+			<h1 id="_idParaDest-78"><a id="_idTextAnchor081"/>预测图中缺失的链接</h1>
+			<p><strong class="bold">链接预测</strong>又称<strong class="bold">图补全</strong>，是处理图时的<a id="_idIndexMarker539"/>常见问题。更准确地说，从部分观察图——对于某一对节点来说，<a id="_idIndexMarker540"/>不可能确切知道它们之间是否有边——我们想要预测<a id="_idIndexMarker541"/>未知状态节点对是否存在边，如图<em class="italic">图 5.1 </em>所示。形式上，让<img src="img/B16069_05_001.png" alt=""/>是一个图，其中<img src="img/B16069_05_002.png" alt=""/>是它的一组节点，<img src="img/B16069_05_003.png" alt=""/>是它的一组边。这组边<img src="img/B16069_05_004.png" alt=""/>称为<em class="italic">观测链</em>，而这组边<img src="img/B16069_05_005.png" alt=""/>称为<em class="italic">未知链</em>。链路预测问题的目标是利用<img src="img/B16069_05_006.png" alt=""/>和<img src="img/B16069_05_007.png" alt=""/>的信息来估计<img src="img/B16069_05_008.png" alt=""/>。在处理时态图形数据时，这个问题也很常见。在此设置中，假设<img src="img/B16069_05_009.png" alt=""/>是在给定时间点<img src="img/B16069_05_010.png" alt=""/>观察到的图形，其中我们希望预测该图形在给定时间点<img src="img/B16069_05_011.png" alt=""/>的边缘。这里可以看到部分观察到的图表:</p>
+			<div><div><img src="img/B16069_05_01.jpg" alt="Figure 5.1 – Partially observed graph with observed link  (solid lines) and unknown link  (dashed lines)"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.1–部分观察到的图表，带有观察到的链接<img src="img/B16069_05_012.png" alt=""/>(实线)和未知链接<img src="img/B16069_05_013.png" alt=""/>(虚线)</p>
+			<p>链接预测问题被广泛用于不同的领域，例如推荐系统，以便在社交网络中提议友谊或者在电子商务网站上提议购买物品。它还用于犯罪网络调查，以便<a id="_idIndexMarker542"/>找到犯罪团伙之间的隐藏联系，以及用于分析<a id="_idIndexMarker543"/>蛋白质-蛋白质相互作用的生物信息学。在接下来的章节中，我们将讨论解决链接预测问题的两类方法，即<strong class="bold">基于相似性的</strong>和<strong class="bold">基于嵌入的</strong>方法。</p>
+			<h2 id="_idParaDest-79"><a id="_idTextAnchor082"/>基于相似性的方法</h2>
+			<p>在这一小节中，我们将向<a id="_idIndexMarker544"/>展示几种简单的算法来解决标签预测问题。所有这些算法背后的主要共享思想是估计图中每对<a id="_idIndexMarker545"/>节点之间的相似性函数。如果根据函数，节点<em class="italic">看起来相似</em>，它们将有很高的概率通过边连接。我们将这些算法分为两个子族:<code>networkx.algorithms.link_prediction</code>包中的<code>networkx</code>库。</p>
+			<h3>基于索引的方法</h3>
+			<p>在这一节中，我们将<a id="_idIndexMarker546"/>展示一些在<code>networkx</code>中可用的算法来计算两个断开节点之间的边的概率。这些<a id="_idIndexMarker547"/>算法是基于通过分析两个断开节点的邻居所获得的信息来计算简单指数。</p>
+			<h4>资源分配指数</h4>
+			<p>资源分配指数<a id="_idIndexMarker548"/>方法通过根据以下公式估计所有节点对的<em class="italic">资源分配指数</em>来估计<a id="_idIndexMarker549"/>两个节点<img src="img/B16069_05_014.png" alt=""/>和<img src="img/B16069_05_015.png" alt=""/>连接的概率:</p>
+			<div><div><img src="img/B16069_05_016.jpg" alt=""/>
+				</div>
+			</div>
+			<p>在给定的公式中，<img src="img/B16069_05_017.png" alt=""/>函数计算<img src="img/B16069_05_018.png" alt=""/>节点<a id="_idTextAnchor085"/>和<a id="_idTextAnchor086"/>节点的邻居，如公式所示，<img src="img/B16069_05_019.png" alt=""/>节点是<img src="img/B16069_05_020.png" alt=""/>和<img src="img/B16069_05_021.png" alt=""/>的邻居。可以使用以下代码在<code>networkx</code>中计算该指数:</p>
+			<pre>import networkx as nx
+edges = [[1,3],[2,3],[2,4],[4,5],[5,6],[5,7]]
+ G = nx.from_edgelist(edges)
+ preds = nx.resource_allocation_index(G,[(1,2),(2,5),(3,4)])</pre>
+			<p><code>resource_allocation_index</code>函数的第一个参数是一个输入图，而第二个参数是可能的边的列表。我们想计算连接的概率。结果，我们得到以下输出:</p>
+			<pre>[(1, 2, 0.5), (2, 5, 0.5), (3, 4, 0.5)]</pre>
+			<p>输出是一个列表<a id="_idIndexMarker550"/>，它包含成对的节点，如<code>(1,2)</code>、<code>(2,5)</code>和<code>(3,4)</code>，它们形成了资源分配索引。根据这个输出的<a id="_idIndexMarker551"/>，这些节点对之间有边的概率是<code>0.5</code>。</p>
+			<h4>雅克卡系数</h4>
+			<p>算法<a id="_idIndexMarker552"/>根据<em class="italic"> Jaccard 系数</em>计算两个节点<img src="img/B16069_05_0201.png" alt=""/>和<img src="img/B16069_05_021.png" alt=""/>之间连接<a id="_idIndexMarker553"/>的概率，计算如下:</p>
+			<div><div><img src="img/B16069_05_022.jpg" alt=""/>
+				</div>
+			</div>
+			<p>这里，<img src="img/B16069_05_023.png" alt=""/>用于计算<img src="img/B16069_05_024.png" alt=""/>节点的邻居。使用以下代码可在<code>networkx</code>中使用该功能:</p>
+			<pre>import networkx as nx
+edges = [[1,3],[2,3],[2,4],[4,5],[5,6],[5,7]]
+ G = nx.from_edgelist(edges)
+ preds = nx.resource_allocation_index(G,[(1,2),(2,5),(3,4)])</pre>
+			<p><code>resource_allocation_index</code>功能与之前的功能具有相同的参数。代码的结果如下所示:</p>
+			<pre>[(1, 2, 0.5), (2, 5, 0.25), (3, 4, 0.3333333333333333)]</pre>
+			<p>根据这个<a id="_idIndexMarker554"/>输出，节点<code>(1,2)</code>之间有边的概率是<code>0.5</code>，而节点<code>(2,5)</code>之间这个是<code>0.25</code>，节点<code>(3,4)</code>之间这个是<code>0.333</code>。</p>
+			<p>在<code>networkx</code>中，基于相似性得分计算两个节点之间的连接概率的其他<a id="_idIndexMarker555"/>方法是<code>nx.adamic_adar_index</code>和<code>nx.preferential_attachment</code>，分别基于<em class="italic"> Adamic/Adar 指数</em>和<em class="italic">优先连接指数</em>的计算。这些函数与其他函数具有相同的参数，并接受一个图表和一系列节点，我们希望在这些节点上计算分数。在下一节中，我们将展示基于社区检测的另一系列算法。</p>
+			<h3>基于社区的方法</h3>
+			<p>与基于指数的方法一样，属于该家族的<a id="_idIndexMarker556"/>算法也计算代表<a id="_idIndexMarker557"/>断开节点被连接的概率的指数。基于索引的方法和基于社区的方法之间的主要区别与它们背后的逻辑有关。事实上，在生成索引之前，基于社区的方法需要计算关于属于那些节点的社区的信息。在这一小节中，我们将展示一些常见的基于社区的方法，并提供几个例子。</p>
+			<h4>社区公共邻居</h4>
+			<p>为了估计两个节点被连接的概率，该算法计算共同<a id="_idIndexMarker558"/>邻居的数量，并将属于同一社区的共同邻居的数量加到该值上。形式上，对于两个节点<img src="img/B16069_05_025.png" alt=""/>和<img src="img/B16069_05_026.png" alt=""/>，社区公共邻居值计算如下:</p>
+			<div><div><img src="img/B16069_05_027.jpg" alt=""/>
+				</div>
+			</div>
+			<p>在这个公式中，<img src="img/B16069_05_028.png" alt=""/>用于计算节点<img src="img/B16069_05_029.png" alt=""/>的邻居，如果<img src="img/B16069_05_031.png" alt=""/>属于<img src="img/B16069_05_032.png" alt=""/>和<img src="img/B16069_05_033.png" alt=""/>的同一个社区，则<img src="img/B16069_05_030.png" alt=""/>；否则，这是 0。可以使用以下代码在<code>networkx</code>中计算该函数:</p>
+			<pre>import networkx as nx
+edges = [[1,3],[2,3],[2,4],[4,5],[5,6],[5,7]]
+ G = nx.from_edgelist(edges)
+ 
+G.nodes[1]["community"] = 0
+G.nodes[2]["community"] = 0
+G.nodes[3]["community"] = 0
+G.nodes[4]["community"] = 1
+G.nodes[5]["community"] = 1
+G.nodes[6]["community"] = 1
+G.nodes[7]["community"] = 1
+preds = nx.cn_soundarajan_hopcroft(G,[(1,2),(2,5),(3,4)])</pre>
+			<p>从前面的代码片段中，可以看出我们需要如何将<code>community</code>属性分配给图中的每个节点。当<a id="_idIndexMarker559"/>计算前面等式中定义的函数<img src="img/B16069_05_034.png" alt=""/>时，该属性用于识别属于同一社区的节点。正如我们将在下一节中看到的，社区价值也可以使用特定的算法自动计算。正如我们已经看到的，<code>cn_soundarajan_hopcroft</code>函数接受输入图和我们想要计算分数的几个节点。结果，我们得到以下输出:</p>
+			<pre>[(1, 2, 2), (2, 5, 1), (3, 4, 1)]</pre>
+			<p>与前一个函数的主要区别在于索引值。的确，我们很容易看到输出不在范围<code>(0,1)</code>内。</p>
+			<h4>社区资源分配</h4>
+			<p>与前面的方法一样，社区资源分配算法将从<a id="_idIndexMarker560"/>节点的邻居获得的信息与社区合并，如下面的公式所示:</p>
+			<div><div><img src="img/B16069_05_035.jpg" alt=""/>
+				</div>
+			</div>
+			<p>这里，<img src="img/B16069_05_036.png" alt=""/>用于计算节点<img src="img/B16069_05_037.png" alt=""/>的邻居，如果<img src="img/B16069_05_039.png" alt=""/>属于<img src="img/B16069_05_040.png" alt=""/>和<img src="img/B16069_05_041.png" alt=""/>的同一个社区，则<img src="img/B16069_05_038.png" alt=""/>；否则，这是 0。可以在<code>networkx</code>中使用以下代码计算该函数:</p>
+			<pre>import networkx as nx
+edges = [[1,3],[2,3],[2,4],[4,5],[5,6],[5,7]]
+ G = nx.from_edgelist(edges)
+ 
+G.nodes[1]["community"] = 0
+G.nodes[2]["community"] = 0
+G.nodes[3]["community"] = 0
+G.nodes[4]["community"] = 1
+G.nodes[5]["community"] = 1
+G.nodes[6]["community"] = 1
+G.nodes[7]["community"] = 1
+preds = nx. ra_index_soundarajan_hopcroft(G,[(1,2),(2,5),(3,4)])</pre>
+			<p>从前面的代码片段中，可以看出我们需要如何将<code>community</code>属性分配给图中的每个节点。这个<a id="_idIndexMarker561"/>属性用于在计算前面等式中定义的函数<img src="img/B16069_05_042.png" alt=""/>时识别属于同一社区的节点。正如我们将在下一节中看到的，社区价值也可以使用特定的算法自动计算。正如我们已经看到的，<code>ra_index_soundarajan_hopcroft</code>函数接受输入图和我们想要计算分数的几个节点。结果，我们得到以下输出:</p>
+			<pre>[(1, 2, 0.5), (2, 5, 0), (3, 4, 0)]</pre>
+			<p>从前面的输出中，可以看出社区在指数计算中的影响。由于节点<code>1</code>和<code>2</code>属于同一个社区，所以它们在索引中具有较高的值。相反，边<code>(2,5)</code>和<code>(3,4)</code>具有值 0，因为它们属于彼此不同的社区。</p>
+			<p>在<code>networkx</code>中，<a id="_idIndexMarker562"/>基于两个节点的相似性得分并结合社区信息来计算两个节点之间的连接概率的另外两种方法是<code>nx.a</code> <code>within_inter_cluster</code>和<code>nx.common_neighbor_centrality</code>。</p>
+			<p>在下一节中，我们将描述一种基于 ML 加边缘嵌入来执行未知边缘预测的更复杂的技术。</p>
+			<h2 id="_idParaDest-80"><a id="_idTextAnchor087"/>基于嵌入的方法</h2>
+			<p>在本节中，我们将描述一种<a id="_idIndexMarker563"/>更高级的方式来执行链路预测。这种方法背后的思想是将链路<a id="_idIndexMarker564"/>预测问题作为监督分类任务来解决。更准确地说，对于给定的图，每对节点用特征向量(<img src="img/B16069_05_043.png" alt=""/>)表示，并且类别标签(<img src="img/B16069_05_044.png" alt=""/>)被分配给这些节点对中的每一个。形式上，假设<img src="img/B16069_05_045.png" alt=""/>是一个图，对于每一对节点<img src="img/B16069_05_046.png" alt=""/>，我们建立以下公式:</p>
+			<div><div><img src="img/B16069_05_047.jpg" alt=""/>
+				</div>
+			</div>
+			<p>这里，<img src="img/B16069_05_048.png" alt=""/>是代表节点对<img src="img/B16069_05_049.png" alt=""/>的<em class="italic">特征向量</em>,<img src="img/B16069_05_050.png" alt=""/>是它们的<em class="italic">标签</em>。<img src="img/B16069_05_051.png" alt=""/>的值定义如下:<img src="img/B16069_05_052.png" alt=""/>如果在图<code>G</code>中存在连接节点<img src="img/B16069_05_053.png" alt=""/>的边；否则，<img src="img/B16069_05_054.png" alt=""/>。使用特征向量和标签，我们可以训练 ML 算法，以便预测给定的一对节点是否构成给定图形的合理边。</p>
+			<p>如果为每对节点构建标签向量很容易，那么构建特征空间就不那么简单了。为了生成每对节点的特征向量，我们将使用一些嵌入技术，例如<code>node2vec</code>和<code>edge2vec</code>，已经在第 3 章<em class="italic">的<a href="B16069_03_Final_JM_ePub.xhtml#_idTextAnchor046"> <em class="italic">中讨论过的无监督图学习</em>。使用这些嵌入算法，特征空间的生成将大大简化。事实上，整个过程可以总结为两个主要步骤，概述如下:</a></em></p>
+			<ol>
+				<li>对于图<code>G</code>的每个节点，使用<code>node2vec</code>算法计算其嵌入向量。</li>
+				<li>对于图中所有可能的节点对，使用<code>edge2vec</code>算法计算嵌入。</li>
+			</ol>
+			<p>我们现在可以将一般的 ML 算法应用于生成的特征向量，以便解决分类问题。</p>
+			<p>为了给你一个这个过程的实际解释，我们将在下面的代码片段中提供一个例子。更准确地说，我们将使用<code>networkx</code>、<code>stellargraph</code>和<code>node2vec</code>库来描述整个管道(从图形到链接预测)。为了简化我们对<a id="_idIndexMarker566"/>不同部分的理解，我们<a id="_idIndexMarker565"/>将整个过程分成不同的步骤。将链接预测问题应用于第一章<a href="B16069_01_Final_JM_ePub.xhtml#_idTextAnchor014"><em class="italic"/></a>、<em class="italic">Python 中的图表入门</em>中描述的引用网络数据集，可从以下链接获得:【https://linqs-data.soe.ucsc.edu/public/lbc/cora.tgz】T42。</p>
+			<p>作为第一步，我们将使用引用数据集构建一个<code>networkx</code>图，如下所示:</p>
+			<pre>import networkx as nx
+import pandas as pd
+edgelist = pd.read_csv("cora.cites", sep='\t', header=None, names=["target", "source"])
+G = nx.from_pandas_edgelist(edgelist)</pre>
+			<p>由于数据集被表示为边列表(参见<a href="B16069_01_Final_JM_ePub.xhtml#_idTextAnchor014"> <em class="italic">第 1 章</em> </a>，<em class="italic">Python 中的图形入门</em>)，我们使用<code>from_pandas_edgelist</code>函数来构建图形。</p>
+			<p>第二步，我们需要从图<code>G</code>中创建训练和测试集。更准确地说，我们的训练集和测试集不仅应该包含图<code>G</code>中真实边的子集，还应该包含不代表图<code>G</code>中真实边的节点对。代表真实边缘的对将是<em class="italic">正实例</em>(类别标签 1)，而不代表真实边缘的对将是<em class="italic">负实例</em>(类别标签 0)。该过程可以如下容易地执行:</p>
+			<pre>from stellargraph.data import EdgeSplitter
+edgeSplitter = EdgeSplitter(G)
+ graph_test, samples_test, labels_test = edgeSplitter.train_test_split(p=0.1, method="global")</pre>
+			<p>我们使用了<code>stellargraph</code>中可用的<code>EdgeSplitter</code>类。<code>EdgeSplitter</code>类的主要构造函数参数是我们想要用来执行分割的图形(<code>G</code>)。使用<code>train_test_split</code>功能执行真正的分割，该功能将生成以下输出:</p>
+			<ul>
+				<li><code>graph_test</code>是原始图<img src="img/B16069_05_055.png" alt=""/>的子集，包含所有节点，但只是边的一个选定子集。</li>
+				<li><code>samples_test</code>是在每个位置包含一对节点的向量。该向量将包含代表真实边的节点对(正实例)，但也包含不代表真实边的节点对(负实例)。</li>
+				<li><code>labels_test</code>是与<code>samples_test</code>长度相同的向量。它只包含 0 或 1。值 0 出现在代表<code>samples_test</code>向量中负实例的位置，而值 1 出现在代表<code>samples_test</code>中正实例的位置。</li>
+			</ul>
+			<p>通过遵循用于<a id="_idIndexMarker568"/>生成测试集的相同<a id="_idIndexMarker567"/>过程，可以生成训练集，如以下代码片段所示:</p>
+			<pre>edgeSplitter = EdgeSplitter(graph_test, G)
+ graph_train, samples_train, labels_train = edgeSplitter.train_test_split(p=0.1, method="global")</pre>
+			<p>这部分代码的主要区别与<code>EdgeSplitter</code>的初始化有关。在这种情况下，我们还提供了<code>graph_test</code>以便不重复为测试集生成的正面和负面实例。</p>
+			<p>在这一点上，我们有我们的训练和测试数据集，有正面和负面的实例。对于这些实例中的每一个，我们现在需要生成它们的特征向量。在这个例子中，我们使用了<code>node2vec</code>库来生成节点嵌入。一般来说，每个节点嵌入算法都可以用来执行这项任务。对于训练集，我们可以使用以下代码生成特征向量:</p>
+			<pre>from node2vec import Node2Vec
+from node2vec.edges import HadamardEmbedder
+node2vec = Node2Vec(graph_train)
+ model = node2vec.fit()
+edges_embs = HadamardEmbedder(keyed_vectors=model.wv)
+ train_embeddings = [edges_embs[str(x[0]),str(x[1])] for x in samples_train]</pre>
+			<p>从<a id="_idIndexMarker569"/>之前的代码片段中，<a id="_idIndexMarker570"/>可能会看到以下内容:</p>
+			<ul>
+				<li>我们使用<code>node2vec</code>库为训练图中的每个节点生成嵌入。</li>
+				<li>我们使用<code>HadamardEmbedder</code>类来生成包含在训练集中的每对节点的嵌入。这些值将被用作特征向量来执行我们的模型的训练。</li>
+			</ul>
+			<p>在这个例子中，我们使用了<code>HadamardEmbedder</code>算法，但是一般来说，也可以使用其他嵌入算法，比如在<a href="B16069_03_Final_JM_ePub.xhtml#_idTextAnchor046"> <em class="italic">第 3 章</em> </a>、<em class="italic">无监督图学习</em>中描述的那些算法。</p>
+			<p>还需要对测试集执行前面的步骤，代码如下:</p>
+			<pre>edges_embs = HadamardEmbedder(keyed_vectors=model.wv)
+ test_embeddings = [edges_embs[str(x[0]),str(x[1])] for x in samples_test]</pre>
+			<p>这里唯一的区别是用于计算边缘嵌入的<code>samples_test</code>数组。实际上，在这种情况下，我们使用为测试集生成的数据。此外，应该注意的是，没有为测试集重新计算<code>node2vec</code>算法。实际上，给定<code>node2vec</code>的随机性质，不可能确保两个学习的嵌入是“可比较的”,因此<code>node2vec</code>嵌入将在运行之间改变。</p>
+			<p>现在一切都准备好了。我们最终可以使用<code>train_embeddings</code>特征空间和<code>train_labels</code>标签分配训练一个 ML 算法来解决标签预测问题，如下所示:</p>
+			<pre>from sklearn.ensemble import RandomForestClassifier
+rf = RandomForestClassifier(n_estimators=1000)
+ rf.fit(train_embeddings, labels_train);</pre>
+			<p>在这个例子中，我们<a id="_idIndexMarker571"/>使用了一个简单的<code>RandomForestClassifier</code>类，但是每个 ML 算法都可以用来解决这个任务。然后，我们<a id="_idIndexMarker572"/>可以在<code>test_embeddings</code>特征空间上应用训练好的模型，以便量化分类的质量，如下面的代码块所示:</p>
+			<pre>from sklearn import metrics
+y_pred = rf.predict(test_embeddings)
+ print('Precision:', metrics.precision_score(labels_test, y_pred))
+ print('Recall:', metrics.recall_score(labels_test, y_pred))
+ print('F1-Score:', metrics.f1_score(labels_test, y_pred))</pre>
+			<p>结果，我们得到以下输出:</p>
+			<pre>Precision: 0.8557114228456913
+Recall: 0.8102466793168881
+F1-Score: 0.8323586744639375</pre>
+			<p>正如我们已经提到的，我们刚刚描述的方法只是一个通用的模式；流水线的每一部分——比如训练/测试分割、节点/边嵌入和 ML 算法——都可以根据我们面临的具体问题进行改变。</p>
+			<p>这种方法在处理时态图中的链接预测时特别有用。在这种情况下，可以应用与在时间点<img src="img/B16069_05_056.png" alt=""/>获得的用于训练模型的边缘相关的信息，以便预测在时间点<img src="img/B16069_05_057.png" alt=""/>的边缘。</p>
+			<p>在本节中，我们<a id="_idIndexMarker573"/>介绍了标签预测问题。我们通过用几个例子来描述用于找到链路预测问题的解决方案的不同技术来丰富我们的解释。我们展示了解决这个问题的不同方法，从简单的基于索引的 T21 技术到更复杂的基于嵌入的技术。然而，科学文献中充满了解决链路预测任务的算法，并且有不同的算法来解决该问题。在论文<em class="italic">关于学习和提取用于链路预测的图形特征</em>(<a href="https://arxiv.org/pdf/1901.03425.pdf">https://arxiv.org/pdf/1901.03425.pdf</a>)中，对用于解决链路预测问题的不同技术进行了很好的概述。在下一节中，我们将研究社区检测问题。</p>
+			<h1 id="_idParaDest-81"><a id="_idTextAnchor088"/>检测社区等有意义的结构</h1>
+			<p>数据科学家在处理网络时面临的一个常见问题是如何识别图表中的聚类和社区。这通常发生在图是从社交网络和已知存在的社区中导出的时候。然而，底层算法和方法也可以在其他环境中使用，代表了执行聚类和分割的另一种选择。例如，这些方法可以有效地用于文本挖掘，以识别新出现的主题，并对涉及单个事件/主题的文档进行聚类。社区检测任务包括划分图，使得属于相同社区的节点彼此紧密连接，而与来自其他社区的节点弱连接。存在几种识别社区的策略。一般来说，我们可以将它们定义为属于以下两个类别之一:</p>
+			<ul>
+				<li><strong class="bold">非重叠</strong>社区检测算法<a id="_idIndexMarker577"/>提供节点和社区之间的一对一关联，因此社区之间没有重叠节点</li>
+				<li><strong class="bold">重叠</strong>社区检测<a id="_idIndexMarker578"/>算法，允许一个节点包含在多个社区中——例如，反映社交网络发展重叠社区的自然趋势(例如，学校的朋友、邻居、玩伴、同一个足球队的人等等)，或者在生物学中，单个蛋白质可以参与多个过程和生物反应</li>
+			</ul>
+			<p>在下一节中，我们将回顾社区检测环境中一些最常用的技术。</p>
+			<h2 id="_idParaDest-82"><a id="_idTextAnchor089"/>基于嵌入的社区发现</h2>
+			<p><a id="_idIndexMarker579"/>允许我们将节点划分为社区的第一类方法可以简单地通过对节点嵌入应用标准浅层聚类技术来获得，使用<a href="B16069_03_Final_JM_ePub.xhtml#_idTextAnchor046"> <em class="italic">第 3 章</em> </a>、<em class="italic">无监督图学习</em>中描述的<a id="_idIndexMarker580"/>方法来计算。嵌入方法实际上允许我们将节点投影到向量空间中，在向量空间中可以定义表示节点之间相似性的距离度量。正如我们在<a href="B16069_03_Final_JM_ePub.xhtml#_idTextAnchor046"> <em class="italic">第三章</em> </a>、<em class="italic">无监督图学习</em>中所展示的，嵌入算法在分离具有相似邻域和/或连通性属性的节点时非常有效。然后，可以使用标准的聚类技术，例如基于距离的聚类(K-means)、连通性聚类(层次聚类)、分布聚类(高斯混合)和<a id="_idIndexMarker581"/>基于密度的聚类(<code>networkx</code>效用函数)，如下所示:</p>
+			<pre>import networkx as nx 
+G = nx.barbell_graph(m1=10, m2=4) </pre>
+			<p>然后，我们可以首先使用我们之前见过的嵌入算法之一(例如，<code>HOPE</code>)获得<a id="_idIndexMarker582"/>简化的密集节点表示，如下所示:</p>
+			<pre>from gem.embedding.hope import HOPE 
+gf = HOPE(d=4, beta=0.01) 
+gf.learn_embedding(G) 
+ embeddings = gf.get_embedding() </pre>
+			<p>最后，我们可以对节点嵌入提供的矢量表示运行<a id="_idIndexMarker583"/>聚类算法，如下所示:</p>
+			<pre>from sklearn.mixture import GaussianMixture
+gm = GaussianMixture(n_components=3, random_state=0)
+ labels = gm.fit_predict(embeddings)</pre>
+			<p>我们可以用不同颜色突出显示的计算社区来绘制网络，如下所示:</p>
+			<pre>colors = ["blue", "green", "red"]
+nx.draw_spring(G, node_color=[colors[label] for label in labels])</pre>
+			<p>通过这样做，您应该可以获得如下屏幕截图所示的输出:</p>
+			<div><div><img src="img/B16069_05_02.jpg" alt="Figure 5.2 – Barbell graph where the community detection algorithm has been applied using embedding-based methods "/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.2–杠铃图，其中使用基于嵌入的方法应用了社区检测算法</p>
+			<p>两个集群以及<a id="_idIndexMarker584"/>连接节点<a id="_idIndexMarker585"/>已经被正确地分组为三个不同的社区，反映了图的内部结构。</p>
+			<h2 id="_idParaDest-83"><a id="_idTextAnchor090"/>谱方法和矩阵分解</h2>
+			<p>实现<a id="_idIndexMarker586"/>图划分的另一种方式是处理表示图的连通性<a id="_idIndexMarker587"/>属性的邻接矩阵或拉普拉斯矩阵。例如，可以通过对拉普拉斯矩阵的特征向量应用标准聚类算法来获得谱聚类。在某种意义上，谱<a id="_idIndexMarker588"/>聚类也可以被视为基于嵌入的社区检测算法的特例，其中嵌入技术是所谓的谱嵌入，通过考虑拉普拉斯矩阵的前 k 个特征向量来获得<a id="_idIndexMarker589"/>。通过考虑拉普拉斯算子的不同定义以及不同的相似性矩阵，可以获得该方法的变体。在<code>communities</code> Python 库中可以找到该方法的一个方便的实现，并且可以用于从<code>networkx</code>图中容易获得的邻接矩阵表示，如下面的代码片段所示:</p>
+			<pre>from communities.algorithms import spectral_clustering
+adj=np.array(nx.adjacency_matrix(G).todense())
+communities = spectral_clustering(adj, k=2)</pre>
+			<p>此外，邻接矩阵(或拉普拉斯算子)也可以使用矩阵分解<a id="_idIndexMarker590"/>技术而不是<strong class="bold">奇异值分解</strong> ( <strong class="bold"> SVD </strong>)技术来分解，例如<strong class="bold">非负矩阵分解</strong>(<strong class="bold">NMF</strong>)——这允许<a id="_idIndexMarker591"/>类似的描述，如下面的代码片段所示:</p>
+			<pre>from sklearn.decomposition import NMF
+nmf = NMF(n_components=2)
+ score = nmf.fit_transform(adj)
+communities = [set(np.where(score [:,ith]&gt;0)[0])
+               for ith in range(2)]</pre>
+			<p>在这个<a id="_idIndexMarker593"/>示例中，属于团体的<a id="_idIndexMarker592"/>的阈值被设置为 0，尽管也可以使用其他值来仅保留团体核心。注意，这些方法是<a id="_idIndexMarker594"/>重叠社区检测算法，节点<a id="_idIndexMarker595"/>可能属于多个社区。</p>
+			<h2 id="_idParaDest-84"><a id="_idTextAnchor091"/>概率模型</h2>
+			<p>社区检测<a id="_idIndexMarker596"/>方法也可以通过拟合生成概率图模型的参数来导出。生成模型<a id="_idIndexMarker597"/>的例子已经在<a href="B16069_01_Final_JM_ePub.xhtml#_idTextAnchor014"> <em class="italic">第一章</em> </a>、<em class="italic">Python 图形入门</em>中描述过了。但是，他们并没有假设任何底层社区的存在，不像<a id="_idIndexMarker598"/>所谓的<strong class="bold">随机区块模型</strong> ( <strong class="bold"> SBM </strong>)。事实上，该模型基于这样的假设，即节点可以被划分为 K 个不相交的社区，并且每个社区都具有与另一个社区连接的确定概率。对于具有<em class="italic"> n </em>个节点和<em class="italic"> K </em>个社区的网络，生成模型由以下参数化:</p>
+			<ul>
+				<li><strong class="bold">隶属矩阵</strong> : <em class="italic"> M </em>，这是一个<em class="italic"> n x K </em>矩阵，代表<a id="_idIndexMarker599"/>给定节点属于某一类的概率<em class="italic"> k </em></li>
+				<li><strong class="bold">概率矩阵</strong> : <em class="italic"> B </em>，是<em class="italic"> K x K </em>矩阵，表示属于社区<em class="italic"> i </em>的节点与属于社区<em class="italic"> j </em>的节点之间的<a id="_idIndexMarker600"/>边概率</li>
+			</ul>
+			<p>然后通过以下公式生成邻接矩阵:</p>
+			<div><div><img src="img/B16069_05_058.jpg" alt=""/>
+				</div>
+			</div>
+			<p>这里，<img src="img/B16069_05_059.png" alt=""/>和<img src="img/B16069_05_060.png" alt=""/>代表社区，它们可以通过从概率的多项分布<img src="img/B16069_05_061.png" alt=""/>和<img src="img/B16069_05_062.png" alt=""/>中抽样获得。</p>
+			<p>在 SBM 中，我们可以通过最大似然估计，从矩阵<em class="italic"> A </em>基本上反转公式并将社区检测问题简化为隶属矩阵<em class="italic"> M </em>的后验估计。这种方法的一个版本最近与<a id="_idIndexMarker601"/>随机谱聚类一起使用，以便在非常大的图中执行社区检测。注意，恒定概率矩阵的<a id="_idIndexMarker602"/>极限(即<img src="img/B16069_05_063.png" alt=""/>)中的 SBM 模型对应于 Erdős-Rényi 模型。这些模型还具有描述社区之间的关系、识别社区-社区关系的优点。</p>
+			<h2 id="_idParaDest-85"><a id="_idTextAnchor092"/>成本函数最小化</h2>
+			<p><a id="_idIndexMarker603"/>检测图中社区的另一种可能方式是优化给定的成本函数，该成本函数表示图结构，并惩罚跨社区的边<a id="_idIndexMarker604"/>与社区内的边。这基本上包括建立一个社区质量的度量(我们将很快看到它的模块性)，然后优化节点与社区的关联，以便最大化分区的整体质量。</p>
+			<p>在二元关联社区结构的上下文中，社区关联可以由值为-1 或 1 的二分变量<img src="img/B16069_05_064.png" alt=""/>来描述，这取决于节点是否属于两个社区之一。在这种设置中，我们可以定义以下数量，这些数量确实可以用来有效地表示与在不同社区的两个节点之间建立链接相关联的成本:</p>
+			<div><div><img src="img/B16069_05_065.jpg" alt=""/>
+				</div>
+			</div>
+			<p>实际上，当两个连接的节点<img src="img/B16069_05_066.png" alt=""/>属于不同的社区<img src="img/B16069_05_067.png" alt=""/>时，由边提供的贡献是正的。另一方面，当两个节点不连接时(<img src="img/B16069_05_068.png" alt=""/>)和当两个连接的节点属于同一社区时(<img src="img/B16069_05_069.png" alt=""/>)，贡献都是 0。因此，问题是找到最佳社区分配(<img src="img/B16069_05_070.png" alt=""/>和<img src="img/B16069_05_071.png" alt=""/>)，以便最小化前面的函数。然而，该方法仅适用于二元社区检测，因此其应用相当有限。</p>
+			<p>属于这个类的另一个非常流行的<a id="_idIndexMarker605"/>算法是 Louvain 方法，它的名字来自于发明它的大学。该<a id="_idIndexMarker606"/>算法旨在最大化模块化，定义如下:</p>
+			<div><div><img src="img/B16069_05_072.jpg" alt=""/>
+				</div>
+			</div>
+			<p>这里，<img src="img/B16069_05_073.png" alt=""/>表示边的个数，<img src="img/B16069_05_074.png" alt=""/>和<img src="img/B16069_05_075.png" alt=""/>分别表示第 I 个和第 j 个节点的度，<img src="img/B16069_05_076.png" alt=""/>是克罗内克德尔塔函数，当<img src="img/B16069_05_077.png" alt=""/>和<img src="img/B16069_05_078.png" alt=""/>的值相同时为 1，否则为 0。模块性基本上代表了与随机重新布线节点并因此创建具有相同边数和度分布的随机网络相比，社区识别执行得多好的度量。</p>
+			<p>为了有效地最大化这种模块性，Louvain 方法迭代计算以下步骤:</p>
+			<ol>
+				<li value="1"><strong class="bold">模块性优化</strong>:迭代地<a id="_idIndexMarker607"/>扫描节点，对于每个节点，我们计算模块性的变化<em class="italic"> Q </em>如果该节点被分配到它的邻居的每个社区，那么将会有什么变化。一旦计算出所有的<img src="img/B16069_05_079.png" alt=""/>值，该节点就被分配给提供最大增量的社区。如果通过将节点放置在除了它所在的社区之外的任何其他社区中没有获得增加，则该节点保持在其原始社区中。这个优化过程一直持续到没有引起变化为止。</li>
+				<li><strong class="bold">节点聚合</strong>:在<a id="_idIndexMarker608"/>第二步中，我们通过将同一社区中的所有节点进行分组，并使用从两个社区中所有边的总和得到的边来连接社区，从而构建一个新的网络。社区内的边也通过自循环来考虑，自循环具有从属于社区的所有边权重的总和得到的权重。</li>
+			</ol>
+			<p>Louvain 实现已经可以在<code>communities</code>库中找到，如下面的代码片段所示:</p>
+			<pre>from communities.algorithms import louvain_method
+communities = louvain_method(adj) </pre>
+			<p>另一种使模块性最大化的方法是格文-纽曼算法，该算法基于反复移除具有最高介数中心性的边(从而连接两个独立的节点集群)来创建连通的组件社区。以下是与此相关的代码:</p>
+			<pre>from communities.algorithms import girvan_newman
+communities = girvan_newman(adj, n=2)</pre>
+			<p class="callout-heading">注意</p>
+			<p class="callout">后一种算法需要计算所有边的介数中心性来移除边。在大型图形中，这样的计算可能非常昂贵。事实上，格文-纽曼算法的规模为<img src="img/B16069_05_080.png" alt=""/>，其中<img src="img/B16069_05_081.png" alt=""/>是边的数量，<img src="img/B16069_05_082.png" alt=""/>是节点的数量，在处理大型数据集时不应使用。</p>
+			<h1 id="_idParaDest-86"><a id="_idTextAnchor093"/>检测图形相似性和图形匹配</h1>
+			<p>学习图之间的<em class="italic">相似度</em>的<a id="_idIndexMarker611"/>定量度量被认为是一个关键问题。事实上，这是网络分析的关键步骤，也可以促进许多 ML 问题，如分类、聚类和排序。例如，许多聚类算法使用相似性的概念来确定一个对象是否应该是一个组的成员。</p>
+			<p>在图的领域中，寻找一个有效的相似性度量是许多应用的关键问题。例如，考虑图中节点的<em class="italic">角色</em>。这个节点对于在网络上传播信息或保证网络的健壮性可能非常重要:例如，它可能是一个星形图的中心，也可能是一个团体的成员。在这种情况下，拥有一种根据角色比较节点的强大方法将非常有用。例如，您可能对搜索表现出相似角色或表现出相似异常行为的个人感兴趣。你也可以用它来搜索相似的子图或确定知识转移的网络兼容性。例如，如果您找到了一种提高网络稳定性的方法，并且您知道这样的网络与另一个网络非常相似，您可以将适用于第一个网络的相同解决方案直接应用于第二个网络:</p>
+			<div><div><img src="img/B16069_05_03.jpg" alt="Figure 5.3 – Example of differences between two graphs&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.3–两个图表之间的差异示例</p>
+			<p>几个度量可以用于测量两个对象之间的相似性(距离)。一些例子包括<em class="italic">欧几里德距离</em>、<em class="italic">曼哈顿距离</em>、<em class="italic">余弦相似度</em>等等。然而，这些指标可能无法捕获正在研究的数据的具体特征，特别是在非欧几里德结构上，比如图形。看看<em class="italic">图 5.3</em>:G1 和<strong class="bold"> G2 </strong>有多“远”？他们看起来非常相似。但是如果<strong class="bold"> G2 </strong>的红色社区中的连接缺失导致信息严重丢失怎么办？他们看起来还相似吗？</p>
+			<p>基于数学概念，如<em class="italic">图同构</em>、<em class="italic">编辑距离</em>和<em class="italic">公共子图</em>，已经提出了几种算法<a id="_idIndexMarker613"/>方法和启发式方法(我们建议阅读<a href="https://link.springer.com/article/10.1007/s10044-012-0284-8">https://link.springer.com/article/10.1007/s10044-012-0284-8</a>以获得详细的评论)。这些<a id="_idIndexMarker614"/>方法中的许多目前都在实际应用中使用，即使它们通常需要指数级的高计算时间来为一般的<strong class="bold">NP-完全</strong>问题提供<a id="_idIndexMarker615"/>解决方案(其中<strong class="bold"> NP </strong>代表<strong class="bold">非确定性多项式时间</strong>)。因此，找到或学习用于测量特定任务中所涉及的数据点的相似性的度量是至关重要的。这就是曼梯·里帮助我们的地方。</p>
+			<p>我们已经在第三章<em class="italic">无监督图学习</em>和<a href="B16069_04_Final_JM_ePub.xhtml#_idTextAnchor064"> <em class="italic">第四章</em></a><em class="italic">有监督图学习</em>中看到的许多算法可能对学习有效的相似性度量有用。根据它们的使用方式，可以定义一个精确的分类法。在这里，我们提供了一个简单的图形相似性技术概述。更全面的列表可以在论文<em class="italic">深度图相似性学习:调查</em>(<a href="https://arxiv.org/pdf/1912.11615.pdf">https://arxiv.org/pdf/1912.11615.pdf</a>)中找到。它们基本上可以分为三大类，即使复杂的组合也是可以开发的。<strong class="bold">基于图形嵌入的方法</strong>使用嵌入技术来获得图形的嵌入表示，并利用这样的表示来学习<a id="_idIndexMarker616"/>相似性函数；<strong class="bold">基于图核的方法</strong>通过测量组成子结构的相似性来定义<a id="_idIndexMarker617"/>图之间的相似性；<strong class="bold">基于图形神经网络的方法</strong>使用<strong class="bold">图形神经网络</strong> ( <strong class="bold"> GNNs </strong>)来联合学习嵌入式表示和相似度函数。让我们更详细地看看所有这些。</p>
+			<h2 id="_idParaDest-87"><a id="_idTextAnchor094"/>基于图嵌入的方法</h2>
+			<p>这些技术寻求应用<a id="_idIndexMarker618"/>图嵌入技术来获得节点级或图级表示，并进一步使用这些表示进行相似性学习。例如，<em class="italic"> DeepWalk </em>和<em class="italic"> Node2Vec </em>可用于提取有意义的嵌入，然后可用于定义相似性函数或预测相似性得分。例如，在蒂歇尔等人(2015)中，<code>node2vec</code>用于编码节点嵌入。然后，从那些节点嵌入中获得的<strong class="bold">二维</strong> ( <strong class="bold"> 2D </strong>)直方图被传递给为图像设计的<a id="_idIndexMarker619"/>经典 2D <strong class="bold">卷积神经网络</strong> ( <strong class="bold"> CNN </strong>)架构。这样一个简单而强大的方法能够从许多基准数据集获得良好的结果。</p>
+			<h2 id="_idParaDest-88"><a id="_idTextAnchor095"/>基于图核的方法</h2>
+			<p><strong class="bold">基于图核的方法</strong>在捕捉图之间的相似性方面产生了很多<a id="_idIndexMarker620"/>的兴趣。这些方法将两个图之间的相似性计算为它们的一些子结构之间的相似性的函数。不同的图核基于它们使用的子结构而存在，这些子结构包括随机行走、最短路径和子图。例如，一种叫做<strong class="bold">深度图核</strong> ( <strong class="bold"> DGK </strong> ) (Yanardag 等人，2015)的方法<a id="_idIndexMarker621"/>将图分解成被<a id="_idIndexMarker622"/>视为“单词”的子结构。然后，<strong class="bold">自然语言处理</strong> ( <strong class="bold"> NLP </strong>)方法<a id="_idIndexMarker623"/>如<strong class="bold">连续词包</strong> ( <strong class="bold"> CBOW </strong>)和<strong class="bold">skip-gram</strong><a id="_idIndexMarker624"/>用于学习子结构的潜在表示。这样，基于子结构空间的相似性来定义两个图之间的核。</p>
+			<h2 id="_idParaDest-89"><a id="_idTextAnchor096"/> GNN 方法</h2>
+			<p>随着<a id="_idIndexMarker625"/>深度学习<strong class="bold">技术</strong> ( <strong class="bold"> DL </strong>)的出现，GNNs 已经成为学习图上表示的一个强有力的新工具。这种强大的模型可以很容易地适应各种任务，包括<a id="_idIndexMarker626"/>图形相似性学习。此外，相对于其他传统的图形嵌入方法，它们呈现出关键的优势。事实上，虽然后者通常在孤立的阶段学习表征，但在这种方法中，表征学习和目标学习任务是联合进行的。因此，GNN 深度模型可以更好地利用特定学习任务的图形特征。我们已经在<a href="B16069_03_Final_JM_ePub.xhtml#_idTextAnchor046"> <em class="italic">第三章</em> </a>、<em class="italic">无监督图学习</em>中看到了一个使用 GNNs 进行相似性学习的例子，其中训练了一个二分支网络来估计两个图之间的邻近距离。</p>
+			<h2 id="_idParaDest-90"><a id="_idTextAnchor097"/>应用</h2>
+			<p>图的相似性学习已经在许多领域取得了可喜的成果。在化学和生物信息学中可能会发现重要的应用，例如，寻找与查询化合物最相似的化合物，如下图左侧所示。在神经科学中，相似性学习方法已经开始被应用于测量多个受试者之间的大脑网络的相似性，从而允许对大脑疾病进行新的临床研究:</p>
+			<div><div><img src="img/B16069_05_04.jpg" alt="Figure 5.4 – Example of how graphs can be useful for representing various objects: (a) differences between two chemical compounds; (b) differences between two human poses"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.4–举例说明图表如何用于表示各种对象:(a)两种化合物之间的差异；(b)两种人体姿势之间的差异</p>
+			<p>图相似性学习也已经在计算机安全领域得到了探索，其中已经提出了新的方法来检测软件系统中的漏洞以及硬件安全<a id="_idIndexMarker628"/>问题。最近，已经观察到应用这种解决方案来解决计算机视觉问题的趋势。一旦将图像转换为图形数据的挑战性问题得到解决，就可以为视频序列中的人体动作识别和场景中的对象匹配以及其他领域提出有趣的解决方案(如<em class="italic">图 5.4 </em>右侧所示)。</p>
+			<h1 id="_idParaDest-91"><a id="_idTextAnchor098"/>总结</h1>
+			<p>在这一章中，我们学习了基于图的 ML 技术如何被用来解决许多不同的问题。</p>
+			<p>特别是，我们已经看到，相同的算法(或稍加修改的版本)可以用来解决明显不同的任务，如链接预测、社区检测和图形相似性学习。我们还看到，每个问题都有自己的特点，研究人员利用这些特点来设计更复杂的解决方案。</p>
+			<p>在下一章，我们将探索使用 ML 解决的现实生活中的问题。</p>
+		</div>
+	
+
+</body></html>

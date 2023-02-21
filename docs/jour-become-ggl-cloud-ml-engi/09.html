@@ -1,0 +1,411 @@
+<html><head/><body>
+
+
+
+
+
+
+
+
+
+<title>6 </title>
+
+
+
+
+
+
+
+<div><div><h1 class="chapter-number" id="_idParaDest-132"><a id="_idTextAnchor133"/> 6</h1>
+
+<h1 id="_idParaDest-133"><a id="_idTextAnchor134"/>学习 BQ/BQML、TensorFlow 和 Keras</h1>
+
+<p>在第一部分构建了 GCP 和 Python 基础，并在第二部分理解了 ML 概念和开发过程之后，我们现在进入本书的第三部分:<em class="italic">在 GCP 掌握 ML</em>。我们将从学习 Google 如何对结构化数据进行 ML 以及 Google ML 框架 TensorFlow 和 Keras 开始。在本章中，我们将讨论以下主题:</p>
+
+<ul>
+
+<li>GCP BQ</li>
+
+<li>GCP BQML</li>
+
+<li>张量流简介</li>
+
+<li>Keras 简介</li>
+
+</ul>
+
+<p>近年来，关系数据库已经在许多企业中广泛使用，因此结构化数据是许多企业可用的大数据的很大一部分。Google 的 BQ 和 BQML 在关系/结构化数据处理和分析中发挥了重要作用。</p>
+
+<h1 id="_idParaDest-134"><a id="_idTextAnchor135"/> GCP BQ</h1>
+
+<p>正如我们在<a href="B18333_01.xhtml#_idTextAnchor015"> <em class="italic">第一章</em> </a>、<em class="italic">领悟谷歌云服务</em>的<em class="italic"> Google Cloud BigQuery </em>部分提到的，BigQuery 是一个 Pb 级的云企业数据仓库。BigQuery 具有以下特性:</p>
+
+<ul>
+
+<li><strong class="bold">完全托管的 GCP 服务</strong>–您不需要关心底层的<a id="_idIndexMarker373"/>后端数据处理基础设施，包括计算、网络存储和其他资源。</li>
+
+<li><strong class="bold">无服务器</strong>–您在 BigQuery 中不管理任何服务器。所有的数据处理引擎都由 Google 负责，包括看不见的 BigQuery BI 引擎和 ML 引擎。</li>
+
+<li><strong class="bold">高度可扩展</strong>—<a id="_idIndexMarker375"/>它具有难以置信的弹性，可以快速无缝地扩展到任何规模。</li>
+
+<li><strong class="bold">性价比</strong>–您只需为您消耗的 BigQuery 资源付费<a id="_idIndexMarker376"/>。</li>
+
+</ul>
+
+<p>在谷歌云大数据处理管道中，BigQuery 是数据摄取、存储、分析和可视化的关键服务，如下所示:</p>
+
+<ul>
+
+<li>BigQuery 以三种方式从数据源获取数据:归档、批处理和实时流。有了存档的数据，您可以创建一个数据集，其中包含从数据源生成的表，这些数据源包括<a id="_idIndexMarker378"/>您的计算机、GCS、其他 GCP 数据库(如 Bigtable)和亚马逊<strong class="bold">简单存储服务</strong> ( <strong class="bold"> S3 </strong>)。通过批处理，您可以从云存储或本地存储将数据加载到 BigQuery 中，源数据可以是 Avro、CSV、ORC、JSON、Parquet 或存储在 GCS 中的 Firestore 导出格式。实时事件可以流入 BigQuery。一种常见的模式是将事件推送到 GCP 发布/订阅，使用数据流作业处理它们，并将输出接收到 BigQuery。</li>
+
+<li>BigQuery 使用可扩展的存储来存储<a id="_idIndexMarker379"/>数据，这是符合 ACID 且经济高效的。BigQuery 中存储和计算的分离提供了高性能和服务解耦。</li>
+
+<li>BigQuery <a id="_idIndexMarker380"/>通过内存中的商业智能引擎 BigQuery BI Engine 处理数据。因为 BigQuery 支持符合 ANSI SQL 2011 标准的标准 SQL，所以它为传统关系数据库和专业人员向 BQ 和 BQML 平台转型开辟了一条途径。使用 SQL，BigQuery 允许您运行查询，快速创建报告和仪表板，并将结果导出到 Google Sheets 或 GCS。</li>
+
+<li>有了 BigQuery，你<a id="_idIndexMarker381"/>可以用它集成的 Google Data Studio 工具可视化你的数据。利用 Data Studio 中的 BigQuery 连接器，您可以创建一个数据源、一个报告和图表来可视化 BigQuery 数据仓库中的数据。您可以利用其他工具，如 Google Datalab、Looker 和 Tableau。</li>
+
+</ul>
+
+<p>您可以从 GCP web 控制台启动 BigQuery 服务，或者从 Cloud Shell 启动命令行工具—<code>bq</code>是一个基于 Python 的命令行工具。还有很多客户端库可以编程访问 BigQuery，使用 C#、Go、Java、Node.js、PHP、Python、Ruby 等等。</p>
+
+<h1 id="_idParaDest-135">GCP BQML</h1>
+
+<p>BQML 使<a id="_idIndexMarker382"/>数据科学家能够使用标准的 SQL 查询直接在 BigQuery 中创建和训练 ML 模型。BQML 通过消除移动数据的需要和直接使用 BigQuery 数据集作为训练和测试数据集，提高了 ML 模型的开发速度。BQML 训练的模型可以直接导出到 Vertex AI(后面章节会讨论)或者其他云服务层。</p>
+
+<p>BQML 可以通过以下方式访问和使用:</p>
+
+<ul>
+
+<li>通过网络浏览器的 GCP 控制台</li>
+
+<li>通过 Google Cloud Shell 或 VM shell 的<code>bq</code>命令行工具</li>
+
+<li>BigQuery REST API</li>
+
+<li>外部工具，如 Jupyter 笔记本</li>
+
+</ul>
+
+<p>正如我们在<a href="B18333_03.xhtml#_idTextAnchor072"> <em class="italic">第三章</em> </a>、<em class="italic">准备 ML 开发</em>和<a href="B18333_04.xhtml#_idTextAnchor094"> <em class="italic">第四章</em> </a>、<em class="italic"> ML 模型开发和部署</em>中所讨论的，ML 过程包括数据准备、模型创建和训练、模型验证/评估以及模型部署/预测。让我们和 BQML 一起回顾一下这个过程。</p>
+
+<p><em class="italic">第一步</em>是数据<a id="_idIndexMarker384"/>准备。使用 BQML，您可以通过在 BigQuery 控制台中加载 CSV 文件并在数据导入 BigQuery 后直接运行 SQL 语句来准备训练数据集。</p>
+
+<p><em class="italic">第二步</em>是模型<a id="_idIndexMarker385"/>的创建和训练。BigQuery <a id="_idIndexMarker386"/> ML 支持以下 ML 模型:</p>
+
+<ul>
+
+<li><strong class="bold">线性回归</strong>–其中<a id="_idIndexMarker387"/>我们有许多数据点，我们基本上用一条线来拟合这些数据点，以最小化误差。</li>
+
+<li><strong class="bold">二元逻辑回归</strong>–其中<a id="_idIndexMarker388"/>我们有两个类，我们将每个示例分配给其中一个类。</li>
+
+<li><strong class="bold">多类逻辑回归</strong>–其中<a id="_idIndexMarker389"/>我们有两个以上的类，我们将每个例子分配给其中一个类。</li>
+
+<li><strong class="bold">K-均值聚类</strong>–其中<a id="_idIndexMarker390"/>我们有许多点，我们能够将它们分成不同的聚类。</li>
+
+<li>BQML 支持其他<a id="_idIndexMarker391"/>型号。更多详情请参考<a href="https://cloud.google.com/bigquery-ml/docs/introduction#supported_models_in">https://cloud . Google . com/big query-ml/docs/introduction # supported _ models _ in</a>。</li>
+
+</ul>
+
+<p>BQML 使用 BQML <code>create model</code>语句在一个步骤中实现了模型的创建和训练。使用我们在前面章节中讨论的<em class="italic">示例 2</em>,<em class="italic">表 6.1 </em>显示了贷款申请处理模型的两个示例，其中目标是二进制值、<em class="italic">批准或不批准</em>，特征包括申请日期、申请人信用评分、贷款金额、年收入、年龄等。</p>
+
+<div><div><img alt="Table 6.1 – Sample table structure&#10;&#10;" height="206" src="img/Figure_6.1.jpg" width="1100"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">表 6.1–样本表结构</p>
+
+<p>以下是使用示例表<code>t</code>中的数据集创建逻辑回归模型的示例代码:</p>
+
+<pre class="source-code">CREATE OR REPLACE MODEL m
+
+ OPTIONS(MODEL_TYPE='LOGISTIC_REG' DEL_TYPE='LOGISTIC_REG')
+
+AS 
+
+SELECT * FROM t
+
+WHERE t.date BETWEEN '20160801' AND '20190731'</pre>
+
+<p>当<a id="_idIndexMarker392"/>前面的代码运行时，BQML 将执行<a id="_idIndexMarker393"/>的<code>SELECT</code>语句来过滤从 2016 年 8 月 1 日到 2019 年 7 月 31 日的所有样本，然后将结果作为数据集输入来训练逻辑回归模型。</p>
+
+<p><em class="italic">第三步</em>是模型验证/评估，以确定模型有多好。使用 BQML，使用<code>ML.EVALUATE</code>函数进行模型评估，如下所示:</p>
+
+<pre class="source-code">SELECT *
+
+FROM
+
+ ML.EVALUATE(MODEL `m`, (
+
+SELECT * FROM t
+
+WHERE t.date BETWEEN '20190801' AND '20200731'))</pre>
+
+<p>当前面的代码运行时，BQML 将执行<code>SELECT</code>语句来过滤从 2019 年 8 月 1 日到 2020 年 7 月 31 日的所有样本，然后将结果作为数据集输入来评估分类器(逻辑回归模型)的性能。代码完成后，您可以查看结果。</p>
+
+<div><div><img alt="Table 6.2 – Sample BQML model evaluation result&#10;&#10;" height="151" src="img/Figure_6.2.jpg" width="1550"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">表 6.2–样本 BQML 模型评估结果</p>
+
+<p><em class="italic">表 6.2 </em>显示了我们的二元分类模型的样本指标，如下所示:</p>
+
+<ul>
+
+<li><code>Precision</code>–一项指标<a id="_idIndexMarker394"/>，用于识别预测正类时模型正确的频率。</li>
+
+<li><code>recall</code>–回答以下问题的指标<a id="_idIndexMarker395"/>:在所有可能的正面标签中，模型正确识别了多少？</li>
+
+<li><code>accuracy</code>–分类模型正确预测的<a id="_idIndexMarker396"/>部分。</li>
+
+<li><code>f1_score</code>–精度和召回的<a id="_idIndexMarker397"/>调和平均值。</li>
+
+<li><code>log_loss</code>–逻辑回归中使用的<a id="_idIndexMarker398"/>损失函数。</li>
+
+<li><code>roc_auc</code>–ROC 曲线下的<a id="_idIndexMarker399"/>区域。</li>
+
+</ul>
+
+<p>根据业务用例，我们可以回顾评估结果，测量模型性能，并找到业务指示。在模型评估过程中，我们可以使用<code>model create</code>语句调整模型参数。更多详情<a id="_idIndexMarker401"/>在<a href="https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-hyperparameter-tuning">https://cloud . Google . com/big query-ml/docs/reference/standard-SQL/bigqueryml-hyperparameter-tuning</a>。</p>
+
+<p>在<em class="italic">第四步</em>中，我们可以使用模型来预测生产结果。预测结果的示例查询如下:</p>
+
+<pre class="source-code">SELECT * 
+
+FROM 
+
+ML.PREDICT(MODEL `m`, (
+
+SELECT * FROM t
+
+WHERE t.date BETWEEN '20200801' AND '20210731'))</pre>
+
+<p>从前面四个步骤可以看出，BQML 在 BigQuery 云服务内完成了 ML 开发的全过程。对于结构化数据，BQML 对于我们的数据科学家训练和开发 ML 模型有很多优势。</p>
+
+<p>Google <a id="_idIndexMarker402"/> Cloud BQ 和 BQML 提供了结构化数据处理和学习的服务，在很多业务用例中都有广泛的应用。在接下来的部分，我们将介绍 Google 的 ML 框架，TensorFlow 和 Keras。</p>
+
+<h1 id="_idParaDest-136"><a id="_idTextAnchor137"/>张量流简介</h1>
+
+<p>TensorFlow 是<a id="_idIndexMarker403"/>一个面向 ML 的端到端开源平台，由 Google Brain 开发，是数据科学家使用最广泛的 ML 框架之一。</p>
+
+<p><strong class="bold"> TensorFlow 流量张量</strong>–tensor flow 的<a id="_idIndexMarker404"/>名称直接来源于其核心框架组件:张量。先来了解一下<strong class="bold">张量</strong>。</p>
+
+<h2 id="_idParaDest-137"><a id="_idTextAnchor138"/>理解张量的概念</h2>
+
+<p>张量是一个<a id="_idIndexMarker405"/>容器，它保存 N 维空间中各种大小和形状的数据。张量可以来源于输入数据或输入数据的计算。在 ML 中，我们称张量分量<strong class="bold">为特征</strong>。一个张量有三个主要特征来描述它自己，称为张量的<strong class="bold">秩</strong>、<strong class="bold">形状</strong>和<strong class="bold">类型</strong>如下:</p>
+
+<ul>
+
+<li>排名是<a id="_idIndexMarker406"/>方向的数量</li>
+
+<li>形状是<a id="_idIndexMarker407"/>每个方向的元素数量</li>
+
+<li>Dtype 是<a id="_idIndexMarker408"/>的数据类型</li>
+
+</ul>
+
+<p>张量的秩指定了张量测量的方向数。根据秩的数量，张量可以分类如下:</p>
+
+<ul>
+
+<li><strong class="bold">秩 0 </strong>:只有一个量值和 0 个方向的张量。</li>
+
+<li><strong class="bold">秩 1 </strong>:有一个方向和一个大小的张量。</li>
+
+<li><strong class="bold">秩 2 </strong>:有两个方向(行和列)的张量，每个元素都有一个量级。</li>
+
+<li><strong class="bold">秩 3 </strong>:有三个方向的张量。</li>
+
+<li><strong class="bold">秩 4 </strong>:有四个方向的张量。</li>
+
+<li><strong class="bold">高阶张量</strong>。</li>
+
+</ul>
+
+<p><em class="italic">图 6.3 </em>显示了使用基本几何对象的张量的<a id="_idIndexMarker409"/>等级，如下所示:</p>
+
+<ul>
+
+<li>秩为 0 的张量是有大小但没有方向的标量。</li>
+
+<li>秩 1 张量是具有一个方向和一个大小的向量。</li>
+
+<li>秩 2 张量是一个有两个方向的矩阵，它的元素有大小。</li>
+
+<li>秩 3 张量有三个方向——它的元素有二维大小。</li>
+
+<li>秩 4 张量是秩 3 传感器的列表。</li>
+
+</ul>
+
+<div><div><img alt="Figure 6.3 – Ranks of tensors&#10;&#10;" height="366" src="img/Figure_6.3.jpg" width="1358"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 6.3–张量的等级</p>
+
+<p>如果我们使用<code>list</code>数据类型，我们在<a href="B18333_02.xhtml#_idTextAnchor054"> <em class="italic">第 2 章</em> </a>、<em class="italic">掌握 Python 编程</em>中的<em class="italic"> Python 基本数据结构</em>一节中讨论过，来定义张量的秩，那么<em class="italic">每个张量的秩给我们一个来自前一个传感器秩</em>的对象列表，如下所示:</p>
+
+<ul>
+
+<li>秩 1 张量(向量)给了我们一个秩 0 张量(标量)的列表。</li>
+
+<li>秩 2 张量(矩阵)给了我们一列秩 1 张量(向量)。</li>
+
+<li>秩 3 张量(tensors)给了我们一个秩 2 张量(矩阵)的列表。</li>
+
+<li>4 阶张量给了我们一个 3 阶张量(tensor)的列表。</li>
+
+</ul>
+
+<p>让我们以一幅彩色图像为例来说明张量的秩的概念。对于彩色图像，我们可以用三个通道来描述每个像素:红色通道、绿色通道和蓝色通道。每个通道测量该颜色通道内像素的大小。红色通道是一个<em class="italic">秩 2 </em>张量，因为它使用一个矩阵来表示红色光的图像像素图(0 表示零光，255 表示最大光)，绿色通道和蓝色通道也是如此。结合这三个通道，我们有一个<em class="italic">秩 3 </em>张量。如果我们为彩色帧/图像的顺序添加一个时间轴以形成一个视频，那么它就成为一个<em class="italic">秩 4 </em>张量。如果我们对视频进行批处理，它将会产生一个<em class="italic">秩 4 </em>张量的列表——一个<em class="italic">秩 5 </em>张量。</p>
+
+<p>在我们检查了张量等级之后，让我们检查一下张量的形状和数据类型——形状是张量元素的数量，数据类型是元素的数据类型。对于秩为 0、1、2、3 和 n 的张量，我们有以下内容:</p>
+
+<ul>
+
+<li><em class="italic">秩 0 </em>张量(标量)的形状为空<em class="italic"> () </em>。</li>
+
+<li>例如，<em class="italic">秩为 1 的</em>张量的形状是<em class="italic"> (3) </em>，因为它有三个元素。</li>
+
+<li>例如，<em class="italic">秩为 2 </em>的张量的形状([3，5，7]，[4，6，8])是<em class="italic"> (2，3) </em>，因为它在一个方向上有两个元素(行)，在另一个方向上有三个元素(列)。</li>
+
+</ul>
+
+<p>现在我们对张量概念有了很好的理解，让我们看看名字的第二部分<em class="italic"> TensorFlow </em>，Flow，看看张量是如何流动的。</p>
+
+<h2 id="_idParaDest-138"><a id="_idTextAnchor139"/>张量如何流动</h2>
+
+<p>为了描述<strong class="bold"> TensorFlow </strong> ( <strong class="bold"> TF </strong>)框架中<a id="_idIndexMarker411"/>张量的流动，我们采用了一个带有节点和边的计算图，称为<strong class="bold">有向无环图</strong> ( <strong class="bold"> DAG </strong>)。有向<a id="_idIndexMarker412"/>意味着张量(数据)按照给定的顺序沿着图中的路径移动。非循环意味着移动路径不形成任何循环。因此，张量在无环 Dag 中流动以转换数据。</p>
+
+<p>使用 Dag，张量有一个节点和一条边。节点代表我们对张量/数据执行的操作，边代表张量/数据流动的路径。让我们使用 DAG 来描述一个示例算法。如图<em class="italic">图 6.4 </em>所示，我们输入两个数，相乘得到它们的乘积，相加得到它们的和。然后，我们将乘积除以总和，并打印结果。如果我们用变量替换常量值，并添加更复杂的数学运算，我们可以看到这个张量<a id="_idIndexMarker413"/>流动过程实际上是一个 ML 模型——我们可以改变变量或权重，从输入中产生预期的输出。</p>
+
+<div><div><img alt="Figure 6.4 – A sample algorithm with DAG &#10;&#10;" height="309" src="img/Figure_6.4.jpg" width="738"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 6.4–使用 DAG 的示例算法</p>
+
+<p>由于 Dag 是单向的，并且有执行顺序，所以当张量在图中流动时，我们可以并行化操作。比如，你要把 1000 个张量相加，再把同样的 1000 个张量相乘，可以通过<a id="_idIndexMarker414"/>利用许多 CPU、<strong class="bold">图形处理单元</strong> ( <strong class="bold"> GPU </strong>)、或者<strong class="bold">张量处理单元</strong> ( <strong class="bold"> TPU </strong>)核、甚至<strong class="bold">量子处理器</strong> ( <strong class="bold">曲</strong>)把运算分配到多个计算资源上并行进行。由于 DAG <a id="_idIndexMarker415"/>允许在不同的物理机器或平台上执行并行<a id="_idIndexMarker416"/>操作，我们可以进一步在分布式服务器群或边缘设备上并行执行这些操作。众所周知，云计算具有按需、全球分布、自动扩展和按需付费的特点，因此它为并行化张量流运算和训练 ML 模型提供了一个完美的环境。正如我们在前面的章节中也讨论过的，Google Colab 已经预装了 TensorFlow 包，你可以在 Colab 中练习 TensorFlow，免费使用 GPU 和 TPU。</p>
+
+<p>现在我们已经掌握了张量的概念，了解了张量在 TF 框架中是如何流动的，是时候介绍 Keras 了——一个高级 API，它是为我们设计的，可以非常容易地用 TensorFlow 开发 ML 模型。</p>
+
+<h1 id="_idParaDest-139"><a id="_idTextAnchor140"/>Keras 简介</h1>
+
+<p>Keras 是 Google 平台，是用 TensorFlow 构建 ML/DL 模型的高级接口。Keras 提供了一个高级 API，使用逻辑单元封装数据转换和操作<a id="_idIndexMarker417"/>，称为<strong class="bold">层</strong>，作为<a id="_idIndexMarker418"/>创建神经网络的构建模块。图层执行数据操作，如取平均值、计算最小值等。</p>
+
+<p>使用 Keras，ML 模型是从层构建的。在 ML 模型训练过程中，通过反向传播来调整层中的变量，以优化模型成本函数。在幕后，TensorFlow 和 Keras 在后台完成详细的数据操作，如线性代数和微积分计算。Keras 提供了以下两个 API:</p>
+
+<ul>
+
+<li><strong class="bold">顺序 API </strong>为<a id="_idIndexMarker419"/>提供了最简单的接口<a id="_idIndexMarker420"/>和最小的复杂度。使用顺序 API，我们可以一层一层地创建模型，从而构建一个 ML/DL 模型，作为一个简单的层列表。</li>
+
+<li><strong class="bold">功能 API </strong>比顺序 API<a id="_idIndexMarker422"/>更加灵活和强大，因为它允许分支或共享层。使用函数式 API，我们可以为 ML 模型提供多个输入和输出。</li>
+
+</ul>
+
+<p>以下代码片段显示了使用顺序 API 的 ML 模型培训:</p>
+
+<pre class="source-code"><strong class="bold">##Import the tensorflow libraries</strong>
+
+from tensorflow.keras.models import Sequential
+
+from tensorflow.keras.layers import Dense, Activation
+
+from tensorflow.keras.optimizers import Adam
+
+<strong class="bold">## Creating the model</strong>
+
+model = Sequential()
+
+model.add(Dense(4,activation='relu')) 
+
+model.add(Dense(4,activation='relu'))
+
+model.add(Dense(1))
+
+<strong class="bold">## defining the optimizer and loss function</strong>
+
+model.compile(optimizer='adam',loss='mse')
+
+<strong class="bold">## training the model</strong>
+
+model.fit(x=X_train,y=y_train,
+
+          validation_data=(X_test,y_test),
+
+          batch_size=128,epochs=400)</pre>
+
+<p>下面的<a id="_idIndexMarker423"/>片段显示了使用函数式 API 的 ML 模型训练:</p>
+
+<pre class="source-code"><strong class="bold">##Import the tensorflow libraries</strong>
+
+from tensorflow.keras.models import Model
+
+from tensorflow.keras.layers import Input,Dense
+
+<strong class="bold">## Creating the layers</strong>
+
+input_layer = Input(shape=(3,))
+
+Layer_1 = Dense(4, activation="relu")(input_layer)
+
+Layer_2 = Dense(4, activation="relu")(Layer_1)
+
+output_layer= Dense(1, activation="linear")(Layer_2)
+
+##Defining the model by specifying the input and output layers
+
+model = Model(inputs=input_layer, outputs=output_layer)
+
+<strong class="bold">## defining the optimizer and loss function</strong>
+
+model.compile(optimizer='adam',loss='mse')
+
+<strong class="bold">## training the model</strong>
+
+model.fit(X_train, y_train,epochs=400, batch_size=128,validation_data=(X_test,y_test))</pre>
+
+<p>正如我们所见，前面的两个 Keras APIs 各有利弊。顺序 API 简单明了，函数 API 可用于构建复杂的模型。</p>
+
+<h1 id="_idParaDest-140"><a id="_idTextAnchor141"/>总结</h1>
+
+<p>在本章中，我们讨论了 Google Cloud BQ 和 BQML，并介绍了一些使用 BQ/BQML 进行数据处理和 ML 模型开发的例子。我们还学习了 TensorFlow 和 Keras 的概念——Google 构建 ML 模型和项目的框架。</p>
+
+<p>在接下来的章节中，我们将关注 Vertex AI，它在 Google Cloud 中为 ML 提供了一个端到端的平台。</p>
+
+<h1 id="_idParaDest-141"><a id="_idTextAnchor142"/>延伸阅读</h1>
+
+<p>要进一步了解本章的学习内容，您可以参考以下链接:</p>
+
+<ul>
+
+<li><a href="https://cloud.google.com/bigquery/docs/">https://cloud.google.com/bigquery/docs/</a></li>
+
+<li><a href="https://cloud.google.com/bigquery-ml/docs/">https://cloud.google.com/bigquery-ml/docs/</a></li>
+
+<li><a href="https://www.tensorflow.org/">https://www.tensorflow.org/</a></li>
+
+<li><a href="https://keras.io/about/">https://keras.io/about/</a></li>
+
+</ul>
+
+</div>
+
+<div><div/>
+
+</div>
+
+</div>
+
+
+
+</body></html>

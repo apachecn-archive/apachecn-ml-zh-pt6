@@ -1,0 +1,951 @@
+<html><head/><body>
+
+
+
+
+
+
+
+
+
+		<title>B16383_07_ePub_RK</title>
+
+		
+
+	
+
+	
+
+		<div><h1 id="_idParaDest-181"><em class="italic"> <a id="_idTextAnchor143"/>第 7 章</em>:锚定和反事实解释</h1>
+
+			<p>在前面的章节中，我们已经学习了如何将模型决策归因于特征及其与最新的全局和局部模型解释方法的交互。然而，用这些方法来定义或解释决策界限并不总是容易的。能够从模型解释方法中推导出人类可以解释的规则不是很好吗？在这一章中，我们将涵盖一些人类可解释的、局部的、仅分类的模型解释方法。我们将首先学习如何使用名为<strong class="bold">锚</strong>的作用域规则来解释复杂模型，并使用类似于<em class="italic">的语句:如果满足 X 条件，那么 Y 就是结果</em>。然后，我们将探索遵循形式<em class="italic">的<strong class="bold">反事实</strong>解释，如果 Z 条件不满足，那么 Y 不是结果</em>。最后，我们将解释<strong class="bold">对比解释</strong>如何将锚点和反事实结合起来，比如说<em class="italic">如果 X 条件满足而 Z 条件不满足，Y 就是结果</em>。</p>
+
+			<p>这些是我们将在本章中涉及的主要话题:</p>
+
+			<ul>
+
+				<li>理解锚点解释</li>
+
+				<li>探索反事实的解释</li>
+
+				<li>与对比解释方法相比</li>
+
+			</ul>
+
+			<h1 id="_idParaDest-182"><a id="_idTextAnchor144"/>技术要求</h1>
+
+			<p>本章的示例使用了<code>mldatasets</code>、<code>pandas</code>、<code>numpy</code>、<code>sklearn</code>、<code>catboost</code>、<code>tensorflow</code>、<code>rulefit</code>、<code>matplotlib</code>、<code>seaborn</code>、<code>alibi</code>、<code>shap</code>和<code>witwidget</code>库。如何安装所有这些库的说明在<em class="italic">前言</em>中。本章代码位于此处:<a href="https://github.com/PacktPublishing/Interpretable-Machine-Learning-with-Python/tree/master/Chapter07">https://github . com/packt publishing/Interpretable-Machine-Learning-with-Python/tree/master/chapter 07</a>。</p>
+
+			<h1 id="_idParaDest-183"><a id="_idTextAnchor145"/>使命</h1>
+
+			<p>在美国，过去二十年来，私营公司和非营利组织一直在开发犯罪风险评估工具，其中大部分采用统计模型。由于许多州再也负担不起庞大的监狱人口，这些方法越来越受欢迎，引导法官和假释委员会通过监狱系统的每一步。然而，他们经常做比<em class="italic">更多的引导</em>的决定。他们让他们为司法系统的决策者，因为他们认为这是正确的。更糟糕的是，他们并不确切知道评估是如何进行的。风险通常用白盒模型来计算，但是在实践中，使用黑盒模型是因为它是专有的。预测性能也相对较低，9 种工具的 AUC 得分中位数在 0.57 到 0.74 之间。尽管如此，有效性和偏见很少检查，特别是由购买他们的刑事司法机构。</p>
+
+			<p>尽管传统的统计方法仍然是刑事司法模型的规范，但为了提高性能，一些研究人员已经提出利用更复杂的模型，如具有更大数据集的随机森林。在其他国家，利用大数据和机器学习，根据人们参与反社会甚至反人格行为的可能性对他们进行评分已经成为现实，这远远不是摘自<em class="italic">少数派报告</em>或<em class="italic">黑镜</em>的科幻小说。</p>
+
+			<p>随着越来越多的人工智能解决方案试图用我们的数据对我们做出改变生活的预测，必须正确评估公平性，并且必须充分讨论其所有的伦理和实践影响。<em class="italic">第一章</em>，<em class="italic">解释，可解释性，可说明性；为什么这些都很重要？</em>，涵盖了公平如何成为机器学习解释的一个不可或缺的概念。您可以在任何模型中评估公平性，但是当它涉及人类行为时，公平性尤其棘手。人类心理、神经和社会因素之间的动态关系极其复杂。在预测犯罪行为的背景下，它归结为哪些因素可能导致犯罪，因为在一个模型中包括任何其他东西都是不公平的，以及这些因素如何相互作用。</p>
+
+			<p>定量犯罪学家仍在争论犯罪的最佳预测指标及其根源。他们也在争论从这些因素开始指责罪犯是否道德。令人欣慰的是，种族、性别和国籍等人口统计特征不再用于犯罪风险评估。但这并不意味着这些方法不再有种族偏见。学者们认识到了这个问题，并提出了解决方案。</p>
+
+			<p>本章将在一个最广泛使用的风险评估工具中考察种族偏见。鉴于这一主题的敏感性和相关性，有必要提供一点关于犯罪风险评估工具以及机器学习和公平性如何与之相关的背景知识。我们不会进入更多的细节，但不能低估这种背景对于理解机器学习如何延续结构性不平等和不公平偏见的重要性。</p>
+
+			<p>现在，让我们向你介绍这一章的任务！</p>
+
+			<h2 id="_idParaDest-184">重复风险评估中的不公平偏见</h2>
+
+			<p>一名调查记者正在写一篇关于一名非裔美国被告在等待审判时如何被拘留的文章。一个名为<strong class="bold">的替代制裁罪犯管理档案工具</strong> ( <strong class="bold"> COMPAS </strong>)认为<a id="_idIndexMarker664"/>他有再犯的风险。<strong class="bold">累犯</strong>是指<a id="_idIndexMarker665"/>某人重新陷入犯罪行为。分数让法官相信他必须被审前拘留，以至于他们甚至没有考虑任何其他的论点或证词。他被关了好几个月，在审判中被判无罪。审判已经过去 5 年多了，他没有被指控任何罪行。你可以说对累犯的预测是假阳性。</p>
+
+			<p>记者联系了你，因为她想用数据科学来确定在这个特殊的案例中是否存在不公平的偏见。COMPAS 风险评估使用 137 个问题进行计算(<a href="https://www.documentcloud.org/documents/2702103-Sample-Risk-Assessment-COMPAS-CORE.html">https://www . document cloud . org/documents/2702103-Sample-Risk-Assessment-COMPAS-core . html</a>)。它包括如下问题:</p>
+
+			<ul>
+
+				<li>"根据安检人员的观察，这个人是被怀疑或承认的帮派成员吗？"</li>
+
+				<li>“在过去 12 个月中，您搬家的频率如何？”</li>
+
+				<li>"你经常有勉强够用的钱吗？"</li>
+
+				<li>心理测量学的李克特量表问题比如“我这辈子从没对事情感到难过过”，比如在<a href="B16383_04_ePub_RK.xhtml#_idTextAnchor081"> <em class="italic">第四章</em> </a>、<em class="italic">特征重要性和影响的基础</em>中看到的。</li>
+
+			</ul>
+
+			<p>尽管种族不是问题之一，但其中许多问题可能与种族有关。更不用说，在某些情况下，它们更多的是观点问题，而不是事实问题，因此容易产生偏见。</p>
+
+			<p>记者无法向您提供 137 个已回答的问题或 COMPAS 模型，因为这些数据是不公开的。然而，佛罗里达州同一个县的所有被告的人口统计和累犯数据都是。</p>
+
+			<h1 id="_idParaDest-185"><a id="_idTextAnchor147"/>方法</h1>
+
+			<p>您已决定执行以下操作:</p>
+
+			<ul>
+
+				<li><strong class="bold">训练代理模型</strong>:你没有<a id="_idIndexMarker667"/>原始特征或模型，但并没有失去一切，因为你有比较分数——标签。我们也有与问题相关的特征，我们可以将这些标签与模型联系起来。通过代理近似 COMPAS 模型，您可以评估其标签的不公平性。在本章中，我们将训练一个 CatBoost 模型和一个神经网络模型。</li>
+
+				<li><strong class="bold">锚点解释</strong>:使用这种方法将揭示为什么代理模型使用一系列称为锚点的规则做出特定的<a id="_idIndexMarker668"/>预测，锚点告诉你决策边界在哪里。界限与我们的任务有关，因为我们想知道为什么被告被错误地预测会再次认罪。这是原始模型的近似边界，但仍有一些真实性。</li>
+
+				<li><strong class="bold">反事实解释</strong>:与 anchors 相反的概念是关于理解为什么相似的<a id="_idIndexMarker669"/>数据点在决策边界的对面，这在讨论不公平的话题时特别值得注意。我们将使用一种不偏不倚的方法来寻找反事实，然后使用<strong class="bold">假设分析工具(WIT) </strong>来进一步探索反事实和公平性。</li>
+
+				<li><strong class="bold">对比解释方法</strong> ( <strong class="bold"> CEM </strong>):为了<a id="_idIndexMarker670"/>补充锚定和反事实方法，你将与 CEM 接触，这与两者都相似，并且可以提供对被告被视为具有高再犯风险的最低要求的理解<a id="_idIndexMarker671"/>，不仅阐明了公平性，而且阐明了可靠性，这是公平性可行所需要的。</li>
+
+			</ul>
+
+			<h1 id="_idParaDest-186"><a id="_idTextAnchor148"/>准备工作</h1>
+
+			<p>你可以在这里找到这个例子的代码:<a href="https://github.com/PacktPublishing/Interpretable-Machine-Learning-with-Python/blob/master/Chapter07/Recidivism_part1.ipynb">https://github . com/packt publishing/Interpretable-Machine-Learning-with-Python/blob/master/chapter 07/Recidivism _ part 1 . ipynb</a>。</p>
+
+			<h2 id="_idParaDest-187"><a id="_idTextAnchor149"/>加载库</h2>
+
+			<p>要运行这个例子，你需要安装下面的库:</p>
+
+			<ul>
+
+				<li><code>mldatasets</code>加载数据集</li>
+
+				<li><code>pandas</code>和<code>numpy</code>来操纵数据集</li>
+
+				<li><code>sklearn</code> (scikit-learn)、<code>catboost</code>和<code>tensorflow</code>分割数据并拟合模型</li>
+
+				<li><code>matplotlib</code>、<code>seaborn</code>、<code>alibi</code>、<code>shap</code>和<code>witwidget</code>可视化解释</li>
+
+			</ul>
+
+			<p>您应该首先加载它们:</p>
+
+			<pre>import math
+import mldatasets
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+from catboost import CatBoostClassifier
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+import matplotlib.pyplot as plt
+import seaborn as sns
+from alibi.utils.mapping import ohe_to_ord, ord_to_ohe
+from alibi.explainers import AnchorTabular
+from alibi.explainers import CEM
+from alibi.explainers import CounterFactualProto
+import shap
+import witwidget
+from witwidget.notebook.visualization import WitWidget,\
+                 WitConfigBuilder</pre>
+
+			<p>让我们用<code>print(tf.__version__)</code>检查一下 TensorFlow 是否加载了正确的版本。应该是<a id="_idIndexMarker673"/>2.0 以上。我们还应该禁用急切执行，并验证它与该命令一起工作。输出应该是<code>False</code>:</p>
+
+			<pre>tf.compat.v1.<strong class="bold">disable_eager_execution</strong>()
+print('Eager execution enabled:', tf.<strong class="bold">executing_eagerly</strong>()) </pre>
+
+			<h2 id="_idParaDest-188"><a id="_idTextAnchor150"/>了解和准备数据</h2>
+
+			<p>我们像这样将数据<a id="_idIndexMarker674"/>加载到一个我们称之为<code>recidivism_df</code>的数据帧中:</p>
+
+			<pre>recidivism_df = mldatasets.<strong class="bold">load</strong>("recidivism-risk", prepare=True) </pre>
+
+			<p>应该有将近 15，000 条记录和 23 列。我们可以验证<code>info()</code>的情况:</p>
+
+			<pre>recidivism_df.<strong class="bold">info</strong>()</pre>
+
+			<p>下面的输出是正确的。所有特征都是没有缺失值的数字，分类特征已经为我们进行了一次性编码:</p>
+
+			<pre>&lt;class 'pandas.core.frame.DataFrame'&gt;
+Int64Index: 14788 entries, 0 to 18315
+Data columns (total 23 columns):
+ #   Column                 Non-Null Count  Dtype
+---  ------                 --------------  -----
+ 0   age                    14788 non-null  int8 
+ 1   juv_fel_count          14788 non-null  int8 
+ 2   juv_misd_count         14788 non-null  int8 
+ 3   juv_other_count        14788 non-null  int64
+ 4   priors_count           14788 non-null  int8 
+ 5   is_recid               14788 non-null  int8 
+ 6   sex_Female             14788 non-null  uint8
+ 7   sex_Male               14788 non-null  uint8
+ 8   race_African-American  14788 non-null  uint8
+ 9   race_Asian             14788 non-null  uint8
+ 10  race_Caucasian         14788 non-null  uint8
+ 11  race_Hispanic          14788 non-null  uint8
+ 12  race_Native American   14788 non-null  uint8
+ 13  race_Other             14788 non-null  uint8
+ 14  c_charge_degree_(F1)   14788 non-null  uint8
+ 15  c_charge_degree_(F2)   14788 non-null  uint8
+ 16  c_charge_degree_(F3)   14788 non-null  uint8
+ 17  c_charge_degree_(F7)   14788 non-null  uint8
+ 18  c_charge_degree_(M1)   14788 non-null  uint8
+ 19  c_charge_degree_(M2)   14788 non-null  uint8
+ 20  c_charge_degree_(MO3)  14788 non-null  uint8
+ 21  c_charge_degree_Other  14788 non-null  uint8
+ 22  compas_score           14788 non-null  int64
+dtypes: int64(2), int8(5), uint8(16)
+memory usage: 649.9 KB</pre>
+
+			<h3 id="_idParaDest-189">数据字典</h3>
+
+			<p>只有 9 个<a id="_idIndexMarker676"/>特征，但由于分类编码，它们变成了 22 列:</p>
+
+			<ul>
+
+				<li><code>age</code>:连续，被告年龄(8 至 9 岁之间)。</li>
+
+				<li><code>juv_fel_count</code>:连续，少年重罪犯数量(0-2 之间)。</li>
+
+				<li><code>juv_misd_count</code>:连续，少年轻罪次数(0-1 之间)。</li>
+
+				<li><code>juv_other_count</code>:连续的，既不是重罪也不是轻罪的少年定罪数(0 到 1 之间)。</li>
+
+				<li><code>priors_count</code>:连续，之前犯罪的次数(0 到 13 之间)。</li>
+
+				<li><code>is_recid</code>:二进制，被告是否在 2 年内再犯(1 表示是，0 表示否)？</li>
+
+				<li><code>sex</code>:绝对的，被告的性别。</li>
+
+				<li><code>race</code>:绝对的，被告的种族。</li>
+
+				<li>绝对的，被告目前被指控的程度。美国将刑事犯罪按照从最严重到最轻微的顺序分为重罪、轻罪和违法。这些罪行以等级的形式被细分，从第一级(最严重的罪行)到第三级或第五级(最不严重的罪行)。然而，尽管这是联邦犯罪的标准，但它是在州一级根据州法律量身定制的。对于重罪，佛罗里达州(<a href="http://www.dc.state.fl.us/pub/scoresheet/cpc_manual.pdf">http://www.dc.state.fl.us/pub/scoresheet/cpc_manual.pdf</a>)有一个等级系统，决定犯罪的严重程度，从 10(最严重)到 1(最轻微)。这一特征的类别对于重罪以<em class="italic"> F </em>为前缀，对于轻罪以<em class="italic"> M </em>为前缀。它们后面是一个数字，这是重罪的一个级别和轻罪的一个学位。</li>
+
+				<li><code>compas_score</code>:二元制，COMPAS 将被告分为“低”、“中”或“高”风险。在实践中，“中”常常被决策者视为“高”，因此该特征被转换为二进制以反映这种行为:1:高/中风险，0:低风险。</li>
+
+			</ul>
+
+			<h3 id="_idParaDest-190">用混淆矩阵检验预测偏差</h3>
+
+			<p>数据集中有两个二元要素。第一个是<a id="_idIndexMarker678"/>COMPAS 做的再犯罪风险预测(<code>compas_score</code>)。第二个(<code>is_recid</code>)是<em class="italic">地面真相</em>，因为这是被告被捕后两年内发生的事情。就像你对任何<a id="_idIndexMarker679"/>模型的训练标签进行预测一样，你可以用这两个特征构建混淆矩阵。scikit-learn 可以用<code>confusion_matrix</code>函数(<code>cf_matrix</code>)生成一个，然后我们可以用它创建一个 Seaborn <code>heatmap</code>。而不是<a id="_idIndexMarker680"/>标绘<code>cf_matrix/np.sum(cf_matrix)</code>的数字)。<code>heatmap</code>的<a id="_idIndexMarker683"/>其他参数仅协助格式化:</p>
+
+			<pre>cf_matrix = metrics.<strong class="bold">confusion_matrix</strong>(recidivism_df.<strong class="bold">is_recid</strong>,\
+                               recidivism_df.<strong class="bold">compas_score</strong>)
+sns.<strong class="bold">heatmap</strong>(cf_matrix/np.sum(cf_matrix), annot=True,
+   fmt='.2%', cmap='Blues', annot_kws={'size':16}) </pre>
+
+			<p>上述代码输出<em class="italic">图 7.1 </em>。右上角是 FPs，占所有预测的近五分之一，加上左下角的 fn，它们占了三分之二以上:</p>
+
+			<div><div><img src="img/B16383_07_01.jpg" alt="Figure 7.1 – Confusion matrix between the predicted risk of recidivism (compas_score) and the ground truth (is_recid)&#10;&#10;"/>
+
+				</div>
+
+			</div>
+
+			<p class="figure-caption">图 7.1–预测的累犯风险(compas_score)和基本事实(is_recid)之间的混淆矩阵</p>
+
+			<p><em class="italic">图 7.1 </em>告诉我们，COMPAS 模型的预测性能并不是很好，尤其是如果我们<a id="_idIndexMarker684"/>假设刑事司法决策者在表面上接受中等或高风险评估。它还告诉我们，FP 和 FNs 以相似的速率发生。然而，简单的可视化，如混淆矩阵模糊了人口亚组之间的预测差异。我们可以很快比较两个分组之间的差异，这两个分组在历史上受到美国刑事司法系统的不同对待。为此，我们首先将我们的数据帧细分为两个数据帧:一个用于白种人(<code>recidivism_c_df</code>)，另一个用于非裔美国人(<code>recidivism_aa_df</code>)。然后，我们可以为每个数据帧生成混淆矩阵，并用以下代码并排绘制它们:</p>
+
+			<pre>recidivism_c_df =\
+        recidivism_df[recidivism_df['race_Caucasian'] == 1] recidivism_aa_df =\
+        recidivism_df[recidivism_df['race_African-American'] == 1]
+_ = mldatasets.\
+      <strong class="bold">compare_confusion_matrices</strong>(recidivism_c_df.<strong class="bold">is_recid</strong>,\ 
+                                 recidivism_c_df.<strong class="bold">compas_score</strong>,\
+                                 recidivism_aa_df.<strong class="bold">is_recid</strong>,\
+                                 recidivism_aa_df.<strong class="bold">compas_score</strong>,\
+                              'Caucasian', 'African-American',\
+                                 <strong class="bold">compare_fpr=True</strong>)</pre>
+
+			<p>前面的代码片段生成了<em class="italic">图 7.2 </em>。一眼就能看出来，这就像是白种人的困惑矩阵被翻转了 90 度，形成了非裔美国人<a id="_idIndexMarker686"/>的困惑矩阵，即便如此，依然不那么不公平。密切注意 FPs 和 TNs 的区别。作为一名白人被告，结果是 FP 的可能性比 TN 的可能性大一半以上，但作为一名非裔美国人，可能性高几个百分点。换句话说，一个没有再犯的黑人被告被预测有一半以上的几率会再犯:</p>
+
+			<div><div><img src="img/B16383_07_02.jpg" alt="Figure 7.2 – Comparison of the confusion matrices for the predicted risk of recidivism (compas_score) and the ground truth (is_recid) between African Americans and Caucasians in the dataset&#10;&#10;"/>
+
+				</div>
+
+			</div>
+
+			<p class="figure-caption">图 7.2-数据集中非裔美国人和白种人之间预测再犯风险(compas_score)和基本事实(is_recid)的混淆矩阵比较</p>
+
+			<p>我们可以测量<strong class="bold">假阳性率</strong> ( <strong class="bold"> FPR </strong>)，也就是这两个测量值的比值(<img src="img/Formula_07_002.png" alt=""/>)，而不是通过<a id="_idIndexMarker688"/>看图来目测。然后，我们可以比较两组的<a id="_idIndexMarker689"/>FPR，并在它们之间划分<a id="_idIndexMarker690"/>以检查相对差异。生育率之间的比率越高，不公平性就越大，因为这意味着一个群体被错误分类，从而更经常地再次分裂。</p>
+
+			<h3 id="_idParaDest-191">数据准备</h3>
+
+			<p>在我们继续建模和解释之前，我们还有最后一步。</p>
+
+			<p>由于<code>prepare=True</code>用于数据加载，我们现在所做的<a id="_idIndexMarker691"/>就是训练/测试分割数据。像往常一样，设置你的随机状态是至关重要的，这样你所有的发现都是可重复的。然后，我们将把我们的<code>y</code>设置为我们的目标变量(<code>compas_score</code>)，并将<code>X</code>设置为除了<code>is_recid</code>之外的所有其他特征，因为这是基本事实。最后，我们将<code>y</code>和<code>X</code>分成<a id="_idIndexMarker692"/>个训练和测试数据集，就像之前一样:</p>
+
+			<pre>rand = 9
+np.random.seed(rand)
+tf.random.set_seed(rand) 
+y = recidivism_df['compas_score']
+X = recidivism_df.<strong class="bold">drop</strong>(['compas_score', 'is_recid'], axis=1).copy()
+X_train, X_test, y_train, y_test = <strong class="bold">train_test_split</strong>(X, y,\
+                                   test_size=0.2, <strong class="bold">random_state</strong>=rand)</pre>
+
+			<p>现在，让我们开始吧！</p>
+
+			<h3 id="_idParaDest-192">建模</h3>
+
+			<p>现在，让我们快速训练几个我们将在本章中用到的<a id="_idIndexMarker693"/>模型。</p>
+
+			<p><strong class="bold">代理模型</strong>是一种<a id="_idIndexMarker694"/>模拟黑盒模型输出的手段，就像<strong class="bold">全局代理模型</strong>一样，我们在<a href="B16383_05_ePub_RK.xhtml#_idTextAnchor106"> <em class="italic">第 5 章</em> </a> <em class="italic">、全局模型不可知解释方法</em>中讨论过。那么，它们是一回事吗？在机器学习中，代理和代理是经常互换使用的术语。然而，从语义上看，代孕与替代有关，而代理更多地与表示有关。所以，我们调用这些代理模型来区分我们没有确切的训练数据。因此，您只代表原始模型，因为您无法替换它。出于同样的原因，与更简单的模型最适合的代理解释不同，代理最适合于复杂的模型，可以弥补复杂训练数据的差异。</p>
+
+			<p>首先，一个<strong class="bold"> CatBoost </strong>分类器。对于那些不熟悉 CatBoost 的人来说，这是一种高效的增强集成树方法。它类似于<strong class="bold"> LightGBM </strong>，只不过它使用了一种叫做<strong class="bold">最小方差采样</strong> ( <strong class="bold"> MVS </strong>)的<a id="_idIndexMarker696"/>新技术，而不是<strong class="bold">基于梯度的单边采样</strong> ( <strong class="bold">高斯</strong>)。与 LightGBM 不同，它以平衡的方式生长<a id="_idIndexMarker697"/>树。它被称为 CatBoost，因为它可以自动对分类特征进行编码，并且它特别擅长处理过度拟合，对分类特征和类不平衡进行无偏处理。我们不会涉及太多的细节，但出于这些原因，我们选择了它作为本次练习的主题。</p>
+
+			<p>作为一个基于树的模型类，你可以为<code>CatBoostClassifier</code>指定一个最大的<code>depth</code>值。我们正在设置一个相对较高的<code>learning_rate</code>值和一个较低的<code>iterations</code>值(默认为<img src="img/Formula_07_003.png" alt=""/>)。一旦我们在模型上使用了<code>fit</code>，我们就可以用<code>evaluate_class_mdl</code>来评估结果:</p>
+
+			<pre>cb_mdl = <strong class="bold">CatBoostClassifier</strong>(iterations=500, learning_rate=0.5,\  
+                            depth=8)
+fitted_cb_mdl = cb_mdl.<strong class="bold">fit</strong>(X_train, y_train, verbose=False) y_train_cb_pred, y_test_cb_prob, y_test_cb_pred =\
+            mldatasets.<strong class="bold">evaluate_class_mdl</strong>(fitted_cb_mdl,\
+ X_train, X_test, y_train, y_test)</pre>
+
+			<p>您可以在<em class="italic">图 7.3 </em>中看到我们的 CatBoost 模型的<code>evaluate_class_mdl</code>输出:</p>
+
+			<div><div><img src="img/B16383_07_03.jpg" alt="Figure 7.3 – Predictive performance of our CatBoost model&#10;&#10;"/>
+
+				</div>
+
+			</div>
+
+			<p class="figure-caption">图 7.3–我们的 CatBoost 模型的预测性能</p>
+
+			<p>从公平的角度来看，我们更关心 FPs 而不是 FNs，因为把一个无辜的人关进监狱比把一个有罪的人留在街上更不公平。因此，我们应该立志拥有比<em class="italic">召回</em>更高的<em class="italic">精度</em>。<em class="italic">图 7.3 </em>证实了这一点，以及健康的 ROC 曲线、ROC-AUC 和 MCC。</p>
+
+			<p>接下来，我们来拟合一个<em class="italic">前馈神经网络</em>。首先我们创建它(<code>keras.Sequential</code>)有一个隐层(<code>layers.Dense</code>)有七个节点，输出层有<code>sigmoid</code>，因为这是一个<a id="_idIndexMarker700"/>二分类问题。然后，我们在模型上使用<code>compile</code>和<code>fit</code>。最后，我们使用<code>evaluate_class_mdl</code>来评估预测:</p>
+
+			<pre>fitted_nn_mdl = keras.<strong class="bold">Sequential</strong>([
+ tf.keras.<strong class="bold">Input</strong>(shape=[len(X_train.keys())]),
+ layers.<strong class="bold">Dense</strong>(7, activation='relu'),
+ layers.<strong class="bold">Dense</strong>(1, activation='sigmoid')
+])
+fitted_nn_mdl.<strong class="bold">compile</strong>(loss='mean_squared_error', optimizer='adam')
+nn_history = fitted_nn_mdl.<strong class="bold">fit</strong>(X_train.values, y_train.values,\  
+          epochs=12, batch_size=32, validation_split=0.2, verbose=0) y_train_nn_pred, y_test_nn_prob, y_test_nn_pred =\
+             mldatasets.<strong class="bold">evaluate_class_mdl</strong>(fitted_nn_mdl,\
+X_train, X_test, y_train, y_test) </pre>
+
+			<p><em class="italic">图 7.4 </em>描述了前面代码的输出:</p>
+
+			<div><div><img src="img/B16383_07_04.jpg" alt="Figure 7.4 – Predictive performance of our neural network model&#10;&#10;"/>
+
+				</div>
+
+			</div>
+
+			<p class="figure-caption">图 7.4–我们的神经网络模型的预测性能</p>
+
+			<p>两个模型的预测性能<a id="_idIndexMarker701"/>并不差，考虑到这些是<em class="italic">代理模型</em>只意味着用不同但相关的数据来近似真实的事情。</p>
+
+			<h3 id="_idParaDest-193">了解我们的“兴趣实例”</h3>
+
+			<p>这位记者带着一个案例联系到了你:一名被错误预测会再次入狱的非裔美国被告。这个<a id="_idIndexMarker702"/>案例是# <code>5231</code>并且是您感兴趣的主要<em class="italic">实例</em>。由于我们关注的是种族偏见，我们希望将它与不同种族的类似案例进行比较。为此，我们找到了病例<code>#10127</code>(白种人)和<code>#2726</code>(西班牙人)。</p>
+
+			<p>我们可以看一下这三者的数据。因为我们将在本章中不断引用这些实例，所以让我们先保存非裔美国人(<code>idx1</code>)、西班牙裔(<code>idx2</code>)和白种人(<code>idx3</code>)案例的索引。然后，我们可以根据这些索引对测试数据集进行子集划分。由于我们必须确保我们的预测匹配，我们将把这个子集化的测试数据集连接到真实标签(<code>y_test</code>)和 CatBoost 预测(<code>y_test_cb_pred</code>):</p>
+
+			<pre>idx1 = 5231
+idx2 = 2726
+idx3 = 10127
+eval_idxs = X_test.index.<strong class="bold">isin</strong>([idx1, idx2, idx3])
+X_test_evals = X_test[eval_idxs]
+eval_compare_df = pd.<strong class="bold">concat</strong>([
+   pd.DataFrame({'y':y_test[eval_idxs]},
+       index=[idx3, idx2, idx1]),
+   pd.DataFrame({'y_pred':y_test_cb_pred[eval_idxs]},
+       index=[idx3, idx2, idx1]),
+   X_test_evals], axis=1).transpose()
+eval_compare_df</pre>
+
+			<p>前面的代码产生了图 7.5 中的数据帧。您可以看出预测与真实标签相匹配，我们感兴趣的主要<em class="italic">实例</em>是唯一一个被预测为中等或高再犯风险的实例。除了种族之外，唯一的不同是与<code>c_charge_degree</code>和一个小的年龄差异:</p>
+
+			<div><div><img src="img/B16383_07_05.jpg" alt="Figure 7.5 – Observations #5231, #10127, and #2726 side by side with feature differences highlighted&#10;&#10;"/>
+
+				</div>
+
+			</div>
+
+			<p class="figure-caption">图 7.5–并排观察#5231、#10127 和#2726，突出显示特征差异</p>
+
+			<p>在本章中，我们<a id="_idIndexMarker703"/>将密切关注这些差异，看看它们是否在产生预测差异中发挥了重要作用。我们将介绍的所有方法将完成决定或改变代理模型的决策的画面，并且，潜在地，通过扩展完成 COMPAS 模型。现在我们已经完成了设置，我们将继续使用解释方法。</p>
+
+			<h1 id="_idParaDest-194"><a id="_idTextAnchor151"/>理解锚点解释</h1>
+
+			<p>在<a href="B16383_06_ePub_RK.xhtml#_idTextAnchor125"> <em class="italic">第 6 章</em> </a>、<em class="italic">局部模型不可知解释方法</em>中，我们了解到<strong class="bold"> LIME </strong>在感兴趣的<em class="italic">实例</em>的<strong class="bold">邻域</strong>中，对数据集的<strong class="bold">扰动</strong>版本训练一个局部<a id="_idIndexMarker704"/>代理模型(特别是一个<strong class="bold">加权稀疏线性模型</strong>)。结果是，您近似了一个<strong class="bold">局部决策边界</strong>，它可以帮助您解释模型对它的预测。</p>
+
+			<p>像 LIME 一样，<strong class="bold">锚</strong>也是<a id="_idIndexMarker705"/>从模型不可知的基于扰动的策略中导出的。然而，它们不是关于<em class="italic">决策边界</em>，而是关于<strong class="bold">决策区域</strong>。锚点也被称为<strong class="bold">范围规则</strong>，因为<a id="_idIndexMarker706"/>它们列出了一些<strong class="bold">决策规则</strong>，这些规则适用于您的实例及其<em class="italic">扰动的</em>邻域。这个邻域也被称为扰动空间。一个重要的细节是<a id="_idIndexMarker708"/>规则在多大程度上适用于它，即所谓的<strong class="bold">精度</strong>。</p>
+
+			<p>想象一下你的实例周围的邻居。你会期望越接近你的实例，这些点就有越多相似的预测，对吗？所以，如果你有定义这些预测的决策规则，你的实例周围的区域越小，你的规则就越精确。这个<a id="_idIndexMarker709"/>概念叫做<strong class="bold">覆盖</strong>，它是你的<em class="italic">扰动空间</em>产生特定<em class="italic">精度</em>的百分比。</p>
+
+			<p>与 LIME 不同，锚点不适合用局部代理模型来解释您选择的实例的预测。相反，他们使用一种叫做<strong class="bold">库尔贝克-莱布勒散度置信下限和置信上限</strong> ( <strong class="bold"> KL-LUCB </strong>)的算法来探索可能的候选决策规则<a id="_idIndexMarker710"/>，这种算法是从一种<strong class="bold">多臂土匪</strong> ( <strong class="bold"> MAB </strong>)算法衍生而来的<a id="_idIndexMarker711"/>。</p>
+
+			<p>单克隆抗体是一系列<em class="italic">强化学习算法</em>，当你探索所有未知可能性的资源有限时，可以最大化回报。该算法源于对赌场老虎机玩家如何通过玩多台机器来最大化其回报的理解。之所以叫多臂土匪，是因为吃角子老虎机玩家被称为独臂土匪。然而，玩家不知道哪台机器会产生最高的回报，不能一次尝试所有的机器，而且资金有限。诀窍是学会如何平衡探索(尝试未知的老虎机)和开发(使用那些你已经有理由更喜欢的)。</p>
+
+			<p>在 anchors 案例中，每个老虎机都是一个潜在的决策规则，回报是它产生的精度。KL-LUCB 算法使用基于<a id="_idIndexMarker712"/>分布之间的<strong class="bold"> Kullback-Leibler 散度</strong>的置信区域来依次高效地找到具有最高精度的决策规则。</p>
+
+			<h2 id="_idParaDest-195"><a id="_idTextAnchor152"/>锚定的准备和带有不在场证明的反事实解释</h2>
+
+			<p>需要执行几个小步骤<a id="_idIndexMarker713"/>来帮助<code>alibi</code>库产生人类友好的解释。第一个与预测有关，因为<a id="_idIndexMarker714"/>模型可能输出一个<img src="img/Formula_07_004.png" alt=""/>或<img src="img/Formula_07_005.png" alt=""/>，但是通过它的名字更容易理解预测。为了帮助我们，我们需要一个类名列表，其中<img src="img/Formula_07_006.png" alt=""/>位置匹配我们的负类名，而<img src="img/Formula_07_007.png" alt=""/>位置匹配正类名:</p>
+
+			<pre>class_names = ['Low Risk', 'Medium/High Risk']</pre>
+
+			<p>接下来，让我们用我们感兴趣的主<em class="italic">实例</em>创建一个<code>numpy</code>数组，并将其打印出来。请注意，一维数组需要扩展(<code>np.expand_dims</code>)，以便被<code>alibi</code>理解:</p>
+
+			<pre>X_test_eval = np.<strong class="bold">expand_dims</strong>(X_test.values[X_test.\
+           index.<strong class="bold">get_loc</strong>(idx1)], axis=0)
+print(X_test_eval)</pre>
+
+			<p>前面的代码输出一个包含 21 个特征的数组，其中 12 个<a id="_idIndexMarker715"/>是<strong class="bold">一键编码</strong> ( <strong class="bold"> OHE </strong>)的结果:</p>
+
+			<pre>[[23  0  0  0  2  0  1  1  0  0  0  0  0  0  0  0  1  0  0   0  0]]</pre>
+
+			<p>当你有 OHE 分类的时候，一个问题出现了。对于机器学习模型和解释者来说，每个 OHE 特征都是相互独立的。尽管如此，对于解释结果的人来说，它们作为其原始特征的类别聚集在一起。</p>
+
+			<p><code>alibi</code>库有几个实用函数来处理这个问题，比如<code>ohe_to_ord</code>，它接受一个热编码的实例，并把它放入序号格式中。为了使用这个函数，我们首先定义一个字典(<code>cat_vars_ohe</code>)，它告诉<code>alibi</code>分类变量在我们的特征中的位置，以及每个分类变量有多少个类别。例如，在我们的数据中，性别从第 5 个索引开始，有两个类别，这就是为什么我们的<code>cat_vars_ohe</code>字典以<code>5: 2</code>开始。一旦您有了这个字典，<code>ohe_to_ord</code>就可以获取您的实例(<code>X_test_eval</code>)并以顺序格式输出，其中每个分类变量占用一个特性。这个效用函数将被证明对 Alibi 的反事实解释有用，解释者将需要这个字典来将分类特征映射在一起:</p>
+
+			<pre>cat_vars_ohe = {5: 2, 7: 6, 13: 8}
+print(ohe_to_ord(X_test_eval, cat_vars_ohe)[0])</pre>
+
+			<p>上述代码输出以下数组:</p>
+
+			<pre>[[23  0  0  0  2  1  0  3]]</pre>
+
+			<p>因为当它是顺序格式时，Alibi 将<a id="_idIndexMarker716"/>需要一个字典，<a id="_idIndexMarker717"/>提供每个类别的名称和一个特性名称列表:</p>
+
+			<pre>category_map = {
+ 5: ['Female', 'Male'],\
+ 6: ['African-American', 'Asian', 'Caucasian',\
+    'Hispanic', 'Native American', 'Other'],\
+ 7: ['Felony 1st Degree', 'Felony 2nd Degree',\
+    'Felony 3rd Degree', 'Felony 7th Degree',\
+    'Misdemeanor 1st Degree', 'Misdemeanor 2nd Degree',\
+    'Misdemeanor 3rd Degree', 'Other Charge Degree'] }
+feature_names = ['age', 'juv_fel_count', 'juv_misd_count',\
+              'juv_other_count', 'priors_count',\
+              'sex', 'race', 'c_charge_degree']</pre>
+
+			<p>然而，Alibi 的锚定解释使用提供给我们的模型的数据。我们正在使用 OHE 数据，所以我们需要一个该格式的类别地图。当然，OHE 特征都是二进制的，所以它们每个只有两个“类别”:</p>
+
+			<pre>category_map_ohe = {5: ['Not Female', 'Female'],\ 
+  6: ['Not Male', 'Male'],\
+  7:['Not African American', 'African American'],\
+  8:['Not Asian', 'Asian'], 9:['Not Caucasian', 'Caucasian'],\
+  10:['Not Hispanic', 'Hispanic'],\
+  11:['Not Native American', 'Native American'],\
+  12:['Not Other Race', 'Other Race'],\
+  13:['Not Felony 1st Level', 'Felony 1st Level'],\
+  14:['Not Felony 2nd Level', 'Felony 2nd Level'],\
+  15:['Not Felony 3rd Level', 'Felony 3rd Level'],\
+  16:['Not Felony 7th Level', 'Felony 7th Level'],\
+  17:['Not Misdemeanor 1st Deg', 'Misdemeanor 1st Deg'],\
+  18:['Not Misdemeanor 2nd Deg', 'Misdemeanor 2nd Deg'],\
+  19:['Not Misdemeanor 3rd Deg', 'Misdemeanor 3rd Deg'],\
+  20:['Not Other Charge Degree', 'Other Charge Degree']}</pre>
+
+			<h2 id="_idParaDest-196"><a id="_idTextAnchor153"/>主播解说的地方解说</h2>
+
+			<p>所有 Alibi 解释器都需要一个<code><a id="_idIndexMarker718"/></code> <code>predict</code>函数，所以我们为 CatBoost 模型创建了一个名为<code>predict_cb_fn</code>的<code>lambda</code>函数。请<a id="_idIndexMarker719"/>注意，我们将<code>predict_proba</code>用于分类器的概率。然后，为了初始化<code>AnchorTabular</code>，我们还为它提供了我们的特征的名称，因为它们在我们的 OHE 数据集中和类别映射中(<code>category_map_ohe</code>)。初始化后，我们用训练数据对其进行拟合:</p>
+
+			<pre>predict_cb_fn = <strong class="bold">lambda</strong> x: fitted_cb_mdl.<strong class="bold">predict_proba</strong>(x) anchor_cb_explainer = <strong class="bold">AnchorTabular</strong>(predict_cb_fn,\
+X_train.columns,\
+                                     categorical_names=category_map_ohe) anchor_cb_explainer.<strong class="bold">fit</strong>(X_train.values)</pre>
+
+			<p>在我们利用解释者之前，检查锚是否“固定”是一个好习惯换句话说，我们应该检查 MAB 算法是否找到了有助于解释预测的决策规则。为了验证这一点，您使用<code>predictor</code>函数来检查预测是否与您对此实例的预期相同。现在，我们正在使用<code>idx1</code>，这是非裔美国人被告的案例:</p>
+
+			<pre>print('Prediction: %s' %  class_names[anchor_cb_explainer.\
+                             predictor(X_test.loc[idx1].values)[0]])</pre>
+
+			<p>上述代码输出以下内容:</p>
+
+			<pre>Prediction: Medium/High Risk</pre>
+
+			<p>我们可以继续使用<code>explain</code>函数为我们的实例生成一个解释。我们可以<a id="_idIndexMarker720"/>将我们的精度阈值设置为<code>0.85</code>，这意味着我们期望锚定观测的预测至少在<img src="img/Formula_07_008.png" alt=""/>时间内与我们的<a id="_idIndexMarker721"/>实例相同。一旦我们有了解释，我们就可以打印锚点以及它们的精度和覆盖范围:</p>
+
+			<pre>anchor_cb_explanation =\
+          anchor_cb_explainer.<strong class="bold">explain</strong>(X_test.loc[idx1].values,\     
+                                      threshold=0.85,                                       seed=rand)
+print('Anchor: %s' % (' AND'.join(anchor_cb_explanation.<strong class="bold">anchor</strong>))) 
+print('Precision: %.3f' % anchor_cb_explanation.<strong class="bold">precision</strong>) 
+print('Coverage: %.3f' % anchor_cb_explanation.<strong class="bold">coverage</strong>)</pre>
+
+			<p>前面的代码生成了以下输出。可以看出<code>age</code>、<code>priors_count</code>和<code>race_African-American</code>是<img src="img/Formula_07_009.png" alt=""/>精度的因子。令人印象深刻的是，这条规则适用于几乎三分之一的扰动空间实例:</p>
+
+			<pre>Anchor: age &lt;= 25.00 AND
+    priors_count &gt; 0.00 AND
+    race_African-American = African American
+Precision: 0.863
+Coverage: 0.290</pre>
+
+			<p>我们可以尝试相同的代码，但是在精度阈值上有一个<img src="img/Formula_07_010.png" alt=""/>凸起。它产生与使用<a id="_idIndexMarker722"/>较低精度阈值时相同的前三个锚，但现在用另外两个进行扩展:</p>
+
+			<pre>Anchor: age &lt;= 25.00 AND
+    priors_count &gt; 0.00 AND
+    race_African-American = African American AND
+    c_charge_degree_(M1) = Not Misdemeanor 1st Deg AND
+    c_charge_degree_(F3) = Not Felony 3rd Level AND
+    race_Caucasian = Not Caucasian
+Precision: 0.903
+Coverage: 0.290</pre>
+
+			<p>有趣的是，虽然<a id="_idIndexMarker723"/>的精度确实增加了几个百分点，但覆盖率保持不变，所以额外的锚应用于类似的扰动子集，精度提高了。在这个精确的水平上，我们可以确认种族是一个重要的因素，因为非裔美国人是一个锚，但不是白种人。另一个因素是<code>c_charge_degree</code>。这一解释表明，被指控犯有一级轻罪或三级重罪会更好。可以理解的是，第七级重罪是比这两项更严重的指控。</p>
+
+			<p>现在让我们为我们的神经网络创建一个黑盒锚点解释器。需要注意的一点是，<code>lambda</code>函数是不同的，因为网络<code>predict</code>函数输出的是正类的单组预测，但我们需要两组，其中一组是负类的。这很容易克服，因为两个类别的概率总和应该是<img src="img/Formula_07_011.png" alt=""/>，因此负概率应该与正概率互补。关于初始化和调整解释器的其他事情都是一样的:</p>
+
+			<pre>predict_nn_fn = <strong class="bold">lambda</strong> x: np.concatenate((1 -\ 
+       fitted_nn_mdl.<strong class="bold">predict</strong>(x), fitted_nn_mdl.<strong class="bold">predict</strong>(x)), axis=1)
+anchor_nn_explainer = <strong class="bold">AnchorTabular</strong>(predict_nn_fn, X_train.columns,\
+                           categorical_names=category_map_ohe) anchor_nn_explainer.<strong class="bold">fit</strong>(X_train.values)</pre>
+
+			<p>理解模型为什么做出特定预测的另一种方式是寻找具有相反预测的类似数据点，并找出它为什么做出那个预测。决策边界<a id="_idIndexMarker725"/>在两点之间交叉，因此对比边界两侧的决策解释很有帮助。这次我们将使用<code>idx3</code>，这是白人被告的情况:</p>
+
+			<pre>anchor_nn_explanation =\
+                anchor_nn_explainer.<strong class="bold">explain</strong>(X_test.loc[idx3].values,\ 
+                                     threshold=0.85, seed=rand)
+print('Anchor: %s' % (' AND'.join(anchor_nn_explanation.<strong class="bold">anchor</strong>))) 
+print('Precision: %.3f' % anchor_nn_explanation.<strong class="bold">precision</strong>) 
+print('Coverage: %.3f' % anchor_nn_explanation.<strong class="bold">coverage</strong>)</pre>
+
+			<p>前面的代码按如下方式输出锚点:</p>
+
+			<pre>Anchor: priors_count &lt;= 2.00 AND
+    race_African-American = Not African American AND
+    c_charge_degree_(F3) = Not Felony 3rd Level
+Precision: 0.911
+Coverage: 0.578</pre>
+
+			<p>第一个主播是<code>priors_count &lt;= 2.00</code>，但是在边界的另一边，前两个主播是<code>age &lt;= 25.00</code>和<code>priors_count &gt; 0.00</code>。换句话说，对于 25 岁以下或等于 25 岁的非裔美国人来说，任何数量的前科都足以将他们归类为具有中等/高再犯风险的<a id="_idIndexMarker726"/>(当时的<img src="img/Formula_07_012.png" alt=""/>)。另一方面，对于一个白人来说，只要前科不超过两次，并且没有被指控犯有三级重罪，他们就会被预测为低风险(<img src="img/Formula_07_013.png" alt=""/>的时间和<img src="img/Formula_07_014.png" alt=""/>的覆盖范围)。这些裁决规则不仅通过<code>race</code>本身暗示了种族偏见，而且通过应用<code>priors_count</code>也暗示了种族偏见，并且<code>age</code>的缺失作为高加索人的一个因素构成了双重标准。</p>
+
+			<p>我们现在可以审判西班牙裔被告(<code>idx2</code>)，以观察在这种情况下是否也会发现双重标准。我们只是运行与之前相同的代码，但是用<code>idx2</code>替换<code>idx3</code>:</p>
+
+			<pre>Anchor: priors_count &lt;= 2.00 AND
+    race_African-American = Not African American AND
+    race_Hispanic = Hispanic
+Precision: 0.908
+Coverage: 0.578</pre>
+
+			<p>对西班牙裔被告的解释证实了对<code>priors_count</code>的双重标准，而<code>race</code>仍然是一个强有力的因素，因为有一个锚是非裔美国人，另一个锚是西班牙裔。</p>
+
+			<p>对于具体的模型决策，主播解说回答问题<em class="italic">为什么？</em>。然而，我们已经越过了决策界限，寻找为什么我们的观点不在那一边的答案。通过这样做，我们已经涉足了这个问题。。在下一节，我们将进一步阐述这个问题。</p>
+
+			<h1 id="_idParaDest-197">探索反事实的解释</h1>
+
+			<p>反事实是人类推理不可或缺的一部分。我们中有多少人嘀咕过这样的话“如果我做了<img src="img/Formula_07_015.png" alt=""/>，我的结果<img src="img/Formula_01_006.png" alt=""/>将会不同”？总有一两件事情，如果以不同的方式去做，会导致我们想要的结果！</p>
+
+			<p>在机器学习结果中，你可以利用这种推理方式做出极其人性化的解释，我们可以根据需要改变什么来获得相反的结果来解释结果(反事实类)。毕竟，我们经常对如何让糟糕的结果变得更好感兴趣。例如，你如何让你被拒绝的贷款申请获得批准，或者降低你患心血管疾病的风险？然而，希望这些问题的答案不是一个巨大的变化列表。你期望改变你的结果所需的最小的变化。</p>
+
+			<p>关于公平，反事实是一种重要的解释方法，特别是当涉及到我们不能改变或不应该改变的元素时。例如，如果你和你的同事做完全相同的工作，有相同的经验，你希望有相同的薪水，对吗？如果你和你的配偶拥有相同的资产和信用记录，但却有不同的信用评分，你一定想知道为什么。这与性别、种族、年龄甚至政治派别有关吗？无论是赔偿、信用评级还是累犯风险模型，你都希望相似的点有相似的结果。</p>
+
+			<p>寻找反事实并不特别困难。我们所要做的就是稍微改变我们感兴趣的<em class="italic">实例</em>，直到它改变结果。也许数据集中已经有一个这样的实例了！</p>
+
+			<p>事实上，你可以说，我们在上一节中检查的锚的三个实例非常接近，足以成为彼此的反事实，除了高加索人和西班牙人的情况，他们有相同的结果。但是高加索人和西班牙人的案例是通过寻找与感兴趣的<em class="italic">案例</em>相比具有相同犯罪历史但不同种族的数据点而被<em class="italic">精选出来的</em>。也许通过比较相似的点，主要是除了种族，我们以这样一种方式限制了范围，我们证实了我们希望证实的，即种族对模型的决策至关重要。</p>
+
+			<p>这是<em class="italic">选择偏差</em>的一个例子。毕竟，反事实本质上是有选择性的，因为它们专注于少数特征变化。即使只有几个特征，也有如此多的可能排列改变结果，这意味着一个点可能有数百个反事实。并不是所有这些都会讲述一个一致的故事。这种现象被称为<strong class="bold">罗生门效应</strong>。它是以一部著名的日本电影命名的，这部电影讲述了一个神秘的谋杀案。正如我们对神秘谋杀案的期待，目击者对所发生的事情有不同的解释。但是就像很难依靠一个证人一样，你也不能依靠一个反事实。同样，就像伟大的侦探被训练在犯罪现场的任何地方寻找线索一样(即使这与他们的直觉相矛盾)，反事实不能被“精选”，因为他们很方便地讲述了我们希望他们讲述的故事。</p>
+
+			<p>幸运的是，有算法可以以一种不偏不倚的方式寻找反事实的例子。通常，这些包括寻找具有不同结果的最近点，但是有不同的方法来测量点之间的<a id="_idIndexMarker732"/>距离。首先，有<a id="_idIndexMarker733"/><strong class="bold">L1</strong>距离(也被称为<strong class="bold">曼哈顿距离</strong>)和<strong class="bold"> L2 </strong>距离(也被称为<strong class="bold">欧几里德距离</strong>)，还有<a id="_idIndexMarker734"/>等等。但是还有归一化距离的问题，因为不是所有的特征都有相同的比例。否则，它们会偏向于较小比例的要素，例如一次性热编码要素。也有许多标准化方案可供选择。您可以使用<strong class="bold">标准偏差</strong>、<strong class="bold">最小-最大比例</strong>，甚至<strong class="bold">中值绝对偏差</strong>【9】。</p>
+
+			<p>在本节中，我们将解释并使用一种先进的反事实发现方法。然后，我们将探索谷歌的机智。它有一个简单的基于 L1 和 L2 的反事实查找器，它仅限于数据集，但用其他有用的解释功能来弥补它。</p>
+
+			<h2 id="_idParaDest-198">原型引导下的反事实解释</h2>
+
+			<p>最复杂的<a id="_idIndexMarker736"/>反事实发现算法执行以下操作:</p>
+
+			<ul>
+
+				<li><strong class="bold">损失</strong>:这些利用了一个<em class="italic">损失函数</em>，帮助优化找到最接近我们感兴趣的<em class="italic">实例</em>的反事实。</li>
+
+				<li><strong class="bold">扰动</strong>:这些倾向于用<em class="italic">扰动空间</em>操作，就像锚一样，尽可能少地改变特征。请注意，反事实不一定是数据集中的真实点。那会太局限了。反事实存在于可能的领域，而不是必然已知的领域。</li>
+
+				<li>仅这一点就足以使任何中/高风险的实例成为低风险的。这就是为什么反事实应该接近你的数据的统计分布，特别是<em class="italic">特定于类的分布</em>。他们也不应该对小规模的特征有偏见，即分类变量。</li>
+
+				<li>速度:这些运行速度足够快，在现实世界中非常有用。</li>
+
+			</ul>
+
+			<p>Alibi 的<strong class="bold">原型引导的反事实</strong> ( <em class="italic">反事实原型</em>)具备所有这些属性。它有一个损失函数，包括作为线性组合的<img src="img/Formula_07_017.png" alt=""/> ( <em class="italic">套索</em>)和<img src="img/Formula_07_018.png" alt=""/> ( <em class="italic">脊</em>)正则化，就像<strong class="bold">天真的弹性网</strong>(<img src="img/Formula_07_019.png" alt=""/>)一样的<a id="_idIndexMarker738"/>，但仅在<img src="img/Formula_07_021.png" alt=""/>项上有一个权重(<img src="img/Formula_07_020.png" alt=""/>)。该算法的巧妙之处在于它可以(可选地)使用一个<em class="italic">自动编码器</em>来理解分布。我们不会重温这是如何工作的，因为我们在<a href="B16383_03_ePub_RK.xhtml#_idTextAnchor051"> <em class="italic">第三章</em> </a>、<em class="italic">解释挑战</em>中已经介绍过<strong class="bold">变型自动编码器</strong> ( <strong class="bold"> VAE </strong>)。然而，这里需要注意的是，自动编码器通常是学习训练数据的压缩表示的神经网络。该方法结合了来自自动编码器的损失项，例如最接近原型的损失项。原型是反事实类的降维表示。</p>
+
+			<p>如果自动编码器不可用，算法会使用多维搜索常用的树(<em class="italic"> k-d 树</em>)来代替。利用该树，算法可以有效地捕获类别分布，并且还可以选择最接近的原型。一旦有了原型，扰动就被它引导了。在损失函数中引入原型损失项确保了所产生的扰动将足够接近反事实类的分布中的原型。许多建模类和解释方法忽略了区别对待连续和分类特征的重要性。CounterFactualProto 可以使用两种不同的距离度量来计算分类变量的<a id="_idIndexMarker740"/>类别之间的成对距离:<code>feature_range</code>):</p>
+
+			<pre>feature_range =\
+      (X_train.values.<strong class="bold">min</strong>(axis=0).<strong class="bold">reshape</strong>(1,21).<strong class="bold">astype</strong>(np.float32),\
+       X_train.values.<strong class="bold">max</strong>(axis=0).<strong class="bold">reshape</strong>(1,21).<strong class="bold">astype</strong>(np.float32))
+print(feature_range)</pre>
+
+			<p>前面的代码<a id="_idIndexMarker742"/>输出两个数组——第一个包含所有特征的最小值，第二个包含所有特征的最大值:</p>
+
+			<pre>(array([[18.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
+         0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.]], dtype=float32), array([[96., 20., 13., 11., 38.,  1.,  1.,  1.,  1., 1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.]], dtype=float32))</pre>
+
+			<p>我们现在可以用<code>CounterFactualProto</code>实例化一个解释器。作为参数，它需要黑盒模型的预测函数(<code>predict_nn_fn</code>)、要解释的实例的形状(<code>X_test_eval.shape</code>)、要执行的最大优化迭代次数(<code>max_iterations</code>)以及受扰动实例的特征范围(<code>feature_range</code>)。许多超参数可以调整，包括应用于<img src="img/Formula_07_023.png" alt=""/>损失(<code>beta</code>)的<img src="img/Formula_07_022.png" alt=""/>权重和应用于原型损失(<code>theta</code>)的<img src="img/Formula_07_024.png" alt=""/>权重。此外，当没有提供自动编码器模型时，您必须指定是否使用 k-d 树(<code>use_kdtree</code>)。一旦解释器被实例化，您就可以使它适合测试数据集。我们将分类特征的距离度量(<code>d_type</code>)指定为 ABDM 和 MVDM 的组合:</p>
+
+			<pre>cf_nn_explainer = <strong class="bold">CounterFactualProto</strong>(predict_nn_fn,\
+                       X_test_eval.shape, max_iterations=100,\
+                       feature_range=feature_range, beta=.1,\
+                       theta=5, use_kdtree=True )
+cf_nn_explainer.<strong class="bold">fit</strong>(X_test.values, d_type='abdm-mvdm') </pre>
+
+			<p>用解释器创建解释类似于用锚。只需将实例(<code>X_test_eval</code>)传递给<code>explain</code>函数。然而，输出结果并不简单:主要是<a id="_idIndexMarker743"/>因为在一个热编码和序数之间转换特性，并在特性之间交互。不在场证明文件(<a href="https://docs.seldon.io/projects/alibi/">https://docs.seldon.io/projects/alibi/</a>)有一个详细的例子说明这是如何做到的。我们将使用一个名为<code>describe_cf_instance</code>的实用函数，它使用感兴趣的<em class="italic">实例</em> ( <code>X_test_eval</code>)、解释(<code>cf_nn_explanation</code>)、类名(<code>class_names</code>)、one-hot.encoded 类别位置(<code>cat_vars_ohe</code>)、类别映射(<code>category_map</code>)和特性名(<code>feature_names</code>)来完成这项工作:</p>
+
+			<pre>cf_nn_explanation = cf_nn_explainer.<strong class="bold">explain</strong>(X_test_eval) mldatasets.<strong class="bold">describe_cf_instance</strong>(X_test_eval, cf_nn_explanation,\  
+             class_names, cat_vars_ohe, category_map, feature_names)</pre>
+
+			<p>前面的代码生成了以下输出:</p>
+
+			<pre>Instance Outcomes and Probabilities
+------------------------------------------------
+       original:  Medium/High Risk
+                  [0.46732193 0.53267807]
+ counterfactual:  Low Risk
+                  [0.50025815 0.49974185]
+Categorical Feature Counterfactual Perturbations
+------------------------------------------------
+                sex:  Male  --&gt;  Female
+               race:  African-American  --&gt;  Asian
+    c_charge_degree:  Felony 7th Degree  --&gt;  Felony 1st Degree
+Numerical Feature Counterfactual Perturbations
+------------------------------------------------
+       priors_count:  2.00  --&gt;  1.90</pre>
+
+			<p>您可以从输出中了解到，感兴趣的<em class="italic">实例</em>(“原始”)有 53.26%的概率是<em class="italic">中/高风险</em>，但反事实几乎是在<em class="italic">低风险</em>一侧，为 50.03%！稍微相反的反事实是我们希望看到的，因为这可能意味着它尽可能接近我们感兴趣的<em class="italic">实例</em>。它们之间有四个特征差异，其中三个是分类性的(<code>sex</code>、<code>race</code>和<code>c_charge_degree</code>)。第四个不同是<code>priors_count</code>数字特征，它被视为连续的，因为解释者不知道它是离散的。在任何情况下，它应该是<em class="italic">单调的</em>，因此更少的先验应该总是<a id="_idIndexMarker744"/>意味着更低的风险，这意味着我们可以将<img src="img/Formula_07_025.png" alt=""/>解释为<img src="img/Formula_07_026.png" alt=""/>，因为如果<img src="img/Formula_07_027.png" alt=""/>更少的先验有助于降低风险，那么整个先验也应该如此。</p>
+
+			<p>从反事实原型的输出中得出的一个更有力的见解是，两个人口统计学特征出现在与这个特征最接近的反事实中。其中一个是通过一种方法发现的，这种方法被设计成遵循我们的类的统计分布，并且不会对特定类型的特征产生偏见或支持。尽管在我们的反事实中看到亚裔女性令人惊讶，因为这不符合白人男性受到优待的说法，但意识到<code>race</code>出现在反事实中也令人不安。</p>
+
+			<h2 id="_idParaDest-199"><a id="_idTextAnchor156"/>反事实实例和更多假设分析工具(WIT)</h2>
+
+			<p>谷歌的机智是一个<a id="_idIndexMarker745"/>非常通用的工具。它需要很少的输入或准备，并在您的 Jupyter 或 Colab 笔记本中打开，作为一个具有三个选项卡的交互式仪表板:</p>
+
+			<ul>
+
+				<li><strong class="bold">数据点编辑器</strong>:可视化你的数据点，编辑它们，并解释它们的预测。</li>
+
+				<li><strong class="bold">性能</strong>:查看高级模型性能度量(针对所有回归和分类模型)。对于二进制分类，该选项卡称为<strong class="bold">性能和公平性</strong>，因为除了高级指标之外，还可以在数据集的基于特征的切片之间比较预测公平性。</li>
+
+				<li><strong class="bold">特性</strong>:查看一般特性统计。</li>
+
+			</ul>
+
+			<p>鉴于<strong class="bold">特性</strong>选项卡与模型解释无关，我们将在本节中只探讨前两个。</p>
+
+			<h3 id="_idParaDest-200">配置 WIT</h3>
+
+			<p>可选地，我们可以通过创建属性来丰富我们在 WIT 中的解释，属性是解释每个特征对每个预测贡献多少的值。你可以使用任何方法来生成属性，但我们将使用 SHAP。我们在第五章 、<em class="italic">全局模型不可知解释方法</em>中首先介绍了 SHAP。因为我们将在 WIT 仪表板中解释我们的 CatBoost 模型，所以最合适的 SHAP 解释器是<code>TreeExplainer</code>，但是<code>DeepExplainer</code>也适用于神经网络(而<code>KernelExplainer</code>适用于两者)。要初始化<code>TreeExplainer</code>，我们只需要通过拟合模型(<code>fitted_cb_mdl</code>):</p>
+
+			<pre>shap_cb_explainer = shap.<strong class="bold">TreeExplainer</strong>(fitted_cb_mdl)</pre>
+
+			<p>WIT 需要数据集中的所有要素(包括标注)。我们将使用测试数据集，所以您可以将<code>X_test</code>和<code>y_test</code>连接起来，但是即使这两个也不包括基本事实特性(<code>is_recid</code>)。获得所有这些的一种方法是用测试数据集索引(<code>y_test.index</code>)来子集化<code>recidivism_df</code>。WIT 还需要列表格式的数据和列，这样我们可以将它们保存为变量供以后使用(<code>test_np</code>和<code>cols_l</code>)。最后，对于预测和属性，我们将需要删除我们的基本事实(<code>is_recid</code>)和分类标签(<code>compas_score</code>)，所以让我们保存这些列的索引(<code>delcol_idx</code>):</p>
+
+			<pre>test_df = recidivism_df.loc[y_test.index] 
+test_np = test_df.values
+cols_l = test_df.columns
+delcol_idx = [cols_l.get_loc("is_recid"),\
+            cols_l.get_loc("compas_score")]</pre>
+
+			<p>WIT 有几个用于定制仪表板的有用函数，比如设置一个定制的距离度量(<code>set_custom_distance_fn</code>)，显示类名而不是数字(<code>set_label_vocab</code>)，设置一个定制的预测函数(<code>set_custom_predict_fn</code>)，以及第二个用于比较两个模型的预测函数(<code>compare_custom_predict_fn</code>)。</p>
+
+			<p>除了<code>set_label_vocab</code>，我们将只使用一个定制的预测函数(<code>custom_predict_with_shap</code>)。它所需要做的就是用你的<code>examples_np</code>数据集取一个数组，并产生一些预测(<code>preds</code>)。然而，我们首先必须删除我们想要在仪表板中使用，但没有在培训中使用的功能(<code>delcol_idx</code>)。该函数所需的输出是一个字典，其中的预测存储在一个<code>predictions</code>键中。但是我们也想要一些属性，这就是为什么我们在字典中需要一个<code>attributions</code>键。因此，我们使用 SHAP 解释器并生成<code>shap_values</code>，这是一个 NumPy 数组。但是，属性需要是一个字典列表，才能被 WIT 仪表板理解。为此，我们迭代<code>shap_output</code>，将每个观察值的 SHAP 值数组转换为一个字典(<code>attrs</code>)，然后将其附加到一个列表(<code>attributions</code>):</p>
+
+			<pre>def <strong class="bold">custom_predict_with_shap</strong>(examples_np):
+ #For shap values we only need same features
+ #that were used for training
+ inputs_np = np.<strong class="bold">delete</strong>(np.array(examples_np), delcol_idx, axis=1)
+ #Get the model's class predictions
+ preds = <strong class="bold">predict_cb_fn</strong>(inputs_np) 
+ #With test data generate SHAP values which converted
+ #to a list of dictionaries format
+ keepcols_l = [c for i, c in enumerate(cols_l)\
+             if i not in delcol_idx]
+ shap_output = shap_cb_explainer.<strong class="bold">shap_values</strong>(inputs_np)
+ attributions = []
+ for shap in shap_output:
+  attrs = {}
+  for i, col in enumerate(keepcols_l):
+   attrs[col] = shap[i]
+  attributions.append(attrs)  
+ #Prediction function must output predictions/attributions
+ #in dictionary
+ output = {'predictions': preds, 'attributions': attributions}
+ return output</pre>
+
+			<p>在我们构建 WIT 仪表板之前，<a id="_idIndexMarker748"/>需要注意的是，为了在仪表板中找到我们感兴趣的实例，我们需要知道它在提供给 WIT 的 NumPy 数组中的位置，因为这些数组不像 pandas DataFrames 那样有索引。为了找到位置，我们需要做的就是为<code>get_loc</code>函数提供索引:</p>
+
+			<pre>print(y_test.index.get_loc(5231))</pre>
+
+			<p>前面的代码输出为<code>2910</code>，所以我们可以记下这个数字。构建 WIT 仪表板现在相当简单。我们首先用 NumPy 格式的测试数据集(<code>test_np</code>)和我们的特性列表(<code>cols_l</code>)初始化一个配置(<code>WitConfigBuilder</code>)。两者都用<code>tolist()</code>转换成列表。然后，我们用<code>set_custom_predict_fn</code>和我们的目标特性(<code>is_recid</code>)设置我们的自定义预测函数，并提供我们的类名。我们这次就用地面真相，从<a id="_idIndexMarker749"/>真实发生的角度来评价公平性。一旦配置被初始化，小部件(<code>WitWidget</code>)就用它构建仪表板。您可以选择提供一个高度(默认为<img src="img/Formula_07_028.png" alt=""/>像素):</p>
+
+			<pre>wit_config_builder = <strong class="bold">WitConfigBuilder</strong>(\
+                 <strong class="bold">test_np</strong>.tolist(), feature_names=<strong class="bold">cols_l</strong>.tolist()
+    ).<strong class="bold">set_custom_predict_fn</strong>(<strong class="bold">custom_predict_with_shap</strong>).\
+    set_target_feature("is_recid").set_label_vocab(class_names)
+<strong class="bold">WitWidget</strong>(wit_config_builder, height=800)</pre>
+
+			<h3 id="_idParaDest-201">数据点编辑器</h3>
+
+			<p>在<em class="italic">图 7.6 </em>中，您可以看到 WIT 仪表盘及其三个选项卡。我们将首先<a id="_idIndexMarker750"/>探索第一个选项卡(<strong class="bold">数据点编辑器</strong>)。左边有<strong class="bold">可视化</strong>和<strong class="bold">编辑</strong>窗格，右边可以显示<strong class="bold">数据点</strong>或<strong class="bold">部分依赖图</strong>。当您选择了<strong class="bold">数据点</strong>时，您可以使用右上角的控件以多种方式可视化数据点(高亮区域<em class="italic"> A </em>)。我们在<em class="italic">图 7.6 </em>中所做的设置如下:</p>
+
+			<ul>
+
+				<li><code>c_charge_degree_(F7)</code>。</li>
+
+				<li><code>compas_score</code>。</li>
+
+				<li><code>race_African-American</code>。</li>
+
+				<li>其他一切保持不变。</li>
+
+			</ul>
+
+			<p>这些设置使得我们所有的数据点整齐地排列成 2 行 2 列，并由非裔美国人或不是非裔美国人进行颜色编码。右栏是收费等级为 7 级的人员，上面一行是<em class="italic">中/高风险</em> COMPAS 分数的人员。我们可以通过点击最右上方的项目在这个子组(<em class="italic"> B </em>)中寻找数据点 2910。它应该出现在<code>age</code>而不是<code>race_African-American</code>中。但是，总的来说，种族的重要性仅次于年龄。另外，请注意，在<strong class="bold">推断</strong>窗格中，您会看到<em class="italic">中/高风险</em>的预测概率约为<img src="img/Formula_07_029.png" alt=""/>:</p>
+
+			<div><div><img src="img/B16383_07_06.jpg" alt="Figure 7.6 – WIT dashboard with our instance of interest&#10;&#10;"/>
+
+				</div>
+
+			</div>
+
+			<p class="figure-caption">图 7.6–带有我们感兴趣的实例的 WIT 仪表板</p>
+
+			<p>WIT 可以使用 L1 或 L2 距离找到最近的<a id="_idIndexMarker751"/>反事实。并且它可以使用特征值或属性来计算距离。如前所述，如果将 WIT 添加到配置中，它还可以包含一个自定义的距离查找功能。现在，我们将选择具有特征值的 L2。在<em class="italic">图 7.7 </em>中，这些选项出现在突出显示的<em class="italic"> A </em>区域。一旦您选择了一个距离度量并启用了<strong class="bold">最近反事实</strong>，它就会与我们感兴趣的实例<em class="italic">并排出现(区域<em class="italic"> B </em>)，并比较它们的预测，如下图所示(<em class="italic"> C </em>)。您可以通过<strong class="bold">绝对属性</strong>对特征进行排序，以便更清楚地了解特征在局部级别上的重要性。这个反事实只存在了 3 年，但是没有前科，而不是两年，但这足以将<strong class="bold">中/高风险</strong>降低到接近<img src="img/Formula_07_030.png" alt=""/>:</em></p>
+
+			<div><div><img src="img/B16383_07_07.jpg" alt="Figure 7.7 – How to find the nearest counterfactual in WIT&#10;&#10;"/>
+
+				</div>
+
+			</div>
+
+			<p class="figure-caption">图 7.7-如何在 WIT 中找到最接近的反事实</p>
+
+			<p>当我们感兴趣的<em class="italic">实例</em>和反事实<a id="_idIndexMarker752"/>都保持选中时，我们可以将它们和所有其他点一起可视化。通过这样做，你可以从当地的解释中获得洞察力，并为全球的理解创造足够的背景。例如，让我们将可视化设置更改如下:</p>
+
+			<ul>
+
+				<li><code>Inference label</code>。</li>
+
+				<li><code>(none)</code>。</li>
+
+				<li><code>age</code>。</li>
+
+				<li><code>priors_count</code>。</li>
+
+				<li>其他一切保持不变。</li>
+
+			</ul>
+
+			<p>该可视化的结果在<em class="italic">图 7.8 </em>中描述。你可以告诉那个<code>priors_count</code>。两个条块都显示出<code>prior_count</code>和<code>age</code>有轻微的相关性，尽管这在 18-25 岁的<code>age</code>中更加明显，并且与<code>age</code>和更高的<code>priors_count</code>相比<code>prior_count</code>低于 3，对非裔美国人来说风险比其他人更大:</p>
+
+			<div><div><img src="img/B16383_07_08.jpg" alt="Figure 7.8 – Visualizing age versus priors_count in WIT&#10;&#10;"/>
+
+				</div>
+
+			</div>
+
+			<p class="figure-caption">图 7.8–在 WIT 中可视化年龄与前科的关系</p>
+
+			<p>我们可以尝试通过编辑数据点来创建我们自己的反事实。当我们把<code>priors_count</code>减少到 1 时会发生什么？这个问题的答案在<em class="italic">图 7.9 </em>中描述。一旦您更改了<a id="_idIndexMarker754"/>并点击<strong class="bold">推断</strong>窗格中的<strong class="bold">预测</strong>按钮，它会在<strong class="bold">推断</strong>窗格中的最后一个预测历史中添加一个条目。您可以在<strong class="bold">运行#2 </strong>中看到，风险降低了近 33.5%，下降了近 50%！</p>
+
+			<div><div><img src="img/B16383_07_09.jpg" alt="Figure 7.9 – Editing the datapoint to decrease priors_count in WIT&#10;&#10;"/>
+
+				</div>
+
+			</div>
+
+			<p class="figure-caption">图 7.9-编辑数据点以减少 WIT 中的 priors_count</p>
+
+			<p>现在，如果<code>age</code>只大两岁，但有两次前科，会发生什么？在<em class="italic">图 7.10 </em>中，<strong class="bold">运行#3 </strong>告诉您，它勉强在<strong class="bold">低风险</strong>分数内:</p>
+
+			<div><div><img src="img/B16383_07_10.jpg" alt="Figure 7.10 – Editing the datapoint to increase the age in WIT&#10;&#10;"/>
+
+				</div>
+
+			</div>
+
+			<p class="figure-caption">图 7.10-编辑数据点以增加 WIT 中的年龄</p>
+
+			<p>另一个特点是<code>age</code>和<code>priors_count</code>的变化最大。有趣的是，两者都不是单调的，这说不通。该模型应了解到<code>priors_count</code>的增加会持续增加风险。减少<code>age</code>应该也是一样。毕竟，学术研究表明，犯罪往往在 25 岁左右达到顶峰，更高的前科会增加再犯的可能性。这两个变量之间的关系也很好理解，所以也许一些数据工程和单调约束可以确保模型与已知现象一致，而不是学习导致不公平的数据中的不一致。我们将在<a href="B16383_12_ePub_RK.xhtml#_idTextAnchor261"> <em class="italic">第 12 章</em> </a> <em class="italic">、单调性约束和可解释性模型调整</em>中介绍这一点:</p>
+
+			<div><div><img src="img/B16383_07_11.jpg" alt="Figure 7.11 – Local partial dependence plot for age and priors_count&#10;&#10;"/>
+
+				</div>
+
+			</div>
+
+			<p class="figure-caption">图 7.11-年龄和既往病史计数的局部部分相关图</p>
+
+			<p>在一个已经训练好的模型中，有没有什么可以<a id="_idIndexMarker756"/>做的事情来提高公平性？确实有。<strong class="bold">性能&amp;公平性</strong>标签可以帮助你做到这一点。</p>
+
+			<h3 id="_idParaDest-202">绩效与公平</h3>
+
+			<p>当你点击<strong class="bold">性能&amp;公平性</strong>选项卡时，<a id="_idIndexMarker757"/>会看到它左边有<strong class="bold">配置</strong>和<strong class="bold">公平性</strong>窗格。而在右边，你可以探究模型的整体性能(见<em class="italic">图 7.12 </em>)。在此窗格的上部，有<strong class="bold">假阳性(%) </strong>、<strong class="bold">假阴性(%) </strong>、<strong class="bold">准确度(%) </strong>和<strong class="bold"> F1 </strong>字段。如果您展开窗格，它会显示 ROC 曲线、PR 曲线、混淆矩阵和平均属性 Shapley 平均值。除了 PR 曲线之外，我们已经在本书中直接或间接地讨论了所有这些。<strong class="bold">精确召回</strong> ( <strong class="bold">公关</strong>)非常<a id="_idIndexMarker758"/>像 ROC 曲线，除了它绘制的是精确对召回，而不是 TPR 对 FPR。在该图中，随着召回率的降低，精确度预计会降低。与 ROC 不同，当直线靠近<em class="italic"> x </em>轴时，它被认为比扔硬币更糟糕，它最适合不平衡的分类问题:</p>
+
+			<div><div><img src="img/B16383_07_12.jpg" alt="Figure 7.12 – Performance &amp; Fairness tab initial view&#10;&#10;"/>
+
+				</div>
+
+			</div>
+
+			<p class="figure-caption">图 7.12–绩效与公平选项卡初始视图</p>
+
+			<p>分类模型将输出观察值属于某一类或另一类的概率。我们通常把每一个大于等于<img src="img/Formula_07_031.png" alt=""/>的观测值都归入正类。否则，我们预测它属于负类。这个阈值叫做<strong class="bold">分类阈值</strong>，你<a id="_idIndexMarker759"/>不一定要用标准的<img src="img/Formula_07_032.png" alt=""/>。</p>
+
+			<p>在许多情况下，<a id="_idIndexMarker760"/>适合执行<strong class="bold">阈值调谐</strong>。最令人信服的原因之一是不平衡的分类问题，因为模型通常仅在准确性上优化性能，但最终却具有糟糕的召回率或精确度。调整阈值将改善您最关心的指标:</p>
+
+			<div><div><img src="img/B16383_07_13.jpg" alt="Figure 7.13 – Slicing performance metrics by race_African-American&#10;&#10;"/>
+
+				</div>
+
+			</div>
+
+			<p class="figure-caption">图 7.13–按种族划分的绩效指标切片 _ 非裔美国人</p>
+
+			<p>调整<a id="_idIndexMarker761"/>阈值的另一个主要原因是为了公平。为此，您需要跨数据的不同部分检查您最关心的指标。在我们的案例中，<code>race_African-American</code>，在它的右侧，我们可以看到我们在本章开始时观察到的情况，即非裔美国人的 FPs 明显高于其他人群。解决这个问题的一种方法是通过自动优化方法，如人口统计均等或机会均等。如果您要使用其中的一个，最好调整<strong class="bold">成本比率</strong> (FP/FN)来告诉优化器 FPs 比 FN 更有价值:</p>
+
+			<div><div><img src="img/B16383_07_14.jpg" alt="Figure 7.14 – Adjusting the classification threshold for the dataset sliced by race_African-American&#10;&#10;"/>
+
+				</div>
+
+			</div>
+
+			<p class="figure-caption">图 7.14–调整按 race_African-American 划分的数据集的分类阈值</p>
+
+			<p>我们也可以使用默认的<code>race_African-American=1</code>手动调整阈值。缺点是该组的 FNs 将<a id="_idIndexMarker764"/>增加，而不是在那一端实现均等。成本比率将有助于确定 FPs 中的 14.7%是否证明 FNs 中的 24.4%是合理的，但要做到这一点，我们必须了解所涉及的平均成本。我们将在<a href="B16383_11_ePub_RK.xhtml#_idTextAnchor231"> <em class="italic">第 11 章</em> </a>、<em class="italic">偏差缓解和因果推断方法</em>中进一步检查赔率校准方法。</p>
+
+			<p>既然我们已经掌握了锚和反事实是如何被用来解释预测的，让我们尝试一种结合两者的方法。</p>
+
+			<h1 id="_idParaDest-203">与 CEM 相比</h1>
+
+			<p><strong class="bold">对比解释方法</strong> ( <strong class="bold"> CEM </strong>)与<a id="_idIndexMarker766"/>锚和反事实<a id="_idIndexMarker767"/>类似<a id="_idIndexMarker765"/>，因为它使用<a id="_idIndexMarker768"/>存在(如锚)和不存在(如反事实)来解释预测。它<a id="_idIndexMarker769"/>调用<a id="_idIndexMarker770"/>存在的<strong class="bold">相关肯定</strong> ( <strong class="bold"> PPs </strong>)和<a id="_idIndexMarker771"/>不存在的<strong class="bold">相关否定</strong> ( <strong class="bold"> PNs </strong>)。然而，不同之处在于，PPs 被限定为最低限度地存在，并且足以预测相同的类别。同样，PNs 很少并且必然不存在来预测相反的类别。因此，CEM 最适用于连续和有序要素，因为它希望从要素中减去，直到达到所需的结果。由于这个原因，它不知道如何处理非单调连续、非序数、分类甚至二元特征，就此而言，我们的累犯数据集只有这种特征！不可否认，这一章的例子并不是一个理想的 CEM 用例。我们将在随后的章节中谈到 CEM。现在，重要的是将它连接到锚和反事实，并简要解释如何使用该方法。</p>
+
+			<p>CEM 有一个基于扰动的策略，一个基于 CEM 文件的策略。然而，CEM 并不依靠<strong class="bold"> k-d 树</strong>，因此强烈推荐可选的<strong class="bold">自动编码器</strong>，以便在<a id="_idIndexMarker775"/>数据集相对较小或有噪声时使解释更加真实。我们的数据集一点也不庞大或清晰。因此，引导可能会有所帮助，所以我们将创建一个简单的自动编码器。</p>
+
+			<p>如果你以前没有做过，训练一个<em class="italic">自动编码器</em>并不像听起来那么令人畏惧。它是一个形状像沙漏的神经网络，目标是使<code>input_layer</code>和<code>output_layer</code>匹配。在这两层之间，有<code>encoder</code>和<code>decoder</code>，它们汇聚在我们称之为<code>bottleneck</code>的一层。这一层既是编码器的输出，也是解码器的输入。重点是将数据压缩到降维后的<code>bottleneck</code>中，从而减少<code>input_layer</code>和<code>output_layer</code>之间的重建误差；</p>
+
+			<pre><strong class="bold">input_layer</strong> = tf.keras.Input(shape=(21))
+<strong class="bold">encoder</strong> = tf.keras.layers.Dense(10, activation='relu')(<strong class="bold">input_layer</strong>) 
+<strong class="bold">bottleneck</strong> = tf.keras.layers.Dense(3, activation='relu')(<strong class="bold">encoder</strong>) 
+<strong class="bold">decoder</strong> = tf.keras.layers.Dense(10, activation='relu')(<strong class="bold">bottleneck</strong>) 
+<strong class="bold">output_layer</strong> = tf.keras.layers.Dense(21,\                                    
+                              activation='linear')(<strong class="bold">decoder</strong>) 
+autoencoder_mdl = tf.keras.Model(<strong class="bold">input_layer</strong>, <strong class="bold">output_layer</strong>) autoencoder_mdl.<strong class="bold">summary</strong>()</pre>
+
+			<p>前面的<a id="_idIndexMarker776"/>代码逐层构建了一个<a id="_idIndexMarker777"/>自动编码器<a id="_idIndexMarker778"/>模型，这样更容易理解。如果你<a id="_idIndexMarker779"/>为它看<code>summary()</code>，你可以看到在编码过程中维度是如何从 21 到 10 再到 3 的。自然地，在解码时，他们从 3 到 10 再到 21:</p>
+
+			<pre>_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+input_29 (InputLayer)        [(None, 21)]              0         
+_________________________________________________________________
+dense_81 (Dense)             (None, 10)                220       
+_________________________________________________________________
+dense_82 (Dense)             (None, 3)                 33        
+_________________________________________________________________
+dense_83 (Dense)             (None, 10)                40        
+_________________________________________________________________
+dense_84 (Dense)             (None, 21)                231       
+=================================================================
+Total params: 524
+Trainable params: 524
+Non-trainable params: 0
+_________________________________________________________________</pre>
+
+			<p>然后，对自动编码器进行编译和拟合，就像对任何神经网络模型一样，除了<code>fit</code>函数中的第一个参数(<code>X</code>)和第二个参数(<code>y</code>)与<a id="_idIndexMarker780"/>相同:<code>X_train</code>。你<a id="_idIndexMarker781"/>期望<a id="_idIndexMarker782"/>网络产生的是尽可能接近的东西:</p>
+
+			<pre>autoencoder_mdl.<strong class="bold">compile</strong>(loss='mean_squared_error', optimizer='adam') 
+autoencoder_history = autoencoder_mdl.<strong class="bold">fit</strong>(X_train.values,\   
+                         X_train.values, epochs=16,\
+                         batch_size=32,\
+                         validation_split=0.2, verbose=0) </pre>
+
+			<p>为了生成 PN，我们使用以下必需参数运行<code>CEM</code>函数:</p>
+
+			<ul>
+
+				<li>预测功能(<code>predict_nn_fn</code>)</li>
+
+				<li>模式(<code>'PN'</code>)</li>
+
+				<li>我们期待回来的形状(<code>X_test_eval.shape</code>)</li>
+
+			</ul>
+
+			<p>除了这些<a id="_idIndexMarker783"/>参数，我们还指定了特性范围和最大迭代次数，就像我们在<code>CounterFactualProto</code>中做的那样。但是由于这次我们使用的是自动编码器(<code>ae_model</code>)，所以我们还包括了<code>gamma</code>，这是一个放大重建误差损失的超参数。一旦解释器被初始化，你就使它适合训练数据，并为我们感兴趣的 ( <code>X_test_eval</code>)的<em class="italic">实例创建一个带有<code>explain</code>的解释。然后，我们输出<a id="_idIndexMarker784"/>原始实例和<a id="_idIndexMarker785"/> PN 类，随后是 PN 的特征值和预测概率:</em></p>
+
+			<pre>cem_nn_explainer_pn = <strong class="bold">CEM</strong>(predict_nn_fn, '<strong class="bold">PN</strong>',\
+     X_test_eval.shape, <strong class="bold">feature_range</strong>=feature_range,\
+     gamma=100,\
+     max_iterations=100, <strong class="bold">ae_model</strong>=autoencoder_mdl)
+cem_nn_explainer_pn.<strong class="bold">fit</strong>(X_train.values, no_info_type='median') 
+cem_nn_explanation_pn = cem_nn_explainer_pn.<strong class="bold">explain</strong>(X_test_eval, verbose=False)
+print("%s -&gt; %s" % (class_names[cem_nn_explanation_pn.<strong class="bold">X_pred</strong>],\
+                class_names[cem_nn_explanation_pn.<strong class="bold">PN_pred</strong>])) print("Probabilities: %s" %\
+                   predict_nn_fn(cem_nn_explanation_pn.<strong class="bold">PN</strong>)[0]) print("Values: %s" % cem_nn_explanation_pn.PN[0])                       </pre>
+
+			<p>下面的输出是由前面的代码产生的<a id="_idIndexMarker786"/>。可以看出，感兴趣的实例的 PN 被分类为<code>Low Risk</code>。PNs 类似于反事实，所以你会认为是这种情况。输出还包括 PN 的特征值，概率显示 PN 以<img src="img/Formula_07_033.png" alt=""/>概率勉强达到<code>Low Risk</code>:</p>
+
+			<pre>Medium/High Risk -&gt; Low Risk
+Probabilities: [0.50112426 0.49887577]
+Values: [23.    0.    ...    0.45720586    ...    0.  ]</pre>
+
+			<p>PP 的生成与 PN 完全一样，因此我们可以<a id="_idIndexMarker788"/>使用<a id="_idIndexMarker789"/>相同的代码，并用<a id="_idIndexMarker791"/> PP 替换<a id="_idIndexMarker790"/> PN 的所有实例:</p>
+
+			<pre>cem_nn_explainer_pp = <strong class="bold">CEM</strong>(predict_nn_fn, '<strong class="bold">PP</strong>',
+      X_test_eval.shape, <strong class="bold">feature_range</strong>=feature_range,\
+      gamma=100,\        
+      max_iterations=100, <strong class="bold">ae_model</strong>=autoencoder_mdl)
+cem_nn_explainer_pp.<strong class="bold">fit</strong>(X_train.values, no_info_type='median') 
+cem_nn_explanation_pp = cem_nn_explainer_pp.<strong class="bold">explain</strong>(X_test_eval,\                                        
+                                             verbose=False)
+print("%s -&gt; %s" % (class_names[cem_nn_explanation_pp.<strong class="bold">X_pred</strong>],\
+                 class_names[cem_nn_explanation_pp.<strong class="bold">PP_pred</strong>])) print("Probabilities: %s" %\  
+                    predict_nn_fn(cem_nn_explanation_pp.<strong class="bold">PP</strong>)[0]) print("Values: %s" % cem_nn_explanation_pp.PP[0])</pre>
+
+			<p>前面的代码产生了以下输出:</p>
+
+			<pre>Medium/High Risk -&gt; Medium/High Risk
+Probabilities: [0.29793483 0.70206517]
+Values: [0. 0. 0 ... 0. 0. 0.]</pre>
+
+			<p>从输出中可以看出，正如您所料，PP 被归类为<code>Medium/High Risk</code>。而它<a id="_idIndexMarker792"/>这样做的概率是 70.2%。但是，工艺程序的特征值都为零。结果是<a id="_idIndexMarker793"/>PP 寻找什么是<em class="italic">最小且充分存在的</em>，并发现全零仍将产生一个<code>Medium/High Risk</code>分类。对于这个用例，PP 值不是很直观。</p>
+
+			<p>为了便于理解，让我们为感兴趣的<em class="italic">实例</em> ( <code>x</code>)、PN、(<code>PN-x</code>)中缺少的<em class="italic">以及 PP 创建一个带有<a id="_idIndexMarker795"/>特征值的<a id="_idIndexMarker794"/>数据帧(<code>salients_df</code>)。然后我们确保只显示 PP 和 PN 中没有零的特征:</em></p>
+
+			<pre>salients_df = pd.DataFrame({'Feature': X_test.columns,\
+      'x': cem_nn_explanation_pn.X[0],\
+      'PN': cem_nn_explanation_pn.PN[0],\
+      'PN-x': cem_nn_explanation_pn.PN[0]-\        
+                 cem_nn_explanation_pn.X[0],\
+      'PP': cem_nn_explanation_pp.PP[0]})
+salients_df = salients_df[(salients_df.PP != 0) |\
+                      (salients_df.PN != 0)]
+salients_df</pre>
+
+			<p>前面的代码产生了<em class="italic">图 7.15 </em>:</p>
+
+			<div><div><img src="img/B16383_07_15.jpg" alt="Figure 7.15 – Data frame comparing PN, PP, and the instance of interest&#10;&#10;"/>
+
+				</div>
+
+			</div>
+
+			<p class="figure-caption">图 7.15–比较 PN、PP 和感兴趣的实例的数据帧</p>
+
+			<p>在<em class="italic">图 7.15 </em>中，<code>PN</code>可以被解释为你会反事实，但注意的是遗漏了什么。<code>PN-x</code>栏显示的正是:更多的<code>sex_Female</code>和更少的<code>race_African-American</code>。CEM 没有一个热编码特性的概念，所以它没有意识到<code>sex_Male</code>和<code>sex_Female</code>是互斥的，或者它们是二进制的。然而，根据 PN，这可以理解为种族和性别决定了我们感兴趣的<em class="italic">实例</em>的决定。</p>
+
+			<p>CEM 是对比的，因为你通常会通过陈述需要充分存在的东西来对比需要缺失的东西。但是我们的<code>PP</code>全零列毫无意义。这就好比说，一幅画要成为一幅画，至少要有一块空白的画布。<a id="_idIndexMarker796"/>说到绘画，由于 PP 的持续减法性质，我们的用例<a id="_idIndexMarker797"/>不适合 CEM。然而，图像是完美的用例。每一个特征都是一个<a id="_idIndexMarker798"/>连续值，一个<a id="_idIndexMarker799"/>像素，可以解释为有无光线或者一个原色。在<a href="B16383_08_ePub_RK.xhtml#_idTextAnchor162"> <em class="italic">第八章</em> </a>、<em class="italic">可视化卷积神经网络</em>中，我们将学习如何解读用图像训练的神经网络。</p>
+
+			<h1 id="_idParaDest-204"><a id="_idTextAnchor158"/>任务完成</h1>
+
+			<p>这一章的任务是看看在预测一个特定的被告是否会再次认罪时是否存在不公平的偏见。我们证明了非裔美国人被告的 FPR 是白人被告的 1.87 倍。这种差异得到了 WIT 的证实，表明所讨论的模型更有可能基于种族错误地划分阳性类别。然而，这是一种全球解释方法，所以它没有回答我们关于特定被告的问题。顺带一提，在<a href="B16383_11_ePub_RK.xhtml#_idTextAnchor231"> <em class="italic">第 11 章</em> </a>、<em class="italic">偏倚缓解和因果推断方法</em>中，我们将涵盖其他针对不公平的全局解释方法。</p>
+
+			<p>为了确定该模型是否对被告有种族偏见，我们利用了锚定和反事实解释——它们都将种族作为其解释的主要特征。主播以相对较高的精度和覆盖率做到了这一点，由原型引导的<em class="italic">反事实</em>发现最接近的一个有不同的种族。也就是说，在这两种情况下，种族并不是解释中的唯一特征。这些特征通常包括以下任意或所有特征:<code>priors_count</code>、<code>age</code>、<code>charge_degree</code>和<code>sex</code>。关于<code>race</code>的前三个不一致的规则表明了双重标准，而<code>sex</code>的参与表明了交叉性。<strong class="bold">双重标准</strong>是指<a id="_idIndexMarker800"/>规则不公平地适用于不同群体。<strong class="bold">交叉性</strong>与重叠的身份<a id="_idIndexMarker801"/>如何创造不同系统的相互关联的歧视模式有关。然而，根据学术研究，我们知道所有种族的女性都不太可能再婚。然而，我们必须问自己，他们是否有结构性优势，使他们在这种情况下必然享有特权。有一个比看上去更复杂的动态在发生。底线是，尽管所有其他因素都与种族相互影响，如果没有我们遗漏的相关犯罪学信息，是的，在这个特定的预测中存在种族偏见。</p>
+
+			<h1 id="_idParaDest-205"><a id="_idTextAnchor159"/>总结</h1>
+
+			<p>读完这一章后，你应该知道如何利用锚，理解影响分类的决策规则和反事实，掌握预测的类需要改变什么。您还学习了如何使用混淆矩阵和 Google WIT 来评估公平性。最后，我们谈到了 CEM，以解释什么是最少出现和不出现的决策。在下一章中，我们将研究<strong class="bold">卷积神经网络</strong>(<strong class="bold">CNN</strong>)的解释方法。</p>
+
+			<h1 id="_idParaDest-206"><a id="_idTextAnchor160"/>数据集来源</h1>
+
+			<p>ProPublica 数据存储。(2019).COMPAS 累犯风险评分数据和分析。最初检索自<a href="https://www.propublica.org/datastore/dataset/compas-recidivism-risk-score-data-and-analysisv">https://www . propublica . org/datastore/dataset/compas-recidivis-risk-score-data-and-analysis v</a></p>
+
+			<h1 id="_idParaDest-207"><a id="_idTextAnchor161"/>延伸阅读</h1>
+
+			<ul>
+
+				<li>Desmarais，S.L .，Johnson，K.L .，&amp; Singh，J.P. (2016 年)。美国教养机构中累犯风险评估工具的性能。心理服务；13(3):206-222.<a href="https://doi.org/10.1037/ser0000075">https://doi.org/10.1037/ser0000075</a></li>
+
+				<li>Berk，r .，Heidari，h .，Jabbari，s .，Kearns，m .，和 Roth，A. (2017 年)。刑事司法风险评估中的公平性:最先进的社会学方法与研究。</li>
+
+				<li>Angwin，j .，Larson，j .，Mattu，s .，和 Kirchner，L. (2016 年)。机器偏差。有一种软件可以在全县范围内用来预测未来的罪犯。<a href="https://www.propublica.org/article/machine-bias-risk-assessments-in-criminal-sentencing">https://www . propublica . org/article/machine-bias-risk-assessments-in-criminal-pending</a></li>
+
+				<li>里贝罗，麻省理工学院，辛格，s .，&amp; Guestrin，C. (2018)。锚:高精度模型不可知的解释。AAAI/美国计算机学会人工智能、伦理和社会会议录。<a href="https://doi.org/10.1145/3375627.3375830">https://doi.org/10.1145/3375627.3375830</a></li>
+
+				<li>m .罗克、c .波西克和 j .霍伊尔(2015 年)。年龄和犯罪。罪与罚百科全书，1-8 页。<a href="https://doi.org/10.1002/9781118519639.wbecpx275">https://doi.org/10.1002/9781118519639.wbecpx275</a></li>
+
+				<li>Dhurandhar，a .，Chen，p .，Luss，r .，Tu，c .，Ting，p .，Shanmugam，k .，&amp; Das，P. (2018 年)。基于缺失的解释:走向相关否定的对比解释。神经炎。<a href="https://arxiv.org/abs/1802.07623">https://arxiv.org/abs/1802.07623</a></li>
+
+			</ul>
+
+		</div>
+
+
+
+</body></html>

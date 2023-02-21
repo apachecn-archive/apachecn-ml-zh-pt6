@@ -1,0 +1,109 @@
+<html><head/><body>
+
+
+	
+		<title>B16069_10_Final_JM_ePub</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-139"><a id="_idTextAnchor150"/>第十章:图表的新趋势</h1>
+			<p>在前面的章节中，我们描述了不同的监督和非监督算法，这些算法可用于与图形数据结构相关的各种问题。然而，关于图机器学习的科学文献是大量的，并且在不断发展，每个月都有新的算法发表。在这一章中，我们将提供关于图机器学习的一些新技术和应用的高级描述。</p>
+			<p>本章将分为两个主要部分——高级算法和应用。第一部分主要描述图机器学习领域中一些有趣的新技术。您将了解一些基于随机游走和生成神经网络的图表数据采样和数据扩充技术。然后，您将了解拓扑数据分析，这是一种比较新颖的分析高维数据的工具。在第二部分，我们将为您提供图形机器学习在不同领域的一些有趣应用，从生物学到几何分析。读完这一章后，你会意识到观察数据之间的关系是如何打开新奇有趣的解决方案之门的。</p>
+			<p>具体来说，我们将在本章中讨论以下主题:</p>
+			<ul>
+				<li>了解图表的数据扩充</li>
+				<li>了解拓扑数据分析</li>
+				<li>在新领域中应用图论</li>
+			</ul>
+			<p>在我们开始之前，让我们确保我们具备下一节中提到的先决条件。</p>
+			<h1 id="_idParaDest-140"><a id="_idTextAnchor151"/>技术要求</h1>
+			<p>我们将在所有练习中使用 Python 3.6.9。以下是本章使用<code>pip</code>必须安装的 Python 库列表。例如，您可以在命令行上运行<code>pip install networkx==2.5</code>，等等:</p>
+			<pre>networkx==2.5 
+littleballoffur==2.1.8</pre>
+			<p>与本章相关的所有代码文件都可以在<code>URL TO BE DECIDED</code>获得。</p>
+			<h1 id="_idParaDest-141"><a id="_idTextAnchor152"/>了解图表的数据扩充</h1>
+			<p>在<a href="B16069_08_Final_JM_ePub.xhtml#_idTextAnchor129"> <em class="italic">第 8 章</em> </a>、<em class="italic">信用卡交易的图形分析</em>中，我们描述了如何使用图形机器学习来研究和自动检测欺诈性信用卡交易。在<a id="_idIndexMarker940"/>描述用例时，我们面临两个主要障碍:</p>
+			<ul>
+				<li>原始数据集中的节点太多，无法处理。结果，计算成本高得无法计算。这就是为什么我们只选择了 20%的数据集。</li>
+				<li>从原始数据集中，我们看到不到 1%的数据被标记为欺诈性交易，而其他 99%的数据集中包含真实交易。这就是为什么在边分类任务中，我们随机对数据集进行二次采样。</li>
+			</ul>
+			<p>总的来说，我们用来解决这两个障碍的技术并不是最佳的。对于图形数据，需要更复杂和创新的技术来解决任务。此外，当数据集高度不平衡时，正如我们在第 8 章 、<em class="italic">信用卡交易的图表分析</em>中提到的，我们可以使用异常检测算法来解决这个问题。</p>
+			<p>在本节中，我们将描述一些可以用来解决上述问题的技术和算法。我们将从描述图形采样问题开始，最后描述一些图形数据扩充技术。我们将分享一些有用的参考资料和 Python 库。</p>
+			<h2 id="_idParaDest-142"><a id="_idTextAnchor153"/>采样策略</h2>
+			<p>在<a href="B16069_08_Final_JM_ePub.xhtml#_idTextAnchor129"> <em class="italic">第 8 章</em> </a>、<em class="italic">信用卡交易的图形分析</em>中，为了执行边缘分类任务，我们<a id="_idIndexMarker941"/>开始我们的分析时只对整个数据集的 20%进行采样。不幸的是，这种策略总的来说不是最优的。事实上，用这种简单策略选择的节点子集可能生成不代表整个图的拓扑的子图。因此，我们需要定义一种策略，通过对正确的节点进行采样来构建给定图的子图。通过<a id="_idIndexMarker942"/>最小化<em class="italic">拓扑</em>信息的损失，从给定(大)图构建(小)子图的过程被称为<strong class="bold">图采样</strong>。</p>
+			<p>一个很好的起点，让我们有一个图形采样算法的完整概述，可在论文<em class="italic">小毛球:用于图形采样的 Python 库</em>中找到，该论文可从以下 URL 下载:【https://arxiv.org/pdf/2006.04311.pdf】T4。他们使用<code>networkx</code>库的 Python 实现可以从下面的 URL 获得:<a href="https://github.com/benedekrozemberczki/littleballoffur">https://github.com/benedekrozemberczki/littleballoffur</a>。该库中可用的算法可分为节点和边采样<a id="_idIndexMarker943"/>算法。这些算法分别对图捆绑中的节点和边进行采样。结果，我们从原始图中得到一个节点或边诱导子图。我们将让您使用<code>littleballoffur</code> Python 包中可用的不同图形采样策略来执行在<a href="B16069_08_Final_JM_ePub.xhtml#_idTextAnchor129"> <em class="italic">第 8 章</em> </a>、<em class="italic">信用卡交易的图形分析</em>中提出的分析。</p>
+			<h2 id="_idParaDest-143"><a id="_idTextAnchor154"/>探索数据增强技术</h2>
+			<p>当我们处理不平衡的数据时，数据扩充是一种常用的技术。在不平衡问题中，我们通常有来自两个或更多类的标记数据。只有少数样本可用于数据集中的一个或多个类。<a id="_idIndexMarker945"/>包含少量样本的类也称为<em class="italic">少数</em>类，而<a id="_idIndexMarker946"/>包含大量样本的类称为<em class="italic">多数</em>类。例如，在第 8 章 、<em class="italic">信用卡交易的图表分析</em>中描述的用例中，我们有一个不平衡数据集的明显例子。在输入数据集中，所有可用交易中只有 1%被标记为欺诈交易(少数类)，而其他 99%都是真实交易(多数类)。当处理<em class="italic">经典</em>数据集时，通常使用随机下采样或上采样或使用数据生成算法<a id="_idIndexMarker947"/>如<em class="italic"> SMOTE </em>来解决问题。然而，对于图形数据，这个过程可能不容易，因为生成新的节点或图形不是一个简单的过程。这是由于复杂拓扑关系的存在。在过去的十年中，出现了大量的数据扩充图算法。在这里，我们将介绍两个最新的可用算法，即<em class="italic"> GAug </em>和<em class="italic"> GRAN </em>。</p>
+			<p>GAug 算法是一种基于节点的数据扩充算法。在论文<em class="italic">图形神经网络的数据扩充</em>中有所描述，该论文可从以下网址获得:<a href="https://arxiv.org/pdf/2006.06830.pdf">https://arxiv.org/pdf/2006.06830.pdf</a>。这个库的 Python 代码可以从下面的 URL 获得:【https://github.com/zhao-tong/GAug T42】。该算法可用于需要边或节点分类的用例，如第 8 章 、<em class="italic">信用卡交易的图形分析</em>中提供的用例，其中属于<a id="_idIndexMarker948"/>少数类的节点可使用该算法扩充。作为练习，您可以使用 GAug 算法扩展我们在第 8 章 、<em class="italic">信用卡交易的图表分析</em>中提出的分析。</p>
+			<p>GRAN 算法是一种<a id="_idIndexMarker949"/>基于图的数据扩充算法。在论文<em class="italic">中描述了利用图形递归注意网络</em>的高效图形生成，该论文可从以下 URL 获得:<a href="https://arxiv.org/pdf/1910.00760.pdf">https://arxiv.org/pdf/1910.00760.pdf</a>。这个库的 Python 代码可以从下面的 URL 获得:<a href="https://github.com/lrjconan/GRAN">https://github.com/lrjconan/GRAN</a>。当我们处理图分类/聚类问题时，这个算法对于生成新的图是有用的。例如，如果我们正在处理一个不平衡图分类问题，使用 GRAN 算法为数据集创建一个平衡步骤，然后执行分类任务可能会很有用。</p>
+			<h1 id="_idParaDest-144"><a id="_idTextAnchor155"/>了解拓扑数据分析</h1>
+			<p><strong class="bold">拓扑数据分析</strong> ( <strong class="bold"> TDA </strong>)是一种相当新颖的<a id="_idIndexMarker950"/>技术，用于提取量化数据形状的特征。这种方法的思想是，通过观察数据点在特定空间中是如何组织的，我们可以揭示一些关于生成它的过程的重要信息。</p>
+			<p><a id="_idIndexMarker951"/>应用 TDA 的主要工具是<strong class="bold">持续同源</strong>。这个方法背后的数学是相当高级的，所以让我们通过一个例子来介绍这个概念。假设你有一组分布在一个空间上的数据点，让我们假设你在一段时间内“观察”它们。点是静态的(它们不在空间中移动)；因此，你将永远观察那些独立的点。然而，让我们想象一下，我们可以通过一些明确定义的规则将这些数据点连接起来，从而在它们之间创建关联。特别是，让我们想象一个球体从这些点开始随时间膨胀。每个点都有自己的扩展球体，一旦两个球体碰撞，这两个点就可以放置一个“边”。下面的图表可以说明这一点:</p>
+			<div><div><img src="img/B16069_10_01.jpg" alt="Figure 10.1 – Example of how relationships between points can be created&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.1–如何创建点之间关系的示例</p>
+			<p>碰撞的球体越多，创建的<a id="_idIndexMarker952"/>关联就越多，放置的边就越多。当多个球体相交时，会出现更复杂的几何结构，如三角形、四面体等:</p>
+			<div><div><img src="img/B16069_10_02.jpg" alt="Figure 10.2 – Example of how connections among points generate geometrical structures&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.2–点之间的连接如何生成几何结构的示例</p>
+			<p>当一个新的几何结构出现时，我们可以记下它的<em class="italic">诞生</em>时间。另一方面，当一个现有的几何结构消失时(例如，它成为一个更复杂的几何结构的一部分)，我们可以注意到它的“<em class="italic">死亡</em>时间。在模拟过程中观察到的每个几何结构的存活时间(出生和死亡之间的时间)可用作分析原始数据集的新要素。</p>
+			<p>我们也可以<a id="_idIndexMarker953"/>通过把每个结构对应的对(出生，死亡)放在一个双轴系统上来定义所谓的<strong class="bold">持久图</strong>。靠近对角线的点通常反映噪声，而远离对角线的点代表持续的特征。下面是一个持久性图的例子。请注意，我们以扩展“<em class="italic">球体</em>为例描述了整个过程。在实践中，我们可以改变这个扩展形状的尺寸(例如，使用 2D 圆)，从而为每个尺寸产生一组特征(通常使用字母<em class="italic"> H </em>表示):</p>
+			<div><div><img src="img/B16069_10_03.jpg" alt="Figure 10.3 – Example of a 2D point cloud (right) and its corresponding persistence diagram (left)&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.3-2D 点云的例子(右)及其相应的持久性图(左)</p>
+			<p>一个很好的用于执行拓扑数据分析的 Python 库<a id="_idIndexMarker954"/>是<code>giotto-tda</code>，可以在以下网址获得:<a href="https://github.com/giotto-ai/giotto-tda">https://github.com/giotto-ai/giotto-tda</a>。使用 giotto-tda 库，很容易构建单纯复形及其相对持久性图，如上图所示。</p>
+			<h2 id="_idParaDest-145"><a id="_idTextAnchor156"/>拓扑机器学习</h2>
+			<p>现在我们知道了 TDA 背后的<a id="_idIndexMarker955"/>基础，让我们看看它如何用于机器学习。通过为机器学习算法提供拓扑数据(如持久特征)，我们可以捕捉到其他传统方法可能会遗漏的模式。</p>
+			<p>在上一节中，我们看到了持久性图对于描述数据非常有用。尽管如此，用它们来喂机器学习算法(比如<code>RandomForest</code>)并不是一个好的选择。例如，不同的持久化图可能有不同数量的点，并且基本的代数运算不会被很好地定义。</p>
+			<p>克服这种限制的一种常见方法是将图表转换成更合适的表示。嵌入或内核方法可以用来获得图的“<em class="italic">矢量化</em>”表示。此外，诸如<em class="italic">暂留图像</em>、<em class="italic">暂留景观</em>和<em class="italic"> B </em>、<em class="italic"> etti 曲线</em>等高级表示方法已被证明在实际应用中非常有用。例如，持久图像(<em class="italic">图 10.4 </em>)是持久图的二维表示，可以很容易地输入卷积神经网络。</p>
+			<p>这一理论产生了几种可能性<a id="_idIndexMarker956"/>，并且这些发现和深度学习之间仍然存在联系。一些新的想法被提出，使得这个主题变得既热门又迷人:</p>
+			<div><div><img src="img/B16069_10_04.jpg" alt="Figure 10.4 – Example of a persistent images&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.4–持久图像示例</p>
+			<p>拓扑数据分析是一个快速发展的领域，尤其是因为它可以与机器学习技术相结合。每年都有几篇关于这个主题的科学论文发表，我们期待在不久的将来会有令人兴奋的新应用。</p>
+			<h1 id="_idParaDest-146"><a id="_idTextAnchor157"/>将图论应用于新领域</h1>
+			<p>近年来，由于对图形机器学习有了更坚实的理论理解，以及可用存储空间和计算能力的增加，我们可以确定这种学习理论正在传播的许多领域。只要有一点想象力，你就可以把周围的世界看成一组“<em class="italic">节点</em>”和“<em class="italic">链接</em>”我们的工作或学习场所，我们每天使用的技术设备，甚至我们的大脑都可以用网络来表示。在这一节中，我们将看一些图论(和图形机器学习)如何被应用于显然不相关的领域的例子。</p>
+			<h2 id="_idParaDest-147"><a id="_idTextAnchor158"/>图机器学习和神经科学</h2>
+			<p>用图论的方法研究大脑是一个繁荣且不断扩展的领域。已经研究了将<em class="italic">大脑表示为网络</em>的几种方式，目的是理解大脑的不同部分(节点)如何在功能上<em class="italic">或在结构上<em class="italic">相互连接。</em></em></p>
+			<p>借助<strong class="bold">磁共振成像</strong> ( <strong class="bold"> MRI </strong>)等医学<a id="_idIndexMarker960"/>技术，可以获得大脑的三维表示。这种图像可以通过不同种类的算法进行处理，以获得大脑的不同分区(分割)。</p>
+			<p>我们可以用不同的方法来定义这些区域之间的联系，这取决于我们是否对分析它们的功能或结构连接感兴趣:</p>
+			<ul>
+				<li><strong class="bold">功能磁共振成像</strong> ( <strong class="bold"> fMRI </strong>)是一种<a id="_idIndexMarker961"/>技术，用于测量大脑的一部分是否“活跃”。具体来说，它测量每个区域的<a id="_idIndexMarker962"/>的<strong class="bold">血氧水平依赖</strong> ( <strong class="bold">粗体</strong>)信号(指示某一时刻血氧水平变化的信号)。然后，可以计算两个感兴趣的大脑区域的 BOLD 系列之间的<em class="italic">皮尔逊相关性</em>。高相关性意味着这两个部分是“功能性连接的”，可以在它们之间放置一条边。一篇关于图形化分析 fMRI 数据的有趣论文是<em class="italic">基于图形的静息态功能性 MRI 网络分析</em>，可在<a href="https://www.frontiersin.org/articles/10.3389/fnsys.2010.00016/full">https://www . frontier sin . org/articles/10.3389/fnsys . 2010.00016/full</a>获得。</li>
+				<li>另一方面，通过使用先进的 MRI 技术，如<strong class="bold">扩散张量成像</strong> ( <strong class="bold"> DTI </strong>)，我们还可以<a id="_idIndexMarker963"/>测量物理连接两个感兴趣的大脑区域的白质纤维束的强度。因此，我们可以获得一个表示大脑结构连通性的图表。将图形神经网络与从 DTI 数据生成的图形结合使用的论文称为<em class="italic">经由图形卷积神经网络的多发性硬化临床概况</em>，并且可在<em class="italic"/><a href="https://www.frontiersin.org/articles/10.3389/fnins.2019.00594/full">https://www . frontiersin . org/articles/10.3389/fnins . 2019.00594/full</a>获得。</li>
+				<li>功能性和结构性<a id="_idIndexMarker964"/>连通性可以使用图论进行分析。有几项研究增强了与神经退行性疾病(如阿尔茨海默氏病、多发性硬化症和帕金森氏病等)相关的此类网络的显著改变。</li>
+			</ul>
+			<p>最终结果是描述不同大脑区域之间联系的图表，如下所示:</p>
+			<div><div><img src="img/B16069_10_05.jpg" alt="Figure 10.5 – Connection between brain regions as a graph&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 10.5-大脑区域之间的联系</p>
+			<p>在这里，我们可以看到不同的大脑区域如何被视为一个图形的节点，而这些区域之间的连接则是边。</p>
+			<p>图形机器学习已经被证明对于这种分析非常有用。已经进行了不同的研究，以基于大脑网络自动诊断特定的病理，从而预测网络的演变(例如，识别潜在的脆弱区域，这些区域在未来很可能受到病理的影响)。</p>
+			<p>网络神经科学是一个很有前景的领域，在未来，越来越多的洞察力将从这些网络中收集，这样我们就可以了解病理变化并预测疾病的演变。</p>
+			<h2 id="_idParaDest-148"><a id="_idTextAnchor159"/>图论与化学和生物学</h2>
+			<p>图形机器学习可以应用于<a id="_idIndexMarker966"/>化学。例如，图形通过将原子视为图形的节点，将键视为它们的连接，为<a id="_idIndexMarker967"/>描述<strong class="bold">分子结构</strong>提供了一种自然的方法。这种方法已经被用于研究化学系统的不同方面，包括表示反应和学习化学指纹(指示化学特征或子结构的存在与否)等。</p>
+			<p>在生物学中也可以找到一些应用，其中许多不同的元素可以用一个图来表示。例如，<strong class="bold">蛋白质相互作用</strong> ( <strong class="bold"> PPI </strong>)是最广泛研究的主题之一。这里构建了一个图，节点代表蛋白质，边代表它们的相互作用。这种方法允许我们利用 PPI 网络的结构信息，这已被证明是 PPI 预测中的信息。</p>
+			<h2 id="_idParaDest-149"><a id="_idTextAnchor160"/>图形机器学习和计算机视觉</h2>
+			<p>深度<a id="_idIndexMarker970"/>学习的兴起，尤其是<strong class="bold">卷积神经网络</strong> ( <strong class="bold"> CNN </strong>)技术，使得<a id="_idIndexMarker971"/>在计算机视觉研究方面取得了惊人的成果。对于广泛的任务，如<a id="_idIndexMarker972"/>图像分类、对象检测和语义分割，CNN 可以被认为是最先进的。然而，最近，计算机视觉中的核心挑战已经开始使用图形机器<a id="_idIndexMarker973"/>学习技术来解决，特别是<strong class="bold">几何深度学习</strong>。正如我们在本书中所了解到的，图像所代表的 2D 欧几里德域与更复杂的物体(如<a id="_idIndexMarker974"/> 3D 形状和点云)之间有着根本的区别。从 2D 和 3D 视觉数据中恢复世界的 3D 几何图形、场景理解、立体匹配和深度估计仅仅是可以做到的几个例子。</p>
+			<h3>图像分类和场景理解</h3>
+			<p>图像分类是计算机视觉中最广泛研究的任务之一，现在由基于 CNN 的算法主导，已经开始从不同的角度进行处理。图形神经网络模型已经显示出有吸引力的结果，尤其是当大量的标记数据不可用时。特别是有将这些模型与<em class="italic">零炮和少炮学习技术</em>相结合的趋势。这里，目标是对模型在训练期间从未见过的类进行分类。例如，这可以通过利用看不见的对象如何与看见的对象“语义”相关的知识来实现。</p>
+			<p>类似的方法也被用于场景理解。使用场景中检测到的对象之间的关系图提供了图像的可解释的结构化表示。这可用于支持各种任务的高级推理，包括字幕和视觉问答等。</p>
+			<h3>形状分析</h3>
+			<p>与由二维像素网格表示的<a id="_idIndexMarker978"/>图像不同，有几种表示 3D 形状的方法，例如<em class="italic">多视图图像</em>、<em class="italic">深度图</em>、<em class="italic">体素</em>、<em class="italic">点云</em>、<em class="italic">网格</em>和<em class="italic">隐式表面</em>等等。然而，当应用机器和深度学习算法时，可以利用这种表示来学习特定的几何特征，这对于设计更好的分析是有用的。</p>
+			<p>在这种背景下，几何深度学习技术显示出了有希望的结果。例如，GNN 技术已经成功应用于寻找可变形形状之间的对应关系，这是一个经典问题，导致了几个应用，包括纹理动画和映射，以及<a id="_idIndexMarker979"/>场景理解。对于那些感兴趣的人来说，在 https://arxiv.org/pdf/1611.08097.pdf<a href="https://arxiv.org/pdf/1611.08097.pdf">和 http://geometricdeeplearning.com/</a><a href="http://geometricdeeplearning.com/">有一些很好的资源可以帮助你理解图形机器学习的应用。</a></p>
+			<h2 id="_idParaDest-150"><a id="_idTextAnchor161"/>推荐系统</h2>
+			<p>图机器学习的另一个有趣的应用是在推荐系统中，我们可以用它来预测用户对一个项目的“评分”或“偏好”。在<a href="B16069_06_Final_JM_ePub.xhtml#_idTextAnchor100"> <em class="italic">第 6 章</em> </a>、<em class="italic">社交网络图</em>中，我们提供了一个例子，说明如何使用链接预测来构建自动算法，为给定用户和/或客户提供推荐。在<a href="https://arxiv.org/pdf/2011.02260.pdf">https://arxiv.org/pdf/2011.02260.pdf</a>发表的论文<em class="italic">推荐系统中的图神经网络:调查</em>中，作者提供了一份已经应用于构建推荐系统的图机器学习的广泛调查。更具体地说，作者描述了不同的图形机器学习算法及其应用。</p>
+			<h1 id="_idParaDest-151"><a id="_idTextAnchor162"/>摘要</h1>
+			<p>在这一章中，我们提供了一些新兴的图形机器学习算法及其在新领域中的应用的高级概述。在本章开始时，我们使用第 8 章 、<em class="italic">信用卡交易的图表分析</em>中提供的示例描述了图表数据的一些采样和扩充算法。我们提供了一些 Python 库，可以用来处理图形采样和图形数据扩充任务。</p>
+			<p>我们继续提供了拓扑数据分析的一般描述，以及这种技术最近在不同领域的应用。</p>
+			<p>最后，我们提供了一些新的应用领域的描述，如神经科学化学和生物学。我们还描述了机器学习算法如何用于解决其他任务，如图像分类、形状分析和推荐系统。</p>
+			<p>就是这个！在本书中，我们概述了最重要的图形机器学习技术和算法。您现在应该能够处理图形数据并构建机器学习算法。我们希望您的工具箱中现在拥有更多的工具，并且您将使用它们来开发令人兴奋的应用程序。我们也邀请你查看我们在本书中提供的参考资料，并解决我们在不同章节中提出的挑战。</p>
+			<p>图形机器学习的世界是迷人的，并且在快速发展。每天都有新的研究论文发表，并有令人难以置信的发现。像往常一样，不断查阅科学文献是发现新算法的最佳方式，而 arXiv(<a href="https://arxiv.org/">https://arxiv.org/</a>)是搜索免费科学论文的最佳地点。</p>
+		</div>
+	
+
+</body></html>

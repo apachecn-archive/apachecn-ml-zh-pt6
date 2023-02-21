@@ -1,0 +1,516 @@
+<html><head/><body>
+
+
+
+
+
+<style type="text/css">body{margin:1em;background-color:transparent!important;}#sbo-rt-content *{text-indent:0pt!important;}#sbo-rt-content .bq{margin-right:1em!important;}</style>
+<div><div><h1 id="_idParaDest-169"><a id="_idTextAnchor168"/>第九章:扩展你的培训工作</h1>
+			<p>在前四章中，您学习了如何使用内置算法、框架或您自己的代码来训练模型。</p>
+			<p>在本章中，您将学习如何扩展培训工作，允许他们在更大的数据集上进行培训，同时控制培训时间和成本。借助监控信息和简单的指导原则，我们将从讨论何时以及如何做出扩展决策开始。您还将看到如何使用<strong class="bold"> Amazon </strong> <strong class="bold"> SageMaker 调试器</strong>收集分析信息，以便了解您的培训工作有多高效。然后，我们来看几个关键的伸缩技术:<strong class="bold">管道模式</strong>、<strong class="bold">分布式训练</strong>、<strong class="bold">数据并行</strong>和<strong class="bold">模型并行</strong>。之后，我们将在大型<strong class="bold"> ImageNet </strong>数据集上启动一个大型训练任务，并看看如何扩展它。最后，我们将讨论用于大规模培训的<strong class="bold"> S3 </strong>的存储替代方案，即<strong class="bold">亚马逊</strong>T21EFS<strong class="bold">亚马逊</strong>T25】FSx for Lustre。</p>
+			<p>我们将讨论以下主题:</p>
+			<ul>
+				<li>了解何时以及如何扩展</li>
+				<li>使用 Amazon SageMaker 调试器监控和分析培训工作</li>
+				<li>使用管道模式流式传输数据集</li>
+				<li>分配培训工作</li>
+				<li>在 ImageNet 上缩放图像分类模型</li>
+				<li>利用数据和模型并行性进行培训</li>
+				<li>使用其他存储服务</li>
+			</ul>
+			<h1 id="_idParaDest-170"><a id="_idTextAnchor169"/>技术要求</h1>
+			<p>您将需要一个 AWS 帐户来运行本章中包含的示例。如果您还没有，请将浏览器指向<a href="https://aws.amazon.com/getting-started/">https://aws.amazon.com/getting-started/</a>来创建它。您还应该熟悉 AWS 免费层(<a href="https://aws.amazon.com/free/">https://aws.amazon.com/free/</a>)，它允许您在一定的使用限制内免费使用许多 AWS 服务。</p>
+			<p>您需要为您的帐户(<a href="https://aws.amazon.com/cli/">https://aws.amazon.com/cli/</a>)安装和配置 AWS <strong class="bold">命令行界面</strong> ( <strong class="bold"> CLI </strong>)。</p>
+			<p>你将需要一个工作的<code>pandas</code>、<code>numpy</code>等等)。</p>
+			<p>本书中包含的代码示例可从 GitHub 上的<a href="https://github.com/PacktPublishing/Learn-Amazon-SageMaker-second-edition">https://GitHub . com/packt publishing/Learn-Amazon-sage maker-second-edition</a>获得。你需要安装一个 Git 客户端来访问它们(<a href="https://git-scm.com/">https://git-scm.com/</a>)。</p>
+			<h1 id="_idParaDest-171"><a id="_idTextAnchor170"/>了解何时以及如何扩大规模</h1>
+			<p>在我们<a id="_idIndexMarker917"/>深入了解扩展技术之前，让我们先讨论一下在决定是否需要扩展以及如何扩展时应该考虑的监控信息。</p>
+			<h2 id="_idParaDest-172"><a id="_idTextAnchor171"/>了解缩放的含义</h2>
+			<p>培训日志告诉我们这项工作持续了多长时间。就其本身而言，这并不真正有用。<em class="italic">多长</em>太长？这感觉很主观吧？此外，即使在相同的数据集<a id="_idIndexMarker918"/>和基础设施上进行训练，改变单个超参数也会显著影响训练时间。批量大小就是一个例子，还有很多例子。</p>
+			<p>当我们关注训练时间时，我认为我们实际上是在试图回答三个问题:</p>
+			<ul>
+				<li>培训时间是否符合我们的业务要求？</li>
+				<li>我们是否充分利用了我们花钱购买的基础设施？我们是供应不足还是供应过度？</li>
+				<li>我们能在不花更多钱的情况下训练得更快吗？</li>
+			</ul>
+			<h2 id="_idParaDest-173"><a id="_idTextAnchor172"/>根据业务需求调整培训时间</h2>
+			<p>问自己这个问题—如果您的培训工作运行速度提高一倍，对您的业务会有什么直接影响？在许多情况下，诚实的答案应该是<em class="italic">无</em>。没有明确的业务<a id="_idIndexMarker919"/>指标需要改进。</p>
+			<p>当然，有些公司会提供持续几天甚至几周的培训工作——想想自动驾驶或生命科学。对他们来说，训练时间的任何显著减少都意味着他们可以更快地获得结果，分析结果，并开始下一次迭代。</p>
+			<p>其他一些公司想要尽可能最新的模型，他们每小时重新培训一次。当然，训练时间需要控制好，以保证最后期限。</p>
+			<p>在这两种类型的公司中，扩大规模至关重要。对于其他人来说，事情就没那么清楚了。如果您的公司每周或每月训练一个生产模型，那么训练是否提前 30 分钟达到相同的准确度真的很重要吗？大概不会。</p>
+			<p>一些人肯定会反对他们需要一直训练大量的模型。这恐怕是一种谬论。由于 SageMaker 允许您在需要时创建按需基础架构，因此培训活动将不受容量限制。当您使用物理基础架构而不是云基础架构时，就会出现这种情况。即使你每天需要训练 1000 个<strong class="bold"> XGBoost </strong>的工作，每个单独的工作花费 5 分钟而不是 6 分钟真的重要吗？大概不会。</p>
+			<p>有些人会反驳说，“你训练得越快，花费就越少。”这又是一个谬论。SageMaker 培训作业的成本是以秒为单位的培训时间乘以实例类型的成本和实例的数量。如果选择更大的实例类型，训练时间很可能会减少。它会减少到足以抵消增加的实例成本吗？也许是，也许不是。有些培训工作会充分利用额外的基础设施，有些则不会。唯一知道的方法是运行测试并做出数据驱动的决策。</p>
+			<h2 id="_idParaDest-174"><a id="_idTextAnchor173"/>调整培训基础设施的规模</h2>
+			<p>SageMaker <a id="_idIndexMarker920"/>支持一长串实例类型，其中<a id="_idIndexMarker921"/>看起来像一个非常不错的糖果店(<a href="https://aws.amazon.com/sagemaker/pricing/instance-types">https://aws.amazon.com/sagemaker/pricing/instance-types</a>)。你所要做的就是调用一个 API 来启动一个 8 GPU EC2 实例——比你的公司允许你购买的任何服务器都要强大。买者自负——不要忘记网址的“定价”部分！</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">如果“EC2 instance”这几个字对你来说意义不大，我肯定会推荐你在<a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html">https://docs . AWS . Amazon . com/AWS C2/latest/user guide/concepts . html</a>上读一点关于<strong class="bold"> Amazon </strong> <strong class="bold"> EC2 </strong>的<a id="_idIndexMarker922"/>。</p>
+			<p>当然，云基础设施不需要你预先支付大量的钱来购买和托管服务器。尽管如此，AWS 法案将在月底出台。因此，即使使用成本<a id="_idIndexMarker923"/>优化技术，如<strong class="bold">管理现场培训</strong>(我们将在下一章讨论)，正确确定培训基础设施的规模也是至关重要的。</p>
+			<p>我的建议总是一样的:</p>
+			<ul>
+				<li>确定依赖于培训时间的业务需求。</li>
+				<li>从最小的合理数量的基础设施开始。</li>
+				<li>衡量技术指标和成本。</li>
+				<li>If business requirements are met, did you overprovision? There are two possible answers:<p>a) <strong class="bold">是</strong>:缩小并重复。</p><p>b) <strong class="bold">否</strong>:大功告成。</p></li>
+				<li>如果业务需求没有得到满足，找出瓶颈。</li>
+				<li>对纵向扩展(较大的实例类型)和横向扩展(更多实例)进行一些测试。</li>
+				<li>衡量技术指标和成本。</li>
+				<li>为您的业务环境实施最佳解决方案。</li>
+				<li>重复一遍。</li>
+			</ul>
+			<p>当然，这个<a id="_idIndexMarker924"/>过程和参与其中的人一样好。要批判！“太慢”不是一个数据点，而是一种观点。</p>
+			<h2 id="_idParaDest-175"><a id="_idTextAnchor174"/>决定何时扩展</h2>
+			<p>谈到监控信息，您可以依赖三个来源:培训日志、<strong class="bold">Amazon</strong><strong class="bold">cloud watch</strong>指标，以及<strong class="bold"> Amazon </strong> <strong class="bold"> SageMaker 调试器</strong>中的分析功能。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">如果“CloudWatch”对你来说意义不大，我肯定会推荐你在<a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/">https://docs . AWS . Amazon . com/Amazon cloud watch/latest/monitoring/</a>上读一点关于它的内容。</p>
+			<p>训练日志显示了总的训练时间和每秒的样本数。正如上一节所讨论的，总训练时间不是一个非常有用的指标。除非你有非常严格的期限，否则最好忽略它。每秒的样本数更有意思。你可以用它来比较你的培训工作和研究论文或博客文章中的基准。如果有人成功地在相同的 GPU 上训练相同的模型两倍的速度，你应该也能做到。当您接近这个数字时，您也会知道没有太多的改进空间，应该考虑其他扩展技术。</p>
+			<p>CloudWatch 为您提供 1 分钟分辨率的粗粒度基础设施指标。对于简单的培训工作，您只需使用这些指标来检查您的培训是否有效利用了底层基础架构，并识别潜在的瓶颈。</p>
+			<p>对于更复杂的工作(分布式培训、定制代码等)，SageMaker Debugger 为您提供了细粒度的、接近实时的基础设施和 Python 指标，分辨率低至 100 毫秒。这些信息将让您深入了解并确定复杂的性能和扩展问题。</p>
+			<h2 id="_idParaDest-176"><a id="_idTextAnchor175"/>决定如何扩展</h2>
+			<p>如前所述，您可以向上扩展(移动到更大的实例)或向外扩展(使用多个实例进行分布式培训)。我们来看看利弊。</p>
+			<h3>按比例放大</h3>
+			<p>放大<a id="_idIndexMarker926"/>很简单。您只需要更改实例类型。监控保持不变，并且只有一个训练日志要读。最后但并非最不重要的一点是，对单个实例的训练是可预测的，并且通常能够提供最佳的准确性，因为只需要学习和更新一组模型参数。</p>
+			<p>不利的一面是，您的算法可能不够计算密集和并行，无法从额外的计算能力中受益。额外的 vCPUs 和 GPU 只有在投入使用时才有用。您的网络和存储层也必须足够快，让它们始终保持忙碌，这可能需要使用 S3 的替代品，从而产生一些额外的工程工作。即使你没有遇到这些问题，总有一天你会发现根本没有更大的实例可以使用！</p>
+			<h3>通过多 GPU 实例进行扩展</h3>
+			<p>尽管多 GPU 实例很诱人，但它们也带来了特定的挑战。An <code>ml.g4dn.16xlarge</code>和<code>ml.p3dn.24xlarge</code>支持 100 Gbit 联网和超高速 SSD NVMe 本地存储。不过，这种水平的性能是有代价的，你需要确保它真的值得。</p>
+			<p>你应该记住，越大并不总是越好。GPU 间的通信，无论有多快，都会引入一些开销，这会降低较小的训练作业的性能。在这里，你也应该尝试，找到最甜蜜的地方。</p>
+			<p>根据我的经验，获得多 GPU 实例的高性能需要一些工作。除非模型太大，不适合单个 GPU，或者算法不支持分布式训练，否则我建议首先尝试在单个 GPU 实例上横向扩展。</p>
+			<h3>向外扩展</h3>
+			<p>向外扩展<a id="_idIndexMarker931"/>允许您将大型数据集分布到一个训练实例集群中。即使您的培训工作不是线性扩展的，与单实例培训相比，您也会获得明显的加速。您可以使用大量只处理数据集子集的较小实例，这有助于控制成本。</p>
+			<p>不利的一面是，数据集需要以一种可以跨训练集群有效分布的格式准备。由于分布式培训非常繁琐，网络 I/O 也可能成为瓶颈。然而，主要问题通常是准确性，这通常低于单实例训练，因为每个实例都使用自己的模型参数集。这可以通过要求训练实例定期同步它们的工作来缓解，但是这是一个影响训练时间的昂贵操作。</p>
+			<p>如果你认为扩展比看起来更难，那你就对了。让我们通过第一个简单的例子来尝试将所有这些概念付诸实践。</p>
+			<h2 id="_idParaDest-177"><a id="_idTextAnchor176"/>扩展 BlazingText 培训工作</h2>
+			<p>在<a href="B17705_06_Final_JM_ePub.xhtml#_idTextAnchor108"> <em class="italic">第六章</em> </a>，<em class="italic">训练自然语言处理模型</em>中，我们使用<strong class="bold"> BlazingText </strong>和<a id="_idIndexMarker933"/>亚马逊评论数据集来训练<a id="_idIndexMarker934"/>一个情感分析模型。当时，我们只对 10 万条评论进行了训练。这一次，我们将在完整的数据集上训练它:180 万条评论(1.51 亿字)。</p>
+			<p>重用我们的 SageMaker 处理笔记本，我们在一个<code>ml.c5.9xlarge</code>实例上处理完整的数据集，将结果存储在 S3，并将它们提供给我们的培训工作。训练集的大小已经增长到相当可观的 720 MB。</p>
+			<p>为了给 BlazingText 额外的工作，我们应用以下超参数来增加作业将学习的单词向量的复杂性:</p>
+			<pre>bt.set_hyperparameters(mode='supervised', vector_dim=300, word_ngrams=3, epochs=50)</pre>
+			<p>我们在单个<code>ml.c5.2xlarge</code>实例上训练。它有 8 个 vCPU 和 16 GB 的内存，并使用<code>gp2</code>级，这是基于固态硬盘)。</p>
+			<p>该作业运行 2109 秒(35 分钟多一点)，峰值为每秒 484 万字。让我们来看看 CloudWatch 指标:</p>
+			<ol>
+				<li>从<strong class="bold"> SageMaker Studio </strong>中的<strong class="bold">实验和试验</strong>面板开始，我们在试验详情中定位培训工作并右键单击<strong class="bold">打开。</strong></li>
+				<li>然后，我们选择<strong class="bold"> AWS 设置</strong>选项卡。向下滚动，我们看到一个名为<strong class="bold">的链接，查看实例指标</strong>。点击它，我们将直接进入培训工作的 CloudWatch 指标。</li>
+				<li>让我们在<strong class="bold">所有指标</strong>中选择<code>CPUUtilization</code>和<code>MemoryUtilization</code>，并将其可视化，如下图所示:</li>
+			</ol>
+			<div><div><img src="img/B17705_09_1.jpg" alt="Figure 9.1 – Viewing CloudWatch metrics&#13;&#10;" width="1190" height="585"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.1–查看 CloudWatch 指标</p>
+			<p>在右边的 Y 轴上，内存利用率稳定在 20%，所以我们肯定不需要更多的 RAM。</p>
+			<p>仍然是在右侧的 Y 轴上，在训练期间磁盘利用率大约是 3%,在保存模型时上升到 12%。我们为此实例分配了太多存储。默认情况下，SageMaker 实例获得 30 GB 的 Amazon EBS 存储，那么我们在这里浪费了多少钱呢？在<code>eu-west-1</code>中，SageMaker 的 EBS 成本为 0.154 美元/GB 月，因此 2117 秒的 30 GB 成本为 0.154 * 30 *(2109/(24 * 30 * 3600))= 0.00376 美元。这是一个愚蠢的低数额，但如果你每月培训数千份工作，它会增加。即使这样我们每年可以节省 10 美元，我们也应该节省！这可以通过在所有估算器中设置<code>volume_size</code>参数来轻松实现。</p>
+			<p>在左侧的 Y 轴上，我们看到 CPU 利用率稳定在 790%左右，非常接近 800%的最大值(100%使用率时有 8 个虚拟 CPU)。这份工作显然是受计算机限制的。</p>
+			<p>那么，我们有什么选择？如果 BlazingText 支持监督模式下的分布式训练(它不支持)，我们可以考虑用更小的<code>ml.c5.xlarge</code>实例(4 个 vCPUs 和 8gb RAM)进行扩展。这比足够的 RAM 要多，小块地增加容量是一种好的做法。这就是合理调整<a id="_idIndexMarker936"/>的意义所在:不要太多，也不要太少——应该刚刚好。</p>
+			<p>不管怎样，我们唯一的选择就是扩大规模。查看可用实例列表，我们可以尝试<code>ml.c5.4xlarge</code>。由于 BlazingText 支持单 GPU 加速，<code>ml.p3.2xlarge</code> (1 个 NVIDIA V100 GPU)也是一个选择。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">截至发稿时，性价比较高的<code>ml.g4dn.xlarge</code>不幸不被 BlazingText 支持。</p>
+			<p>让我们两个都试试，比较一下培训时间和成本。</p>
+			<div><div><img src="img/011.jpg" alt="" width="1640" height="929"/>
+				</div>
+			</div>
+			<p><code>ml.c5.4xlarge</code>实例为适度的价格上涨提供了一个很好的加速。有趣的是，这项工作仍然受到计算的限制，所以我决定尝试更大的<code>ml.c5.9xlarge</code>实例(36 个 vCPUs ),但是加速比足以抵消增加的成本。</p>
+			<p>GPU 实例几乎快了 3 倍，因为 BlazingText 已经过优化，可以利用数千个内核。它也贵了大约 3 倍，如果最大限度地减少培训时间非常重要，这是可以接受的。</p>
+			<p>这个简单的<a id="_idIndexMarker937"/>示例向您展示了调整培训基础设施的规模并不是魔术。通过遵循简单的规则，查看一些度量标准，并使用常识，您可以为您的项目找到正确的实例大小。</p>
+			<p>现在，让我们介绍 Amazon SageMaker Debugger 中的监控和概要分析功能，这将为我们提供关于培训工作性能的更多信息。</p>
+			<h1 id="_idParaDest-178"><a id="_idTextAnchor177"/>使用 Amazon SageMaker 调试器监控和分析培训工作</h1>
+			<p>SageMaker 调试器包括一个监控和分析功能，让我们能够以比 CloudWatch 低得多的时间分辨率(每 100 毫秒一次)收集基础设施<a id="_idIndexMarker938"/>和代码<a id="_idIndexMarker939"/>性能信息<a id="_idIndexMarker940"/>。它还允许我们配置和触发内置或自定义规则，以监视我们培训工作中不需要的条件。</p>
+			<p>剖析非常容易使用，事实上，它是默认开启的！您可能已经注意到培训日志中有这样一行:</p>
+			<pre><strong class="bold">2021-06-14 08:45:30 Starting - Launching requested ML instancesProfilerReport-1623660327: InProgress</strong></pre>
+			<p>这告诉<a id="_idIndexMarker942"/>我们 SageMaker <a id="_idIndexMarker943"/>正在自动<a id="_idIndexMarker944"/>运行一个分析作业，与我们的培训作业并行。概要分析工作的作用是收集<a id="_idIndexMarker945"/>数据点，然后我们可以在 SageMaker Studio 中显示这些数据点，以便可视化指标和理解潜在的性能问题。</p>
+			<h2 id="_idParaDest-179"><a id="_idTextAnchor178"/>在 SageMaker Studio 中查看监控和分析信息</h2>
+			<p>让我们从<a id="_idIndexMarker946"/>回到<code>ml.p3.2xlarge</code>实例。我们右击它，并选择<strong class="bold">Open Debugger for insights</strong>。这将打开一个新的选项卡，可以在下一个屏幕截图中看到:</p>
+			<div><div><img src="img/B17705_09_2.jpg" alt="Figure 9.2 – Viewing monitoring and profiling information&#13;&#10;" width="863" height="550"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.2–查看监控和分析信息</p>
+			<p>在顶部的<a id="_idIndexMarker948"/>中，我们可以看到默认情况下监控<a id="_idIndexMarker949"/>确实是打开的，而剖析并没有打开。展开<strong class="bold">概述</strong>选项卡中的<strong class="bold">资源利用率摘要</strong>项，我们可以看到基础设施指标的摘要，如下一个屏幕截图所示:</p>
+			<div><div><img src="img/B17705_09_3.jpg" alt="Figure 9.3 – Viewing utilization summary&#13;&#10;" width="547" height="230"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.3–查看利用率摘要</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">P50、p95 和 p99 是百分位数。如果你不熟悉这个概念，你可以在<a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch_concepts.html#Percentiles">https://docs . AWS . Amazon . com/Amazon cloud watch/latest/monitoring/cloud watch _ concepts . html # Percentiles</a>找到更多信息。</p>
+			<p>继续进行<code>algo-1</code>。例如，您可以在下一张截图中看到它的 GPU 利用率:</p>
+			<div><div><img src="img/B17705_09_4.jpg" alt="Figure 9.4 – Viewing GPU utilization over time&#13;&#10;" width="1119" height="291"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.4–查看一段时间内的 GPU 利用率</p>
+			<p>我们还可以很好地了解系统利用率随时间的变化情况，每个 vCPU 和 GPU 一行，如下面的屏幕截图所示:</p>
+			<div><div><img src="img/B17705_09_5.jpg" alt="Figure 9.5 – Viewing system utilization over time&#13;&#10;" width="1252" height="179"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.5–查看一段时间内的系统利用率</p>
+			<p>当您的培训作业运行时，所有这些信息都会近乎实时地更新。只需启动一个培训作业，打开这个视图，几分钟后，图表就会显示出来并得到更新。</p>
+			<p>现在，让我们看看如何在我们的培训工作中启用详细的概要信息。</p>
+			<h2 id="_idParaDest-180"><a id="_idTextAnchor179"/>在 SageMaker 调试器中启用分析</h2>
+			<p>概要分析收集框架指标(<strong class="bold"> TensorFlow </strong>、<strong class="bold"> PyTorch </strong>、<strong class="bold"> Apache </strong>、<strong class="bold"> MXNet </strong>和 XGBoost)、数据<a id="_idIndexMarker952"/>加载器指标和 Python 指标。对于后者，我们可以使用<strong class="bold"> CProfile </strong>或<strong class="bold"> Pyinstrument </strong>。</p>
+			<p>可以在评估器中配置分析(这是我们将使用的选项)。您也可以在 SageMaker Studio 中对正在运行的作业手动启用它(参见<em class="italic">图 9.2 </em>中的滑块)。</p>
+			<p>让我们重用来自第 6 章 、<em class="italic">训练计算机视觉模型</em>的 TensorFlow/Keras 示例，每隔 100 毫秒收集所有分析信息:</p>
+			<ol>
+				<li value="1">首先，我们创建一个<code>FrameworkProfile</code>对象，包含概要分析、数据加载和 Python 配置的默认设置。对于其中的每一个，我们可以为数据收集指定精确的时间范围或步骤范围:<pre>from sagemaker.debugger import FrameworkProfile, DetailedProfilingConfig, DataloaderProfilingConfig, PythonProfilingConfig, PythonProfiler framework_profile_params = FrameworkProfile(  detailed_profiling_config=DetailedProfilingConfig(),   dataloader_profiling_config=DataloaderProfilingConfig(),  python_profiling_config=PythonProfilingConfig(    python_profiler=PythonProfiler.PYINSTRUMENT) )</pre></li>
+				<li>然后，我们创建一个<code>ProfilerConfig</code>对象来设置框架参数和数据收集的时间间隔:<pre>from sagemaker.debugger import ProfilerConfig  profiler_config = ProfilerConfig(     system_monitor_interval_millis=100,     framework_profile_params=framework_profile_params)</pre></li>
+				<li>最后，我们将这个配置传递给我们的估计器，并照常训练:<pre>tf_estimator = TensorFlow(     entry_point='fmnist.py',     . . .                             profiler_config=profiler_config)</pre></li>
+				<li>随着<a id="_idIndexMarker953"/>培训作业的运行，分析数据被自动收集并保存在 S3 的默认位置(您可以使用<code>ProfilingConfig</code>中的<code>s3_output_path</code>参数定义自定义路径)。我们也可以使用<code>smdebug</code><strong class="bold">SDK</strong>(<a href="https://github.com/awslabs/sagemaker-debugger">https://github.com/awslabs/sagemaker-debugger</a>)来加载和检查分析数据。</li>
+				<li>Shortly after the training job completes, we see summary information in the <strong class="bold">Overview</strong> tab, as shown in the next screenshot: <div><img src="img/B17705_09_6.jpg" alt="Figure 9.6 – Viewing profiling information&#13;&#10;" width="794" height="533"/></div><p class="figure-caption">图 9.6–查看分析信息</p></li>
+				<li>我们<a id="_idIndexMarker954"/>也可以下载 HTML 格式的详细报告(参见<em class="italic">图 9.2 </em>中的按钮)。例如，它告诉我们哪些是最昂贵的 GPU 操作符。不出所料，我们看到了我们的<code>fmnist_model</code>函数和用于 2D 卷积的张量流算子，如下一张截图所示:</li>
+			</ol>
+			<div><div><img src="img/B17705_09_7.jpg" alt="Figure 9.7 – Viewing the profiling report&#13;&#10;" width="697" height="309"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.7–查看性能分析报告</p>
+			<p>该报告还包含关于在训练期间触发的内置规则的信息，警告我们有关 GPU 使用率低、CPU 瓶颈等情况。这些规则具有默认设置，如果需要，可以对其进行自定义。我们将在下一章讨论如何使用 SageMaker 调试器调试培训作业时，更详细地介绍规则<a id="_idIndexMarker955"/>。</p>
+			<p>现在，让我们看看培训工作的一些常见问题，以及我们如何解决它们。在这个过程中，我们将提到 SageMaker 的几个特性，这些特性将在本章的其余部分讨论。</p>
+			<h2 id="_idParaDest-181"><a id="_idTextAnchor180"/>解决训练挑战</h2>
+			<p>我们将<a id="_idIndexMarker956"/>深入探讨这些挑战及其解决方案，如下所示:</p>
+			<p><em class="italic">我需要大量存储在训练实例上。</em></p>
+			<p>正如前面的例子中所讨论的，大多数 SageMaker 训练实例使用 EBS 卷，您可以在估计器中设置它们的大小。EBS 卷的最大大小是 16 TB，所以应该足够了。如果你的算法需要大量的临时存储空间来存放中间结果，这是一个不错的选择。</p>
+			<p><em class="italic">我的数据集很大，复制到训练实例需要很长时间。</em></p>
+			<p>定义“长”！如果您正在寻找快速解决方案，您可以使用具有高网络性能的实例类型。比如<code>ml.g4dn</code>和<code>ml.p3dn</code>实例支持<strong class="bold">弹性织物适配器</strong>(https://AWS . Amazon . com/HPC/EFA)，可以一直到 100 Gbit/s。</p>
+			<p>如果这还不够，并且如果您在单个实例上进行训练，您应该使用管道模式，它从 S3 流式传输数据，而不是复制它。</p>
+			<p>如果训练是分布式的，您可以将<code>FullyReplicated</code>切换到<code>ShardedbyS3Key</code>，这样<a id="_idIndexMarker958"/>只会将数据集的一小部分分配给每个实例。这可以与管道模式结合使用，以获得额外的性能。</p>
+			<p><em class="italic">我的数据集很大，RAM 装不下。</em></p>
+			<p>如果您想坚持使用单个实例，解决问题的一个快速方法是扩大规模。<code>ml.r5d.24xlarge</code>和<code>ml.p3dn.24xlarge</code>实例拥有 768 GB 的内存！如果分布式培训是一个选项，那么您应该配置它并应用数据并行性。</p>
+			<p><em class="italic"> CPU 利用率低。</em></p>
+			<p>假设<a id="_idIndexMarker959"/>您没有过度配置，最可能的原因是 I/O 延迟(网络或存储)。CPU 停止工作是因为它在等待从存储数据的地方获取数据。</p>
+			<p>你首先应该回顾的是数据格式。如前几章所述，没有<a id="_idIndexMarker960"/>转义<strong class="bold"> RecordIO </strong>或<strong class="bold"> TFRecord </strong>文件。如果你正在使用其他格式(CSV，单个图像，等等)，你应该在调整基础设施之前从那里开始。</p>
+			<p>如果将数据从 S3 复制到 EBS 卷，您可以尝试使用具有更多 EBS 带宽的实例。编号<a id="_idIndexMarker962"/>可在以下位置获得:</p>
+			<p><a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-optimized.html">https://docs . AWS . Amazon . com/AWS C2/latest/user guide/EBS-optimized . html</a></p>
+			<p>还可以切换到具有本地 NVMe 存储(g4dn 和 p3dn)的实例类型。如果问题仍然存在，您应该检查读取数据并将其传递给定型算法的代码。它可能需要更多的并行性。</p>
+			<p>如果数据以管道模式从 S3 传输，不太可能达到 25 GB/s 的最大传输速度，但值得检查一下 CloudWatch 中的实例指标。如果你确定<a id="_idIndexMarker963"/>没有其他原因，你应该转向其他<a id="_idIndexMarker964"/>文件存储服务，比如<strong class="bold">亚马逊</strong>EFS 和<strong class="bold">亚马逊</strong>FSx for Lustre。</p>
+			<p><em class="italic"> GPU 内存利用率低。</em></p>
+			<p>GPU 没有从 CPU 接收足够的数据。您需要增加批处理大小，直到内存利用率接近 100%。如果你增加太多，你会得到一个愤怒的<code>out of memory</code>错误信息，比如这个:</p>
+			<pre>/opt/brazil-pkg-cache/packages/MXNetECL/MXNetECL-v1.4.1.1457.0/AL2012/generic-flavor/src/src/storage/./pooled_storage_manager.h:151: cudaMalloc failed: out of memory</pre>
+			<p>在数据并行配置中使用多 GPU 实例时，您应该将传递给估计器的批处理大小乘以实例中存在的 GPU 数量。</p>
+			<p>当增加批量时，您必须考虑可用训练样本的数量。例如，我们在<a href="B17705_05_Final_JM_ePub.xhtml#_idTextAnchor091"> <em class="italic">第 5 章</em></a><em class="italic">训练计算机视觉模型</em>中用于语义分割的<strong class="bold"> Pascal </strong> VOC 数据集只有 1464 个样本，因此将批量大小增加到 64 或 128 以上可能没有意义。</p>
+			<p>最后，批量大小对工作收敛有重要影响。非常大的批量可能会降低学习速度，因此您可能需要相应地提高学习速度。</p>
+			<p>有时候，你只能接受 GPU 内存利用率低的事实！</p>
+			<p><em class="italic"> GPU 利用率低。</em></p>
+			<p>也许你的<a id="_idIndexMarker965"/>型号根本不够大，无法让 GPU 真正忙碌起来。您应该尝试在较小的 GPU 上缩小规模。</p>
+			<p>如果你正在处理一个大的模型，GPU 可能会因为 CPU 不能足够快地处理它而停止。如果您控制着数据加载代码，您应该尝试添加更多的并行性，例如用于数据加载和预处理的额外线程。如果不是，您应该尝试具有更多 vCPUs 的更大的实例类型。希望数据加载代码能够很好地利用它们。</p>
+			<p>如果数据加载代码中有足够的并行性，那么缓慢的 I/O 很可能是原因。你应该寻找一个更快的替代品(NVMe，EFS，或 FSx 的 Lustre)。</p>
+			<p><em class="italic"> GPU 利用率高</em>。</p>
+			<p>那是个好地方！您正在高效地使用您为之付费的基础设施。正如前面的例子中所讨论的，您可以尝试向上扩展(更多 vCPUs 或更多 GPU)，或者<a id="_idIndexMarker966"/>向外扩展(更多实例)。将两者结合起来可以处理高度并行的工作负载，如深度学习。</p>
+			<p>现在我们对缩放作业有了更多的了解，让我们从管道模式开始了解更多 SageMaker 特性。</p>
+			<h1 id="_idParaDest-182"><a id="_idTextAnchor181"/>使用管道模式流式传输数据集</h1>
+			<p>估计器的默认<a id="_idIndexMarker967"/>设置是将数据集<a id="_idIndexMarker968"/>复制到训练实例，这被称为<strong class="bold">文件模式</strong>。相反，<strong class="bold">管道模式</strong>直接从 S3 传输<a id="_idIndexMarker969"/>。该特性的名称<a id="_idIndexMarker970"/>来自于它使用的<strong class="bold">Unix</strong>T14】命名管道(也称为<a id="_idIndexMarker972"/>FIFO):在每个时期的开始，每个输入通道创建一个管道。</p>
+			<p>管道模式消除了将任何数据复制到定型实例的需要。显然，培训工作开始得更快。它们通常也运行得更快，因为管道模式是高度优化的。另一个好处是，您不必为训练实例上的数据集调配任何存储。</p>
+			<p>减少培训时间和存储意味着你可以省钱。数据集越大，你节省的就越多。您可以在以下链接中找到基准:</p>
+			<p><a href="https://aws.amazon.com/blogs/machine-learning/accelerate-model-training-using-faster-pipe-mode-on-amazon-sagemaker/">https://AWS . Amazon . com/blogs/machine-learning/accelerate-model-training-using-faster-pipe-mode-on-Amazon-sage maker/</a></p>
+			<p>在实践中，您可以开始尝试使用管道模式来处理数百兆字节甚至更多的数据集。事实上，这个特性使您能够处理无限大的数据集。由于存储和 RAM 需求不再与数据集的大小相关联，因此您的算法可以处理的数据量没有实际限制。在 Pb 级数据集上进行训练成为可能。</p>
+			<h2 id="_idParaDest-183"><a id="_idTextAnchor182"/>使用内置算法的管道模式</h2>
+			<p>管道模式的主要候选是内置算法，因为它们中的大多数都支持它:</p>
+			<ul>
+				<li><strong class="bold">线性学习器</strong>、<strong class="bold"> k-Means </strong>、<strong class="bold">k-最近邻</strong>、<strong class="bold">主成分分析</strong>、<strong class="bold">随机切割森林</strong>、<strong class="bold">神经主题建模</strong> : RecordIO-wrapped protobuf 或 CSV 数据</li>
+				<li><strong class="bold">因式分解机</strong>，<strong class="bold">潜在狄利克雷分配</strong> : RecordIO-wrapped protobuf 数据</li>
+				<li><strong class="bold"> BlazingText </strong>(监督模式):增强清单</li>
+				<li><strong class="bold">图像分类</strong>或<strong class="bold">对象检测</strong>:记录打包的 protobuf 数据或增强清单</li>
+				<li><strong class="bold">语义分割</strong>:增强清单。</li>
+			</ul>
+			<p>你应该对<a id="_idIndexMarker975"/>已经很熟悉了<code>im2rec</code>工具有一个选项可以生成多个列表文件(<code>--chunks</code>)。如果您已经有列表文件，您当然可以自己拆分它们。</p>
+			<p>当我们在<a href="B17705_05_Final_JM_ePub.xhtml#_idTextAnchor091"> <em class="italic">第 5 章</em> </a>、<em class="italic">训练计算机视觉模型</em>中讨论由<strong class="bold"> SageMaker </strong> <strong class="bold">地面真相</strong>标注的数据集时，我们看了<a id="_idIndexMarker976"/>增强清单格式。对于计算机<a id="_idIndexMarker977"/>视觉算法，这个<strong class="bold"> JSON 行</strong>文件包含<a id="_idIndexMarker978"/>图像在 S3 的位置及其标签信息。您可以通过以下链接了解更多信息:</p>
+			<p><a href="https://docs.aws.amazon.com/sagemaker/latest/dg/augmented-manifest.html">https://docs . AWS . Amazon . com/sage maker/latest/DG/augmented-manifest . html</a></p>
+			<h2 id="_idParaDest-184"><a id="_idTextAnchor183"/>与其他算法和框架一起使用管道模式</h2>
+			<p>由于 AWS 实现的<code>PipeModeDataset</code>类，TensorFlow <a id="_idIndexMarker979"/>支持管道模式。以下是一些有用的资源:</p>
+			<ul>
+				<li><a href="https://github.com/aws/sagemaker-tensorflow-extensions">https://github.com/aws/sagemaker-tensorflow-extensions</a></li>
+				<li><a href="https://github.com/awslabs/amazon-sagemaker-examples/tree/master/sagemaker-python-sdk/tensorflow_script_mode_pipe_mode">https://github . com/aw slabs/Amazon-sagemaker-examples/tree/master/sagemaker-python-SDK/tensor flow _ script _ mode _ pipe _ mode</a></li>
+				<li><a href="mailto:https://medium.com/@julsimon/making-amazon-sagemaker-and-tensorflow-work-for-you-893365184233">https://medium . com/@ jul Simon/making-Amazon-sagemaker-and-tensor flow-work-for-you-893365184233</a></li>
+			</ul>
+			<p>对于其他的<a id="_idIndexMarker980"/>框架和你自己的定制代码，仍然可以在训练容器中实现管道模式。以下链接提供了一个 Python 示例:</p>
+			<p><a href="https://github.com/awslabs/amazon-sagemaker-examples/tree/master/advanced_functionality/pipe_bring_your_own">https://github . com/aw slabs/Amazon-sage maker-examples/tree/master/advanced _ functional/pipe _ bring _ your _ own</a></p>
+			<h2 id="_idParaDest-185"><a id="_idTextAnchor184"/>使用 MLIO 简化数据加载</h2>
+			<p><strong class="bold">MLIO</strong>(https://github.com/awslabs/ml-io)是一个 AWS 开源项目，可以让你以管道模式加载存储在内存、本地存储或 S3 中的数据<a id="_idIndexMarker981"/>。这些数据可以被转换成不同的流行格式。</p>
+			<p>以下是高级功能:</p>
+			<ul>
+				<li><strong class="bold">输入格式</strong> : <strong class="bold"> CSV </strong>，<strong class="bold"> Parquet </strong>，RecordIO-protobuf，<strong class="bold"> JPEG </strong>，<strong class="bold"> PNG </strong></li>
+				<li><strong class="bold">转换格式</strong> : NumPy 数组，SciPy 矩阵，<strong class="bold">Pandas</strong><strong class="bold">data frames</strong>，TensorFlow 张量，PyTorch 张量，Apache MXNet 数组，<strong class="bold"> Apache </strong> <strong class="bold"> Arrow </strong></li>
+				<li>Python 和<strong class="bold"> C++ </strong>中可用的 API</li>
+			</ul>
+			<p>现在，让我们用管道模式运行一些例子。</p>
+			<h2 id="_idParaDest-186"><a id="_idTextAnchor185"/>用管道模式训练因式分解机</h2>
+			<p>我们要去<a id="_idIndexMarker982"/>重温我们<a id="_idIndexMarker983"/>在<a href="B17705_04_Final_JM_ePub.xhtml#_idTextAnchor069"> <em class="italic">第四章</em></a><em class="italic">训练机器学习模型</em>中使用的例子，我们在<strong class="bold"> MovieLens </strong>数据集上训练了一个推荐<a id="_idIndexMarker984"/>模型。当时，我们使用了一个小版本的数据集，仅限于 10 万条评论。这一次，我们将选择最大的版本:</p>
+			<ol>
+				<li value="1">我们下载并提取数据集:<pre>%%sh wget http://files.grouplens.org/datasets/movielens/ml-25m.zip unzip ml-25m.zip</pre></li>
+				<li>该数据集包括来自 162，541 个用户对 62，423 部电影的 25，000，095 条评论。与 100k 版本不同，电影没有顺序编号。最后的电影 ID 是 209，171，这不必要地增加了特征的数量。另一种选择<a id="_idIndexMarker985"/>是对<a id="_idIndexMarker986"/>电影重新编号，但我们不要在这里这么做:<pre>num_users=162541 num_movies=62423 num_ratings=25000095 max_movieid=209171 num_features=num_users+max_movieid</pre></li>
+				<li>就像在<a href="B17705_04_Final_JM_ePub.xhtml#_idTextAnchor069"> <em class="italic">第四章</em> </a> <em class="italic">中，训练机器学习模型</em>我们将数据集加载到一个稀疏矩阵中(<code>lil_matrix</code>来自 SciPy)，将其拆分用于训练和测试，并将两个数据集转换为 RecordIO-wrapped protobuf。考虑到数据集的大小，这在小型 Studio 实例上可能需要 45 分钟。然后，我们把数据集上传到 S3。</li>
+				<li>接下来，我们配置两个输入通道，并将它们的输入模式设置为管道模式，而不是文件模式:<pre>From sagemaker import TrainingInput s3_train_data = TrainingInput (     train_data,                                     content_type='application/x-recordio-protobuf',     input_mode='Pipe') s3_test_data = TrainingInput (    test_data,                                            content_type='application/x-recordio-protobuf',                                               input_mode='Pipe')</pre></li>
+				<li>然后<a id="_idIndexMarker987"/>配置估计器，并像往常一样在<code>ml.c5.xlarge</code>实例上训练(4 个 vCPUs，8 GB RAM，<code>eu-west-1</code>中每小时<a id="_idIndexMarker988"/>0.23 美元)。</li>
+			</ol>
+			<p>查看培训日志，我们看到以下内容:</p>
+			<pre><strong class="bold">2021-06-14 15:02:08 Downloading - Downloading input data</strong>
+<strong class="bold">2021-06-14 15:02:08 Training - Downloading the training image...</strong></pre>
+			<p>正如预期的那样，没有花费时间来复制数据集。在文件模式下同样的步骤需要 66 秒。即使对于一个不太大的 1.5 GB 数据集，管道模式也是有意义的。随着数据集变大，这种优势只会越来越大！</p>
+			<p>现在，让我们转到分布式培训。</p>
+			<h1 id="_idParaDest-187"><a id="_idTextAnchor186"/>分配培训岗位</h1>
+			<p>分布式培训<a id="_idIndexMarker989"/>允许您通过在 CPU 或 GPU 实例集群上运行培训作业来扩展它们。它可以用来解决两个不同的问题:非常大的数据集和非常大的模型。</p>
+			<h2 id="_idParaDest-188"><a id="_idTextAnchor187"/>了解数据并行和模型并行</h2>
+			<p>有些数据集太大，无法在单个 CPU 或 GPU 上用合理的时间进行训练。使用一种叫做<em class="italic">数据并行</em>的技术，我们可以在训练集群中分布数据。完整的模型仍然加载在每个 CPU/GPU 上，这些 CPU/GPU 只接收相等份额的数据集，而不是完整的数据集。理论上，这应该根据涉及的 CPU/GPU 数量线性地加快训练<a id="_idIndexMarker991"/>，正如你所猜测的，现实往往是不同的。</p>
+			<p>信不信由你，一些最先进的深度学习模型太大，无法在单个 GPU 上安装。使用一种称为<em class="italic">模型并行</em>的技术，我们可以将其分割，并在一个 GPU 集群中分布各层<a id="_idIndexMarker992"/>。因此，训练批次将跨几个 GPU 流动，由所有层处理。</p>
+			<p>现在，让我们看看在 SageMaker 中哪里可以使用分布式培训。</p>
+			<h2 id="_idParaDest-189"><a id="_idTextAnchor188"/>为内置算法分配训练</h2>
+			<p>数据并行性<a id="_idIndexMarker993"/>适用于几乎所有的内置算法(语义分割和 LDA 是明显的例外)。因为它们是用 Apache MXNet 实现的，所以它们自动使用其本地分布式训练机制。</p>
+			<h2 id="_idParaDest-190"><a id="_idTextAnchor189"/>为内置框架分发培训</h2>
+			<p>TensorFlow、PyTorch、Apache MXNet 和<strong class="bold">拥抱脸</strong>都有原生数据并行机制，<a id="_idIndexMarker994"/>在 SageMaker 上支持。<strong class="bold">Horovod</strong>(<a href="https://github.com/horovod/horovod">https://github.com/horovod/horovod</a>)也有。</p>
+			<p>对于 TensorFlow、PyTorch、抱脸，也可以使用更新的<strong class="bold"> SageMaker 分布式数据并行库</strong>和<strong class="bold"> SageMaker 模型并行库</strong>。这两者都将在本章后面的内容中介绍。</p>
+			<p>分布式培训通常需要对您的培训代码进行特定于框架的更改。您可以在框架文档中找到更多信息(例如<a href="https://www.tensorflow.org/guide/distributed_training">https://www.tensorflow.org/guide/distributed_training</a>)，以及在<a href="https://github.com/awslabs/amazon-sagemaker-examples">https://github.com/awslabs/amazon-sagemaker-examples</a>托管的示例笔记本:</p>
+			<ul>
+				<li><code>sagemaker-python-sdk/tensorflow_script_mode_horovod</code><p>b) <code>advanced_functionality/distributed_tensorflow_mask_rcnn</code></p></li>
+				<li><code>sagemaker-python-sdk/keras_script_mode_pipe_mode_horovod</code></li>
+				<li><code>sagemaker-python-sdk/pytorch_horovod_mnist</code></li>
+			</ul>
+			<p>每个框架都有其独特之处，但是我们在前面讨论的所有内容都是正确的。如果您想充分利用您的基础设施，您需要注意批量大小、同步等等。实验，监控，分析，迭代！</p>
+			<h2 id="_idParaDest-191"><a id="_idTextAnchor190"/>定制集装箱配送培训</h2>
+			<p>如果你用你自己的定制容器训练，你必须实现你自己的分布式训练机制。让我们面对它，这将是一个很大的工作量。SageMaker 只帮助提供集群实例的名称和容器网络接口的名称。它们可以在<code>/opt/ml/input/config/resourceconfig.json</code>文件的容器中找到。</p>
+			<p>您可以在以下链接中找到更多信息:</p>
+			<p><a href="https://docs.aws.amazon.com/sagemaker/latest/dg/your-algorithms-training-algo-running-container.html">https://docs . AWS . Amazon . com/sage maker/latest/DG/your-algorithms-training-algo-running-container . html</a></p>
+			<p>现在是分布式训练示例的时候了！</p>
+			<h1 id="_idParaDest-192"><a id="_idTextAnchor191"/>在 ImageNet 上缩放图像分类模型</h1>
+			<p>在<a href="B17705_05_Final_JM_ePub.xhtml#_idTextAnchor091"> <em class="italic">第五章</em> </a>、<em class="italic">训练计算机视觉模型</em>中，我们在一个有狗<a id="_idIndexMarker998"/>和猫图像(25000 张训练图像)的小数据集上训练了图像分类算法<a id="_idIndexMarker997"/>。这一次，让我们来点更大的。</p>
+			<p>我们将在<strong class="bold"> ImageNet </strong>数据集上从头开始训练一个 ResNet-50 网络<a id="_idIndexMarker999"/>，该数据集是许多计算机视觉应用(<a href="http://www.image-net.org">http://www.image-net.org</a>)的参考数据集。2012 版包含来自 1，000 个类别的 1，281，167 个训练图像(140 GB)和 50，000 个验证图像(6.4 GB)。</p>
+			<p>如果你想在更小的范围内进行实验，你可以使用 5-10%的数据集。最终精度不会很好，但对我们的目的来说这无关紧要。</p>
+			<h2 id="_idParaDest-193"><a id="_idTextAnchor192"/>准备 ImageNet 数据集</h2>
+			<p>这需要<a id="_idIndexMarker1000"/>大量的存储空间——数据集有 150 GB，所以请确保您至少有 500 GB 的可用空间来存储 ZIP 和已处理的格式。你还需要很大的带宽和很大的耐心来下载它。我使用了一个运行在<code>us-east-1</code>地区的 EC2 实例，我的下载花了<em class="italic">五天</em>。</p>
+			<ol>
+				<li value="1">访问 ImageNet 网站，注册下载数据集，并接受条件。您将获得一个用户名和访问密钥，允许您下载数据集。</li>
+				<li>其中一个 TensorFlow 存储库包含一个很棒的脚本，可以下载数据集并提取它。使用<code>nohup</code>是必要的，这样即使您的会话终止，进程也能继续运行:<pre><strong class="bold">$ git clone https://github.com/tensorflow/models.git</strong> <strong class="bold">$ export IMAGENET_USERNAME=YOUR_USERNAME</strong> <strong class="bold">$ export IMAGENET_ACCESS_KEY=YOUR_ACCESS_KEY</strong> <strong class="bold">$ cd models/research/inception/inception/data</strong> <strong class="bold">$ mv imagenet_2012_validation_synset_labels.txt synsets.txt</strong> <strong class="bold">$ nohup bash download_imagenet.sh . synsets.txt &gt;&amp; download.log &amp;</strong></pre></li>
+				<li>一旦这结束(再次，下载需要几天)，目录<code>imagenet/train</code>包含训练数据集(每个类一个文件夹)。<code>imagenet/validation</code>目录在同一个文件夹中包含 50，000 张图像。我们可以使用一个简单的脚本来组织它，每个类一个文件夹:<pre><strong class="bold">$ wget https://raw.githubusercontent.com/juliensimon/aws/master/mxnet/imagenet/build_validation_tree.sh</strong> <strong class="bold">$ chmod 755 build_validation_tree.sh</strong> <strong class="bold">$ cd imagenet/validation</strong> <strong class="bold">$ ../../build_validation_tree.sh</strong> <strong class="bold">$ cd ../..</strong></pre></li>
+				<li>我们将使用 Apache MXNet 存储库中的<code>im2rec</code>工具构建 RecordIO 文件。让我们安装依赖项，并获取<code>im2rec</code> : <pre><strong class="bold">$ sudo yum -y install python-devel python-pip opencv opencv-devel opencv-python</strong> <strong class="bold">$ pip3 install mxnet opencv-python –user</strong> <strong class="bold">$ wget https://raw.githubusercontent.com/apache/incubator-mxnet/master/tools/im2rec.py</strong></pre></li>
+				<li>在<code>imagenet</code>目录中，我们运行<code>im2rec</code>两次——一次构建列表文件，一次<a id="_idIndexMarker1001"/>构建记录文件。我们创建每个大约 1 GB 的 RecordIO 文件(我们马上会看到为什么这很重要)。我们还将图像的较小尺寸调整为<code>224</code>，这样算法就不必这么做了:<pre><strong class="bold">$ cd imagenet</strong> <strong class="bold">$ python3 ../im2rec.py --list --chunks 6 --recursive val validation</strong> <strong class="bold">$ python3 ../im2rec.py --num-thread 16 --resize 224 val_ validation</strong> <strong class="bold">$ python3 ../im2rec.py --list --chunks 140 --recursive train train</strong> <strong class="bold">$ python3 ../im2rec.py --num-thread 16 --resize 224 train_ train</strong></pre></li>
+				<li>最后，我们将数据集同步到 S3: <pre><strong class="bold">$ mkdir -p input/train input/validation</strong> <strong class="bold">$ mv train_*.rec input/train</strong> <strong class="bold">$ mv val_*.rec input/validation</strong> <strong class="bold">$ aws s3 sync input s3://sagemaker-us-east-1-123456789012/imagenet-split/input/</strong></pre></li>
+			</ol>
+			<p>数据集<a id="_idIndexMarker1002"/>现在已准备好进行训练。</p>
+			<h2 id="_idParaDest-194"><a id="_idTextAnchor193"/>定义我们的培训工作</h2>
+			<p>既然<a id="_idIndexMarker1003"/>数据集已经准备好了，我们需要考虑我们的培训作业的配置。具体来说，我们需要提出以下内容:</p>
+			<ul>
+				<li>输入配置，定义数据集的位置和属性</li>
+				<li>运行培训作业的基础设施要求</li>
+				<li>用于配置算法的超参数</li>
+			</ul>
+			<p>让我们详细看一下每一项。</p>
+			<h3>定义输入配置</h3>
+			<p>考虑到数据集的大小，管道模式听起来是个不错的主意。出于好奇，我尝试用文件模式训练<a id="_idIndexMarker1004"/>。即使使用 100 Gbit/s 的网络接口，将数据集从 S3 拷贝到本地存储也要花将近 25 分钟。它是管道模式！</p>
+			<p>您可能想知道为什么我们要将数据集分成多个文件。原因如下:</p>
+			<ul>
+				<li>一般来说，多个文件为更多的并行性创造了机会，从而更容易编写快速数据加载和处理代码。</li>
+				<li>我们可以在每个时期的开始打乱文件，消除由样本顺序引起的任何潜在偏差。</li>
+				<li>这使得处理数据集的一小部分变得非常容易。</li>
+			</ul>
+			<p>既然我们已经定义了输入配置，那么基础设施需求呢？</p>
+			<h3>定义基础设施要求</h3>
+			<p>ImageNet 是一个庞大而复杂的数据集，需要大量的训练才能达到良好的准确性。</p>
+			<p>一个快速测试显示，批处理大小设置为 128 的单个<code>ml.p3.2xlarge</code>实例将以大约每秒 335 张图像的速度处理数据集。因为我们有大约 1，281，167 幅图像，所以我们可以预期一个时期持续大约 3，824 秒(大约 1 小时 4 分钟)。</p>
+			<p>假设我们需要训练 150 个历元来获得适当的准确度，我们正在寻找一个应该持续(3，824/3，600)*150 = 158 小时(大约 6.5 天)的工作。从商业角度来看，这可能是不可接受的。根据记录，在<code>us-east-1</code>中，每个实例每小时 3.825 美元，这项工作将花费大约 573 美元。</p>
+			<p>让我们试着用<code>ml.p3dn.24xlarge</code>实例来加速我们的工作。每一个主机都有八个 NVIDIA V100s 和 32 GB 的 GPU 内存(是其他<code>p3</code>实例可用内存的两倍)。它们还拥有 96 个英特尔内核、768 GB 内存和 1.8 TB 本地 NVMe 存储。虽然我们不打算在这里使用它，但后者对于长时间运行的大规模作业来说是一个非常好的存储选择。最后但同样重要的是，这个实例类型具有 100 Gbit/s 的网络，这对于从 S3 传输数据流和实例间通信来说是一个很好的特性。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">在<code>us-east-1</code>中，每个实例每小时 35.894 美元，在没有得到许可的情况下，你可能不想在家里甚至在工作中尝试这个。无论如何，您的服务配额可能不允许您运行那么多基础设施，并且您必须首先联系 AWS 支持。</p>
+			<p class="callout">在下一章，我们将讨论<em class="italic">管理现场培训</em>——一种削减培训成本的好方法。一旦我们讨论完这个主题，我们将再次讨论 ImageNet 示例，因此您现在绝对应该停止培训！</p>
+			<h2 id="_idParaDest-195"><a id="_idTextAnchor194"/>ImageNet 上的培训</h2>
+			<p>让我们<a id="_idIndexMarker1007"/>配置培训工作:</p>
+			<ol>
+				<li value="1">我们在两个输入通道上都配置了管道模式。训练频道的文件被随机打乱:<pre>prefix = 'imagenet-split' s3_train_path =  's3://{}/{}/input/training/'.format(bucket, prefix) s3_val_path =  's3://{}/{}/input/validation/'.format(bucket, prefix) s3_output =  's3://{}/{}/output/'.format(bucket, prefix) from sagemaker import TrainingInput from sagemaker.session import ShuffleConfig train_data = TrainingInput(    s3_train_path    shuffle_config=ShuffleConfig(59),    content_type='application/x-recordio',    input_mode='Pipe') validation_data = TrainingInput(    s3_val_path,    content_type='application/x-recordio',     input_mode='Pipe') s3_channels = {'train': train_data,                 'validation': validation_data}</pre></li>
+				<li>首先，我们用一个<code>ml.p3dn.24xlarge</code>实例:<pre>from sagemaker import image_uris region_name = boto3.Session().region_name container = image_uris.retrieve(     'image-classification', region) ic = sagemaker.estimator.Estimator(      container,      role= sagemaker.get_execution_role(),      instance_count=1,                                       instance_type='ml.p3dn.24xlarge',      output_path=s3_output)</pre>配置<code>Estimator</code>模块</li>
+				<li>我们<a id="_idIndexMarker1008"/>设置超参数，从 1，024 的合理批量开始，然后我们开始训练:<pre>ic.set_hyperparameters(     num_layers=50,                      use_pretrained_model=0,             num_classes=1000,                   num_training_samples=1281167,     mini_batch_size=1024,     epochs=2,     kv_store='dist_sync',     top_k=3)         </pre></li>
+			</ol>
+			<h2 id="_idParaDest-196"><a id="_idTextAnchor195"/>更新批量</h2>
+			<p>每个时期的时间是 727 秒。对于 150 个纪元，这相当于 30.3 小时的训练(1.25 天)，成本为 1087 美元。好消息是我们的速度提高了 5 倍。坏消息是成本增加了两倍。让我们开始放大这个。</p>
+			<p>查看 CloudWatch 中的总 GPU 利用率，我们看到它没有超过 300%。也就是每个 GPU 上 37.5%。这可能意味着我们的批处理大小太低，无法让 GPU 完全忙碌。让我们把它提高到(1，024/0.375)=2730，四舍五入到 2，736，以便能被 8 整除:</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">根据算法版本，<code>out of memory</code>错误。</p>
+			<pre>ic.set_hyperparameters(
+    num_layers=50,                 
+    use_pretrained_model=0,        
+    num_classes=1000,              
+    num_training_samples=1281167,
+    mini_batch_size=2736,         # &lt;--------
+    epochs=2,
+    kv_store='dist_sync',
+    top_k=3)         </pre>
+			<p>再次训练，一个纪元现在持续 758 秒。看起来这次最大限度地使用 GPU 内存并没有产生很大的影响。也许是被同步渐变的成本抵消了？无论如何，让 GPU 核心尽可能忙碌是很好的做法。</p>
+			<h2 id="_idParaDest-197"><a id="_idTextAnchor196"/>添加更多实例</h2>
+			<p>现在，让我们<a id="_idIndexMarker1010"/>添加第二个实例来扩展培训作业:</p>
+			<pre>ic = sagemaker.estimator.Estimator(
+    container,
+    role,
+    instance_count=2,                 # &lt;--------
+    instance_type='ml.p3dn.24xlarge',
+    output_path=s3_output)</pre>
+			<p>纪元时间现在是 378 秒！对于 150 个纪元，这相当于 15.75 小时的训练，成本为 1221 美元。与我们最初的工作相比，速度快了两倍，成本低了三倍！</p>
+			<p>四个例子怎么样？让我们看看我们能否继续扩大规模:</p>
+			<pre>ic = sagemaker.estimator.Estimator(
+    container,
+    role,
+    instance_count=4,                 # &lt;--------
+    instance_type='ml.p3dn.24xlarge',
+    output_path=s3_output)</pre>
+			<p>纪元时间现在是 198 秒！对于 150 个纪元，这相当于 8.25 小时的训练，花费 1279 美元。我们的速度再次提高了 2 倍，边际成本略有增加。</p>
+			<p>现在，我们要训练八个实例吗？当然啦！谁不想在 64 个 GPU，327K CUDA 内核，2 TB(！)的 GPU RAM:</p>
+			<pre>ic = sagemaker.estimator.Estimator(
+    container,
+    role,
+    instance_count=8,                 # &lt;--------
+    instance_type='ml.p3dn.24xlarge',
+    output_path=s3_output)</pre>
+			<p><a id="_idIndexMarker1011"/>历元的时间现在是 99 秒。对于 150 个纪元，这相当于 4.12 小时的训练和 1277 美元的费用。我们再次将速度提高了 2 倍<em class="italic"/>，没有增加成本。</p>
+			<h2 id="_idParaDest-198"><a id="_idTextAnchor197"/>总结事物</h2>
+			<p>由于管道模式、分布式<a id="_idIndexMarker1012"/>培训和最先进的 GPU 实例，我们以 2 倍的初始成本将培训工作加速了 38 倍。</p>
+			<div><div><img src="img/02.jpg" alt="Fig 9.8 Outcome of the training jobs&#13;&#10;" width="1352" height="598"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.8 培训工作的结果</p>
+			<p>一点都不差！节省培训工作的时间有助于您更快地迭代，更快地获得高质量的模型，并更快地投入生产。我很确定这很容易抵消额外的费用。不过，在下一章中，我们将看到如何通过管理现场培训来大幅削减培训成本。</p>
+			<p>现在我们已经熟悉了分布式培训，让我们看看两个新的 SageMaker 库，分别用于数据并行和模型并行。</p>
+			<h1 id="_idParaDest-199"><a id="_idTextAnchor198"/>使用 SageMaker 数据和模型并行库进行培训</h1>
+			<p>这两个<a id="_idIndexMarker1013"/>库在 2020 年末引入<a id="_idIndexMarker1014"/>，显著提高了大规模培训工作的性能。</p>
+			<p><strong class="bold"> SageMaker </strong> <strong class="bold">分布式数据并行</strong> ( <strong class="bold"> DDP </strong>)库实现了<a id="_idIndexMarker1015"/>计算在 GPU 集群上非常高效的分布。它通过消除 GPU 之间的通信来优化网络通信，最大限度地增加他们在培训上花费的时间和资源。您可以通过以下链接了解更多信息:</p>
+			<p><a href="https://aws.amazon.com/blogs/aws/managed-data-parallelism-in-amazon-sagemaker-simplifies-training-on-large-datasets/">https://AWS . Amazon . com/blogs/AWS/managed-data-parallelism-in-Amazon-sage maker-simplifies-training-on-large-datasets/</a></p>
+			<p>DDP 可用于 TensorFlow、PyTorch 和拥抱脸。前两个需要对训练代码进行小的修改，但最后一个不需要。由于 DDP 仅对大型、长时间运行的培训作业有意义，因此可用的实例大小有<code>ml.p3.16xlarge</code>、<code>ml.p3dn24dnxlarge</code>和<code>ml.p4d.24xlarge</code>。</p>
+			<p>而<strong class="bold"> SageMaker </strong> <strong class="bold">分布式模型并行</strong> ( <strong class="bold"> DMP </strong>)库解决了一个不同的问题。一些<a id="_idIndexMarker1016"/>大型深度学习模型实在太庞大，无法放入单个 GPU 的内存中。其他的几乎不适合，迫使你用非常小的批量工作，并且减慢你的训练工作。DMP 通过在一个 GPU 集群上自动划分模型并通过这些不同的分区协调数据流来解决这个问题。您可以通过以下链接了解更多信息:</p>
+			<p><a href="https://aws.amazon.com/blogs/aws/amazon-sagemaker-simplifies-training-deep-learning-models-with-billions-of-parameters/">https://AWS . Amazon . com/blogs/AWS/Amazon-sage maker-simplifies-training-deep-learning-models-with-billion-billion-s-parameters/</a></p>
+			<p>DMP 可用于 TensorFlow、PyTorch 和拥抱脸。同样，前两个需要对训练代码进行小的修改，最后一个不需要，因为拥抱脸<code>Trainer</code> API 完全支持 DMP。</p>
+			<p>让我们通过重温来自<a href="B17705_07_Final_JM_ePub.xhtml#_idTextAnchor130"> <em class="italic">第 7 章</em> </a>、<em class="italic">使用内置框架扩展机器学习服务</em>的 TensorFlow 和 Hugging Face 示例来尝试一下。</p>
+			<h2 id="_idParaDest-200"><a id="_idTextAnchor199"/>使用 SageMaker DDP 进行 TensorFlow 训练</h2>
+			<p>我们最初的<a id="_idIndexMarker1017"/>代码使用了高级 Keras API: <code>compile()</code>、<code>fit()</code>等等。为了实现 DDP，我们需要重写<a id="_idIndexMarker1018"/>代码来使用<code>tf.GradientTape()</code>，并实现一个定制的训练循环。这并不像听起来那么难，所以让我们开始工作吧:</p>
+			<ol>
+				<li value="1">首先，我们需要导入并初始化 DDP: <pre>import smdistributed.dataparallel.tensorflow as sdp sdp.init()</pre></li>
+				<li>然后，我们检索实例上存在的 GPU 列表，并为它们分配一个本地 DDP 等级，这只是一个整数标识符。我们还允许内存增长，这是 DDP 所需的 TensorFlow 特性:<pre>gpus = tf.config.experimental.             list_physical_devices('GPU') if gpus:     tf.config.experimental.set_visible_devices(         gpus[sdp.local_rank()], 'GPU') for gpu in gpus:     tf.config.experimental.set_memory_growth(         gpu, True)</pre></li>
+				<li>按照文档的建议，我们根据训练集群中存在的 GPU 数量来增加批量大小和学习率。这对工作精度非常重要:<pre>batch_size = args.batch_size*sdp.size() lr         = args.learning_rate*sdp.size()</pre></li>
+				<li>然后我们创建一个损失函数和一个优化器。标签在预处理过程中被一键编码，所以我们使用<code>CategoricalCrossentropy</code>，而不是<code>SparseCategoricalCrossentropy</code>。我们还在所有 GPU 上初始化模型和优化器变量:<pre>loss = tf.losses.CategoricalCrossentropy() opt = tf.optimizers.Adam(lr) sdp.broadcast_variables(model.variables, root_rank=0) sdp.broadcast_variables(opt.variables(), root_rank=0)</pre></li>
+				<li>接下来，我们需要<a id="_idIndexMarker1019"/>编写一个<code>training_step()</code>函数，并用<code>@tf.function</code>修饰它，以便 DDP 识别它。顾名思义，这个函数负责在训练集群中的每个 GPU 上运行一个训练<a id="_idIndexMarker1020"/>步骤:预测一批，计算损失，计算梯度，并应用它们。它基于<code>tf.GradientTape()</code> API，我们简单地用<code>sdp.DistributedGradientTape()</code>包装它。在每个训练步骤的最后，我们使用<code>sdp.oob_allreduce()</code>来计算平均损失，使用来自所有 GPU 的值:<pre>@tf.function def training_step(images, labels):     with tf.GradientTape() as tape:         probs = model(images, training=True)         loss_value = loss(labels, probs)     tape = sdp.DistributedGradientTape(tape)     grads = tape.gradient(         loss_value, model.trainable_variables)     opt.apply_gradients(         zip(grads, model.trainable_variables))     loss_value = sdp.oob_allreduce(loss_value)     return loss_value</pre></li>
+				<li>接下来，我们<a id="_idIndexMarker1021"/>编写训练循环。这没有什么特别的<a id="_idIndexMarker1022"/>。为了避免日志污染，我们只从主 GPU(排名 0)打印出消息:<pre>steps = len(train)//batch_size for e in range(epochs):     if sdp.rank() == 0:         print("Start epoch %d" % (e))     for batch, (images, labels) in      enumerate(train.take(steps)):         loss_value = training_step(images, labels)         if batch%10 == 0 and sdp.rank() == 0:             print("Step #%d\tLoss: %.6f"                    % (batch, loss_value))</pre></li>
+				<li>最后，我们只在 GPU #0 上保存模型:<pre>if sdp.rank() == 0:     model.save(os.path.join(model_dir, '1'))</pre></li>
+				<li>转到我们的笔记本，我们用两个<code>ml.p3.16xlarge</code>实例配置这个作业，并且我们用估计器中的一个附加参数<pre>from sagemaker.tensorflow import TensorFlow tf_estimator = TensorFlow(     . . .     instance_count=2,      instance_type='ml.p3.16xlarge',     hyperparameters={'epochs': 10,          'learning-rate': 0.0001, 'batch-size': 32},     distribution={'smdistributed':          {'dataparallel': {'enabled': True}}} )</pre>启用数据并行性</li>
+				<li>我们照常训练<a id="_idIndexMarker1023"/>，我们在训练日志中看到步骤<a id="_idIndexMarker1024"/>:<pre><strong class="bold">[1,0]&lt;stdout&gt;:Step #0#011Loss: 2.306620</strong> <strong class="bold">[1,0]&lt;stdout&gt;:Step #10#011Loss: 1.185689</strong> <strong class="bold">[1,0]&lt;stdout&gt;:Step #20#011Loss: 0.909270</strong> <strong class="bold">[1,0]&lt;stdout&gt;:Step #30#011Loss: 0.839223</strong> <strong class="bold">[1,0]&lt;stdout&gt;:Step #40#011Loss: 0.772756</strong> <strong class="bold">[1,0]&lt;stdout&gt;:Step #50#011Loss: 0.678521</strong> <strong class="bold">. . .</strong></pre></li>
+			</ol>
+			<p>如您所见，使用 SageMaker DDP 扩展培训工作并不困难，尤其是如果您的培训代码已经使用了低级 API。我们在这里使用 TensorFlow，PyTorch 的过程非常相似。</p>
+			<p>现在，让我们看看如何使用这两个库来训练大型拥抱人脸模型。事实上，最先进的 NLP 模型一直在变得越来越大和越来越复杂，它们是数据并行和模型并行的良好候选。</p>
+			<h2 id="_idParaDest-201">【SageMaker DDP 抱脸训练</h2>
+			<p>由于<a id="_idIndexMarker1025"/>拥抱脸<code>Trainer</code> API 完全<a id="_idIndexMarker1026"/>支持 DDP，我们不需要对我们的训练脚本做任何修改。哇哦。它所需要的只是估计器中的一个额外参数。设置实例类型和实例数量，然后就可以开始了:</p>
+			<pre>huggingface_estimator = HuggingFace(
+   . . . 
+   distribution={'smdistributed': 
+                    {'dataparallel':{'enabled': True}}
+                }
+)</pre>
+			<h2 id="_idParaDest-202">与 SageMaker DMP 进行拥抱面部训练</h2>
+			<p>添加<a id="_idIndexMarker1027"/> DMP 也不难。我们的拥抱脸例子使用了一个大约 250 MB 的蒸馏瓶模型。这足够小，可以放在单个 GPU 上，但无论如何，让我们试着用 DMP 来训练:</p>
+			<ol>
+				<li value="1">首先，我们需要将<code>processes_per_host</code>配置为低于或等于训练实例上 GPU 数量的值。这里，我将使用一个带有 8 个 NVIDIA V100 GPUs 的<code>ml.p3dn.24xlarge</code>实例:<pre>mpi_options = {    'enabled' : True,    'processes_per_host' : 8 }</pre></li>
+				<li>Then, we configure DMP options. Here, I set the most important ones – the number of model partitions that we want (<code>partitions</code>), and how many times they should be replicated for increased parallelism (<code>microbatches</code>). In other words, our model will be split in four, each split will be duplicated, and these eight splits will each run on a different GPU. You can find more information on all parameters at the following link:<p><a href="https://sagemaker.readthedocs.io/en/stable/api/training/smd_model_parallel_general.html">https://sagemaker . readthedocs . io/en/stable/API/training/SMD _ model _ parallel _ general . html</a></p><pre>smp_options = {
+    'enabled': True,
+    'parameters": {
+        'microbatches': 2,
+        'partitions': 4
+    }
+}</pre></li>
+				<li>Finally, we <a id="_idIndexMarker1029"/>configure our estimator <a id="_idIndexMarker1030"/>and train as usual:<pre>huggingface_estimator = HuggingFace(
+    . . .
+    instance_type='ml.p3dn.24xlarge',
+    instance_count=1,
+    distribution={'smdistributed': 
+        {'modelparallel': smp_options},
+         'mpi': mpi_options}
+)</pre><p>您可以在此找到更多示例:</p><ul><li>张量流和 PyTorch</li><li><a href="https://github.com/aws/amazon-sagemaker-examples/tree/master/training/distributed_training">https://github . com/AWS/Amazon-sage maker-examples/tree/master/training/distributed _ training</a></li><li>拥抱脸:<a href="https://github.com/huggingface/notebooks/tree/master/sagemaker">https://github . com/hugging Face/notebooks/tree/master/sagemaker</a></li></ul></li>
+			</ol>
+			<p>在结束本章之前，我们现在来看看您应该为大规模、高性能培训工作考虑的存储选项。</p>
+			<h1 id="_idParaDest-203"><a id="_idTextAnchor202"/>使用其他存储服务</h1>
+			<p>到目前为止，我们已经使用 S3 来存储训练数据。在大范围内，吞吐量和延迟可能会成为瓶颈，因此有必要考虑其他<a id="_idIndexMarker1031"/>存储服务:</p>
+			<ul>
+				<li><strong class="bold">亚马逊</strong> <strong class="bold">弹性文件系统</strong>(<strong class="bold">EFS</strong>):<a href="https://aws.amazon.com/efs">https://aws.amazon.com/efs</a></li>
+				<li><strong class="bold">Amazon</strong> <strong class="bold">FSx for Lustre</strong>: <a href="https://aws.amazon.com/fsx/lustre">https://aws.amazon.com/fsx/lustre</a>. <p class="callout-heading">注意</p><p class="callout">本节<a id="_idIndexMarker1032"/>需要一些关于 VPC、子网和安全组的 AWS <a id="_idIndexMarker1033"/>知识。如果你对这些一点都不熟悉，我建议你阅读以下内容:</p><p class="callout"><a href="https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Subnets.html">https://docs . AWS . Amazon . com/VPC/latest/user guide/VPC _ 子网. html </a></p><p class="callout"><a href="https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html">https://docs . AWS . Amazon . com/VPC/latest/user guide/VPC _ 安全群组. html </a></p></li>
+			</ul>
+			<h2 id="_idParaDest-204"><a id="_idTextAnchor203"/>与 SageMaker 和亚马逊 EFS 合作</h2>
+			<p>EFS 是一种与 NFS v4 兼容的托管存储服务。它允许您创建可以附加到 EC2 实例<a id="_idIndexMarker1035"/>和 SageMaker 实例的卷。这是一种共享数据的便捷方式，您可以使用它来扩展大型培训作业的 I/O。</p>
+			<p>默认情况下，文件<a id="_idIndexMarker1036"/>存储在<strong class="bold">标准</strong>类中。您可以启用一个<a id="_idIndexMarker1037"/>生命周期策略，将一段时间内未被访问的文件自动移动到<strong class="bold">不常访问的文件</strong>，这虽然速度较慢，但更具成本效益。</p>
+			<p>您可以选择两种吞吐量模式之一:</p>
+			<ul>
+				<li><strong class="bold">突发吞吐量</strong>:突发信用随着时间的推移而累积，突发容量<a id="_idIndexMarker1038"/>取决于文件系统的大小:100 MB/s，加上每 TB 存储额外的 100 MB/s。</li>
+				<li><strong class="bold">提供的吞吐量</strong>:您<a id="_idIndexMarker1039"/>设置预期的吞吐量，从 1 到 1024 MB/s。</li>
+			</ul>
+			<p>您还可以选择两种性能模式之一:</p>
+			<ul>
+				<li><strong class="bold">通用</strong>:这种<a id="_idIndexMarker1040"/>适合大多数应用。</li>
+				<li><strong class="bold">最大 I/O </strong>:这是<a id="_idIndexMarker1041"/>在数十或数百个实例访问卷时使用的。吞吐量将最大化，但代价是延迟。</li>
+			</ul>
+			<p>让我们创建一个 8 GB 的 EFS 卷。然后，我们将它安装在 EC2 实例上，以复制我们之前准备的<strong class="bold"> Pascal VOC </strong>数据集，并且我们将训练一个对象检测作业。为了保持合理的成本，我们不会扩大工作规模，但总体流程在任何规模下都会完全相同。</p>
+			<h3>设置 EFS 卷</h3>
+			<p>EFS 控制台<a id="_idIndexMarker1042"/>使创建卷变得极其简单。你可以在<a href="https://docs.aws.amazon.com/efs/latest/ug/getting-started.html">https://docs . AWS . Amazon . com/EFS/latest/ug/getting-started . html</a>找到详细说明:</p>
+			<ol>
+				<li value="1">我们将卷名设置为<code>sagemaker-demo</code>。</li>
+				<li>我们选择默认的 VPC，并使用<strong class="bold">地区</strong>可用性。</li>
+				<li>我们创造了体积。一旦它准备好了，你应该会看到类似下面的截图:</li>
+			</ol>
+			<div><div><img src="img/B17705_09_8.jpg" alt="Figure 9.9– Creating an EFS volume&#13;&#10;" width="617" height="375"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.9–创建 EFS 卷</p>
+			<p>EFS 卷<a id="_idIndexMarker1043"/>准备接收数据。我们现在将创建一个新的 EC2 实例，装载 EFS 卷，并拷贝数据集。</p>
+			<h3>创建 EC2 实例</h3>
+			<p>由于 EFS 卷<a id="_idIndexMarker1044"/>位于 VPC 中，它们只能被位于同一个 VPC 中的实例访问。这些实例还必须有一个允许入站 NFS 流量的<em class="italic">安全组</em>:</p>
+			<ol>
+				<li value="1">在 https://console.aws.amazon.com/vpc/#vpcs:sort=VpcId 的 VPC 控制台中，我们写下默认 VPC 的 ID。对我来说，就是<code>vpc-def884bb</code>。</li>
+				<li>Still in the VPC console, we move to the <strong class="bold">Subnets</strong> section (<a href="https://console.aws.amazon.com/vpc/#subnets:sort=SubnetId">https://console.aws.amazon.com/vpc/#subnets:sort=SubnetId</a>). We write down the subnet IDs and the availability zone for all subnets hosted in the default VPC.<p>对我来说，它们看起来就像下面的截图所示:</p><div><img src="img/B17705_09_9.jpg" alt="Figure 9.10 – Viewing subnets for the default VPC&#13;&#10;" width="568" height="146"/></div><p class="figure-caption">图 9.10–查看默认 VPC 的子网</p></li>
+				<li>将<a id="_idIndexMarker1045"/>移到 EC2 控制台，我们创建一个 EC2 实例。我们选择 Amazon Linux 2 映像和一个<code>t2.micro</code>实例大小。</li>
+				<li>接下来，我们设置<code>eu-west-1a</code> <strong class="bold">可用区</strong>。我们还将它分配给我们刚刚创建的安全组，<strong class="bold"> IAM role </strong>分配给具有适当 S3 权限的角色，而<strong class="bold">文件系统</strong>分配给我们刚刚创建的 EFS 文件系统。我们还确保勾选自动创建和附加所需安全组的复选框。</li>
+				<li>在接下来的屏幕中，我们让存储和标签保持原样，并附加一个允许传入<code>ssh</code>的安全组。最后，我们启动实例创建。</li>
+			</ol>
+			<h3>访问 EFS 卷</h3>
+			<p>一旦<a id="_idIndexMarker1046"/>实例准备好了，我们就可以<code>ssh</code>它:</p>
+			<ol>
+				<li value="1">我们看到 EFS 卷已经自动装载:<pre><strong class="bold">[ec2-user]$ mount|grep efs</strong> <strong class="bold">127.0.0.1:/ on /mnt/efs/fs1 type nfs4</strong></pre></li>
+				<li>我们搬到那个地方，并从 S3 同步我们的 PascalVOC 数据集。由于文件系统被挂载为<code>root</code>，我们需要使用<code>sudo</code>。<pre><strong class="bold">[ec2-user] cd /mnt/efs/fs1</strong> <strong class="bold">[ec2-user] sudo aws s3 sync s3://sagemaker-ap-northeast-2-123456789012/pascalvoc/input input</strong></pre></li>
+			</ol>
+			<p>任务完成。我们可以注销并关闭或终止该实例，因为我们不再需要它了。</p>
+			<p>现在，让我们用这个数据集进行训练。</p>
+			<h3>用 EFS 训练目标检测模型</h3>
+			<p>除了输入数据的<a id="_idIndexMarker1048"/>位置之外，训练<a id="_idIndexMarker1047"/>过程是相同的:</p>
+			<ol>
+				<li value="1">我们没有使用<code>TrainingInput</code>对象来定义输入通道，而是使用<code>FileSystemInput</code>对象，传递我们的 EFS 卷的标识符和卷内的绝对数据路径:<pre>from sagemaker.inputs import FileSystemInput efs_train_data = FileSystemInput(                  file_system_id='fs-fe36ef34',                  file_system_type='EFS',                  directory_path='/input/train') efs_validation_data = FileSystemInput(                       file_system_id='fs-fe36ef34',                       file_system_type='EFS',                       directory_path='/input/validation') data_channels = {'train': efs_train_data,                   'validation': efs_validation_data}</pre></li>
+				<li>我们配置<code>Estimator</code>模块，为托管 EFS 卷的 VPC 传递子网列表。SageMaker 将在那里启动训练实例，以便它们可以挂载 EFS 卷。我们还需要通过一个允许 NFS 流量的安全组。我们可以重用为我们的 EC2 实例自动创建的那个(不是允许 ssh 访问的那个)——它在实例细节中的<strong class="bold">安全</strong>选项卡中可见，如下面的截图所示:<div> <img src="img/B17705_09_10.jpg" alt="Figure 9.11 – Viewing security groups&#13;&#10;" width="392" height="370"/> </div> <pre>from sagemaker import image_uris container = image_uris.retrieve('object-detection',                                  region) od = sagemaker.estimator.Estimator(      container,      role=sagemaker.get_execution_role(),      instance_count=1,                                               instance_type='ml.p3.2xlarge',                                               output_path=s3_output_location,      subnets=['subnet-63715206','subnet-cbf5bdbc',               'subnet-59395b00'],                                              security_group_ids=['sg-0aa0a1c297a49e911'] )</pre></li>
+				<li>出于测试目的，我们只训练一个时期。一切如常，不过这一次，数据是从我们的 EFS 卷加载的。</li>
+			</ol>
+			<p>一旦训练<a id="_idIndexMarker1051"/>完成，你可以<a id="_idIndexMarker1052"/>删除 EFS 控制台中的 EFS 卷以避免不必要的花费。</p>
+			<p>现在，让我们看看如何使用另一种存储服务——Amazon FSx for Lustre。</p>
+			<h2 id="_idParaDest-205"><a id="_idTextAnchor204"/>与 SageMaker 和 Amazon FSx 合作开发 Lustre</h2>
+			<p>超大规模<a id="_idIndexMarker1053"/>工作负载需要高吞吐量和低延迟<a id="_idIndexMarker1054"/>存储，这是亚马逊 FSx for <a id="_idIndexMarker1055"/> Lustre 具备的两个品质。顾名思义，这个<a id="_idIndexMarker1056"/>服务基于 Lustre 文件系统(<a href="http://lustre.org">http://lustre.org</a>)，这是一个针对<strong class="bold"> HPC </strong>应用的流行的<a id="_idIndexMarker1057"/>开源选择。</p>
+			<p>您可以创建的最小文件系统是 1.2 TB(就像我说的，“非常大规模”)。我们可以为 FSx 文件系统选择两个部署选项之一:</p>
+			<ul>
+				<li><strong class="bold">持久</strong>:这个<a id="_idIndexMarker1059"/>应该用于需要高可用性的长期存储。</li>
+				<li><strong class="bold"> Scratch </strong>:数据<a id="_idIndexMarker1060"/>没有被复制，如果文件服务器出现故障，它也不会持久。作为交换，我们获得了高突发吞吐量，这使得它成为短期尖峰作业的一个好选择。</li>
+			</ul>
+			<p>可选地，文件系统可以由 S3 存储桶支持。第一次访问对象时，对象会自动从 S3 复制到 FSx。</p>
+			<p>与 EFS 一样，文件系统位于 VPC 中，我们需要一个允许入站 Lustre 流量的安全组(端口 988 和 1，021-2，023)。您可以在 EC2 控制台中创建它，它应该类似于下面的屏幕截图:</p>
+			<div><div><img src="img/B17705_09_11.jpg" alt="Figure 9.12 – Creating a security group for FSx for Lustre&#13;&#10;" width="555" height="325"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.12–为 Lustre 的 FSx 创建安全组</p>
+			<p>让我们创建文件系统:</p>
+			<ol>
+				<li value="1">在 FSx 控制台中，我们创建一个名为<code>sagemaker-demo</code>的文件系统，并选择<strong class="bold"> Scratch </strong>部署类型。</li>
+				<li>我们将存储容量设置为 1.2 TB。</li>
+				<li>在默认 VPC 的<code>eu-west-1a</code>子网中，我们将它分配给我们刚刚创建的安全组。</li>
+				<li>中的<code>s3://sagemaker-eu-west-1-123456789012</code>和前缀(<code>pascalvoc</code>)。</li>
+				<li>On the <a id="_idIndexMarker1061"/>next screen, we review our choices, as shown in the following screenshot, and we create the filesystem. <p>在<a id="_idIndexMarker1062"/>几分钟后，文件系统<a id="_idIndexMarker1063"/>投入使用，如下面的截图中的<a id="_idIndexMarker1064"/>所示:</p></li>
+			</ol>
+			<div><div><img src="img/B17705_09_12.jpg" alt="Figure 9.13 – Creating an FSx volume&#13;&#10;" width="1101" height="336"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 9.13–创建 FSx 卷</p>
+			<p>因为文件系统由 S3 存储桶支持，所以我们不需要填充它。我们可以直接进行训练。</p>
+			<h3>使用 FSx 为 Lustre 训练对象检测模型</h3>
+			<p>现在，我们将使用<a id="_idIndexMarker1066"/> FSx 对模型进行如下<a id="_idIndexMarker1065"/>训练:</p>
+			<ol>
+				<li value="1">类似于我们刚刚对 EFS 所做的，我们用<code>FileSystemInput</code>定义输入通道。一个区别是目录路径必须以文件系统挂载点的名称开始。你可以在 FSx 控制台<pre>from sagemaker.inputs import FileSystemInput fsx_train_data = FileSystemInput(   file_system_id='fs-07914cf5a60649dc8',   file_system_type='FSxLustre',                               directory_path='/bmgbtbmv/pascalvoc/input/train') fsx_validation_data = FileSystemInput(   file_system_id='fs-07914cf5a60649dc8',   file_system_type='FSxLustre',                               directory_path='/bmgbtbmv/pascalvoc/input/validation') data_channels = {'train': fsx_train_data,                   'validation': fsx_validation_data }</pre>中找到<strong class="bold">挂载名称</strong></li>
+				<li>所有其他步骤都相同。不要忘记更新传递给<code>Estimator</code>模块的安全组的名称。</li>
+				<li>当我们完成训练后，我们在控制台中删除 FSx 文件系统。</li>
+			</ol>
+			<p>我们对 SageMaker 储物方案的探索<a id="_idIndexMarker1068"/>到此结束。综上所述，以下是我的建议:</p>
+			<ul>
+				<li>首先，你应该尽可能多地使用 RecordIO 或 TFRecord 数据。它们移动方便，训练速度更快，并且可以在文件模式和管道模式下工作。</li>
+				<li>对于开发和小规模生产，文件模式完全没问题。你的主要焦点应该始终是你的机器学习问题，而不是无用的优化。即使在小范围内，EFS 也是一个有趣的协作选项，因为它可以轻松共享数据集和笔记本。</li>
+				<li>如果您使用内置算法进行训练，管道模式是一个显而易见的方法，您应该在每个机会使用它。如果您使用框架或您自己的代码进行培训，实现管道模式将需要一些工作，并且可能不值得进行工程工作，除非您正在大规模工作(数百 GB 或更多)。</li>
+				<li>如果您有包含数十个或更多实例的大型分布式工作负载，那么性能模式下的 EFS 值得一试。除非您有疯狂的工作负载，否则不要接近令人兴奋的 Lustre。</li>
+			</ul>
+			<h1 id="_idParaDest-206"><a id="_idTextAnchor205"/>摘要</h1>
+			<p>在本章中，您学习了如何以及何时调整培训工作。您已经看到，要找到最佳设置，肯定需要一些仔细的分析和实验:纵向扩展与横向扩展，CPU 与 GPU 与多 GPU，等等。这将帮助您针对自己的工作负载做出正确的决策，并避免代价高昂的错误。</p>
+			<p>您还了解了如何通过分布式训练、数据并行、模型并行、RecordIO 和管道模式等技术实现显著的加速。最后，您学习了如何为 Lustre 设置亚马逊 EFS 和亚马逊 FSx，以用于大规模培训工作。</p>
+			<p>在下一章，我们将讨论超参数优化、成本优化、模型调试等高级特性。</p>
+		</div>
+	</div>
+</body></html>

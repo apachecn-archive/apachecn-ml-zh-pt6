@@ -1,0 +1,527 @@
+<html><head/><body>
+
+
+
+
+
+
+
+
+
+<title>Chapter 1: Comprehending Google Cloud Services</title>
+
+
+
+
+
+
+
+<div><div><h1 class="chapter-number" id="_idParaDest-15"><a id="_idTextAnchor015"/> 1</h1>
+
+<h1 id="_idParaDest-16"><a id="_idTextAnchor016"/>理解谷歌云服务</h1>
+
+<p>在本书的第 1 部分，我们将通过关注 Google 云和 Python 来构建基础，这两个平台和工具分别是我们学习之旅的基本平台和工具。</p>
+
+<p>本章我们将深入<strong class="bold">谷歌云平台</strong> ( <strong class="bold"> GCP </strong>)，探讨与<strong class="bold">谷歌云机器学习</strong>密切相关的谷歌云服务。掌握这些服务将为我们提供坚实的背景。</p>
+
+<p>本章将涵盖以下主题:</p>
+
+<ul>
+
+<li>了解 GCP 全球基础设施</li>
+
+<li>GCP 入门</li>
+
+<li>GCP 组织结构</li>
+
+<li>GCP 身份和访问管理</li>
+
+<li>GCP 计算光谱</li>
+
+<li>GCP 存储和数据库服务</li>
+
+<li>GCP 大数据和分析服务</li>
+
+<li>GCP 人工智能服务</li>
+
+</ul>
+
+<p>让我们开始吧。</p>
+
+<h1 id="_idParaDest-17"><a id="_idTextAnchor017"/>了解 GCP 全球基础设施</h1>
+
+<p>谷歌是世界上最大的云服务提供商之一。通过谷歌全球数据中心的计算机、硬盘驱动器、路由器和交换机等物理计算基础设施，谷歌通过谷歌的全球主干网连接起来，谷歌在 GCP 提供全方位的云服务，包括计算、网络、数据库、安全和高级服务，如大数据、<strong class="bold">机器学习</strong> ( <strong class="bold"> ML </strong>)等等。</p>
+
+<p>在谷歌的全球云基础设施中，有许多数据中心组。每个数据中心组被称为一个<strong class="bold"> GCP 区域</strong>。这些<a id="_idIndexMarker002"/>地区遍布全球，包括亚洲、澳大利亚、欧洲、北美和南美。这些地区通过谷歌的全球骨干网络连接起来，以实现性能优化和弹性。每个 GCP 地区都是彼此隔离的<strong class="bold">区</strong>的集合。每个区域都有一个或多个数据中心，并由一个由字母标识符和区域名称组合而成的名称来标识。例如，区域<em class="italic">美国-中央 1-a </em>是<em class="italic">美国-中央 1 </em>区域中的一个区域，该区域实际上位于美利坚合众国爱荷华州的康塞尔布拉夫斯。在 GCP 全球基础设施中，还有许多<strong class="bold">边缘位置</strong>或 <strong class="bold">存在</strong> ( <strong class="bold">弹出</strong>)的<strong class="bold">点，在这里<a id="_idIndexMarker004"/>谷歌的全球网络连接到互联网。在 https://cloud.google.com/about/locations<a href="https://cloud.google.com/about/locations">可以找到关于 GCP 地区、区域和边缘位置</a><a id="_idIndexMarker005"/>的更多细节。</strong></p>
+
+<p>GCP 在全球范围内提供按需云资源。这些资源可以一起用于构建解决方案，帮助满足业务目标和技术需求。例如，如果一家公司在东京需要 1，000 TB 的存储，其 IT 专业人员可以登录到他们的 GCP 客户控制台，随时在<em class="italic">亚洲-东北 1 </em>地区调配存储。同样，只需点击几下鼠标，就可以随时在悉尼调配 3，000 TB 的数据库，在法兰克福调配 4，000 节点的群集。最后，如果一家公司想要建立一个全球网站，如 zeebestbuy.com 的<a href="http://zeebestbuy.com"/>，为他们的全球用户提供最低的延迟，他们可以在伦敦、弗吉尼亚和新加坡的全球区域建立三个 web 服务器，并利用谷歌的全球 DNS 服务沿着这三个 web 服务器分发 web 流量。根据用户的 web 浏览器位置，DNS 会将流量路由到最近的 web 服务器。</p>
+
+<h1 id="_idParaDest-18"><a id="_idTextAnchor018"/>GCP 入门</h1>
+
+<p>现在我们已经<a id="_idIndexMarker007"/>了解了 Google 的全球云基础设施和云计算的按需资源供应概念，我们已经迫不及待地要深入 Google Cloud 并在云中供应资源了！</p>
+
+<p>在本节中，我们将通过执行以下操作来构建云资源:</p>
+
+<ul>
+
+<li>创建自由层 GCP 帐户</li>
+
+<li>在 Google Cloud 中提供虚拟计算机实例</li>
+
+<li>在谷歌云中调配我们的第一个存储</li>
+
+</ul>
+
+<p>让我们详细地看一下这些步骤。</p>
+
+<h2 id="_idParaDest-19"><a id="_idTextAnchor019"/>创建自由层 GCP 账户</h2>
+
+<p>谷歌为我们在 GCP 上的起步提供了一个自由层账户类型。更多细节可以在<a href="https://cloud.google.com/free/docs/gcp-free-tier">https://cloud.google.com/free/docs/gcp-free-tier</a>找到。</p>
+
+<p>一旦你注册了一个 GCP 免费账户，就该计划我们在谷歌云中的第一批资源了——云中的一台计算机和一个存储文件夹。我们将根据需要提供它们。多刺激啊！</p>
+
+<h2 id="_idParaDest-20"><a id="_idTextAnchor020"/>在谷歌云中配置我们的第一台计算机</h2>
+
+<p>我们将从<a id="_idIndexMarker009"/>最简单的想法开始:在云中供应<a id="_idIndexMarker010"/>一台计算机。想象一下家用电脑。它有一个<strong class="bold">中央处理器</strong>(<strong class="bold">CPU</strong>)<strong class="bold">随机存取存储器</strong>(<strong class="bold">RAM</strong>)<strong class="bold">硬盘驱动器</strong>(<strong class="bold">HDD</strong>)，以及一个<strong class="bold">网络接口卡</strong> ( <strong class="bold"> NIC </strong>)用于<a id="_idIndexMarker011"/>连接到相关的<strong class="bold">互联网服务提供商</strong> ( <strong class="bold"> ISP </strong>)设备(如它也有一个<a id="_idIndexMarker013"/>操作系统(Windows 或 Linux)，它可能有一个数据库，如 MySQL 用于一些家庭数据管理，或微软 Office 用于家庭办公。</p>
+
+<p>为了在 Google Cloud 中配置一台计算机，我们需要对它的硬件做同样的规划，比如 CPU 的数量、RAM 和硬盘的大小，以及它的软件，比如操作系统(Linux 或 Windows)和数据库(<strong class="bold"> MySQL </strong>)。我们可能还需要为计算机规划网络，例如外部 IP 地址，以及 IP 地址需要是静态的还是动态的。例如，如果我们计划提供一个 web 服务器，那么我们的计算机将需要一个静态的外部 IP 地址。从安全的角度来看，我们将需要设置网络防火墙，以便只有在家或工作的特定计算机可以访问我们在云中的计算机。</p>
+
+<p>GCP 提供云服务，让消费者在云端配置一台<a id="_idIndexMarker014"/>电脑:<strong class="bold">谷歌计算引擎</strong> ( <strong class="bold"> GCE </strong>)。有了 GCE 服务，我们可以在<a id="_idIndexMarker015"/>谷歌云中构建灵活的、自我管理的<strong class="bold">虚拟机</strong>(<strong class="bold">VM</strong>)。GCE 根据消费者的需求提供不同的硬件和软件选项，因此您可以使用定制的虚拟机类型，并为虚拟机实例选择合适的操作系统。</p>
+
+<p>按照<a href="https://cloud.google.com/compute/docs/instances/create-start-instance">https://cloud . Google . com/compute/docs/instances/create-start-instance</a>中的说明，您可以在 GCP 创建一个虚拟机。让我们暂停一下，转到 GCP 控制台来配置我们的第一台计算机。</p>
+
+<p>我们如何访问<a id="_idIndexMarker016"/>计算机？如果虚拟机有 Windows 操作系统，您可以使用<strong class="bold">远程桌面</strong>来访问它。对于 Linux VM，可以使用<strong class="bold">安全外壳</strong> ( <strong class="bold"> SSH </strong>)登录。更多细节可在<a href="https://cloud.google.com/compute">https://cloud.google.com/compute</a>获得。</p>
+
+<h2 id="_idParaDest-21"><a id="_idTextAnchor021"/>在谷歌云中调配我们的第一个存储</h2>
+
+<p>当我们打开<a id="_idIndexMarker017"/>电脑机箱并查看我们家用电脑的内部时，我们可以看到它的硬件组件——即它的 CPU、RAM、HDD 和 NIC。个人电脑中的硬盘在大小和性能上都是有限的。由理查德·伊甘和罗杰·马里诺于 1979 年创立的 EMC 公司于 1990 年将电脑硬盘从电脑机箱扩展到一个独立的计算机网络存储平台，称为 Symmetrix。Symmetrix 拥有自己的<a id="_idIndexMarker018"/>CPU/RAM，并提供巨大的存储容量。它通过光缆与计算机相连，作为计算机的<strong class="bold">存储阵列</strong>。另一方面，1988 年由、Sanjay Mehrotra 和 Jack Yuan 创立的 SanDisk 于 2000 年生产了第一款基于闪存的固态硬盘(<strong class="bold">SSD</strong>)2.5 英寸<a id="_idIndexMarker020"/>硬盘，名为<em class="italic"> Cruzer </em>。Cruzer 通过与计算机的 USB 连接提供<a id="_idIndexMarker021"/>便携式存储。EMC 和 Sandisk 打破常规，将硬盘概念扩展到 Symmetrix 或 Cruzer。这些都是创业想法的好例子！</p>
+
+<p>然后是云计算的伟大理念——存储的概念进一步扩展到云块<a id="_idIndexMarker022"/>存储、云<strong class="bold">网络连接存储</strong> ( <strong class="bold"> NAS </strong>)和云对象存储。让我们更详细地看看这些:</p>
+
+<ul>
+
+<li><strong class="bold">云块存储</strong>是一种基于<a id="_idIndexMarker023"/>软件的存储形式，可以连接到云中的虚拟机，就像硬盘连接到我们家里的 PC 一样。在 Google Cloud 中，云块存储被称为<strong class="bold">持久磁盘</strong> ( <strong class="bold"> PD </strong>)。无需购买物理硬盘并安装在 PC 上使用，只需点击几下鼠标，就可以立即创建 PDs 并将其连接到云中的虚拟机上。</li>
+
+<li><strong class="bold">云网络连接存储</strong> ( <strong class="bold">云 NAS </strong>)是一种基于软件的存储形式，可以通过虚拟云网络在许多云虚拟机之间共享<a id="_idIndexMarker025"/>。在 GCP，云 NAS 被称为<strong class="bold">文件存储</strong>。无需购买物理文件服务器，将其安装在网络上，并与家中的多台电脑共享，只需点击几下鼠标，即可立即创建文件存储实例，并由许多云虚拟机共享。</li>
+
+<li><strong class="bold">云对象存储</strong>是一种基于软件的存储形式，可用于在云中存储对象(文件、图像等)。在 GCP，云对象存储<a id="_idIndexMarker028"/>被称为<strong class="bold">谷歌云存储</strong> ( <strong class="bold"> GCS </strong>)。与 PD 和 Filestore 不同，PD 是一种由虚拟机使用的云块存储类型(它可以在多个虚拟机之间以只读模式共享), file store 是一种由许多虚拟机共享的云 NAS 类型，GCS 是一种用于存储不可变对象的云对象类型。对象存储在 GCS 桶中。在 GCP，bucket 的创建和删除、对象上传、下载和<a id="_idIndexMarker029"/>删除都可以在 GCP 控制台上完成，只需点击几下鼠标！</li>
+
+</ul>
+
+<p>GCS 根据对象访问模式提供不同的存储类别。更多细节可以在 https://cloud.google.com/storage 找到。</p>
+
+<p>按照<a href="https://cloud.google.com/storage/docs/creating-buckets">https://cloud.google.com/storage/docs/creating-buckets</a>的指示，您可以创建一个存储文件夹/存储桶并将对象上传到其中。让我们在这里暂停一下，转到 GCP 控制台来配置我们的第一个存储桶，并向其中上传一些对象。</p>
+
+<h2 id="_idParaDest-22"><a id="_idTextAnchor022"/>使用 GCP 云外壳管理资源</h2>
+
+<p>到目前为止，我们已经讨论了从 GCP 控制台在云中配置虚拟机和存储桶/对象的<a id="_idIndexMarker030"/>。还有一个工具可以帮助我们创建、管理和删除资源:GCP 云壳。Cloud Shell 是一个命令行界面，可以从您的控制台浏览器轻松访问。在你点击 GCP 控制台上的<strong class="bold">云壳</strong>按钮后，你会在你的网页浏览器中得到一个云壳——一个虚拟机上的命令行用户界面，其中已经安装了所有的云资源管理命令。</p>
+
+<p>Google 为客户提供了以下工具来使用命令行创建和管理云资源:</p>
+
+<ul>
+
+<li><code>gcloud</code>工具是 GCP 产品和服务(如 GCE)的主要命令行界面。</li>
+
+<li><code>gsutil</code>工具用于 GCS 服务。</li>
+
+<li><code>bq</code>工具是用于大查询服务的。</li>
+
+<li><code>kubectl</code>工具用于 Kubernetes 服务。</li>
+
+</ul>
+
+<p>请参考<a href="https://cloud.google.com/shell/docs/using-cloudshell-command">https://Cloud . Google . com/shell/docs/using-Cloud shell-command</a>了解更多关于 GCP <a id="_idIndexMarker031"/>云 Shell 和命令的信息，以及如何使用云 Shell 命令创建虚拟机和存储桶。</p>
+
+<h2 id="_idParaDest-23"><a id="_idTextAnchor023"/> GCP 网络–虚拟私有云</h2>
+
+<p>再想想家用电脑——它们都通过网络连接，有线或无线，这样它们就可以连接到互联网。没有网络，计算机几乎毫无用处。在 GCP 内部，一个云<a id="_idIndexMarker033"/>网络单元被称为<strong class="bold">虚拟私有云</strong> ( <strong class="bold"> VPC </strong>)。VPC 是一种基于软件的逻辑网络资源。在一个 GCP 项目中，可以提供有限数量的虚拟专用计算机。在云中启动虚拟机后，您可以在 VPC 中连接它们，或者在单独的 VPC 中将它们相互隔离。因为 GCP VPC 是全球性的，可以跨越世界上的多个地区，所以您可以在世界上的任何地方配置 VPC 及其资源。在 VPC 中，公共子网中的虚拟机具有可从互联网访问的外部 IP 地址，并且可以访问互联网；专用子网包含没有外部 IP 地址的虚拟机。VPC 可以在 GCP 项目内部或 GCP 项目外部相互对等。</p>
+
+<p>可以使用 GCP 控制台或 GCP 云外壳来配置 VPC。详情请参见<a href="https://cloud.google.com/vpc/">https://cloud.google.com/vpc/</a>。让我们在这里暂停一下，转到 GCP 控制台来调配我们的 VPC 和子网，然后将一些虚拟机启动到这些子网中。</p>
+
+<h1 id="_idParaDest-24"><a id="_idTextAnchor024"/> GCP 组织结构</h1>
+
+<p>在我们进一步讨论 GCP <a id="_idIndexMarker034"/>云服务之前，我们需要花一些时间来谈论 GCP 的组织结构，这与<strong class="bold">亚马逊网络服务</strong> ( <strong class="bold"> AWS </strong>)云和微软 Azure 云的组织结构有很大不同。</p>
+
+<h2 id="_idParaDest-25"><a id="_idTextAnchor025"/>GCP 资源层级</h2>
+
+<p>如下面的<a id="_idIndexMarker035"/>图所示，在 GCP 云域中，顶部是 GCP 组织，接下来是文件夹，然后是项目。通常，我们可以将公司的组织层次结构映射到 GCP 结构:公司映射到 GCP 组织，其部门(销售、工程等)映射到文件夹，部门的职能项目映射到文件夹下的项目。虚拟机、<strong class="bold">数据库</strong> ( <strong class="bold">数据库</strong>)等云资源都在项目下。</p>
+
+<p>在 GCP 组织层次结构中，<em class="italic">每个项目都是一个独立的隔间，每个资源都属于一个项目</em>。项目可以有多个所有者和用户。虽然多个项目可能与同一个计费帐户相关联，但它们是分开管理和计费的:</p>
+
+<div><div><img alt="Figure 1.1 – Sample GCP organization structure&#10;&#10;" height="826" src="img/Figure_1.1.jpg" width="1452"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 1.1-GCP 组织结构示例</p>
+
+<p>在上图中，有两个组织:一个用于生产，一个用于测试(沙盒)。<a id="_idIndexMarker036"/>每个组织下有多层文件夹(注意文件夹层数和每层的文件夹数可能有限)，每个文件夹下有多个项目，每个项目包含多个资源。</p>
+
+<h2 id="_idParaDest-26"><a id="_idTextAnchor026"/> GCP 项目</h2>
+
+<p>GCP 项目是 GCP 资源的逻辑分离。项目用于基于谷歌云的<strong class="bold">身份和访问管理</strong> ( <strong class="bold"> IAM </strong>)权限完全隔离<a id="_idIndexMarker038"/>资源；</p>
+
+<ul>
+
+<li><strong class="bold">计费隔离</strong>:使用不同的项目来分隔支出单位</li>
+
+<li><strong class="bold">配额和限额</strong>:项目级设置，按工作量划分</li>
+
+<li><strong class="bold">管理复杂性</strong>:在项目级别设置，用于访问分离</li>
+
+<li><strong class="bold">爆炸半径</strong>:错误配置问题仅限于一个项目内</li>
+
+<li><strong class="bold">职责分离</strong>:业务单元和数据敏感度分离</li>
+
+</ul>
+
+<p>总之，GCP 的组织结构提供了管理谷歌云资源的层次结构，项目是逻辑隔离和分离。在下一节中，我们将通过查看 IAM 来讨论 GCP 组织内的资源权限。</p>
+
+<h1 id="_idParaDest-27"><a id="_idTextAnchor027"/> GCP 身份和访问管理</h1>
+
+<p>我们了解了 GCP 的组织结构以及虚拟机、存储和网络的 GCP 资源后，我们必须了解 GCP 组织中这些资源的访问管理:IAM。GCP IAM 使用<strong class="bold"> AAA </strong>模型管理云身份<a id="_idIndexMarker040"/>:认证、<strong class="bold">授权</strong>、<strong class="bold">审计</strong>(或<strong class="bold">记账</strong>)。</p>
+
+<h2 id="_idParaDest-28"><a id="_idTextAnchor028"/>认证</h2>
+
+<p><em class="italic"> AAA </em>模型中的第一个<em class="italic"> A </em>是<strong class="bold">认证</strong>，其中<a id="_idIndexMarker041"/>涉及验证<a id="_idIndexMarker042"/>尝试访问云的云身份。使用<strong class="bold">多因素认证</strong> ( <strong class="bold"> MFA </strong>)取代了传统的只要求输入用户名和密码的方式，这是一种要求用户使用多种独立方法验证其<a id="_idIndexMarker043"/>身份的认证方法。出于安全原因，所有用户身份验证，包括 GCP 控制台访问和<a id="_idIndexMarker044"/>任何其他<strong class="bold">单点登录</strong> ( <strong class="bold"> SSO </strong>)实施，都必须在实施 MFA 时完成。如今，用户名和密码根本无法保护用户访问。</p>
+
+<h2 id="_idParaDest-29"><a id="_idTextAnchor029"/>授权</h2>
+
+<p><strong class="bold">授权</strong>由<em class="italic"> AAA </em>模型中的第二个<em class="italic"> A </em>表示<a id="_idIndexMarker045"/>。它是在用户通过身份验证进入云帐户后，授予或拒绝用户<a id="_idIndexMarker046"/>访问云资源的过程。用户可以访问的信息量和服务数量取决于用户的授权级别。一旦用户的身份得到验证，并且用户通过 GCP 认证，用户就必须通过授权规则才能访问云资源和数据。授权决定了用户可以和不可以访问的资源。</p>
+
+<p>授权定义了<em class="italic">谁可以在哪个资源上做什么</em>。下图显示了<a id="_idIndexMarker047"/> GCP 中的<strong class="bold">授权</strong>概念。正如您所看到的，在授权过程中有三方:图中的第一层是身份——这指定了谁可以是用户帐户、一组用户或应用程序(<strong class="bold">服务帐户</strong>)。第三层指定<em class="italic">哪些</em>云资源，例如 GCS 桶、GCE 虚拟机、VPC、服务帐户或其他 GCP 资源。一个<strong class="bold">服务账户</strong>可以是一个身份，也可以是一个资源:</p>
+
+<div><div><img alt="Figure 1.2 – GCP IAM authentication&#10;&#10;" height="280" src="img/Figure_1.2.jpg" width="474"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 1.2–GCP IAM 认证</p>
+
+<p>中间层是<strong class="bold"> IAM Role </strong>，也称为<em class="italic"> what </em>，指的是<a id="_idIndexMarker048"/>身份对资源拥有的特定特权或动作。例如，当向一个组提供了计算查看者的权限时，该组将具有获取和列出 GCE 资源的只读访问权限，而不能写入/更改它们。GCP 支持三种类型的 IAM 角色:<strong class="bold">原语</strong> ( <strong class="bold">基本</strong>)<strong class="bold">预定义</strong>和<strong class="bold">自定义</strong>。让我们来看看:</p>
+
+<ul>
+
+<li><strong class="bold">原始(基本)角色</strong>，包括所有者、编辑和查看者角色，这些角色在引入 IAM<a id="_idIndexMarker049"/>之前就存在于 GCP。这些角色在所有 Google 云服务中拥有数千个权限，并授予重要的特权。因此，在生产环境中，建议不要授予基本角色，除非别无选择。相反，授予最有限的预定义角色或满足您需求的自定义角色。</li>
+
+<li><strong class="bold">预定义角色</strong>根据基于角色的权限需求，提供对特定服务的细粒度访问。预定义的<a id="_idIndexMarker050"/>角色由 Google 创建和维护。谷歌会在必要时自动更新其权限，例如当谷歌云添加新功能或服务时。</li>
+
+<li><strong class="bold">自定义角色</strong>根据用户指定的权限列表提供<a id="_idIndexMarker051"/>粒度访问。这些角色应该谨慎使用，因为用户负责维护相关的权限。</li>
+
+</ul>
+
+<p>在 GCP，认证是使用 IAM 策略实现的，IAM 策略将身份绑定到 IAM 角色。下面是一个 IAM 策略示例:</p>
+
+<pre class="source-code">{
+
+  "bindings": [
+
+    {
+
+      "members": [
+
+        "user:jack@example.com"
+
+      ],
+
+      "role": "roles/resourcemanager.organizationAdmin"
+
+    },
+
+    {
+
+      "members": [
+
+        "user:jack@example.com",
+
+        "user:joe@example.com"
+
+      ],
+
+      "role": "roles/resourcemanager.projectCreator"
+
+    }
+
+  ],
+
+  "etag": "BwUjMhCsNvY=",
+
+  "version": 1
+
+}</pre>
+
+<p>在前面的示例中，Jack ( <code>jack@example.com</code>)被授予组织管理员预定义角色(<code>roles/resourcemanager.organizationAdmin</code>)，因此拥有组织、文件夹和有限项目操作的权限。杰克和乔(<code>joe@example.com</code>)都可以创建项目，因为他们被授予了项目创建者角色(<code>roles/resourcemanager.projectCreator</code>)。这两个角色绑定<a id="_idIndexMarker053"/>一起为杰克和乔提供细粒度的 GCP 资源访问，尽管杰克拥有更多特权。</p>
+
+<h2 id="_idParaDest-30"><a id="_idTextAnchor030"/>审计或会计</h2>
+
+<p><em class="italic"> AAA </em>模型<a id="_idIndexMarker054"/>中的第三个<em class="italic"> A </em>是指<strong class="bold">审计</strong>或<strong class="bold">会计</strong>，这是跟踪用户在访问 GCP 资源时的<a id="_idIndexMarker055"/>活动的过程，包括在<a id="_idIndexMarker056"/>网络中花费的时间、他们访问的服务以及他们登录会话期间传输的数据量。审计数据用于趋势分析、访问记录、合规性审计、违规检测、取证和调查、帐户计费、成本分配和容量规划。使用谷歌云审计日志服务，您可以跟踪用户/组及其活动，并确保活动记录是真实的。审计日志对云安全非常有帮助。例如，追溯网络安全事件对于取证分析和案件调查非常有价值。</p>
+
+<h2 id="_idParaDest-31"><a id="_idTextAnchor031"/>服务账户</h2>
+
+<p>在 GCP，服务账户是一个<a id="_idIndexMarker057"/>专用账户，可以被 GCP 服务和运行在 GCE 实例或其他地方的其他应用程序使用<a id="_idIndexMarker058"/>来与 GCP <strong class="bold">应用程序编程接口</strong>(<strong class="bold">API</strong>)进行交互。他们就像<em class="italic">程序化访问用户</em>，通过他们你可以访问 GCP 服务。服务帐户存在于 GCP 项目中，但可以被授予组织和文件夹级别的权限，以及对不同项目的权限。通过利用服务帐户凭据，应用程序可以授权自己使用一组 API，并在授予服务帐户的权限内执行操作。例如，在 GCE 实例上运行的应用程序可以使用该实例的服务帐户与其他 Google 服务(比如云 SQL 数据库实例)及其底层 API 进行交互。</p>
+
+<p>当我们创建第一个虚拟机时，同时为该虚拟机创建了一个默认服务帐户。您可以通过定义其<strong class="bold">访问范围</strong>来为该虚拟机的服务帐户定义权限<a id="_idIndexMarker059"/>。一旦定义完毕，在这个虚拟机上运行的所有应用程序将拥有相同的权限来访问其他 GCP 资源，比如 GCS bucket。当虚拟机数量显著增加时，将会产生大量服务帐户。这就是为什么我们经常创建一个服务帐户，并将其分配给需要拥有相同 GCP 权限的虚拟机或其他资源。</p>
+
+<h1 id="_idParaDest-32">GCP 计算机服务公司</h1>
+
+<p>之前，我们查看了 GCE <a id="_idIndexMarker061"/>服务，并在云中创建了我们的 VM 实例。现在，让我们来看看整个 GCP 计算频谱，它包括<strong class="bold">谷歌计算引擎</strong> ( <strong class="bold"> GCE </strong>)、<strong class="bold">谷歌 Kubernetes 引擎</strong> ( <strong class="bold"> GKE </strong>)、云运行、<strong class="bold">谷歌应用引擎</strong> ( <strong class="bold"> GAE </strong>)和云函数，如下图所示:</p>
+
+<div><div><img alt="Figure 1.3 – GCP compute services&#10;&#10;" height="301" src="img/Figure_1.3.jpg" width="1119"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 1.3–GCP 计算服务</p>
+
+<p>GCP 计算领域提供了广泛的业务使用案例。根据业务模型，我们可以选择 GCE、GKE、GAE、云运行或云功能来满足需求。我们将在接下来的几节中简要讨论它们。</p>
+
+<h2 id="_idParaDest-33"><a id="_idTextAnchor033"/> GCE 虚拟机</h2>
+
+<p>我们讨论了围绕 GCE 的概念<a id="_idIndexMarker062"/>以及使用云控制台和云外壳调配虚拟机。在本节中，我们将讨论 GCP GCE 虚拟机映像和定价模型。</p>
+
+<p>计算引擎映像为在<strong class="bold">计算引擎</strong>中运行的应用程序(即虚拟机)提供了基础操作环境，它们对于确保您的应用程序快速可靠地部署和扩展至关重要。您还可以使用黄金/可信映像来归档应用程序版本，以用于灾难恢复或回滚场景。GCE 映像在安全性方面也至关重要，因为它们可用于部署公司中的所有虚拟机。</p>
+
+<p>GCE 为虚拟机提供了不同的定价模式:按需购买、抢先使用、承诺使用和单一租户主机。</p>
+
+<p>按需购买适用于需要动态调配虚拟机的业务案例。如果工作负载是可预见的，我们希望使用折扣价格的承诺使用量。如果工作负载可以重启，我们希望进一步利用<em class="italic">抢先</em>模式，并对虚拟机价格进行投标。如果存在与主机相关的许可证，那么<em class="italic">单租户主机</em>类型符合我们的需求。有关 GCE VM <a id="_idIndexMarker063"/>定价的更多细节，请查看<a href="https://cloud.google.com/compute/vm-instance-pricing">https://cloud.google.com/compute/vm-instance-pricing</a>。</p>
+
+<h2 id="_idParaDest-34"><a id="_idTextAnchor034"/>负载平衡器和托管实例组</h2>
+
+<p>单个计算机可能由于硬件或软件故障而停机，并且当计算<a id="_idIndexMarker064"/>功率需求沿着时间线变化时，它也不提供任何缩放。为了确保高可用性和可伸缩性，GCP 提供了<strong class="bold">负载平衡器</strong> ( <strong class="bold"> LBs </strong>)和<strong class="bold">托管实例组</strong> ( <strong class="bold"> MIGs </strong>)。LBs 和 MIGs 允许您创建<a id="_idIndexMarker065"/>同类实例组，以便负载平衡器可以将流量导向多个 VM 实例。MIG 还提供自动扩展和自动修复等功能。通过自动扩展，您可以在自动扩展策略中配置适当的最小和最大实例，并根据特定信号增加或减少虚拟机实例的数量，从而应对流量高峰，而自动修复则执行运行状况检查，并在必要时自动重新创建不正常的实例。</p>
+
+<p>让我们看一个例子来解释这个想法:</p>
+
+<div><div><img alt="Figure 1.4 – GCP load balancers and managed instance groups&#10;&#10;" height="652" src="img/Figure_1.4.jpg" width="1204"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 1.4–GCP 负载平衡器和托管实例组</p>
+
+<p>如上图所示，<a href="http://www.zeebestbuy.com">www.zeebestbuy.com</a>是一家全球电子商务公司。每年，当<em class="italic">黑色星期五</em>到来时，他们的网站负载过重，以至于一台计算机无法容纳流量——需要更多的 web 服务器(运行在虚拟机实例上)来分配流量负载。在<em class="italic">黑色星期五</em>之后，交通恢复正常，不需要太多实例。在 GCP 平台上，我们使用 LBs 和 MIGs 来解决这个问题。如上图所示，我们在全球构建了三台 web 服务器(美国的 N. Virginia、新加坡和英国的伦敦)，GCP DNS 可以根据用户的浏览器位置和三个站点的延迟将用户流量分发到这三个位置。在每个站点，我们设置了一个 LB 和一个 MIG:可以根据正常和高峰流量适当地设置所需的容量以及最小和最大容量。当<em class="italic">黑色星期五</em>到来时，LB 和 MIG 一起工作，弹性地启动新的 VM 实例(web 服务器)来处理增加的流量。在<em class="italic">黑色星期五</em>销售结束后，他们将停止/删除虚拟机实例，以反映减少的流量。</p>
+
+<p>MIG 使用一个启动<a id="_idIndexMarker066"/>模板，它类似于一个启动配置，并指定实例配置信息，包括 VM 镜像的 ID、实例类型、伸缩阈值和用于启动 VM 实例的其他参数。LB 使用健康检查来监控实例。如果实例在配置的阈值时间内没有响应，将根据启动模板启动新的实例。</p>
+
+<h2 id="_idParaDest-35"><a id="_idTextAnchor035"/>容器和谷歌 Kubernetes 引擎</h2>
+
+<p>就像从物理机器到虚拟机的转变一样，从虚拟机到容器的转变是革命性的。我们没有启动虚拟机来运行应用程序，而是将应用程序打包到一个标准单元中，该单元包含在不同虚拟机上以相同方式运行应用程序或服务的所有内容。我们将包构建成 Docker 映像；容器是 Docker 映像的运行实例。虚拟机管理程序将硬件虚拟化为虚拟机，而 Docker 映像将操作系统虚拟化为应用程序容器。</p>
+
+<p>由于松耦合和模块化可移植性，越来越多的应用程序被容器化。很快，一个问题出现了:如何管理所有这些容器/Docker 映像？这就是谷歌 Kubernetes 引擎的用武之地，这是谷歌开发的一个容器管理系统。一个 GKE 集群通常包括至少一个控制平面和多个称为节点的工作机，它们一起工作<a id="_idIndexMarker069"/>来管理/编排容器。Kubernetes Pod 是一组部署在一起并共同完成任务的容器。例如，一个应用服务器 pod 包含三个独立的容器:应用服务器本身、一个监控容器和一个日志容器。它们一起工作，形成了业务用例的应用程序或服务。</p>
+
+<p>按照<a href="https://cloud.google.com/kubernetes-engine/docs/how-to/creating-a-zonal-cluster">https://cloud . Google . com/kubernetes-engine/docs/how-to/creating-a-zonal-cluster</a>中的说明，您可以创建一个 GKE 区域集群。让我们暂停一下，使用 GCP 云外壳创建一个 GKE 集群。</p>
+
+<h2 id="_idParaDest-36"><a id="_idTextAnchor036"/> GCP 云润</h2>
+
+<p>GCP 云运行是一个托管计算<a id="_idIndexMarker070"/>平台，使您能够运行无状态容器，可以通过 HTTP 请求在完全托管的环境或您的 GKE 集群中调用这些容器。Cloud Run 是无服务器的，这意味着所有的基础设施管理任务都是 Google 的责任，让用户专注于应用程序开发。借助 Cloud Run，您可以使用任何框架和工具以任何语言构建您的应用程序，然后在几秒钟内部署它们，而无需管理服务器基础架构。</p>
+
+<h2 id="_idParaDest-37"><a id="_idTextAnchor037"/> GCP 云函数</h2>
+
+<p>与分别部署虚拟机或容器来运行应用程序的 GCE 和 GKE <a id="_idIndexMarker071"/>服务不同，Cloud Functions 是一种无服务器的计算服务，允许您提交代码(用 JavaScript、Python、Go 等编写)。谷歌云将在后台运行代码，并将结果交付给你。你不知道也不关心代码在哪里运行——你只需为你的代码在 GCP 上运行的时间付费。</p>
+
+<p>利用云功能，一段代码可以基于某些事件在几毫秒内被触发。例如，在将一个对象上传到 GCS bucket 之后，可以生成一条消息<a id="_idIndexMarker072"/>并发送到 GCP 发布/订阅，这将导致云函数处理该对象。云功能也可以基于您定义的 HTTP 端点或 Firebase 移动应用程序中的事件来触发。</p>
+
+<p>有了云功能，Google 负责运行代码的后端基础设施，让您只关注代码开发。</p>
+
+<h1 id="_idParaDest-38"><a id="_idTextAnchor038"/> GCP 存储和数据库服务系列</h1>
+
+<p>之前，我们检查了 GCS 服务，并在云中创建了存储桶，以及用于云 VM 实例的持久磁盘和文件存储实例。现在，让我们来看看整个 GCP <a id="_idIndexMarker073"/>存储和<a id="_idIndexMarker074"/>数据库服务系列，包括云存储、云 SQL、云扳手、云 Firestore、Bigtable 和 BigQuery，如下图所示:</p>
+
+<div><div><img alt="Figure 1.5 – GCP storage and database services&#10;&#10;" height="306" src="img/Figure_1.5.jpg" width="1424"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 1.5–GCP 存储和数据库服务</p>
+
+<p>在这里，云存储存储对象，云 SQL 和云扳手是关系数据库，云 Firestore 和 Bigtable 是 NoSQL 数据库。BigQuery 是一个数据仓库，也是一个大数据分析/可视化工具。我们将在<em class="italic"> GCP 大数据和分析服务</em>部分讨论 BigQuery。</p>
+
+<h2 id="_idParaDest-39"><a id="_idTextAnchor039"/> GCP 储物</h2>
+
+<p>我们已经讨论过 GCP 存储，包括<strong class="bold">谷歌云存储</strong> ( <strong class="bold"> GCS </strong>)、持久磁盘和<a id="_idIndexMarker075"/>文件存储。GCS 是 GCP ML 工作存储其培训数据、模型、检查点和日志的常见选择。在接下来的几节中，我们将讨论更多的 GCP 存储数据库和服务。</p>
+
+<h2 id="_idParaDest-40"><a id="_idTextAnchor040"/>谷歌云 SQL</h2>
+
+<p>云 SQL 是一个完全托管的<a id="_idIndexMarker077"/> GCP 关系数据库服务，适用于 MySQL、PostgreSQL 和 SQL Server。借助云 SQL，您可以在内部运行您熟悉的相同关系数据库，而没有自我管理的麻烦，例如备份和恢复、高可用性等。作为一项托管服务，Google 负责管理数据库备份、导出和导入、确保高可用性和故障转移、执行补丁维护和更新，以及执行监控和日志记录。</p>
+
+<h2 id="_idParaDest-41"><a id="_idTextAnchor041"/>谷歌云扳手</h2>
+
+<p>Google Cloud Spanner 是一个 GCP 完全管理的关系数据库，具有无限的全球规模、强大的一致性和高达 99.999%的可用性。像关系数据库一样，Cloud Spanner 具有模式、SQL 和强一致性。此外，像非关系数据库一样，Cloud Spanner 提供了高可用性、水平可伸缩性和可配置的复制。Cloud Spanner 已经被用于任务关键的业务用例，例如用于交易和财务管理的在线交易系统。</p>
+
+<h2 id="_idParaDest-42"><a id="_idTextAnchor042"/>云火店</h2>
+
+<p>Cloud Firestore 是一个快速、全面管理、无服务器、云原生的 NoSQL 文档数据库。Cloud Firestore 支持 ACID 事务，并允许您针对 NoSQL 数据运行复杂的查询，而不会降低性能。它在全球范围内存储、同步和查询移动应用和网络应用的数据。Firestore 与 Firebase 和其他 GCP 服务无缝集成，从而加快了无服务器应用程序的开发。</p>
+
+<h2 id="_idParaDest-43"><a id="_idTextAnchor043"/>谷歌云 Bigtable</h2>
+
+<p>Cloud Bigtable 是 Google 完全托管的<a id="_idIndexMarker079"/> NoSQL 大数据数据库服务。Bigtable 将数据存储在使用键/值映射排序的表中。Bigtable 可以存储数万亿行和数百万列，使应用程序能够存储数 Pb 的数据。Bigtable 提供了极高的可伸缩性，并自动处理数据库任务，如重启、升级和复制。Bigtable 是存储大量半结构化或非结构化数据的理想选择，具有低于 10 毫秒的延迟和极高的读写吞吐量。谷歌的许多核心产品，如搜索、分析、地图和 Gmail，都使用云 Bigtable。</p>
+
+<h1 id="_idParaDest-44"><a id="_idTextAnchor044"/> GCP 大数据和分析服务</h1>
+
+<p>与存储<a id="_idIndexMarker080"/>和数据库服务不同，大数据和分析服务专注于大数据处理管道:从数据接收、存储和处理到可视化，它帮助您创建完整的基于云的大数据基础架构:</p>
+
+<div><div><img alt="Figure 1.6 – GCP big data and analytics services&#10;&#10;" height="295" src="img/Figure_1.6.jpg" width="1091"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 1.6–GCP 大数据和分析服务</p>
+
+<p>如上图所示，GCP 大数据和分析服务包括 Cloud Dataproc、Cloud Dataflow、BigQuery 和 Cloud Pub/Sub。</p>
+
+<p>让我们简单地检查一下它们。</p>
+
+<h2 id="_idParaDest-45"><a id="_idTextAnchor045"/>谷歌云 Dataproc</h2>
+
+<p>基于 Map-Reduce <a id="_idIndexMarker081"/>的概念和 Hadoop 系统的架构，<strong class="bold">Google</strong><strong class="bold">Cloud data proc</strong>是一个用于<a id="_idIndexMarker082"/>处理大型数据集的托管 GCP 服务。<strong class="bold"> Dataproc </strong>为组织提供了按需供应和配置不同规模的数据处理集群的灵活性。Dataproc 与其他 GCP 服务集成得很好。可以直接在云存储文件上操作或者使用 Bigtable 分析数据，可以集成<strong class="bold"> Vertex AI </strong>、<strong class="bold"> BigQuery </strong>、<strong class="bold"> Dataplex </strong>以及其他<strong class="bold"> GCP </strong>服务。</p>
+
+<p>Dataproc 帮助用户处理、转换和理解大量数据。您可以使用 Dataproc 运行 Apache Spark、Apache Flink、Presto 和 30 多个开源工具和框架。您还可以使用 Dataproc 进行数据湖现代化、ETL 过程等等。</p>
+
+<h2 id="_idParaDest-46"><a id="_idTextAnchor046"/>谷歌云数据流</h2>
+
+<p>云数据流是 GCP 管理的<a id="_idIndexMarker083"/>服务，用于开发和执行各种各样的数据处理模式，包括<strong class="bold">提取、转换、加载</strong> ( <strong class="bold"> ETL </strong>)、批处理和流作业。Cloud Dataflow 是一个无服务器的数据处理服务，运行用 Apache Beam 库编写的作业。云数据流执行由管道组成的作业，管道是读取数据、将其转换为不同格式并写出的一系列步骤。数据流管道由一系列管道组成，这是一种连接组件的方式，数据通过管道从一个组件移动到下一个组件。当作业在云数据流上执行时，该服务启动虚拟机集群，将作业任务分配给虚拟机，并根据作业负载及其性能动态扩展集群。</p>
+
+<h2 id="_idParaDest-47"><a id="_idTextAnchor047"/>谷歌云 BigQuery</h2>
+
+<p>BigQuery 是 Google 完全托管的<a id="_idIndexMarker086"/>企业数据仓库<a id="_idIndexMarker087"/>服务，高度可扩展、快速，并针对数据分析进行了优化。它具有以下特点:</p>
+
+<ul>
+
+<li>BigQuery 支持 ANSI 标准的 SQL 查询，包括连接、嵌套和重复字段、分析和聚合函数、脚本以及通过地理空间分析的各种空间函数。</li>
+
+<li>使用 BigQuery，您不需要实际管理基础设施资产。BigQuery 的无服务器架构允许您使用 SQL 查询来回答大型业务问题，而基础设施开销为零。使用 BigQuery 可扩展的分布式分析引擎，您可以在几分钟内查询数 Pb 的数据。</li>
+
+<li>BigQuery 与其他 GCP 数据服务无缝集成。您可以查询存储在 BigQuery 中的数据，或者使用外部表或联邦查询对数据所在的位置运行查询，包括 GCS、Bigtable、Spanner 或存储在 Google Drive 中的 Google Sheets。</li>
+
+<li>BigQuery 通过 ML、地理空间分析和商业智能等内置功能帮助您管理和分析数据。我们将在本书的后面讨论 BigQuery ML。</li>
+
+</ul>
+
+<p>Google BigQuery 被用在许多商业案例中，因为它是 SQL 友好的，具有无服务器结构，并且内置了与其他 GCP 服务的集成。</p>
+
+<h2 id="_idParaDest-48"><a id="_idTextAnchor048"/>谷歌云发布/订阅</h2>
+
+<p>GCP 发布/订阅是一种广泛使用的云服务，用于解耦许多 GCP 服务——它实现了一个事件/消息队列管道来集成服务和并行化任务。使用发布/订阅服务，您可以创建事件生产者(称为发布者)和事件消费者(称为订阅者)。使用发布/订阅，发布者通过广播事件与订阅者异步通信–一个发布者可以有多个订阅者，一个订阅者可以订阅多个发布者:</p>
+
+<div><div><img alt="Figure 1.7 – Google Cloud Pub/Sub services" height="229" src="img/Figure_1.7.jpg" width="789"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 1.7–谷歌云发布/订阅服务</p>
+
+<p>上图显示了我们在<em class="italic"> GCP 云函数</em>部分中讨论的示例:在一个对象被上传到 GCS 桶之后，可以生成一个请求/消息并发送到 GCP 发布/订阅，这可以触发一个电子邮件通知和一个云函数来处理该对象。当并行对象上传数量巨大时，Cloud Pub/Sub 将帮助缓冲/排队请求/消息，并将 GCS 服务与其他云服务(如云功能)分离。</p>
+
+<p>到目前为止，我们已经介绍了各种 GCP 服务，包括计算、存储、数据库和数据分析(大数据)。现在，让我们来看看各种 GCP <strong class="bold">人工智能</strong> ( <strong class="bold"> AI </strong>)服务。</p>
+
+<h1 id="_idParaDest-49"><a id="_idTextAnchor049"/> GCP 人工智能服务</h1>
+
+<p>谷歌云中的人工智能服务是其最好的服务之一。谷歌云的人工智能服务包括以下内容:</p>
+
+<ul>
+
+<li><strong class="bold"> BigQuery ML </strong> ( <strong class="bold"> BQML </strong>)</li>
+
+<li>张量流和 Keras</li>
+
+<li>谷歌顶点人工智能</li>
+
+<li>谷歌 ML API</li>
+
+</ul>
+
+<p>Google BQML 是从 Google Cloud BQ 构建的，它是一个无服务器的大数据仓库和分析平台。BQML 使用基于 SQL 的语言，从已经存储在 BQ 中的数据集中训练 ML 模型。TensorFlow 引入了张量的概念，并为 ML 开发提供了一个框架，而 Keras 使用 TensorFlow 提供了一个高级结构。我们将在本书的第三部分更详细地讨论 BQML、TensorFlow 和 Keras，以及 Google Cloud Vertex AI 和 Google Cloud ML API，接下来我们将简要介绍它们。</p>
+
+<h2 id="_idParaDest-50"><a id="_idTextAnchor050"/>谷歌顶点 AI</h2>
+
+<p><strong class="bold">Google Vertex AI</strong>(<a href="https://cloud.google.com/vertex-ai/docs/start/introduction-unified-platform">https://cloud . Google . com/Vertex-AI/docs/start/introduction-unified-platform</a>)旨在<a id="_idIndexMarker094"/>到<a id="_idIndexMarker095"/>提供一个<a id="_idIndexMarker096"/>全面管理、可扩展、安全的企业级 ML 开发基础设施。在 Vertex AI 环境中，数据科学家可以端到端地完成他们所有的 ML 项目:数据准备和特征工程；模型训练、验证和调整；模型部署和监控等等。它提供了统一的 API、客户端库和用户界面。</p>
+
+<p>Vertex AI 提供端到端的 ML <a id="_idIndexMarker097"/>服务，包括但不限于以下内容:</p>
+
+<ul>
+
+<li>顶点人工智能数据标注和数据集</li>
+
+<li>顶点人工智能特征库</li>
+
+<li>顶点人工智能工作台和笔记本</li>
+
+<li>顶点 AI 训练</li>
+
+<li>顶点人工智能模型和端点</li>
+
+<li>顶点人工智能管道</li>
+
+<li>顶点人工智能元数据</li>
+
+<li>顶点人工智能实验和张量板</li>
+
+</ul>
+
+<p>我们将在本书的第三部分详细研究这些问题。</p>
+
+<h2 id="_idParaDest-51"><a id="_idTextAnchor051"/>谷歌云 ML APIs</h2>
+
+<p><strong class="bold">Google Cloud ML API</strong>用 Google 预先训练好的 ML 模型向<a id="_idIndexMarker100"/>客户提供应用<a id="_idIndexMarker099"/>接口，这些模型是用 Google 的数据训练出来的。以下是几个 AI APIs:</p>
+
+<ul>
+
+<li><strong class="bold">Google Cloud sight API</strong>，包括<a id="_idIndexMarker101"/> Google Cloud Vision API 和云视频 API。sight APIs 的预训练模型使用 ML 来理解您的图像，具有行业领先的预测准确性。它们可以用于检测物体/人脸/场景，读取笔迹，以及构建有价值的图像/视频元数据。</li>
+
+<li><strong class="bold">谷歌云语言 API</strong>，包括自然语言处理 API 和翻译 API。这些强大的语言 API 预训练模型使开发人员能够轻松地将自然语言理解应用到他们的应用程序中，同时还有情感分析、实体分析、实体情感分析、内容分类和语法分析等功能。翻译 API 允许您检测一种语言并将其翻译成目标语言。</li>
+
+<li><strong class="bold"> Google Cloud 对话 API</strong>，包括语音转文本、文本转语音和 Dialogflow APIs。<a id="_idIndexMarker104"/>预先训练的对话 API 模型可以准确地将语音转换为文本，文本转换为语音，并使开发人员能够使用谷歌的尖端人工智能技术开发呼叫中心、在线语音订购系统等业务应用程序。</li>
+
+</ul>
+
+<p>AI 是<a id="_idIndexMarker105"/>计算机(或由计算机控制的机器人)执行通常由人类完成的任务的能力，因为这些任务需要人类的智能。在人类历史上，从视觉发展(与寒武纪大爆发有关)到语言发展，再到工具发展，一个根本问题是，我们人类是如何进化的，我们如何教会一台计算机学会看、说话和使用工具？GCP 人工智能服务范围包括视觉服务(图像识别、检测、分割等等)、语言服务(文本、语音、翻译等等)等等。我们将在本书的后面了解更多关于这些服务的内容。我们确信，未来将会有更多的人工智能服务，包括手部检测工具，加入到这个领域中来。</p>
+
+<h1 id="_idParaDest-52"><a id="_idTextAnchor052"/>总结</h1>
+
+<p>在本章中，我们首先创建一个 GCP 自由层帐户，并在云中配置我们的虚拟机和存储桶。然后，我们看了 GCP 组织的结构、资源层级和 IAM。最后，我们查看了与 ML 相关的 GCP 服务，包括计算、存储、大数据和分析以及人工智能，以便对每个 GCP 服务有一个扎实的了解。</p>
+
+<p>为了帮助您实践 GCP 技能，我们在<a href="B18333_11.xhtml#_idTextAnchor184"> <em class="italic">附录 1 </em> </a>、<em class="italic">中提供了使用基本 GCP 服务</em>的示例，在这些示例中，我们提供了逐步配置基本 GCP 资源的实验室。</p>
+
+<p>在下一章，我们将建立另一个基础:Python 编程。我们将关注 Python 基本技能的发展和 Python 数据库的使用。</p>
+
+<h1 id="_idParaDest-53"><a id="_idTextAnchor053"/>延伸阅读<a href="https://cloud.google.com/compute/docs/instances/create-start-instance"/></h1>
+
+<p><a href="https://cloud.google.com/compute/docs/instances/create-start-instance">要了解本章所涵盖主题的更多信息，请查看以下资源:</a></p>
+
+<ul>
+
+<li><a href="https://cloud.google.com/compute/">https://cloud.google.com/compute/</a></li>
+
+<li><a href="https://cloud.google.com/storage/">https://cloud.google.com/storage/</a></li>
+
+<li><a href="https://cloud.google.com/vpc">https://cloud.google.com/vpc</a></li>
+
+<li><a href="https://cloud.google.com/products/databases">https://cloud.google.com/products/databases</a></li>
+
+<li><a href="https://cloud.google.com/products/security-and-identity">https://cloud.google.com/products/security-and-identity</a></li>
+
+<li><a href="https://cloud.google.com/solutions/smart-analytics">https://cloud.google.com/solutions/smart-analytics</a></li>
+
+<li><a href="https://cloud.google.com/products/ai">https://cloud.google.com/products/ai</a></li>
+
+<li><a href="B18333_11.xhtml#_idTextAnchor184"> <em class="italic">附录 1 </em> </a>、<em class="italic">与基础 GCP 服务一起练习</em></li>
+
+</ul>
+
+</div>
+
+<div><div/>
+
+</div>
+
+</div>
+
+
+
+</body></html>

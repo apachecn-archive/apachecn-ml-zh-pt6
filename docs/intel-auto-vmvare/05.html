@@ -1,0 +1,2507 @@
+<html><head/><body><html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Proactive Operations with VMware vRealize Suite</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">借助 VMware vRealize Suite 实现主动运营</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在本章中，我们将重点介绍 VMware 如何通过向解决方案中注入高级分析来根据意图管理 IT 运营，从而帮助客户自动化在 vSphere 上运行的数据中心和公共云。vRealize Operations 的容量分析引擎利用 ML 技术，根据过去的趋势分析主动提醒您未来的事件。</p>
+
+<p>我们将了解 vRealize Suite 中的不同分析引擎，以及 vRealize 工具如何在不同的云中工作。此外，我们还将了解 vSphere 上容器的自动化，方法是降低<strong>总拥有成本</strong> ( <strong>总拥有成本</strong>)并通过更好的优化提高投资回报率。</p>
+
+<p>我们将在本章中讨论以下主题:</p>
+
+<ul>
+
+<li>统一的端到端监控</li>
+
+<li>智能运营分析与<strong>软件定义的数据中心</strong> ( <strong> SDDC </strong>)之旅</li>
+
+<li>vRealize operations 架构和容量规划</li>
+
+<li>VMware 容器管理服务</li>
+
+<li>基于 AWS 的 VMware 云实施计划</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Technical requirements</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">技术要求</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p class="mce-root">请参考此链接，了解 AWS 上的 VMware Cloud<a href="https://cloud.vmware.com/vmc-aws">https://cloud.vmware.com/vmc-aws</a>。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Unified end-to-end monitoring</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">统一的端到端监控</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>监控解决方案应收集和监控端到端服务级别和基础架构级别的 KPI，如按事务和服务可用性划分的响应时间，并对偏差发出警报。它可以理解和映射端到端服务的所有组件，如应用程序和应用程序组件，并监控所有应用程序平台组件的性能和可用性，如 web 服务器、应用程序服务器、消息总线和数据库。我们应该通过监控所有虚拟和物理基础架构组件的性能和可用性，了解并映射所有虚拟和物理基础架构组件，包括虚拟机、服务器、存储和网络。我们可以组合并关联所有这些参数，通过确定警报的根本原因来生成警报。IT 运营团队可以根据其角色在可定制的控制面板上获得所有信息，并拥有所有报告功能。它应该在分析功能中增加一个预测元素，以防止业务中断。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Intelligent operational analytics</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">智能运营分析</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>虚拟环境的高度动态性和复杂性需要一个整体视角，并与应用程序和基础架构的其他部分建立必要的关联。它需要一种新的数据管理和分析技术(为物理基础架构设计的工具不能很好地适应虚拟环境的动态和分散特性)。</p>
+
+<p>运营分析包括两个关键领域:</p>
+
+<ul>
+
+<li>性能分析通过实现以下功能，帮助客户在 IT 运营中采取主动方法，以更快地检测和解决问题:<ul>
+
+<li>基于自动学习、接近实时的基线调整、统计和趋势算法，主动控制服务性能和可用性</li>
+
+<li>服务影响分析和优先排序</li>
+
+<li>问题隔离和根本原因分析</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+<ul>
+
+<li>容量分析通过当前和历史数据分析、模拟和假设情景实现预测方法:<ul>
+
+<li>中长期资源调配的容量规划和预测</li>
+
+<li>预测警报</li>
+
+<li>通过自动配置和扩展实现近乎实时的容量优化</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>The vRealize Operations Manager architecture</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">vRealize Operations Manager 架构</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p class="mce-root">vRealize Operations Manager 收集和分析来自企业内多个数据源的信息。vRealize Operations Manager 使用高级分析算法来学习和识别它监控的每个对象的正常行为。这些信息通过视图、报告和仪表板呈现给用户。</p>
+
+<p class="mce-root">用户界面允许用户访问徽章、警报、图表和报告形式的分析结果。</p>
+
+<p>vRealize Operations Manager 可以作为<strong>虚拟设备</strong> ( <strong> vApp </strong>)下载，并作为虚拟机运行。在完整的 vRealize Operations Manager 集群设计中，它将被配置为执行以下角色之一:</p>
+
+<ul>
+
+<li><strong>主节点</strong>:集群中的第一个关键节点，它将是小型部署架构中的一个独立节点</li>
+
+<li><strong>主副本节点</strong>:高可用性的可选实例</li>
+
+<li><strong>数据节点</strong>:用于可扩展性目的</li>
+
+<li><strong>远程收集器节点</strong>:帮助克服数据收集问题，例如整个网络的网络性能差</li>
+
+</ul>
+
+<p>vRealize Operations Manager 有两种不同的部署模式:</p>
+
+<ul>
+
+<li>预配置的 vApp</li>
+
+<li>作为 Windows 或 Linux 可安装包</li>
+
+</ul>
+
+<p>为了便于部署，客户可以选择 vApp 模式。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Application architecture overview</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">应用架构概述</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p class="mce-root">我们将了解 vRealize Operations Manager 的逻辑节点体系结构及其所有功能:</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img src="img/ca912f99-d313-4ad1-8dd4-1baefb08feef.png" style="width:13.92em;height:20.17em;"/></p>
+
+<p><strong> HTTP 服务</strong>是主要的产品 UI。它支持主产品 UI、管理员 UI 和套件 API。这解释了 vRealize Operations Manager 如何计算压力，以及如何使用压力来计算容量规划的建议大小、剩余容量和剩余时间。这提供了足够的细节，人们可以理解 vROps 如何计算这些值，可以在它们合理时进行辩护，可以识别数据中的侥幸心理何时导致应该被否决的建议，并解释可以在 vROps 中调整的参数背后的概念。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Capacity planning</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">容量规划</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>压力是对性能问题严重性的一种衡量，因为在过去一个月最糟糕的一个小时里，压力太小了。这是一种处理需求高峰和波动的智能方法，它既考虑了资源运行的热度，也考虑了资源在连续周期内运行的时间。</p>
+
+<p><strong>总容量与可用容量</strong>:总容量是原始容量。可用容量是我们出于规划目的假装拥有的容量，考虑到主机故障并减去一些安全余量。</p>
+
+<p class="mce-root"><em>总容量–缓冲区(高可用性和常规)=可用容量</em>。您可以在 vROps 用户界面的分析|剩余容量中看到这一点。</p>
+
+<p class="mce-root">容量定义了应力区。对于压力计算，我们使用总容量还是可用容量？这取决于我们是否想知道实际发生了什么(总的)，或者我们是否在为未来做计划并希望更加谨慎(可用)。</p>
+
+<p class="mce-root">对于实际应力计算，我们使用总容量作为容量。在规划和寻找建议的合适规模时，我们希望保持谨慎，因此我们会进行压力计算，其中容量是可用容量，在给定测量的需求的情况下，在考虑到可能的主机故障和一些安全空间后，在多大的容量下我们才能避免性能问题而不浪费资源。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Critical success factors</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">关键成功因素</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>以下是关键的成功因素:</p>
+
+<ul>
+
+<li>提高<strong>平均修复时间</strong> ( <strong> MTTR </strong>)和运营效率，以防止严重的服务影响</li>
+
+<li>实施统一的端到端监控</li>
+
+<li>将持续的容量和性能管理与基于策略的自动化补救相结合，以动态优化性能和容量使用，并及时补救性能问题</li>
+
+<li>引入运营分析以增强实时可见性，并通过基于基本策略的自动化补救功能为问题隔离和故障排除提供可操作的情报</li>
+
+<li>借助高级主动和自动化功能，通过警报和提高<strong>平均故障间隔时间</strong> ( <strong> MTBF </strong>)引入主动问题检测</li>
+
+<li>获得对容量、性能和可用性的全面主动控制</li>
+
+<li>采用预测分析功能，实现主动识别和解决问题</li>
+
+<li>日常的性能、容量和可用性问题在很大程度上是由适应性流程自动化来管理的</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Kubernetes solution from VMware</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">VMware 的 Kubernetes 解决方案</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>Kubernetes 是企业采用的公认的容器编排器，但是在生产中操作 Kubernetes 并不是一件容易的事情。企业需要一个全面的解决方案，通过网络服务、安全性、策略、持久性、监控和分析来支持多云环境。随着越来越多的容器被使用，为了运行和管理这些容器，客户需要编排工具来管理操作，例如扩大和缩小、调度容器和处理故障。容器编排工具，如 Docker Swarm 和 Mesosphere，是可用的，但最被接受的是一个叫做 Kubernetes 的开源系统。Kubernetes 拥有运行容器化应用的完美解决方案，但在生产环境中运行 Kubernetes 仍然是一项复杂的任务。生产能力(如存储、网络、安全性、多租户和持久性)需要更多的增强和补充工具来可靠地部署、维护、扩展、监控和自我修复底层基础架构。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Pivotal Container Service and VMware Kubernetes Engine </title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">Pivotal 容器服务和 VMware Kubernetes 引擎</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>VMware 拥有<strong>Pivotal Container Service</strong>(<strong>PKS</strong>)，这是一款由 VMware、Pivotal 和谷歌联合开发的产品，在 VMware SDDC 堆栈以及公共云提供商(如<strong>谷歌云平台</strong> ( <strong> GCP </strong>)上部署和管理企业级 Kubernetes。VMware PKS 帮助企业在 vSphere 和公共云中运行 Kubernetes。它从根本上简化了 Kubernetes 的部署和操作，因此您可以轻松地大规模运行容器。我们可以帮助客户使用 PKS，以便他们可以在其现有的 vSphere 环境中快速设置和管理 Kubernetes 服务。客户正在寻找一个易于部署和操作的 Kubernetes 解决方案，帮助他们满足第一天和第二天的所有需求，并消除设置和维护平台的冗长步骤。他们还要求解决方案在网络、存储、安全性和多租户领域提供强化的生产能力。</p>
+
+<p><strong> VMware Kubernetes 引擎</strong> ( <strong> VKE </strong>)是一款企业级<strong> Kubernetes 即服务</strong> ( <strong> KaaS </strong>)产品，提供易于使用、默认安全且经济高效的 Kubernetes。VKE 将首先在 AWS 上推出。</p>
+
+<p>Forrester 对混合云监控和管理提供商进行了 31 项标准评估；以下是其中的一些:</p>
+
+<ul>
+
+<li>必须具备跨工作负载的多云计算管理的核心能力</li>
+
+<li>必须至少支持基于 AWS、Azure 和 vSphere 的云</li>
+
+<li>必须作为独立工具销售</li>
+
+</ul>
+
+<p>容器是高效的，因为容器为开发人员提供了一种简单、轻量级和可移植的方式来跨各种主机或云环境打包和部署应用程序。由于这些好处，集装箱的使用预计在未来几年将呈指数增长。容器并不是一项新技术，但是一家名为 Docker 的公司成功地推广了这项技术，Docker 是当今最广为人知的容器格式。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>SDDC journey stages</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">SDDC 旅程阶段</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>VMware 定义了 SDDC 之旅的以下阶段:</p>
+
+<ul>
+
+<li><strong>成本中心</strong>:作为成本中心运作。重点是通过统一的无组织结构和虚拟化基础架构来提高 IT 效率，从而节省资本支出和运营支出，进而降低成本。</li>
+
+<li><strong>服务提供商</strong> : IT 通过提供满足业务需求和服务级别要求的安全、高可用性和弹性的 IT 服务，成为服务提供商。</li>
+
+<li><strong>业务合作伙伴</strong> : IT 部门通过自动化基础设施和应用交付转变为业务合作伙伴，从而加快交付速度，提高 IT 响应能力，加快上市速度。</li>
+
+</ul>
+
+<p>数据中心虚拟化和标准化的能力成熟度分为三个阶段:</p>
+
+<ul>
+
+<li>计算虚拟化、关键业务应用虚拟化、大数据应用支持</li>
+
+<li>软件定义的存储、网络虚拟化、混合云扩展、数据中心迁移</li>
+
+<li>跨混合、异构数据中心的管理</li>
+
+</ul>
+
+<p>以下能力至关重要:</p>
+
+<ul>
+
+<li><strong>财务模型和衡量</strong>:对资产成本和基础设施能力的认识和理解</li>
+
+<li><strong>流程和控制</strong> : IT 流程适用于虚拟化，但大部分是手动的，具有特别的流程间集成</li>
+
+<li>建立标准作业程序以保持作业的一致性</li>
+
+<li>关注有限的持续改进</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>VMware container-based services</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">基于 VMware 容器的服务</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>这需要以下 VMware SaaS 和第三方产品:</p>
+
+<ul>
+
+<li>部署网络虚拟化基础(NSX-T)</li>
+
+<li>部署和运行容器化的工作负载(VMware Pivotal 容器服务)</li>
+
+</ul>
+
+<p>交付本服务需要以下先决条件:</p>
+
+<ul>
+
+<li><strong>部署 NSX-T(虚拟设备)基础</strong>:<ul>
+
+<li>虚拟设备虚拟化 CPU 容量(GHz)的最低要求是必须有足够的 CPU 容量来部署 NSX 管理器和 NSX 控制器</li>
+
+<li>虚拟设备虚拟化 RAM 容量(GB)的最低要求是必须有足够的内存容量来部署 NSX 管理器和 NSX 控制器</li>
+
+<li><strong>网络时间协议</strong> ( <strong> NTP </strong>)必须设置好并经过时间验证无误。</li>
+
+<li>必须配置和测试 DNS 的正向、反向、短名称和长名称解析。</li>
+
+<li>必须调配共享存储。必须有足够的存储容量来部署 NSX 管理器和 NSX 控制器。</li>
+
+<li><strong>最大传动单元</strong> ( <strong> MTU </strong>)尺寸:1700(最小)</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Deploying NSX-T for network virtualization on ESXi and deploying PKS for use in a private cloud</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">在 ESXi 上部署用于网络虚拟化的 NSX-T，并部署用于私有云的 PKS</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>根据 VMware 标准体系结构部署基于 NSX-T 的网络虚拟化解决方案，并在客户环境中进行验证。该服务包括平台先决条件的技术验证、使用 NSX-T 部署网络虚拟化，以及为客户进行功能测试。</p>
+
+<p>下表显示了与 NSX-T 相关的所有组件的安装和配置:</p>
+
+<table border="1" style="border-collapse: collapse;width: 100%">
+
+<tbody>
+
+<tr>
+
+<td>
+
+<p class="CDPAlignCenter CDPAlign"><strong>规格</strong></p>
+
+</td>
+
+<td>
+
+<p class="CDPAlignCenter CDPAlign"><strong>描述</strong></p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>部署和配置 NSX 边缘虚拟机</p>
+
+</td>
+
+<td>
+
+<p>部署并配置为传输节点的 NSX 边缘虚拟机</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>NSX 逻辑交换机</p>
+
+</td>
+
+<td>
+
+<p>配置的逻辑交换机</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>NSX-T 第 0 层逻辑路由器实例</p>
+
+</td>
+
+<td>
+
+<p>NSX 第 0 层逻辑路由器，使用静态或动态路由<strong>边界网关协议</strong> ( <strong> BGP </strong>)对等，在逻辑和物理网络之间提供打开和关闭网关服务</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>配置为传输节点的 VMware ESXi 主机</p>
+
+</td>
+
+<td>
+
+<p>ESXi 主机已准备好，注册到 NSX-T 管理平面，并配置为传输节点</p>
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Deploying the NSX-T foundation</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">部署 NSX-T 基金会</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p><strong>VMware NSX-T 基础部署</strong>:这包括 NSX 经理和 NSX 管理员的准备工作、部署和验证；</p>
+
+<table border="1" style="border-collapse: collapse;width: 100%">
+
+<tbody>
+
+<tr>
+
+<td style="width: 20.4259%"><strong>规格</strong></td>
+
+<td style="width: 78.9932%"><strong>描述</strong></td>
+
+</tr>
+
+<tr>
+
+<td style="width: 20.4259%">数据中心位置</td>
+
+<td style="width: 78.9932%">这意味着 NSX-T 组件的数据中心部署。</td>
+
+</tr>
+
+<tr>
+
+<td style="width: 20.4259%">NSX 管理器实例</td>
+
+<td style="width: 78.9932%">安装并配置了 NSX-T 管理器设备。</td>
+
+</tr>
+
+<tr>
+
+<td style="width: 20.4259%">NSX 控制器</td>
+
+<td style="width: 78.9932%">NSX-T 控制器已安装并与 NSX 经理关联。对于每个 NSX 管理器实例，将形成一个由三个 NSX 控制器组成的控制集群。</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Deploying and running containerized workloads</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">部署和运行容器化工作负载</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p><strong>部署 PKS 用于私有云</strong>:部署 PKS 平台，帮助客户创建一个私有云环境，用于调配 Kubernetes 工作负载。</p>
+
+<p>下表显示了与 PKS 相关的所有组件的安装和配置:</p>
+
+<table border="1" style="border-collapse: collapse;width: 100%">
+
+<tbody>
+
+<tr>
+
+<td>
+
+<p class="CDPAlignCenter CDPAlign"><strong>规格</strong></p>
+
+</td>
+
+<td>
+
+<p class="CDPAlignCenter CDPAlign"><strong>描述</strong></p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>将 pivotal operations manager 部署到 vSphere 中</p>
+
+</td>
+
+<td>
+
+<p class="CDPAlignCenter CDPAlign">这意味着在单个数据中心内部署 pivotal operations manager。</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>配置 pivotal operations manager</p>
+
+</td>
+
+<td>
+
+<p class="CDPAlignCenter CDPAlign">这是 pivotal operations manager 实例的配置。</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td class="CDPAlignCenter CDPAlign">
+
+<p>安装 PKS</p>
+
+</td>
+
+<td>
+
+<p class="CDPAlignCenter CDPAlign">这是指在单个 pivotal operations manager 中部署 PKS 磁贴。</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>配置 PKS</p>
+
+</td>
+
+<td>
+
+<p>这是 vSphere 中 PKS 的配置、与预先存在的 NSX-T 对象的连接、Kubernetes 集群计划规模调整、<strong>用户帐户和身份验证</strong> ( <strong> UAA </strong>)、差事、系统日志、资源配置和干细胞。</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>使用 PKS 创建 Kubernetes 集群</p>
+
+</td>
+
+<td>
+
+<p>这是 PKS 命令行界面的安装和使用，用于根据定义的集群规模计划创建 Kubernetes 集群。</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>在 vSphere 中安装和配置 Harbor container registry</p>
+
+</td>
+
+<td>
+
+<p>这意味着安装 Harbor Container Registry 实例，无需复制，使用<strong xmlns:epub="http://www.idpf.org/2007/ops">o</strong>T5】penT7】虚拟化 T9】应用 ( <strong xmlns:epub="http://www.idpf.org/2007/ops"> OVA </strong>)以便单个实例可以服务于多个集群。VMware 将协助 Harbor 和 Kubernetes 群集节点之间的证书，其他环境配置为支持将容器映像推送到 Harbor 和从 Harbor 拉出。</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>NSX-T 为 PKS 一体化做准备</p>
+
+</td>
+
+<td>
+
+<p>这意味着创建 PKS 集成所需的 NSX-T 对象。</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>逻辑开关</p>
+
+</td>
+
+<td>
+
+<p>为 PKS 管理网络和服务网络创建逻辑交换机。</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>用于外部访问的 IP 池</p>
+
+</td>
+
+<td>
+
+<p>配置一个 IP 池，为 PKS 创建的每个 Kubernetes 集群提供负载平衡地址空间。该网络还将为 Kubernetes API 访问和 Kubernetes 公开服务提供 IP 地址。</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>IP 块</p>
+
+</td>
+
+<td>
+
+<p>一个 IP 块被配置为通过<strong>容器网络接口</strong> ( <strong> CNI </strong>)为 Kubernetes pods 分配地址空间。</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>NSX-T 第 1 层逻辑路由器实例</p>
+
+</td>
+
+<td>
+
+<p>这些是第 1 层逻辑路由器，一个专用于 PKS 管理组件，一个专用于 Kubernetes 集群节点。</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+
+<p>PKS 和 NSX-T 一体化</p>
+
+</td>
+
+<td>
+
+<p>这意味着在 vSphere 上配置 PKS 以与 NSX t 集成</p>
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>VMware Cloud on AWS</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">AWS 上的 VMware 云</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>AWS 上的 VMware Cloud 是基于 vSphere 的云服务。该服务将 VMware 企业级 SDDC 软件引入 AWS 云。它由 VMware 作为一项可灵活扩展的按需服务来交付、销售和支持，利用了 AWS 的全球覆盖范围和服务广度。</p>
+
+<p>除了 VMware vCenter Server 管理和优化，它还提供了一个完整的云解决方案，可在新一代弹性裸机 AWS 基础架构上运行。</p>
+
+<p>这将有助于快速部署安全的企业级 AWS 云资源，这些资源在操作上与基于 vSphere 的云保持一致。这将产生一个完整的交钥匙服务，可与内部私有云以及高级 AWS 服务无缝运行。</p>
+
+<p>此外，新特性支持革新业务功能的新功能:</p>
+
+<ul>
+
+<li><strong>基于 AWS 的 VMware Cloud 灾难恢复</strong>:这是一项附加的按需服务，有助于降低成本、简化灾难恢复策略，并加快环境的生产速度。</li>
+
+<li><strong> VMware </strong>该解决方案支持多站点，针对广域网进行了优化，并且非常安全，可以尽快迁移到基于 AWS 的 VMware 云。</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>VMware Cloud on AWS differs from on-premises vSphere</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">AWS 上的 VMware 云计算不同于内部部署的 vSphere</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>AWS 上的 VMware Cloud 让 vSphere 在亚马逊的裸机硬件上运行，并配备了云自动化引擎。VMware 管理员可以访问所有必需的界面，包括基于 HTML5 和闪存的 VMware vSphere Web Client，以及所有必需的 API 集成。这是一项由 VMware 管理的服务，基于角色的访问控制将正常工作。</p>
+
+<p>以下是特定用户配置文件的配置:</p>
+
+<ul>
+
+<li>VMware 在 AWS 环境上管理 VMware 云，因此权限被分配给<kbd>cloudadmin@vsphere.local</kbd>以供用户访问。这可能会导致与需要<kbd>administrator@vsphere.local</kbd>访问环境的产品不兼容。</li>
+
+<li>用户应该将工作负载放在<kbd>Workloads</kbd>文件夹中，因为其他文件夹的权限被拒绝。</li>
+
+<li>由于 NSX 用户界面不可用，网络是通过 AWS 用户界面上的 VMware Cloud 配置的。</li>
+
+<li>AWS 上的 VMware Cloud 是一个托管环境，因此所有升级和维护程序都由 VMware 执行。</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>VMware Cloud on the AWS implementation plan</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">基于 AWS 的 VMware 云实施计划</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>AWS 上的 VMware Cloud 的优势在于它是一个可按需部署的架构解决方案。很难确保成功满足将预先存在的内部环境连接到基于 AWS 的 VMware 云的要求。</p>
+
+<p>当前的内部安装、软件版本和配置决定了在 AWS 实例上成功连接 VMware 云所需的步骤。本节讨论 VMware 建议的实施途径。</p>
+
+<p>下图显示了评估环境兼容性以连接到 VMware Cloud on AWS 环境时所需的步骤。以下是基于从身份验证开始的标准流程的流程图:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img src="img/903fa67f-9e5a-4b57-98c8-39691fdaed18.png" style="width:40.08em;height:35.75em;"/></p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Implementation plan for VMware Cloud on AWS</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">基于 AWS 的 VMware 云实施计划</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>使用以下实施计划来配置内部环境，以支持 VMware Cloud on AWS 连接。完成后，该环境是一个完全配置的混合云，可用于定义的使用情形。</p>
+
+<p>以下是这些步骤的总结:</p>
+
+<table border="1" style="border-collapse: collapse;width: 100%">
+
+<thead>
+
+<tr>
+
+<td style="width: 6.47383%">
+
+<p> </p>
+
+</td>
+
+<td style="width: 19.697%">
+
+<p class="CDPAlignCenter CDPAlign"><strong>行动</strong></p>
+
+</td>
+
+<td style="width: 43.5262%">
+
+<p class="CDPAlignCenter CDPAlign"><strong>冲击</strong></p>
+
+</td>
+
+<td style="width: 16.8044%">
+
+<p class="CDPAlignCenter CDPAlign"><strong>必需的</strong></p>
+
+</td>
+
+<td style="width: 11.4325%">
+
+<p><strong>虚拟机停机时间</strong></p>
+
+</td>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td style="width: 6.47383%">
+
+<p>一</p>
+
+</td>
+
+<td style="width: 19.697%">
+
+<p>在 AWS 帐户上创建 VMware 云，并将其链接到客户 Amazon 帐户详细信息</p>
+
+</td>
+
+<td style="width: 43.5262%">
+
+<p>无；时间表取决于帐户的创建</p>
+
+</td>
+
+<td style="width: 16.8044%">
+
+<p>是</p>
+
+</td>
+
+<td style="width: 11.4325%">
+
+<p>不</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="width: 6.47383%">
+
+<p>2</p>
+
+</td>
+
+<td style="width: 19.697%">
+
+<p>在基于 AWS 的 VMware 云中创建 SDDC 数据中心</p>
+
+</td>
+
+<td style="width: 43.5262%">
+
+<p>没有人</p>
+
+</td>
+
+<td style="width: 16.8044%">
+
+<p>是</p>
+
+</td>
+
+<td style="width: 11.4325%">
+
+<p>不</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="width: 6.47383%">
+
+<p>3</p>
+
+</td>
+
+<td style="width: 19.697%">
+
+<p>执行内部 vSphere 升级(如果需要)</p>
+
+</td>
+
+<td style="width: 43.5262%">
+
+<p>vSphere 已升级，因此虚拟机可能需要停机，要获得升级帮助，请联系您的 VMware 销售代表，了解有关 VMware vSphere 升级服务的信息</p>
+
+</td>
+
+<td style="width: 16.8044%">
+
+<p>是(如果版本低于 6.0U3)</p>
+
+</td>
+
+<td style="width: 11.4325%">
+
+<p>是(如果需要升级)</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="width: 6.47383%">
+
+<p>四</p>
+
+</td>
+
+<td style="width: 19.697%">
+
+<p>内部和 AWS 之间的 VPN 连接</p>
+
+</td>
+
+<td style="width: 43.5262%">
+
+<p>创建 VPN 隧道所需的网络更改</p>
+
+</td>
+
+<td style="width: 16.8044%">
+
+<p>是</p>
+
+</td>
+
+<td style="width: 11.4325%">
+
+<p>不</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="width: 6.47383%">
+
+<p>5</p>
+
+</td>
+
+<td style="width: 19.697%">
+
+<p>在环境中测试混合链接模式</p>
+
+</td>
+
+<td style="width: 43.5262%">
+
+<p>没有人</p>
+
+</td>
+
+<td style="width: 16.8044%">
+
+<p>推荐(如果支持混合链接模式)</p>
+
+</td>
+
+<td style="width: 11.4325%">
+
+<p>不</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="width: 6.47383%">
+
+<p>6</p>
+
+</td>
+
+<td style="width: 19.697%">
+
+<p>用例配置</p>
+
+</td>
+
+<td style="width: 43.5262%">
+
+<p>取决于正在设计的用例</p>
+
+</td>
+
+<td style="width: 16.8044%">
+
+<p>不</p>
+
+</td>
+
+<td style="width: 11.4325%">
+
+<p>取决于正在设计的用例</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="width: 6.47383%">
+
+<p>七</p>
+
+</td>
+
+<td style="width: 19.697%">
+
+<p>创建或迁移工作负载</p>
+
+</td>
+
+<td style="width: 43.5262%">
+
+<p>冷迁移的虚拟机停机时间</p>
+
+</td>
+
+<td style="width: 16.8044%">
+
+<p>不</p>
+
+</td>
+
+<td style="width: 11.4325%">
+
+<p>取决于是否需要冷迁移</p>
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Detailed initial steps to configure VMC on AWS</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">在 AWS 上配置 VMC 的详细初始步骤</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在 AWS 上配置 VMC 的详细初始步骤如下:</p>
+
+<ol>
+
+<li>在 AWS 上登录 VMware Cloud</li>
+
+<li>邀请用户加入云实例</li>
+
+<li>将凭据链接到亚马逊帐户</li>
+
+<li>在 AWS SDDC 数据中心创建 VMware 云<br/>这一步包括在 AWS 实例上的 VMware 云中创建数据中心。在此过程中，将要求客户提供配置的详细信息，包括名称、规模、数据中心位置，最重要的是 IP 地址子网信息。除非再次部署 SDDC，否则无法更改 IP 地址详细信息，因此请确保指定正确的地址。</li>
+
+</ol>
+
+<ol start="5">
+
+<li>内部 vSphere 环境升级:<br/>VSP here 的环境升级必须在此时进行，以便与 AWS 实例上的 VMware 云具有功能兼容性。此过程可能很耗时，但请验证所有功能是否兼容。环境必须是 vSphere 6.0 update 3 或更高版本才能得到支持，但最好是 vSphere 6.5 版本，以便利用混合链接模式和其他功能。</li>
+
+</ol>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Installation, configuration, and operating procedures</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">安装、配置和操作程序</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>以下部分描述了在 AWS 环境中安装、配置和操作 VMware 云的几个基本步骤。</p>
+
+<p>以下是在 AWS 环境中测试新 VMware 云的基本测试:</p>
+
+<ol start="1">
+
+<li>登录到测试控制台:<ol>
+
+<li>打开 web 浏览器</li>
+
+<li>导航至<a href="https://vmc.vmware.com/" target="_blank">https://vmc.vmware.com/</a></li>
+
+<li>使用您的 VMware Cloud on AWS 凭据登录</li>
+
+</ol>
+
+</li>
+
+</ol>
+
+<ol start="2">
+
+<li>创建 SDDC:<ol>
+
+<li>单击创建 SDDC:</li>
+
+</ol>
+
+</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img src="img/242ed509-dfed-401b-babf-92307b6ef137.png" style="width:34.50em;height:12.25em;"/></p>
+
+<ol start="1">
+
+<li style="list-style-type: none">
+
+ 
+
+</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img src="img/1704f17a-bcfa-462b-babb-b787db73073a.png" style="width:54.17em;height:36.75em;"/></p>
+
+<ol start="3">
+
+<li>邀请用户:<ol>
+
+<li>单击邀请用户:</li>
+
+</ol>
+
+</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img src="img/f845bd66-4455-45c6-9d93-b18f8327e2ee.png" style="width:48.42em;height:25.42em;"/></p>
+
+<ol start="3">
+
+<li style="list-style-type: none">
+
+ 
+
+</li>
+
+</ol>
+
+<ol start="4">
+
+<li>调整防火墙规则:<ol>
+
+<li>选择创建的 SDDC</li>
+
+<li>单击网络信息选项卡</li>
+
+<li>通过 VMC 控制台调整防火墙规则，以允许来自内部网络的访问(或适合您公司的安全策略):</li>
+
+</ol>
+
+</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img src="img/2a459a6a-8ce8-4cb7-81f2-d68841259aa7.png" style="width:50.50em;height:23.50em;"/></p>
+
+<ol start="5">
+
+<li>登录到 vCenter Server 实例:<ol>
+
+<li>选择创建的 SDDC</li>
+
+<li>单击连接信息选项卡</li>
+
+<li>使用指定的凭据登录 VMware VSP here Web Client(html 5)</li>
+
+</ol>
+
+</li>
+
+</ol>
+
+<p>下面介绍了在 AWS 上测试 VMware Cloud 的基本工作流:</p>
+
+<ol>
+
+<li>使用 vSphere Web Client 的 OVF 部署功能创建虚拟机(HTML5):<ol>
+
+<li>转到工作量资源池</li>
+
+<li>部署 OVF 以创建虚拟机:</li>
+
+</ol>
+
+</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img src="img/e503b6a5-13b3-4db5-ba2d-df6b5ebf8d3f.png" style="width:17.67em;height:22.92em;"/></p>
+
+<ol start="2">
+
+<li>创建本地内容库:<ol>
+
+<li>如果您还没有内容库，请在您的内部数据中心创建一个内容库。</li>
+
+<li>将您的模板、ISO 映像和脚本添加到内容库中。所有的<kbd>.vmtx</kbd>模板都被转换成 OVF 模板。</li>
+
+<li>发布您的内容库。</li>
+
+<li>在基于 AWS SDDC 的 VMware Cloud 中，创建一个内容库，该内容库订阅了您从内部数据中心发布的内容库。内容从您的内部数据中心同步到 AWS 上的 VMware Cloud 中的 SDDC。</li>
+
+</ol>
+
+</li>
+
+</ol>
+
+<ol start="3">
+
+<li>使用 ISO 创建虚拟机并引导操作系统:<ol>
+
+<li>将 ISO 上传到内容库</li>
+
+<li>创建一个虚拟机，并从内容库中挂载 ISO</li>
+
+<li>然后启动虚拟机</li>
+
+</ol>
+
+</li>
+
+<li>在虚拟机上执行基本的虚拟机操作:<ol>
+
+<li>迁移虚拟机</li>
+
+<li>克隆虚拟机</li>
+
+<li>使用 VMware vSphere vMotion 迁移虚拟机</li>
+
+<li>给虚拟机拍快照</li>
+
+</ol>
+
+</li>
+
+<li>使用 vSphere Web Client(不是远程控制台)连接到您的虚拟机</li>
+
+<li>使用 vSphere Web Client 创建逻辑网络(HTML5):<ol>
+
+<li>转到全局库存列表</li>
+
+<li>转到逻辑网络</li>
+
+</ol>
+
+</li>
+
+<li>将之前创建的虚拟机分配给此逻辑网络，启动虚拟机，然后编辑虚拟机的设置</li>
+
+<li>创建允许<kbd>sddc-cgw-network-1</kbd>上的虚拟机访问互联网的规则:<ol>
+
+<li>在计算网关上创建新的防火墙规则</li>
+
+<li>从您的虚拟机 Ping 互联网上的一个已知 IP 地址</li>
+
+</ol>
+
+</li>
+
+</ol>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Hybrid-linked-mode testing functionality</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">混合链接模式测试功能</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>本节描述混合链接模式测试功能。要测试混合链接模式，请执行以下步骤:</p>
+
+<ol>
+
+<li>使用“连接信息”选项卡中指定的凭据登录到云 vCenter Server 实例。</li>
+
+<li>通过单击菜单|管理员导航到混合链接模式配置。</li>
+
+<li>在混合云下，单击链接的域:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img src="img/39d655a1-09ba-437d-b025-fba741ae2c50.png" style="width:48.25em;height:20.92em;"/></p>
+
+<ol start="4">
+
+<li>按照屏幕上的步骤配置混合链接模式:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img src="img/e1c14b66-915b-4def-bd79-5b352c03cdd5.png" style="width:47.67em;height:37.08em;"/></p>
+
+<ol start="5">
+
+<li>将本地身份源(Active Directory 或 Open LDAP)添加到云 vCenter Server 实例。</li>
+
+</ol>
+
+<ol start="6">
+
+<li>授予云 vCenter Server 对本地 Active Directory 组(前提条件中确定的组)的访问权限:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img src="img/18ed1d86-206f-4d46-b693-4fc0a5c194ce.png" style="width:31.50em;height:13.67em;"/></p>
+
+<ol start="7">
+
+<li>链接到内部单点登录域(系统会提示您注销)。</li>
+
+<li>使用本地 Active Directory 组中的 Active Directory 用户重新登录到云 vCenter Server 实例。本地和 VMC vCenter Server 清单都应该可用。</li>
+
+<li>在内部和云 vCenter Server 实例中执行虚拟机操作:<ol>
+
+<li>创建和删除虚拟机</li>
+
+<li>打开和关闭虚拟机</li>
+
+<li>给虚拟机拍快照</li>
+
+<li>克隆虚拟机</li>
+
+<li>迁移虚拟机</li>
+
+</ol>
+
+</li>
+
+</ol>
+
+<p>目前，内部部署和云 vCenter Server 实例之间不支持 vSphere vMotion。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Support and troubleshooting</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">支持和故障排除</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在 AWS 环境中，您可以通过多种方式获得 VMware 云的帮助和支持。本节将向您简要介绍一些已知的问题以及可以帮助您解决问题的解决方法。</p>
+
+<p>在 AWS 环境中，您可以通过多种方式获得 VMware 云的帮助和支持。</p>
+
+<ol>
+
+<li>在联系 VMware 寻求支持之前，请准备好您的 SDDC 的支持信息:<ol>
+
+<li>在 https://vmc.vmware.com<a href="https://vmc.vmware.com" target="_blank">登陆 VMC 控制台</a></li>
+
+<li>单击 SDDC 卡上的查看详细信息</li>
+
+<li>单击支持查看支持信息</li>
+
+</ol>
+
+</li>
+
+<li>选择获取帮助或支持的方法:<ul>
+
+<li style="list-style-type: none">
+
+ 
+
+</li>
+
+</ul>
+
+</li>
+
+</ol>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Summary</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">摘要</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>vRealize tools 可以自动将所有 IT 数据和事件关联到一个具有完整 IT 环境视图的统一视图中，并使用预测分析来帮助客户提高性能和避免中断，使他们能够在问题影响业务之前主动识别和修复问题。客户可以在单个解决方案中监控性能、优化基础架构容量并执行日志分析，同时全面了解其应用和基础架构。</p>
+
+<p>vRealize Operations Insight 借助专为 SDDC 设计的管理工具，帮助客户为存储和网络虚拟化做好准备，从而为 SDDC 提供了一个入口。借助 vRealize Suite，虚拟化客户只需一个解决方案即可完成所有工作，包括 vSphere、容器管理和合规性、日志分析、存储和网络可见性、应用依赖关系映射以及操作系统监控。</p>
+
+<p>在下一章<a href="fec95bb1-c90e-460d-b5f9-423d9bb7a3f5.xhtml" target="_blank">第 5 章</a>、<em>带 AppDefense 的基于意图的清单</em>中，我们将探讨 VMware AppDefense，它使组织能够应对与在内部到公共云中保持数据安全相关的挑战。它是一种数据中心终端安全解决方案，将威胁检测和响应直接嵌入到应用程序和数据所在的虚拟化层的内核中。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Further reading</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:3bbb811d-dfc9-4c5d-8cfc-de95e80bca7f" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">进一步阅读</h1>
+
+                
+
+            
+
+            
+
+                
+
+<ul>
+
+<li>有关帐户创建、链接和邀请流程的详细信息，请参见位于<a href="https://docs.vmware.com/en/VMware-Cloud-on-AWS/services/com.vmware.vmc-aws.getting-started/GUID-9CAB2B3E-42D5-44A1-9428-E8FFD22BDD01.html">的<em> VMware Cloud on AWS 文档</em>https://docs . VMware . com/en/VMware-Cloud-on-AWS/services/com . VMware . VMC-AWS . getting-started/GUID-9 cab 2 B3 e-42d 5-44a 1-9428-e 8 ffd 22 BDD 01 . html</a></li>
+
+<li>对于测试，必须满足<a href="https://docs.vmware.com/en/VMware-Cloud-on-AWS/services/com.vmware.vmc-aws.getting-started/GUID-BE75F0F1-2864-4926-97FE-37E635471C43.html">https://docs . VMware . com/en/VMware-Cloud-on-AWS/services/com . VMware . VMC-AWS . getting-started/GUID-be 75 f0f 1-2864-4926-97FE-37e 635471 c 43 . html</a>中列出的以下先决条件</li>
+
+<li>仅当满足先决条件时，才支持混合链接模式；详情请参见本指南，网址为<a href="https://docs.vmware.com/en/VMware-Cloud-on-AWS/services/com.vmware.vmc-aws.getting-started/GUID-BE75F0F1-2864-4926-97FE-37E635471C43.html">https://docs . VMware . com/en/VMware-Cloud-on-AWS/services/com . VMware . VMC-AWS . getting-started/GUID-be 75 f 0 f 1-2864-4926-97FE-37e 635471 c 43 . html</a></li>
+
+<li>有关网络配置的详细信息，请参见位于<a href="https://docs.vmware.com/en/VMware-Cloud-on-AWS/services/com.vmware.vmc-aws.getting-started/GUID-3A7090C5-836C-4DBA-9E69-A4A1D9B6F139.html">https://docs . VMware . com/en/VMware-Cloud-on-AWS/services/com . VMware . VMC-AWS . getting-started/GUID-3a 7090 C5-836 c-4 DBA-9e 69-a 4a 1d 9 b 6 f 139 . html 的配置管理网关网络</a></li>
+
+<li>请参见位于<a xmlns:epub="http://www.idpf.org/2007/ops" href="https://docs.vmware.com/en/VMware-Cloud-on-AWS/services/com.vmware.vmc-aws.getting-started/GUID-BC0EC6C5-9283-4679-91F8-87AADFB9E116.html">https://docs . VMware . com/en/VMware-Cloud-on-AWS/services/com . VMware . VMC-AWS . Getting-Started/GUID-BC 0 EC 6 c 5-9283-4679-91 F8-87 aad FB 9 e 116 . html 的<em xmlns:epub="http://www.idpf.org/2007/ops"> VMware Cloud on AWS 入门</em>指南的<em xmlns:epub="http://www.idpf.org/2007/ops">部署软件定义的数据中心</em>部分</a></li>
+
+<li>有关升级 vSphere 环境的详细信息，请参见位于<a href="https://docs.vmware.com/en/VMware-vSphere/index.html">https://docs.vmware.com/en/VMware-vSphere/index.html</a>的 vSphere 文档中心的<em> VMware vSphere 升级指南</em></li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html></body></html>

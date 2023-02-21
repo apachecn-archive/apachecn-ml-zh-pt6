@@ -1,0 +1,1145 @@
+<html><head/><body>
+
+  
+    <title>Adding a Web UI for the Wiki Game</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">为 Wiki 游戏添加 Web 用户界面</h1>
+                
+            
+            
+                
+<p class="calibre2">开发我们游戏的后端是一次很好的学习经历。这个强大的基础将很好地为我们服务——模块化方法将允许我们轻松地将<strong class="calibre4">读取-评估-打印循环</strong> ( <strong class="calibre4"> REPL) </strong>应用程序转换为 web 应用程序，而当处理 Julia 的 web 堆栈及其丰富的分类法时，我们对类型的理解将被证明是无价的。</p>
+<p class="calibre2">我们现在进入了游戏开发旅程的最后阶段——为维基百科的<em class="calibre16">六度空间</em>构建一个网络用户界面。因为构建一个全功能的 web 应用程序不是一件简单的事情，所以最后一部分将专门讨论这个任务。在此过程中，我们将了解以下主题:</p>
+<ul class="calibre10">
+<li class="calibre11">朱莉娅的网络堆栈；即<kbd class="calibre12">HTTP</kbd>包及其主要组件— <kbd class="calibre12">Server</kbd>、<kbd class="calibre12">Router</kbd>、<kbd class="calibre12">HandlerFunction</kbd>和<kbd class="calibre12">Response</kbd></li>
+<li class="calibre11">设计一个 web 应用程序来利用<kbd class="calibre12">HTTP</kbd>并将其与现有的 Julia 模块集成</li>
+<li class="calibre11">通过定义将 URL 映射到 Julia 函数的路由，在 web 上公开特性</li>
+<li class="calibre11">生成一个 web 服务器来处理用户请求，并将正确的响应发送回客户端</li>
+</ul>
+<p class="calibre2">这一章的结尾有一个很酷的奖励——我们的游戏已经准备好了，我们将玩几轮<em class="calibre16">维基百科的六度游戏</em>！</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Technical requirements</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">技术要求</h1>
+                
+            
+            
+                
+<p class="calibre2">Julia 包生态系统正在不断发展，每天都有新的包版本发布。大多数时候这是好消息，因为新版本带来了新特性和错误修复。然而，由于许多软件包仍处于测试阶段(版本 0.x ),任何新版本都可能引入突破性的变化。因此，书中介绍的代码可能会停止工作。为了确保您的代码将产生与书中描述的相同的结果，建议使用相同的包版本。以下是本章中使用的外部软件包及其具体版本:</p>
+<pre class="calibre17">Cascadia@v0.4.0<br class="title-page-name"/>Gumbo@v0.5.1<br class="title-page-name"/>HTTP@v0.7.1<br class="title-page-name"/>IJulia@v1.14.1</pre>
+<p class="calibre2">为了安装软件包的特定版本，您需要运行:</p>
+<pre class="calibre17"><strong class="calibre1">pkg&gt; add PackageName@vX.Y.Z</strong> </pre>
+<p class="calibre2">例如:</p>
+<pre class="calibre17"><strong class="calibre1">pkg&gt; add IJulia@v1.14.1</strong></pre>
+<p class="calibre2">或者，您可以通过下载本章提供的<kbd class="calibre12">Project.toml</kbd>文件并使用<kbd class="calibre12">pkg&gt;</kbd>实例化来安装所有使用的包，如下所示:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; download("https://raw.githubusercontent.com/PacktPublishing/Julia-Programming-Projects/master/Chapter05/Project.toml", "Project.toml")</strong><br class="title-page-name"/><strong class="calibre1">pkg&gt; activate . </strong><br class="title-page-name"/><strong class="calibre1">pkg&gt; instantiate</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>The game plan</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">游戏计划</h1>
+                
+            
+            
+                
+<p class="calibre2">我们进入了项目的最后一个阶段——网络用户界面。让我们从讨论规范开始；在开始实施之前，我们需要制定蓝图。</p>
+<p class="calibre2">玩家将从登录页面开始。这将显示规则，并提供启动新游戏的选项，允许用户选择难度级别。在这个起点之后，玩家将被重定向到新的游戏页面。在这里，考虑到选择的难度级别，我们将通过用我们在前一章写的算法获取文章来引导一个新的游戏会话。一旦我们选择了代表维基百科的<em class="calibre16">六度的文章，我们将显示一个带有游戏目标的标题——开始和结束文章的标题。我们还将显示第一篇文章的内容，从而启动游戏。当玩家点击这篇文章中的链接时，我们必须相应地检查玩家是否找到了文章的结尾并赢得了游戏。如果没有，则呈现新文章并增加所采取的步骤数。</em></p>
+<p class="calibre2">我们还需要一个区域来显示游戏的进度——在当前会话中查看的文章，总共进行了多少步，以及一种导航形式，允许玩家在发现自己走错路时返回并重新思考他们的选择。因此，我们需要存储玩家的导航历史。最后，提供一个解决谜题的选项会很好——当然，结果是玩家会输掉游戏。</p>
+<p class="calibre2">规范中非常重要的一点是，在无状态浏览器请求和服务器响应之间，在浏览 Wikipedia 文章时，我们需要某种机制来维护游戏的状态，也就是说，检索游戏及其相应的数据—难度、路径(文章)和进度、导航历史、采取的步骤数等等。这将通过在每个游戏会话开始时创建一个唯一的游戏标识符来实现，并将它作为 URL 的一部分与每个请求一起传递。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Learning about Julia's web stack</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">了解 Julia 的 web 堆栈</h1>
+                
+            
+            
+                
+<p class="calibre2">Julia 的包生态系统长期以来为构建 web 应用程序提供了各种各样的库。一些最成熟的是<kbd class="calibre12">HttpServer</kbd>、<kbd class="calibre12">Mux</kbd>、<kbd class="calibre12">WebSockets</kbd>和<kbd class="calibre12">JuliaWebAPI</kbd>(仅举几例；该列表并不详尽)。但是随着生态系统随着 Julia 版本 1 的出现而稳定下来，大量的社区努力被放入一个更新的包中，简称为<kbd class="calibre12">HTTP</kbd>。它提供了一个 web 服务器、一个 HTTP 客户端(我们已经在前面的章节中使用它从 Wikipedia 获取网页)，以及各种用于简化 web 开发的工具。我们将学习关键的<kbd class="calibre12">HTTP</kbd>模块，如<kbd class="calibre12">Server</kbd>、<kbd class="calibre12">Router</kbd>、<kbd class="calibre12">Request</kbd>、<kbd class="calibre12">Response</kbd>和<kbd class="calibre12">HandlerFunction</kbd>，我们将很好地使用它们。</p>
+<p class="calibre2"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Beginning with a simple example – Hello World</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">从一个简单的例子开始——Hello World</h1>
+                
+            
+            
+                
+<p class="calibre2">让我们看一个使用<kbd class="calibre12">HTTP</kbd>服务器堆栈的简单例子。这将有助于我们理解在网络上展示我们的游戏这一更复杂的问题之前的基本构建模块。</p>
+<p class="calibre2">如果您遵循上一章，您应该已经安装了<kbd class="calibre12">HTTP</kbd>包。如果没有，你知道茱莉亚的《REPL》中的演练。</p>
+<p class="calibre2">现在，在您计算机的某个地方，创建一个名为<kbd class="calibre12">hello.jl</kbd>的新文件。因为这将是一个包含在一个文件中的简单软件，所以没有必要定义一个模块。这是完整的代码，整整八行，非常精彩。我们接下来会讨论它们:</p>
+<pre class="calibre17">using HTTP, Sockets<br class="title-page-name"/>const HOST = ip"0.0.0.0"<br class="title-page-name"/>const PORT = 9999<br class="title-page-name"/>router = HTTP.Router()<br class="title-page-name"/>server = HTTP.Server(router)<br class="title-page-name"/>HTTP.register!(router, "/", HTTP.HandlerFunction(req -&gt; HTTP.Messages.Response(200, "Hello World")))<br class="title-page-name"/>HTTP.register!(router, "/bye", HTTP.HandlerFunction(req -&gt; HTTP.Messages.Response(200, "Bye")))<br class="title-page-name"/>HTTP.register!(router, "*", HTTP.HandlerFunction(req -&gt; HTTP.Messages.Response(404, "Not found")))<br class="title-page-name"/>HTTP.serve(server, HOST, PORT) </pre>
+<p class="calibre2">使用<kbd class="calibre12">HTTP</kbd>处理 web 请求的工作流需要四个实体— <kbd class="calibre12">Server</kbd>、<kbd class="calibre12">Router</kbd>、<kbd class="calibre12">HandlerFunction</kbd>和<kbd class="calibre12">Response</kbd>。</p>
+<p class="calibre2">我们从最简单的部分开始分析代码，在最后一行，我们通过调用<kbd class="calibre12">HTTP.serve</kbd>来启动我们的服务器。<kbd class="calibre12">serve</kbd>函数接受一个<kbd class="calibre12">server</kbd>，一个类型为<kbd class="calibre12">Server</kbd>的对象，加上<kbd class="calibre12">HOST</kbd>信息(一个 IP 字符串)和<kbd class="calibre12">PORT</kbd>(一个整数)作为参数，用于附加和监听请求。我们已经将文件顶部的<kbd class="calibre12">HOST</kbd>和<kbd class="calibre12">PORT</kbd>定义为常量。使用非标准的<kbd class="calibre12">ip""</kbd>字符串来定义<kbd class="calibre12">HOST</kbd>的值。在讨论<kbd class="calibre12">String</kbd>类型时，我们了解了非标准字符串文字。在这方面，<kbd class="calibre12">ip"..."</kbd>符号类似于正则表达式(<kbd class="calibre12">r"..."</kbd>)、版本字符串(<kbd class="calibre12">v"..."</kbd>)或<kbd class="calibre12">Pkg</kbd>命令(<kbd class="calibre12">pkg"..."</kbd>)。</p>
+<p class="calibre2">实例化一个新的<kbd class="calibre12">Server</kbd>需要一个<kbd class="calibre12">Router</kbd>对象，我们将其命名为<kbd class="calibre12">router</kbd>。<kbd class="calibre12">Router</kbd>的工作是注册链接(URIs)和 Julia 函数(称为<kbd class="calibre12">HandlerFunctions</kbd>)之间的映射列表(称为<strong class="calibre4"> routes </strong>),链接由我们的应用程序在互联网上公开，Julia 函数提供响应。我们已经使用<kbd class="calibre12">register!</kbd>函数设置了路线，传递了<kbd class="calibre12">router</kbd>对象、URI 结构(如<kbd class="calibre12">/</kbd>或<kbd class="calibre12">/bye</kbd>)和相应的<kbd class="calibre12">HandlerFunction</kbd>对象作为参数。</p>
+<p class="calibre2">现在，如果你查看<kbd class="calibre12">HandlerFunction</kbd>的主体，你会看到根页面<kbd class="calibre12">/</kbd>将显示字符串<kbd class="calibre12">"Hello World"</kbd>；<kbd class="calibre12">/bye</kbd> URL 将显示字符串<kbd class="calibre12">"Bye"</kbd>；最后，每隔一个 URI，由星号<kbd class="calibre12">*</kbd>表示，将返回一个<kbd class="calibre12">"Not found"</kbd>文本，伴随着正确的<kbd class="calibre12">404 Not Found</kbd>头。</p>
+<p class="calibre2">我确信你现在能认出箭头操作符，暗示了 lambdas 的使用。每个<kbd class="calibre12">HandlerFunction</kbd>构造函数接受一个匿名函数。该函数负责处理请求并生成适当的<kbd class="calibre12">Response</kbd>。作为它的参数，它接受<kbd class="calibre12">Request</kbd>对象(名为<kbd class="calibre12">req</kbd>)，并期望返回一个<kbd class="calibre12">Response</kbd>的实例。</p>
+<p class="calibre2">在我们的示例代码中，我们使用两个可用的 HTTP 状态代码构建了三个<kbd class="calibre12">Response</kbd>对象(<kbd class="calibre12">200</kbd>表示<kbd class="calibre12">OK</kbd>和<kbd class="calibre12">404</kbd>表示未找到页面)，外加一些字符串作为响应的主体(分别是简单的字符串<kbd class="calibre12">"Hello World"</kbd>、<kbd class="calibre12">"Bye"</kbd>和<kbd class="calibre12">"Not found"</kbd>)。</p>
+<p class="calibre2">最后，当服务器收到请求时，它将请求委托给路由器，路由器将请求的 URI 匹配到最合适的映射 URI 模式，并调用相应的<kbd class="calibre12">HandlerFunction</kbd>，将<kbd class="calibre12">Request</kbd>作为参数传入。处理函数返回一个<kbd class="calibre12">Response</kbd>对象，由服务器发送回客户端。</p>
+<p class="calibre2">让我们看看它的实际效果。您可以在编辑器中使用<kbd class="calibre12">Run</kbd>功能，也可以在终端中执行<kbd class="calibre12">$ julia hello.jl</kbd>。或者，您可以运行本章附带的 IJulia 笔记本中的代码:</p>
+<p class="CDPAlignCenter"><img src="img/7a15f58c-e321-4428-9c93-e02ab12045be.png" class="calibre18"/></p>
+<p class="calibre2">前面的屏幕截图显示了在 Juno 中运行的<kbd class="calibre12">hello.jl</kbd>文件。当接收和处理请求时,“REPL”窗格显示来自 web 服务器的调试信息。</p>
+<p class="calibre2">一旦服务器准备就绪，您将收到一条日志消息，说明服务器正在监听指定的套接字。此时，您可以打开网络浏览器并导航至<kbd class="calibre12">http://localhost:9999</kbd>。你会收到著名的<strong class="calibre4"> Hello World </strong>消息，如下所示:</p>
+<p class="CDPAlignCenter"><img src="img/b7b0f528-967b-4b4b-9aa5-0ba49dfb1a99.png" class="calibre18"/></p>
+<p class="calibre2">祝贺您，我们刚刚与 Julia 一起开发了我们的第一个 web 应用程序！</p>
+<p class="calibre2">不需要猜测导航到<kbd class="calibre12">http://localhost:9999/bye</kbd>时会发生什么。</p>
+<p class="calibre2">最后，您可以通过尝试导航到<kbd class="calibre12">http://localhost:9999</kbd>下的任何其他链接来确认任何其他请求将导致一个<kbd class="calibre12">404 Not Found</kbd>页面——例如，<kbd class="calibre12">http://localhost:9999/oh/no</kbd>:</p>
+<p class="CDPAlignCenter"><img src="img/7a7d0203-9289-4860-aad6-d1926ff26149.png" class="calibre18"/></p>
+<p class="calibre2">这里是<strong class="calibre4">未找到</strong>页面，正确返回<kbd class="calibre12">404</kbd>状态代码。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Developing the game's web UI</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">开发游戏的网络用户界面</h1>
+                
+            
+            
+                
+<p class="calibre2">请启动你最喜欢的 Julia 编辑器，打开我们在上一章用过的<kbd class="calibre12">sixdegrees/</kbd>文件夹。它应该包含我们已经处理过的所有文件— <kbd class="calibre12">six_degrees.jl</kbd>，加上<kbd class="calibre12">Articles</kbd>、<kbd class="calibre12">Database</kbd>、<kbd class="calibre12">Gameplay</kbd>和<kbd class="calibre12">Wikipedia</kbd>模块。</p>
+<p>如果到目前为止您还没有完成代码，您可以下载本章附带的支持文件，这些文件可以从<a href="https://github.com/PacktPublishing/Julia-Programming-Projects/tree/master/Chapter05" class="calibre19">https://github . com/packt publishing/Julia-Programming-Projects/tree/master/chapter 05</a>获得。</p>
+<p class="calibre2">为我们的 web 应用程序添加新文件。由于这次代码会更复杂，并且应该与我们的其余模块集成，让我们在一个新的<kbd class="calibre12">WebApp.jl</kbd>文件中定义一个<kbd class="calibre12">WebApp</kbd>模块。然后，我们可以添加前几行代码:</p>
+<pre class="calibre17">module WebApp 
+ 
+using HTTP, Sockets 
+ 
+const HOST = ip"0.0.0.0" 
+const PORT = 8888 
+const ROUTER = HTTP.Router() 
+const SERVER = HTTP.Server(ROUTER) 
+ 
+HTTP.serve(SERVER, HOST, PORT) 
+ 
+end </pre>
+<p class="calibre2">这并不奇怪——与前面的例子相似，我们为<kbd class="calibre12">HOST</kbd>和<kbd class="calibre12">PORT</kbd>定义了常数，然后实例化了一个<kbd class="calibre12">Router</kbd>和一个<kbd class="calibre12">Server</kbd>并开始监听请求。代码应该工作得很好，但是不值得运行它，因为它不会做任何有用的事情。我们需要定义和注册我们的路线，然后设置生成游戏页面的处理函数。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Defining our routes</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">定义我们的路线</h1>
+                
+            
+            
+                
+<p class="calibre2">通过回顾我们在本章开始时定义的高级规范，我们可以确定以下几页:</p>
+<ul class="calibre10">
+<li class="calibre11"><strong class="calibre1">登陆页面</strong>:我们的 web 应用程序的开始位置和主页，玩家可以在这里开始新游戏并选择难度。</li>
+<li class="calibre11">新游戏页面:启动一个新游戏，考虑难度设置。</li>
+<li class="calibre11">维基文章页面:这将显示与链中的链接相对应的维基文章，并将更新游戏的统计数据。在这里，我们还将检查当前文章是否是目标(结束)文章，即作为赢家完成游戏。如果没有，我们将检查是否已经达到文章的最大数量，如果是这样，以失败者的身份结束游戏。</li>
+<li class="calibre11">后退一页:这将允许玩家在没有找到解决方案的情况下后退一步。我们将显示相应的维基百科文章，同时正确更新游戏的统计数据。</li>
+<li class="calibre11"><strong class="calibre1">解决页面</strong>:如果玩家放弃，这个页面会显示链中的最后一篇文章，以及到它的路径。游戏以失败告终。</li>
+<li class="calibre11">任何其他页面都应该以<kbd class="calibre12">Not Found</kbd>结尾。</li>
+</ul>
+<p class="calibre2">考虑到路由处理程序会相当复杂，我们最好不要用路由定义来定义它们。相反，我们将使用单独定义的函数。我们的路线定义将如下所示——请将它们添加到<kbd class="calibre12">WebApp</kbd>模块，如下所示:</p>
+<pre class="calibre17">HTTP.register!(ROUTER, "/", landingpage) # root page 
+HTTP.register!(ROUTER, "/new/*", newgamepage) # /new/$difficulty_level -- new game 
+HTTP.register!(ROUTER, "/*/wiki/*", articlepage) # /$session_id/wiki/$wikipedia_article_url -- article page 
+HTTP.register!(ROUTER, "/*/back/*", backpage) # /$session_id/back/$number_of_steps -- go back the navigation history 
+HTTP.register!(ROUTER, "/*/solution", solutionpage) # /$session_id/solution -- display the solution 
+HTTP.register!(ROUTER, "*", notfoundpage) # everything else -- not found</pre>
+<p class="calibre2">你可能想知道 URI 图案前面多出来的<kbd class="calibre12">*</kbd>是什么。我们说过，我们需要一种方法来识别无状态 web 请求之间正在运行的游戏会话。<kbd class="calibre12">articlepage</kbd>、<kbd class="calibre12">backpage</kbd>和<kbd class="calibre12">solutionpage</kbd>功能都需要现有的游戏会话。我们将传递这个会话 ID 作为 URL 的第一部分。实际上，它们的路径被解释为<kbd class="calibre12">/$session_id/wiki/*</kbd>、<kbd class="calibre12">/$session_id/back/*</kbd>和<kbd class="calibre12">/$session_id/solution</kbd>，其中<kbd class="calibre12">$session_id</kbd>变量代表唯一的游戏标识符。至于拖尾的<kbd class="calibre12">*</kbd>，对于不同的路线代表不同的东西——在<kbd class="calibre12">new</kbd>的情况下，就是游戏的难度等级；对于<kbd class="calibre12">articlepage</kbd>，它是实际的维基百科 URL，也是我们的文章标识符；对于<kbd class="calibre12">backpage</kbd>，它代表导航栈中的索引。类似于正则表达式，对于路径匹配，<kbd class="calibre12">*</kbd>将匹配任何内容。如果这听起来很复杂，不要担心——查看并运行代码会让事情变得清楚。</p>
+<p class="calibre2">让我们为每个处理函数添加占位符定义—请将这些<em class="calibre16">添加到路线列表的</em>之前:</p>
+<pre class="calibre17">const landingpage = HTTP.HandlerFunction() do req 
+end <br class="title-page-name"/>const newgamepage = HTTP.HandlerFunction() do req 
+end <br class="title-page-name"/>const articlepage = HTTP.HandlerFunction() do req 
+end <br class="title-page-name"/>const backpage = HTTP.HandlerFunction() do req  
+end <br class="title-page-name"/>const solutionpage = HTTP.HandlerFunction() do req 
+end <br class="title-page-name"/>const notfoundpage = HTTP.HandlerFunction() do req 
+end </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Preparing the landing page</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">准备登录页面</h1>
+                
+            
+            
+                
+<p class="calibre2">马上，我们可以解决登陆页面处理器。它需要做的只是显示一些描述游戏规则的静态内容，以及提供一种开始不同难度的新游戏的方法。记住游戏的难度决定了文章链的长度，我们在开始一个新游戏的时候需要这些信息。我们可以将它作为 URL 的一部分传递给新的游戏页面，格式为<kbd class="calibre12">/new/$difficulty_level</kbd>。难度等级已经在<kbd class="calibre12">Gameplay</kbd>模块中定义了，所以不要忘记声明我们是<kbd class="calibre12">using Gameplay</kbd>。</p>
+<p class="calibre2">考虑到这一点，我们将以下面的代码结束我们的<kbd class="calibre12">WebApp</kbd>模块。我们把所有的东西放在一起，我们还添加了<kbd class="calibre12">landingpage</kbd> <kbd class="calibre12">HandlerFunction</kbd>。这与第一条路线——<kbd class="calibre12">HTTP.register!(ROUTER, "/",landingpage)</kbd>相关。这意味着当我们在浏览器中访问<kbd class="calibre12">/</kbd>路由时，将执行<kbd class="calibre12"> landingpage</kbd> <kbd class="calibre12">HandlerFunction</kbd>并将其输出作为响应返回。在这种情况下，我们只是返回一堆 HTML 代码。如果你不熟悉 HTML，这里是标记的作用——我们包含了 Twitter Bootstrap CSS 主题以使我们的页面更漂亮，我们显示了几段解释游戏规则的文本，我们显示了三个开始新游戏的按钮——每个难度级别一个按钮。</p>
+<p class="calibre2">代码如下:</p>
+<pre class="calibre17">module WebApp 
+ 
+using HTTP, Sockets 
+using ..Gameplay 
+ 
+# Configuration 
+const HOST = ip"0.0.0.0" 
+const PORT = 8888 
+const ROUTER = HTTP.Router() 
+const SERVER = HTTP.Server(ROUTER) 
+ 
+# Routes handlers 
+const landingpage = HTTP.HandlerFunction() do req 
+  html = """ 
+  &lt;!DOCTYPE html&gt; 
+  &lt;html&gt; 
+  &lt;head&gt; 
+    &lt;meta charset="utf-8" /&gt; 
+    &lt;link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous"&gt; 
+    &lt;title&gt;6 Degrees of Wikipedia&lt;/title&gt; 
+  &lt;/head&gt; 
+ 
+  &lt;body&gt; 
+    &lt;div class="jumbotron"&gt; 
+      &lt;h1&gt;Six degrees of Wikipedia&lt;/h1&gt; 
+      &lt;p&gt; 
+        The goal of the game is to find the shortest path between two random Wikipedia articles.&lt;br/&gt; 
+        Depending on the difficulty level you choose, the Wiki pages will be further apart and less related.&lt;br/&gt; 
+        If you can't find the solution, you can always go back up the articles chain, but you need to find the solution within the maximum number of steps, otherwise you lose.&lt;br/&gt; 
+        If you get stuck, you can always check the solution, but you'll lose.&lt;br/&gt; 
+        Good luck and enjoy! 
+      &lt;/p&gt; 
+ 
+      &lt;hr class="my-4"&gt; 
+ 
+      &lt;div&gt; 
+        &lt;h4&gt;New game&lt;/h4&gt; 
+          &lt;a href="/new/$(Gameplay.DIFFICULTY_EASY)" class="btn btn-primary btn-lg"&gt;Easy ($(Gameplay.DIFFICULTY_EASY) links away)&lt;/a&gt; | 
+          &lt;a href="/new/$(Gameplay.DIFFICULTY_MEDIUM)" class="btn btn-primary btn-lg"&gt;Medium ($(Gameplay.DIFFICULTY_MEDIUM) links away)&lt;/a&gt; | 
+          &lt;a href="/new/$(Gameplay.DIFFICULTY_HARD)" class="btn btn-primary btn-lg"&gt;Hard ($(Gameplay.DIFFICULTY_HARD) links away)&lt;/a&gt; 
+        &lt;/div&gt; 
+    &lt;/div&gt; 
+  &lt;/body&gt; 
+  &lt;/html&gt; 
+  """ 
+ 
+  HTTP.Messages.Response(200, html) 
+end 
+ 
+const newgamepage = HTTP.HandlerFunction() do req 
+end 
+ 
+const articlepage = HTTP.HandlerFunction() do req 
+end 
+ 
+const backpage = HTTP.HandlerFunction() do req 
+end 
+ 
+const solutionpage = HTTP.HandlerFunction() do req 
+end 
+ 
+const notfoundpage = HTTP.HandlerFunction() do req 
+end 
+ 
+# Routes definitions 
+HTTP.register!(ROUTER, "/", landingpage) # root page 
+HTTP.register!(ROUTER, "/new/*", newgamepage) # /new/$difficulty_level -- new game 
+HTTP.register!(ROUTER, "/*/wiki/*", articlepage) # /$session_id/wiki/$wikipedia_article_url -- article page 
+HTTP.register!(ROUTER, "/*/back/*", backpage) # /$session_id/back/$number_of_steps -- go back the navigation history 
+HTTP.register!(ROUTER, "/*/solution", solutionpage) # /$session_id/solution -- display the solution 
+HTTP.register!(ROUTER, "*", notfoundpage) # everything else -- not found 
+ 
+# Start server 
+HTTP.serve(SERVER, HOST, PORT) 
+ 
+end </pre>
+<p class="calibre2">让我们更新<kbd class="calibre12">six_degrees.jl</kbd>文件来引导我们的 web 应用程序。请确保它现在显示如下:</p>
+<pre class="calibre17">using Pkg 
+pkg"activate ." 
+ 
+include("Database.jl") 
+include("Wikipedia.jl") 
+include("Gameplay.jl") 
+include("WebApp.jl") 
+ 
+using .Wikipedia, .Gameplay, .WebApp </pre>
+<p class="calibre2">在编辑器或终端(<kbd class="calibre12">$ julia six_degrees.jl</kbd>)中使用您喜欢的方法运行<kbd class="calibre12">six_degrees.jl</kbd>。寻找消息<kbd class="calibre12">Info: Listening on:...</kbd>，它通知我们 web 服务器已经启动。在您的浏览器中访问<kbd class="calibre12">http://localhost:8888/</kbd>，在我们的登录页面上尽情享受吧！我相信您会注意到包含 Twitter Bootstrap CSS 文件的效果——只需在我们的代码中添加几个 CSS 类就能产生巨大的视觉冲击！</p>
+<p class="CDPAlignCenter"><img src="img/c55d8dcb-0509-440e-914e-e35e4e5866c8.png" class="calibre60"/></p>
+<p class="calibre2">前面的截图是我们的游戏在本地主机<kbd class="calibre12">8888</kbd>端口运行的登陆页面。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Starting a new game</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">开始新游戏</h1>
+                
+            
+            
+                
+<p class="calibre2">太棒了。现在，让我们来关注开始一个新游戏的功能。这里，我们需要实现以下步骤:</p>
+<ol class="calibre13">
+<li class="calibre11">从 URL 中提取难度设置。</li>
+<li class="calibre11">开始新游戏。这个游戏应该有个 ID，会是我们的<kbd class="calibre12">session id</kbd>。另外，它应该跟踪文章列表、进度、导航历史、采取的步骤总数和难度。</li>
+<li class="calibre11">渲染第一篇维基百科文章。</li>
+<li class="calibre11">设置文章内导航。我们需要确保维基百科文章中的链接会正确地链接回我们的应用程序，而不是维基百科网站本身。</li>
+<li class="calibre11">显示关于游戏进程的信息，例如目标(开始和结束文章)、采取的步骤数等等。</li>
+</ol>
+<p class="calibre2">接下来我们将看看所有这些步骤。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Extracting the difficulty settings from the page URL</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">从页面 URL 提取难度设置</h1>
+                
+            
+            
+                
+<p class="calibre2">这是第一步。记住，在我们的<kbd class="calibre12">HandlerFunction</kbd>中，我们可以访问<kbd class="calibre12">Request</kbd>对象<kbd class="calibre12">req</kbd>。所有的<kbd class="calibre12">Request</kbd>对象都公开了一个名为<kbd class="calibre12">target</kbd>的字段，该字段引用请求的 URL。<kbd class="calibre12">target</kbd>不包含协议或域名，因此它将采用<kbd class="calibre12">/new/$difficulty_level</kbd>的形式。提取<kbd class="calibre12">$difficulty_level</kbd>值的一个快速方法是简单地用一个空字符串<kbd class="calibre12">""</kbd>替换 URI 的第一部分，有效地删除它。结果将在函数<kbd class="calibre12">newgamesession</kbd>中使用，以创建指定难度的新游戏。输入代码，它看起来像这样:</p>
+<pre class="calibre17">game = parse(UInt8, (replace(req.target, "/new/"=&gt;""))) |&gt; newgamesession </pre>
+<p class="calibre2">因为我们用整数(文章的数量)来表示难度级别，所以在使用之前，我们将字符串解析为一个整数(特别是类型<kbd class="calibre12">UInt8</kbd>)。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Starting a new game session</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">开始新的游戏会话</h1>
+                
+            
+            
+                
+<p class="calibre2">开始新的游戏会话是第二步。游戏会话管理器，应该包括前面的<kbd class="calibre12">newgamesession</kbd>功能，已经完全消失了，所以是时候添加了。我们将游戏会话表示为相应类型的实例。让我们将<kbd class="calibre12">type</kbd>定义和操作它的方法打包到一个专用模块中。我们可以将模块命名为<kbd class="calibre12">GameSession</kbd>，将类型命名为<kbd class="calibre12">Game</kbd>。请在<kbd class="calibre12">"sixdegrees/"</kbd>文件夹中创建<kbd class="calibre12">GameSession.jl</kbd>文件。</p>
+<p class="calibre2">我们的<kbd class="calibre12">Game</kbd>类型将需要一个定制的构造函数。我们将提供难度级别，构造函数将负责设置所有的内部内容——它将使用之前创建的<kbd class="calibre12">Gameplay.newgame</kbd>函数获取正确数量的维基百科文章；它将创建一个唯一的游戏 ID(这将是我们的会话 ID)；它会用默认值初始化其余的字段。</p>
+<p class="calibre2">第一次尝试如下所示:</p>
+<pre class="calibre17">module GameSession 
+ 
+using ..Gameplay, ..Wikipedia, ..Wikipedia.Articles 
+using Random 
+ 
+mutable struct Game 
+  id::String 
+  articles::Vector{Article} 
+  history::Vector{Article} 
+  steps_taken::UInt8 
+  difficulty::UInt8 
+ 
+  Game(game_difficulty) = <br class="title-page-name"/>    new(randstring(), newgame(game_difficulty), Article[], 0, game_difficulty) 
+end 
+ 
+const GAMES = Dict{String,Game}() 
+ 
+end</pre>
+<p class="calibre2"><kbd class="calibre12">Random.randstring</kbd>函数创建一个随机字符串。这是我们游戏和会话的 ID。</p>
+<p class="calibre2">我们还定义了一个<kbd class="calibre12">GAMES</kbd>字典，它将存储所有活动的游戏，并允许我们通过它们的<kbd class="calibre12">id</kbd>字段来查找它们。请记住，我们的游戏是在网络上公开的，所以我们将有多个游戏会话并行运行。</p>
+<p class="calibre2">我们现在可以添加其余的功能。在模块关闭<kbd class="calibre12">end</kbd>前增加如下定义:</p>
+<pre class="calibre17">export newgamesession, gamesession, destroygamesession 
+ 
+function newgamesession(difficulty) 
+  game = Game(difficulty) 
+  GAMES[game.id] = game <br class="title-page-name"/>  game 
+end <br class="title-page-name"/><br class="title-page-name"/>function gamesession(id) 
+  GAMES[id] 
+end <br class="title-page-name"/><br class="title-page-name"/>function destroygamesession(id) 
+  delete!(GAMES, id) 
+end
+newgamesession function, which creates a new <kbd class="calibre12">Game</kbd> of the indicated difficulty and stores it into the <kbd class="calibre12">GAMES</kbd> dict data structure. There's also a <kbd class="calibre12">getter</kbd> function, <kbd class="calibre12">gamesession</kbd>, which retrieves a <kbd class="calibre12">Game</kbd> by <kbd class="calibre12">id</kbd>. Finally, we add a <kbd class="calibre12">destructor</kbd> function, which removes the corresponding <kbd class="calibre12">Game</kbd> from the <kbd class="calibre12">GAMES</kbd> dict, effectively making it unavailable on the frontend and leaving it up for garbage collection. All of these functions are exported.</pre>
+<p>值得注意的是，在内存中存储我们的游戏对于这个学习项目来说是没问题的，但是在生产中，有很多玩家，你可能会很快耗尽内存。对于生产使用，我们最好将每个<kbd class="calibre24">Game</kbd>保存到数据库中，并在必要时检索它。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Rendering the first Wikipedia article from the chain</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">呈现链中的第一篇维基百科文章</h1>
+                
+            
+            
+                
+<p class="calibre2">这是第三步。回到我们的<kbd class="calibre12">WebApp</kbd>模块(在<kbd class="calibre12">WebApp.jl</kbd>中)，让我们继续讨论<kbd class="calibre12">newgamepage</kbd>处理程序的逻辑。实现将如下所示:</p>
+<pre class="calibre17">using ..GameSession, ..Wikipedia, ..Wikipedia.Articles 
+ 
+const newgamepage = HTTP.HandlerFunction() do req 
+  game = parse(UInt8, (replace(req.target, "/new/"=&gt;""))) |&gt; newgamesession 
+  article = game.articles[1] 
+  push!(game.history, article) 
+ 
+  HTTP.Messages.Response(200, wikiarticle(article)) 
+end</pre>
+<p class="calibre2">一旦我们创建了一个新游戏，我们需要引用它的第一篇文章。我们将起始文章添加到游戏历史中，然后使用下面的<kbd class="calibre12">wikiarticle</kbd>函数将其呈现为 HTML:</p>
+<pre class="calibre17">function wikiarticle(article) 
+  html = """ 
+  &lt;!DOCTYPE html&gt; 
+  &lt;html&gt; 
+  &lt;head&gt; 
+    &lt;meta charset="utf-8" /&gt; 
+    &lt;link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous"&gt; 
+    &lt;title&gt;6 Degrees of Wikipedia&lt;/title&gt; 
+  &lt;/head&gt; 
+ 
+  &lt;body&gt; 
+    &lt;h1&gt;$(article.title)&lt;/h1&gt; 
+    &lt;div id="wiki-article"&gt; 
+      $(article.content) 
+    &lt;/div&gt; 
+  &lt;/body&gt; 
+  &lt;/html&gt; 
+  """ 
+end<br class="title-page-name"/><br class="title-page-name"/></pre>
+<p class="calibre2">我们只是将维基百科文章的标题显示为主要标题，然后是内容。</p>
+<p class="calibre2">最后，不要忘记通过将<kbd class="calibre12">GameSession</kbd>添加到<kbd class="calibre12">"six_degrees.jl"</kbd>来将其加载到我们的应用程序中。请注意，它需要在<kbd class="calibre12">WebApp</kbd>之前加载，才能用于<kbd class="calibre12">WebApp</kbd>。完整的<kbd class="calibre12">"six_degrees.jl"</kbd>文件现在应该是这样的:</p>
+<pre class="calibre17">using Pkg pkg"activate ." include("Database.jl") include("Wikipedia.jl") include("Gameplay.jl") include("GameSession.jl") include("WebApp.jl") using .Wikipedia, .Gameplay, .GameSession, .WebApp </pre>
+<p class="calibre2">如果您重新运行我们的代码并导航到<kbd class="calibre12">http://localhost:8888/new/2</kbd>，您将看到我们的应用程序呈现了一篇随机的维基百科文章:</p>
+<p class="CDPAlignCenter"><img src="img/7cf79cd6-fbb9-4938-98c3-e94cc8328470.png" class="calibre61"/></p>
+<p class="calibre2">这是一个好的开始，但也存在一些问题。首先，我们从维基百科获取内容时有点过于贪婪。它包括整个页面的 HTML，其中包含了我们并不真正需要的东西，比如看不见的<kbd class="calibre12">&lt;head&gt;</kbd>部分，以及文章正文上方非常明显的维基百科内容(搜索表单、菜单等等)。这很容易解决——我们所需要做的就是通过使用一个更好定义的 CSS 选择器来更具体地描述我们想要的内容。稍微摆弄一下浏览器的检查器，就会发现想要的选择器是<kbd class="calibre12">#bodyContent</kbd>。</p>
+<p class="calibre2">有了这些知识，我们需要更新<kbd class="calibre12">Wikipedia</kbd>模块。请用此功能替换现有的<kbd class="calibre12">articleinfo</kbd>功能:</p>
+<pre class="calibre17">function articleinfo(content) 
+  dom = articledom(content) 
+  (extractcontent(dom.root), extractlinks(dom.root), extracttitle(dom.root), extractimage(dom.root)) 
+end </pre>
+<p class="calibre2">我们现在将只提取所需 CSS 选择器的内容，而不是使用整个 HTML:</p>
+<pre class="calibre17">function extractcontent(elem) 
+  matchFirst(Selector("#bodyContent"), elem) |&gt; string 
+end </pre>
+<p class="calibre2">请将<kbd class="calibre12">extractcontent</kbd>的定义添加到<kbd class="calibre12">Wikipedia.jl</kbd>文件中，在<kbd class="calibre12">extractimage</kbd>功能下。</p>
+<p class="calibre2">通过在<kbd class="calibre12">http://localhost:8888/new/2</kbd>重新访问我们的页面，我们将看到我们的努力得到了更好看的替换:</p>
+<p class="CDPAlignCenter"><img src="img/2dc79e56-d94e-4ef1-97bc-3549a9756aa2.png" class="calibre62"/></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Setting up in-article navigation</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">设置文章内导航</h1>
+                
+            
+            
+                
+<p class="calibre2">好吧，这并不难！但是下一个问题更难。第四步是所有关于设置。我们确定，我们需要捕捉所有的内部维基百科链接，以便当玩家点击一个链接时，他们会被带到我们的应用程序，而不是去原始的维基百科文章。这项工作有一半是由维基百科的内容本身完成的，因为它使用了相对 URL。也就是说，它没有使用<kbd class="calibre12">https://en.wikipedia.org/wiki/Wikipedia:Six_degrees_of_Wikipedia</kbd>形式的绝对 URL，而是使用了相对形式<kbd class="calibre12">/wiki/Wikipedia:Six_degrees_of_Wikipedia</kbd>。这意味着当在浏览器中呈现时，这些链接将继承当前主机的域名(或<em class="calibre16">基 URL </em>)。也就是说，当在<kbd class="calibre12">http://localhost:8888/</kbd>呈现维基百科文章的内容时，其相对 URL 将被解释为<kbd class="calibre12">http://localhost:8888/wiki/Wikipedia:Six_degrees_of_Wikipedia</kbd>。因此，它们会自动指向我们的 web 应用程序。这很好，但是缺少了一大块拼图:我们说过要通过将会话 id 作为 URL 的一部分来维护游戏的状态。因此，我们的 URL 应该是<kbd class="calibre12">http://localhost:8888/ABCDEF/wiki/Wikipedia:Six_degrees_of_Wikipedia</kbd>的形式，其中<kbd class="calibre12">ABCDEF</kbd>代表游戏(或会话)ID。最简单的解决方法就是在渲染内容的时候用<kbd class="calibre12">/ABCDEF/wiki/</kbd>代替<kbd class="calibre12">/wiki/</kbd>——当然是用实际的游戏 ID 代替<kbd class="calibre12">ABCDEF</kbd>。</p>
+<p class="calibre2">在<kbd class="calibre12">WebApp.wikiarticle</kbd>函数的定义中，请查找:</p>
+<pre class="calibre17">&lt;div id="wiki-article"&gt; 
+     $(article.content) 
+&lt;/div&gt; </pre>
+<p class="calibre2">将其替换为以下内容:</p>
+<pre class="calibre17">&lt;div id="wiki-article"&gt; 
+    $(replace(article.content, "/wiki/"=&gt;"/$(game.id)/wiki/")) 
+&lt;/div&gt; </pre>
+<p class="calibre2">因为我们现在需要<kbd class="calibre12">game</kbd>对象，我们必须确保将它传递给函数，所以它的声明应该如下所示:</p>
+<pre class="calibre17">function wikiarticle(game, article) </pre>
+<p class="calibre2">这意味着我们还需要更新<kbd class="calibre12">newgamepage</kbd>路由处理程序，以正确调用更新后的<kbd class="calibre12">wikiarticle</kbd>函数。<kbd class="calibre12">WebApp.newgamepage</kbd>函数的最后一行现在应该如下:</p>
+<pre class="calibre17">HTTP.Messages.Response(200, wikiarticle(game, article))  </pre>
+<p class="calibre2">如果您执行<kbd class="calibre12">six_degrees.jl</kbd>并打开浏览器<kbd class="calibre12">http://localhost:8888/new/2</kbd>，您应该会看到一篇很好的维基百科文章的渲染图，其中所有的内部链接都包含游戏 ID:</p>
+<p class="CDPAlignCenter"><img src="img/cb4f92b0-576f-4d7c-9b87-6b61d5939b03.png" class="calibre18"/></p>
+<p class="calibre2">在前面的截图中，我们可以看到所有的网址都以<kbd class="calibre12">/x2wHk2XI</kbd>开头——我们的游戏 ID。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Displaying information about the game session</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">显示关于游戏会话的信息</h1>
+                
+            
+            
+                
+<p class="calibre2">对于规范的第五部分，也是最后一部分，我们需要显示关于游戏的信息，并提供一种导航回以前文章的方法。我们将定义以下函数:</p>
+<pre class="calibre17">function objective(game) 
+  """ 
+  &lt;h3&gt; 
+    Go from &lt;i&gt;$(game.articles[1].title)&lt;/i&gt;  
+    to &lt;i&gt;$(game.articles[end].title)&lt;/i&gt; 
+  &lt;/h3&gt; 
+  &lt;h5&gt; 
+    Progress: $(size(game.history, 1) - 1)  
+    out of maximum $(size(game.articles, 1) - 1) links  
+    in $(game.steps_taken) steps 
+  &lt;/h5&gt; 
+  &lt;h6&gt; 
+    &lt;a href="/$(game.id)/solution"&gt;Solution?&lt;/a&gt; |  
+    &lt;a href="/"&gt;New game&lt;/a&gt; 
+  &lt;/h6&gt;""" 
+end </pre>
+<p class="calibre2"><kbd class="calibre12">objective</kbd>功能通知玩家文章的开始和结束以及当前的进度。它还提供了一个小菜单，以便您可以查看解决方案或开始一个新游戏。</p>
+<p class="calibre2">为了向后导航，我们需要生成游戏历史链接:</p>
+<pre class="calibre17">function history(game) 
+  html = "&lt;ol&gt;" 
+  iter = 0 
+  for a in game.history 
+    html *= """ 
+    &lt;li&gt;&lt;a href="/$(game.id)/back/$(iter + 1)"&gt;$(a.title)&lt;/a&gt;&lt;/li&gt; 
+    """ 
+    iter += 1 
+  end <br class="title-page-name"/>  <br class="title-page-name"/>  html * "&lt;/ol&gt;" 
+end</pre>
+<p class="calibre2">最后，我们需要一些额外的逻辑来检查游戏是赢了还是输了:</p>
+<pre class="calibre17">function puzzlesolved(game, article) 
+  article.url == game.articles[end].url 
+end</pre>
+<p class="calibre2">如果当前文章的 URL 与游戏中最后一篇文章的 URL 相同，我们就有了赢家。</p>
+<p class="calibre2">如果玩家用完了所有招式，游戏就输了:</p>
+<pre class="calibre17">function losinggame(game) 
+  game.steps_taken &gt;= Gameplay.MAX_NUMBER_OF_STEPS 
+end</pre>
+<p class="calibre2">到目前为止，完整的代码应该是这样的:</p>
+<pre class="calibre17">module WebApp 
+ 
+using HTTP, Sockets 
+using ..Gameplay, ..GameSession, ..Wikipedia, ..Wikipedia.Articles 
+ 
+# Configuration 
+const HOST = ip"0.0.0.0" 
+const PORT = 8888 
+const ROUTER = HTTP.Router() 
+const SERVER = HTTP.Server(ROUTER) 
+ 
+# Functions 
+function wikiarticle(game, article) 
+  html = """ 
+  &lt;!DOCTYPE html&gt; 
+  &lt;html&gt; 
+  $(head()) 
+ 
+  &lt;body&gt; 
+    $(objective(game)) 
+    $(history(game)) 
+    &lt;hr/&gt; 
+    $( 
+      if losinggame(game) 
+        "&lt;h1&gt;You Lost :( &lt;/h1&gt;" 
+      else 
+        puzzlesolved(game, article) ? "&lt;h1&gt;You Won!&lt;/h1&gt;" : "" 
+      end 
+    ) 
+ 
+    &lt;h1&gt;$(article.title)&lt;/h1&gt; 
+    &lt;div id="wiki-article"&gt; 
+      $(replace(article.content, "/wiki/"=&gt;"/$(game.id)/wiki/")) 
+    &lt;/div&gt; 
+  &lt;/body&gt; 
+  &lt;/html&gt; 
+  """ 
+end 
+ 
+function history(game) 
+  html = "&lt;ol&gt;" 
+  iter = 0 
+  for a in game.history 
+    html *= """ 
+    &lt;li&gt;&lt;a href="/$(game.id)/back/$(iter + 1)"&gt;$(a.title)&lt;/a&gt;&lt;/li&gt; 
+    """ 
+    iter += 1 
+  end 
+ 
+  html * "&lt;/ol&gt;" 
+end 
+ 
+function objective(game) 
+  """ 
+  &lt;h3&gt; 
+    Go from &lt;i&gt;$(game.articles[1].title)&lt;/i&gt;  
+    to &lt;i&gt;$(game.articles[end].title)&lt;/i&gt; 
+  &lt;/h3&gt; 
+  &lt;h5&gt; 
+    Progress: $(size(game.history, 1) - 1)  
+    out of maximum $(size(game.articles, 1) - 1) links  
+    in $(game.steps_taken) steps 
+  &lt;/h5&gt; 
+  &lt;h6&gt; 
+    &lt;a href="/$(game.id)/solution"&gt;Solution?&lt;/a&gt; |  
+    &lt;a href="/"&gt;New game&lt;/a&gt; 
+  &lt;/h6&gt;""" 
+end 
+ 
+function head() 
+  """ 
+  &lt;head&gt; 
+    &lt;meta charset="utf-8" /&gt; 
+    &lt;link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous"&gt; 
+    &lt;title&gt;6 Degrees of Wikipedia&lt;/title&gt; 
+  &lt;/head&gt; 
+  """ 
+end 
+ 
+function puzzlesolved(game, article) 
+  article.url == game.articles[end].url 
+end 
+ 
+function losinggame(game) 
+  game.steps_taken &gt;= Gameplay.MAX_NUMBER_OF_STEPS 
+end 
+ 
+# Routes handlers 
+const landingpage = HTTP.HandlerFunction() do req 
+  html = """ 
+  &lt;!DOCTYPE html&gt; 
+  &lt;html&gt; 
+  $(head()) 
+ 
+  &lt;body&gt; 
+    &lt;div class="jumbotron"&gt; 
+      &lt;h1&gt;Six degrees of Wikipedia&lt;/h1&gt; 
+      &lt;p&gt; 
+        The goal of the game is to find the shortest path between two random Wikipedia articles.&lt;br/&gt; 
+        Depending on the difficulty level you choose, the Wiki pages will be further apart and less related.&lt;br/&gt; 
+        If you can't find the solution, you can always go back up the articles chain, but you need to find the solution within the maximum number of steps, otherwise you lose.&lt;br/&gt; 
+        If you get stuck, you can always check the solution, but you'll lose.&lt;br/&gt; 
+        Good luck and enjoy! 
+      &lt;/p&gt; 
+ 
+      &lt;hr class="my-4"&gt; 
+ 
+      &lt;div&gt; 
+        &lt;h4&gt;New game&lt;/h4&gt; 
+          &lt;a href="/new/$(Gameplay.DIFFICULTY_EASY)" class="btn btn-primary btn-lg"&gt;Easy ($(Gameplay.DIFFICULTY_EASY) links away)&lt;/a&gt; | 
+          &lt;a href="/new/$(Gameplay.DIFFICULTY_MEDIUM)" class="btn btn-primary btn-lg"&gt;Medium ($(Gameplay.DIFFICULTY_MEDIUM) links away)&lt;/a&gt; | 
+          &lt;a href="/new/$(Gameplay.DIFFICULTY_HARD)" class="btn btn-primary btn-lg"&gt;Hard ($(Gameplay.DIFFICULTY_HARD) links away)&lt;/a&gt; 
+        &lt;/div&gt; 
+    &lt;/div&gt; 
+  &lt;/body&gt; 
+  &lt;/html&gt; 
+  """ 
+ 
+  HTTP.Messages.Response(200, html) 
+end 
+ 
+const newgamepage = HTTP.HandlerFunction() do req 
+  game = parse(UInt8, (replace(req.target, "/new/"=&gt;""))) |&gt; newgamesession 
+  article = game.articles[1] 
+  push!(game.history, article) 
+ 
+  HTTP.Messages.Response(200, wikiarticle(game, article)) 
+end 
+ 
+const articlepage = HTTP.HandlerFunction() do req 
+end 
+ 
+const backpage = HTTP.HandlerFunction() do req 
+end 
+ 
+const solutionpage = HTTP.HandlerFunction() do req 
+end 
+ 
+const notfoundpage = HTTP.HandlerFunction() do req 
+end 
+ 
+ 
+# Routes definitions 
+HTTP.register!(ROUTER, "/", landingpage) # root page 
+HTTP.register!(ROUTER, "/new/*", newgamepage) # /new/$difficulty_level -- new game 
+HTTP.register!(ROUTER, "/*/wiki/*", articlepage) # /$session_id/wiki/$wikipedia_article_url -- article page 
+HTTP.register!(ROUTER, "/*/back/*", backpage) # /$session_id/back/$number_of_steps -- go back the navigation history 
+HTTP.register!(ROUTER, "/*/solution", solutionpage) # /$session_id/solution -- display the solution HTTP.register!(ROUTER, "*", notfoundpage) # everything else -- not found # Start server HTTP.serve(SERVER, HOST, PORT) 
+ 
+end</pre>
+<p class="calibre2">请注意，我们还重构了页面的<kbd class="calibre12">&lt;head&gt;</kbd>，将其抽象为<kbd class="calibre12">head</kbd>函数，由<kbd class="calibre12">landingpage</kbd>和<kbd class="calibre12">wikiarticle</kbd>共同使用。这样，我们保持代码干燥，避免相同的<kbd class="calibre12">&lt;head&gt;</kbd> HTML 元素的重复。</p>
+<p class="calibre2">现在，让我们确保将<kbd class="calibre12">Gameplay.MAX_NUMBER_OF_STEPS</kbd>添加到<kbd class="calibre12">Gameplay.jl</kbd>中。把它加在顶部，难度常数下面:</p>
+<pre class="calibre17">const MAX_NUMBER_OF_STEPS = 10 </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Displaying a Wikipedia article page</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">显示维基百科文章页面</h1>
+                
+            
+            
+                
+<p class="calibre2">玩家已经阅读了起始文章并点击了内容中的链接。我们需要添加呈现链接文章的逻辑。我们必须获取文章(如果已经获取，则从数据库中读取)，显示它，并更新游戏的状态。</p>
+<p class="calibre2">代码如下:</p>
+<pre class="calibre17">const articlepage = HTTP.HandlerFunction() do req 
+  uri_parts = parseuri(req.target) 
+  game = gamesession(uri_parts[1]) 
+  article_uri = "/wiki/$(uri_parts[end])" <br class="title-page-name"/>  existing_articles = Articles.find(article_uri) 
+  article = isempty(existing_articles) ?  
+    persistedarticle(fetchpage(article_uri)...) :  
+    existing_articles[1] <br class="title-page-name"/>  push!(game.history, article) 
+  game.steps_taken += 1 <br class="title-page-name"/>  puzzlesolved(game, article) &amp;&amp; destroygamesession(game.id) <br class="title-page-name"/>  HTTP.Messages.Response(200, wikiarticle(game, article)) 
+end</pre>
+<p class="calibre2">我们从解析<kbd class="calibre12">Request</kbd> URI 开始，提取通过 GET 发送的所有值。格式为<kbd class="calibre12">/$session_id/wiki/$article_name</kbd>的字符串，例如<kbd class="calibre12">/c701b1b0b1/wiki/Buenos_Aires</kbd>。我们想把它分解成各个部分。由于这是一个我们需要多次执行的操作，我们将把这个功能抽象到<kbd class="calibre12">parseuri</kbd>函数中:</p>
+<pre class="calibre17">function parseuri(uri) 
+  map(x -&gt; String(x), split(uri, "/", keepempty = false)) 
+end</pre>
+<p class="calibre2">这里，我们使用 Julia 的<kbd class="calibre12">split</kbd>函数将 URI 字符串分解成<kbd class="calibre12">SubString</kbd>的一个<kbd class="calibre12">Array</kbd>，对应于正斜杠<kbd class="calibre12">/</kbd>之间的段。然后，我们将得到的<kbd class="calibre12">SubString</kbd>的<kbd class="calibre12">Array</kbd>转换为<kbd class="calibre12">String</kbd>的<kbd class="calibre12">Array</kbd>，返回并存储在<kbd class="calibre12">uri_parts</kbd>变量中。</p>
+<p class="calibre2">继续定义<kbd class="calibre12">articlepage</kbd>处理程序，我们使用<kbd class="calibre12">uri_parts</kbd>数组的第一个元素，对应于会话 ID，通过调用<kbd class="calibre12">gamesession(uri_parts[1])</kbd>来检索我们的游戏对象。使用最后一个元素，我们生成了维基百科文章的 URL。然后，我们通过 URL 查找文章，或者从数据库检索，或者从网站获取。</p>
+<p class="calibre2">一旦我们有了文章，我们就把它添加到游戏的历史中，并增加<kbd class="calibre12">game.steps_taken</kbd>计数器。然后，我们检查我们是否应该以胜利结束游戏:</p>
+<p class="CDPAlignCenter"><img src="img/994e68d4-d843-4ed8-b235-25b745cc474f.png" class="calibre63"/></p>
+<p class="calibre2">这是获奖文章页面截图。设计并不伟大，但胜利的甜蜜滋味绝对伟大！</p>
+<p class="calibre2">最后，类似于新游戏页面，我们通过渲染文章和所有游戏信息来响应。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Navigating back up the article chain</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">沿文章链向上导航</h1>
+                
+            
+            
+                
+<p class="calibre2">请记住，后退导航 URL 类似于<kbd class="calibre12">/c701b1b0b1/back/1</kbd>，其中第一部分是会话 ID，最后一部分是历史堆栈中该项目的索引。要实现它，工作流程类似于<kbd class="calibre12">articlepage</kbd>—我们解析<kbd class="calibre12">Request</kbd> URI，通过会话 ID 检索游戏，并从游戏的历史堆栈中获取文章。因为我们回到了游戏的历史，当前文章索引之外的所有内容都将从导航栈中移除。完成后，我们通过呈现相应的维基百科文章来响应。代码简短易读:</p>
+<pre class="calibre17">const backpage = HTTP.HandlerFunction() do req 
+  uri_parts = parseuri(req.target) 
+  game = gamesession(uri_parts[1]) 
+  history_index = parse(UInt8, uri_parts[end]) 
+ 
+  article = game.history[history_index] 
+  game.history = game.history[1:history_index] 
+ 
+  HTTP.Messages.Response(200, wikiarticle(game, article)) 
+end </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Showing the solution</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">展示解决方案</h1>
+                
+            
+            
+                
+<p class="calibre2">对于解决方案页面，我们从<kbd class="calibre12">Request</kbd> URI 中需要的唯一东西是会话 ID。然后，我们按照相同的工作流程获取当前的<kbd class="calibre12">Game</kbd>对象。一旦我们有了它，我们将文章列表复制到历史堆栈中，以使用现有的渲染逻辑显示游戏的解决方案。我们也将<kbd class="calibre12">steps_taken</kbd>计数器设置到最大，因为这个游戏被认为是失败的。最后，我们展示最后一篇文章:</p>
+<pre class="calibre17">const solutionpage = HTTP.HandlerFunction() do req 
+  uri_parts = parseuri(req.target) 
+  game = gamesession(uri_parts[1]) 
+  game.history = game.articles 
+  game.steps_taken = Gameplay.MAX_NUMBER_OF_STEPS 
+  article = game.articles[end]<br class="title-page-name"/>  HTTP.Messages.Response(200, wikiarticle(game, article)) 
+end</pre>
+<p class="calibre2">解决方案页面显示如下，解决游戏失败:</p>
+<p class="CDPAlignCenter"><img src="img/53597668-7976-468f-81f3-f432d7cdf57c.png" class="calibre64"/></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Handling any other requests</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">处理任何其他请求</h1>
+                
+            
+            
+                
+<p class="calibre2">类似于我们的<kbd class="calibre12">Hello World</kbd>示例，我们将用<kbd class="calibre12">404 Not Found</kbd>响应来响应任何其他请求:</p>
+<pre class="calibre17">const notfoundpage = HTTP.HandlerFunction() do req 
+  HTTP.Messages.Response(404, "Sorry, this can't be found") 
+end </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Wrapping it up</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">包装它</h1>
+                
+            
+            
+                
+<p class="calibre2">我已经在<kbd class="calibre12">WebApp.jl</kbd>文件中添加了一些 UI 调整来增加一些趣味。以下是重要部分——请从<a href="https://github.com/PacktPublishing/Julia-Programming-Projects/blob/master/Chapter05/sixdegrees/WebApp.jl" class="calibre9">https://github . com/packt publishing/Julia-Programming-Projects/blob/master/chapter 05/six degrees/web app . JL</a>下载完整文件:</p>
+<pre class="calibre17">module WebApp 
+ 
+# code truncated #
+ 
+function history(game) 
+  html = """&lt;ol class="list-group"&gt;""" 
+  iter = 0 
+  for a in game.history 
+    html *= """ 
+      &lt;li class="list-group-item"&gt; 
+        &lt;a href="/$(game.id)/back/$(iter + 1)"&gt;$(a.title)&lt;/a&gt; 
+      &lt;/li&gt; 
+    """ 
+    iter += 1 
+  end 
+ 
+  html * "&lt;/ol&gt;" 
+end 
+ 
+function objective(game) 
+  """ 
+  &lt;div class="jumbotron"&gt; 
+    &lt;h3&gt;Go from 
+      &lt;span class="badge badge-info"&gt;$(game.articles[1].title)&lt;/span&gt; 
+      to 
+      &lt;span class="badge badge-info"&gt;$(game.articles[end].title)&lt;/span&gt; 
+    &lt;/h3&gt; 
+    &lt;hr/&gt; 
+    &lt;h5&gt; 
+      Progress: 
+      &lt;span class="badge badge-dark"&gt;$(size(game.history, 1) - 1)&lt;/span&gt; 
+      out of maximum 
+      &lt;span class="badge badge-dark"&gt;$(size(game.articles, 1) - 1)&lt;/span&gt; 
+      links in 
+      &lt;span class="badge badge-dark"&gt;$(game.steps_taken)&lt;/span&gt; 
+      steps 
+    &lt;/h5&gt; 
+    $(history(game)) 
+    &lt;hr/&gt; 
+    &lt;h6&gt; 
+      &lt;a href="/$(game.id)/solution" class="btn btn-primary btn-lg"&gt;Solution?&lt;/a&gt; | 
+      &lt;a href="/" class="btn btn-primary btn-lg"&gt;New game&lt;/a&gt; 
+    &lt;/h6&gt; 
+  &lt;/div&gt; 
+  """ 
+end 
+ 
+# code truncated #
+ 
+end </pre>
+<p class="calibre2">你会看到我对布局进行了一些重新组织，并添加了一些额外的样式来使我们的 UI 更漂亮。这是我们更新后的游戏:</p>
+<p class="CDPAlignCenter"><img src="img/03d56710-7271-47cc-8a32-49fa8bb210a9.png" class="calibre65"/></p>
+<p class="calibre2">至于其余的文件，如果你需要的话，可以从本章的 GitHub 资源库下载，可以从<a href="https://github.com/PacktPublishing/Julia-Programming-Projects/tree/master/Chapter05/sixdegrees" class="calibre9">https://GitHub . com/packt publishing/Julia-Programming-Projects/tree/master/chapter 05/six degrees</a>访问。</p>
+<p class="calibre2">这就是我们运行一个完整的<em class="calibre16">维基百科</em>六度游戏所需要做的一切。现在，是享受的时候了！</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Summary</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">摘要</h1>
+                
+            
+            
+                
+<p class="calibre2">Julia 专注于科学计算和数据科学。但是由于它作为一种通用编程语言的优秀品质，它的本地并行计算特性，以及它的性能，我们在 web 开发领域有一个很好的 Julia 用例。</p>
+<p class="calibre2">包生态系统提供了对一组强大的专用于 web 编程的库的访问。它们级别相对较低，但仍然抽象出了直接使用网络堆栈的大部分复杂性。<kbd class="calibre12">HTTP</kbd>包提供了可用性、性能和灵活性之间的良好平衡。</p>
+<p class="calibre2">事实上，我们设法用这么少的代码构建了一个相当复杂(尽管很小)的 web 应用程序，这证明了该语言的能力和表现力以及第三方库的质量。我们的学习项目做得很好——现在是时候放松一下，享受一轮<em class="calibre16">维基百科</em>六度，朱莉娅风格！</p>
+
+
+            
+
+            
+        
+    
+
+
+</body></html>

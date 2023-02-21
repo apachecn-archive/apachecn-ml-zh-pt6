@@ -1,0 +1,309 @@
+<html><head/><body>
+
+
+	
+		<title>B17447_11_ePub_RK</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-145"><em class="italic"> <a id="_idTextAnchor144"/>第 11 章</em>:用 SageMaker 项目、管道和模型注册来操作 ML 项目</h1>
+			<p>数据科学家过去花费太多的时间和精力来维护和手动管理 ML 管道，这个过程从数据、处理、培训和评估开始，到模型托管和持续维护结束。SageMaker Studio 提供了旨在通过<strong class="bold">持续集成和持续交付</strong> ( <strong class="bold"> CI/CD </strong>)最佳实践来简化这些操作的特性。您将学习如何实现 SageMaker 项目、管道和模型注册，以帮助使用 CI/CD 操作 ML 生命周期。</p>
+			<p>在本章中，我们将学习以下内容:</p>
+			<ul>
+				<li>了解 ML 操作和 CI/CD</li>
+				<li>创建 SageMaker 项目</li>
+				<li>用 SageMaker 管道编排 ML 管道</li>
+				<li>在 SageMaker Studio 中运行 CI/CD</li>
+			</ul>
+			<h1 id="_idParaDest-146"><a id="_idTextAnchor145"/>技术要求</h1>
+			<p>对于本章，您需要确保在 Studio 设置中启用了 SageMaker 项目模板权限。如果你已经完成了<a href="B17447_08_ePub_RK.xhtml#_idTextAnchor108"> <em class="italic">第八章</em> </a>，<em class="italic">用 SageMaker JumpStart 和 auto pilot</em>jump starting ML，你应该有权限了。您可以通过以下步骤在 Studio <strong class="bold">域</strong>视图中验证它:</p>
+			<ol>
+				<li>如果任一权限被禁用，如图<em class="italic">图 11.1 </em>所示，您可以点击<strong class="bold">编辑设置</strong>进行更改。</li>
+			</ol>
+			<div><div><img src="img/B17447_11_01.jpg" alt="Figure 11.1 – Checking and editing the SageMaker projects permissions&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.1–检查和编辑 SageMaker 项目权限</p>
+			<ol>
+				<li value="2">进入<strong class="bold">步骤 2 工作室设置</strong>打开 SageMaker 项目和 JumpStart 权限，如图<em class="italic">图 11.2 </em>所示。</li>
+			</ol>
+			<div><div><img src="img/B17447_11_02.jpg" alt="Figure 11.2 – Enabling SageMaker project templates for the account and users&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.2–为帐户和用户启用 SageMaker 项目模板</p>
+			<ol>
+				<li value="3">然后点击<strong class="bold">下一页</strong>进入下一页，点击<strong class="bold">提交</strong>。</li>
+			</ol>
+			<p>这确保为您启用了 SageMaker 项目模板权限。</p>
+			<h1 id="_idParaDest-147"><a id="_idTextAnchor146"/>了解 ML 运营和 CI/CD</h1>
+			<p>在 ML 生命周期中，有许多<a id="_idIndexMarker736"/>步骤需要熟练的数据科学家全程亲自参与，例如争论数据集、培训和评估模型。这些手动步骤可能会影响 ML 团队在生产中部署模型的操作和速度。想象一下，你的模特培训工作需要很长时间，并且在半夜完成。您要么必须等待您的第一个数据科学家在白天到来，以评估模型并将模型部署到生产中，要么必须采用随叫随到的轮换方式，让某人随时待命，以监控模型培训和部署。但是如果你想要一个有效和高效的 ML 生命周期，这两种选择都不理想。</p>
+			<p><strong class="bold">机器学习操作</strong> ( <strong class="bold"> MLOps </strong>)对于一个想要保持精简和良好扩展的团队来说至关重要。MLOps 帮助您尽可能简化和减少人工干预。它有助于将您的 ML 生命周期转变为企业级。它帮助您扩展并保持投入生产的模型的质量，还帮助您通过自动化缩短模型交付时间。</p>
+			<p>那么，MLOps 到底是什么？</p>
+			<p>MLOps 是指将 DevOps 最佳实践应用于 ML 生命周期的方法。<strong class="bold"> DevOps </strong>代表软件<strong class="bold">开发</strong> ( <strong class="bold"> Dev </strong>)和<a id="_idIndexMarker738"/> IT <strong class="bold">运营</strong> ( <strong class="bold"> Ops </strong>)。DevOps <a id="_idIndexMarker739"/>的目标是使用一套工程、实践和模式来提高团队高速度、高质量地交付应用程序的能力。它还在组织中推广一种新的文化和行为模式。MLOps 推荐以下实践，这些实践基于 DevOps 最佳实践，并针对 ML 的性质进行了一些修改:</p>
+			<ul>
+				<li><strong class="bold">持续集成</strong> ( <strong class="bold"> CI </strong>):在<a id="_idIndexMarker740"/> DevOps 中，开发人员不断地将他们的代码变更提交并合并到一个中央存储库中，之后会自动运行测试来验证代码。在 ML 中，不仅代码需要集成和验证，训练数据和 ML 模型也是如此。训练数据需要被版本化，模型血统需要被跟踪以获得可追溯性，除了代码之外，对数据和模型的测试也需要被实现。</li>
+				<li><strong class="bold">连续交付</strong> ( <strong class="bold"> CD </strong>):在 DevOps 中，这种<a id="_idIndexMarker741"/>是一种实践，在这种实践中，代码以自动的方式构建、测试并发布用于生产。在 MLOps 中，类似于关于持续集成的讨论，除了 ML 源代码之外，操作还包括数据和模型。</li>
+				<li><strong class="bold">一切如代码</strong>:为了精简和自动化 CI 和 CD(简称 CI/CD)，一切都需要以代码的形式实现:流程、基础设施和配置，而不是任何手动设置和屏幕上的点击式流程。这种实践还支持您的过程、基础设施和配置的版本控制和可再现性。</li>
+				<li><strong class="bold">监控和记录</strong>:这个实践鼓励你记录所有与你的软件/ML 系统相关的事情，以获得可见性和可审计性。您不仅要记录 ML 度量、数据沿袭、数据版本和模型版本，还要记录 CI/CD 过程以及用于调试和监控目的的任何错误。这使得下一个练习成为可能。</li>
+				<li><strong class="bold">沟通和协作</strong>:因为一切都是代码，一切都是自动的和记录的，所以你有一个邀请协作和沟通的透明环境。你的整个团队可以在系统上更加紧密地<a id="_idIndexMarker742"/>一起工作，而不是像孤岛一样手动移交，这会导致摩擦和不透明。</li>
+			</ul>
+			<p>MLOps 带来的主要优势如下:</p>
+			<ul>
+				<li><strong class="bold">更快的上市时间</strong>:因为<a id="_idIndexMarker744"/>现在您的模型部署是作为 CI/CD 流程的一部分自动创建和部署的，您的模型培训和部署是简化的，没有任何移交或手动流程。你可以期待在相同的时间框架内更多的细化迭代，以及一个成熟产品更快的周转时间。</li>
+				<li><strong class="bold">生产力</strong>:数据科学家和 ML 开发人员的大量手动流程被取消，这样他们就可以专注于 ML 建模，而这些事情是无法自动化的。</li>
+				<li><strong class="bold">可重复性</strong>:此外，因为一切都是代码，而且是自动化的，你的 ML 生命周期可以由任何人在任何时候执行，输出完全相同。</li>
+				<li><strong class="bold">可靠性</strong>:通过在 CI/CD 过程中执行的测试和验证，你知道你的模型是高质量的。由于 CI/CD 提供的可重复性，您还可以始终如一地生产高质量的模型。</li>
+				<li><strong class="bold">可审计性</strong>:当代码、数据和模型被版本化，并且谱系和过程被记录时，你可以准确地说出模型是如何被训练和部署的。</li>
+				<li><strong class="bold">更好的质量</strong>:结合<a id="_idIndexMarker745"/>以上所有的好处，MLOps 使我们能够花更多的时间来创建更好的模型，并让系统快速、可靠、可重复地处理集成和交付。</li>
+			</ul>
+			<p>你可能会想:<em class="italic"> MLOps 似乎太完美了，不容易被采用</em>。是的，您确实需要将额外的技术整合到您的 ML 生命周期中，以支持 CI/CD 流程。是的，您需要实现许多细节来启用日志记录和监控。同样真实的是，要采用<em class="italic">一切如代码</em>的实践，一开始就需要对基础设施代码和配置进行多次迭代测试。好消息是，在 SageMaker Studio 中，为您的 ML 项目采用 MLOps 实践变得很容易。SageMaker <a id="_idIndexMarker746"/> Studio 已经为众多用例模板化了 CI/CD 流程<a id="_idIndexMarker747"/>，因此您可以轻松选择一个并采用模板化 ML 用例中的 MLOps 最佳实践和技术。启用 MLOps 和 CI/CD 的功能有<strong class="bold"> SageMaker 项目</strong>、<strong class="bold"> SageMaker 管道</strong>和<strong class="bold"> SageMaker 模型注册表</strong>。</p>
+			<p>让我们首先创建一个 SageMaker 项目。</p>
+			<h1 id="_idParaDest-148"><a id="_idTextAnchor147"/>创建 SageMaker 项目</h1>
+			<p>一个<strong class="bold"> SageMaker 项目</strong>使<a id="_idIndexMarker748"/>能够从 SageMaker 提供的模板和您自己的定制模板中，使用 MLOps 和 CI/CD 自动化模型构建和部署管道。使用 SageMaker 提供的模板，所有的初始设置和资源供应都由 SageMaker 处理，因此您可以快速地将它应用到您的用例中。</p>
+			<p>在这一章中，我们将在 SageMaker Studio 中用 MLOps 和 CI/CD 运行一个 ML 示例。当我们在本章中关注 MLOps 和 CI/CD 时，我们使用来自鲍鱼数据集的简单回归问题(<a href="https://archive.ics.uci.edu/ml/datasets/abalone">https://archive.ics.uci.edu/ml/datasets/abalone</a>)来从物理测量预测鲍鱼的年龄。我将向您展示如何从 SageMaker 项目创建一个项目，以及 MLOps 系统的每个部分是如何工作的。从 SageMaker projects 创建的 MLOps 系统通过代码提交的简单触发，实现了数据验证、模型构建、模型评估、部署和监控的自动化。这意味着无论何时我们对代码库进行任何修改，整个系统都将在 SageMaker 中运行完整的 ML 生命周期，这是我们在本书中自动学到的。您将看到 SageMaker 为您简化了多少 MLOps。让我们打开 SageMaker Studio，按照这里给出的步骤操作:</p>
+			<ol>
+				<li value="1">在<strong class="bold">启动器</strong>页面，点击<strong class="bold">新建项目</strong>卡片上的<em class="italic">加号</em>，如图<em class="italic">图 11.3 </em>所示。</li>
+			</ol>
+			<div><div><img src="img/B17447_11_03.jpg" alt="Figure 11.3 – Opening a new project in Launcher&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.3–在启动器中打开一个新项目</p>
+			<ol>
+				<li value="2">SageMaker 为各种用例创建的<a id="_idIndexMarker749"/> MLOps 模板(在<strong class="bold"> SageMaker 模板</strong>下)供我们选择，如图<em class="italic">图 11.4 </em>所示。让我们选择<strong class="bold"> MLOps 模板用于模型构建、培训、部署和监控</strong>。该模板自动化了整个模型生命周期，包括模型构建、部署和监控工作流。点击<strong class="bold">选择项目模板</strong>。</li>
+			</ol>
+			<div><div><img src="img/B17447_11_04.jpg" alt="Figure 11.4 – Choosing SageMaker managed templates&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.4–选择 SageMaker 管理的模板</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">名称中包含第三方 Git 库的<strong class="bold">模板被设计为与您的外部 Git 库或 CI/CD 软件<a id="_idIndexMarker750"/>一起工作，例如<strong class="bold"> Jenkins </strong>。在下一步中，您需要提供更多信息。</strong></p>
+			<ol>
+				<li value="3">在<strong class="bold">项目详情</strong>页面上提供项目的<a id="_idIndexMarker751"/>名称、描述和标签。点击<strong class="bold">创建项目</strong>。</li>
+			</ol>
+			<p>有了这个项目模板，SageMaker Studio 现在可以为 MLOps 提供云资源，并部署示例代码。让我们用<em class="italic">图 11.5 </em>中所示的图表来说明 MLOps 架构:</p>
+			<div><div><img src="img/B17447_11_05.jpg" alt="Figure 11.5 – Architecture diagram of an MLOps setup with a SageMaker projects template&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.5–带有 SageMaker 项目模板的 MLOps 设置的架构图</p>
+			<p>创建的云<a id="_idIndexMarker752"/>资源包括以下内容:</p>
+			<ul>
+				<li>AWS CodeCommit 中的三个代码仓库，这是托管私有 Git 仓库的托管源代码控制服务。它们也可以在 AWS CodeCommit 控制台中找到:<a href="https://console.aws.amazon.com/codesuite/codecommit/repositories">https://console . AWS . Amazon . com/code suite/code commit/repositories</a>。记得从 URL 切换到您自己的 AWS 区域。</li>
+				<li><strong class="bold"> AWS CodePipeline </strong>中的三个连续交付管道，这是一个帮助自动化构建、测试和发布管道的托管服务，可以在 AWS CodePipeline 控制台中找到:<a href="https://console.aws.amazon.com/codesuite/codepipeline/pipelines">https://console . AWS . Amazon . com/code suite/code pipeline/pipelines</a>。记得从 URL 切换到您自己的 AWS 区域。</li>
+				<li>亚马逊 EventBridge<strong class="bold">中的五个事件触发规则亚马逊 EventBridge </strong>是一个托管服务，可以更容易地构建事件驱动的应用程序，可以在亚马逊 event bridge 控制台中找到:【https://console.aws.amazon.com/events/home#/rules】T42。记得从 URL 切换到您自己的 AWS 区域。</li>
+			</ul>
+			<p>这些本质上是 SageMaker Studio 中支持 MLOps 的主干 CI/CD 框架。CodeCommit 中的存储库是我们存储、开发和提交代码的地方。在 CodeCommit 中对代码存储库的每次提交都将触发(由 EventBridge 中的规则管理)CodePipeline 中相应管道的运行，以构建、测试和部署资源。</p>
+			<p>一旦项目<a id="_idIndexMarker753"/>创建完成，您可以在主工作区看到项目的门户，如图<em class="italic">图 11.6 </em>所示。</p>
+			<div><div><img src="img/B17447_11_06.jpg" alt="Figure 11.6 – SageMaker project detail portal&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.6-sage maker 项目详细信息门户</p>
+			<p>这个门户包含所有与项目相关的重要资源和信息 CodeCommit 中的代码存储库、来自 SageMaker Pipelines 的 ML pipelines(我们很快会谈到)、使用 SageMaker 实验跟踪的实验、模型、托管端点和其他设置。</p>
+			<ol>
+				<li value="4">我们可以将存储库从 CodeCommit 克隆到本地 SageMaker Studio 目录中。在我们继续描述 ML 管道之前的最后一步，让我们克隆<code>&lt;project-name-prefix&gt;-modelbuild</code>存储库，它包含使用鲍鱼<a id="_idIndexMarker754"/>数据集构建、训练和评估 ML 模型的 ML 管道。点击图 11.6 中用箭头突出显示的<code>&lt;project-name-prefix&gt;-modelbuild</code>存储库。</li>
+			</ol>
+			<div><div><img src="img/B17447_11_07.jpg" alt="Figure 11.7 – Cloning a repository from CodeCommit to a local SageMaker Studio directory&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.7–从 CodeCommit 克隆一个存储库到本地 SageMaker Studio 目录</p>
+			<ol>
+				<li value="5">在<em class="italic">图 11.7 </em>所示的弹出窗口中，点击<code>~/&lt;project-name-prefix&gt;/&lt;project-name-prefix&gt;-modelbuild/</code>。</li>
+			</ol>
+			<p>在深入研究 CI/CD 部分之前，让我们先看看这个鲍鱼示例中定义的<a id="_idIndexMarker755"/> ML 管道。</p>
+			<h1 id="_idParaDest-149"><a id="_idTextAnchor148"/>通过 SageMaker 管道协调 ML 管道</h1>
+			<p>我们正在使用的<a id="_idIndexMarker756"/>模板包含一个 ML <a id="_idIndexMarker757"/>生命周期管道，它执行数据预处理、数据质量检查、模型训练、模型评估步骤，以及最终的模型注册。该管道是创建模型的 MLOps 过程的核心部分。使用 SageMaker 管道在<code>&lt;project-name-prefix&gt;-modelbuild</code>中定义管道。<strong class="bold"> SageMaker Pipelines </strong>是 SageMaker 中 ML 工作流的编排工具。SageMaker Pipelines 集成了 SageMaker 处理、培训、实验、托管和模型注册。它提供了再现性、可重复性，并跟踪数据/模型的可审计性。最重要的是，您可以在 SageMaker Studio 中实时可视化工作流图和运行时。该管线可以在详情门户的<strong class="bold">管线</strong>页签下找到，如图<em class="italic">图 11.8 </em>所示。</p>
+			<div><div><img src="img/B17447_11_08.jpg" alt="Figure 11.8 – A list of pipelines in the project &#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.8-项目中的管道列表</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">在这一章中，我多次使用了术语<strong class="bold">管道</strong>。让我们一劳永逸地解决这个问题。我指的是来自 SageMaker Pipelines 的管道，如图<em class="italic">图 11.8 </em>和<em class="italic">图 11.9 </em>所示，称为<strong class="bold"> ML 管道</strong>。请不要将 ML 管道与 AWS CodePipeline 中的 CI/CD 管道相混淆，这在上一节中有简要介绍，并将在<em class="italic">在 SageMaker Studio </em>中运行 CI/CD 一节中进一步讨论。</p>
+			<p>双击<a id="_idIndexMarker758"/>管道，我们可以<a id="_idIndexMarker759"/>看到管道的完整执行图和实时状态，如图<em class="italic">图 11.9 </em>所示。相应的管道代码在<code>~/&lt;project-name-prefix&gt;/&lt;project-name-prefix&gt;-modelbuild/pipelines/abalone/pipeline.py</code>。</p>
+			<div><div><img src="img/B17447_11_09.jpg" alt="Figure 11.9 – Pipeline workflow and live status&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.9–管道工作流程和实时状态</p>
+			<p>让我们浏览一下<a id="_idIndexMarker760"/>管道以及<a id="_idIndexMarker761"/>在代码中是如何设置的。管道包含以下步骤(在图中从上到下):</p>
+			<ol>
+				<li value="1">首先是用 SageMaker 处理(<code>pipeline.py</code>文件)预处理数据集，其中我们使用了<code>sagemaker.workflow</code>模块中的类和函数以及其他<code>sagemaker</code>类，scikit-learn 处理器被定义为在同一目录中运行脚本<code>preprocess.py</code>。另外，<code>ProcessingStep</code>是来自<code>sagemaker.workflow.steps</code>模块的一个类:<pre># Line 209 in pipeline.py step_process = ProcessingStep(     name="PreprocessAbaloneData",     processor=sklearn_processor,     outputs=[         ProcessingOutput(output_name="train", source="/opt/ml/processing/train"),         ProcessingOutput(output_name="validation", source="/opt/ml/processing/validation"),         ProcessingOutput(output_name="test", source="/opt/ml/processing/test"),     ],     code=os.path.join(BASE_DIR, "preprocess.py"),     job_arguments=["--input-data", input_data], )</pre></li>
+				<li>在数据<a id="_idIndexMarker762"/>经过<a id="_idIndexMarker763"/>预处理后，管道检查之前注册的数据质量和偏差指标，和/或使用 SageMaker Clarify 计算数据质量和偏差。这里，前一步骤<code>step_process.properties.ProcessingOutputConfig.Outputs["train"]</code>的输出被用作输入基线数据。这里实例化了一个<code>QualityCheckStep()</code>步骤对象。该步骤从基线训练数据中计算数据质量统计，并在模型创建结束时将统计注册到模型注册表中:<pre># Line 238 data_quality_check_config = DataQualityCheckConfig( baseline_dataset=step_process.properties.ProcessingOutputConfig.Outputs["train"].S3Output.S3Uri,     dataset_format=DatasetFormat.csv(header=False, output_columns_position="START"),     output_s3_uri=Join(on='/', values=['s3:/', default_bucket, base_job_prefix, ExecutionVariables.PIPELINE_EXECUTION_ID, 'dataqualitycheckstep']) ) data_quality_check_step = QualityCheckStep(     name="DataQualityCheckStep",     skip_check=skip_check_data_quality,     register_new_baseline=register_new_baseline_data_quality,     quality_check_config=data_quality_check_config,     check_job_config=check_job_config, supplied_baseline_statistics=supplied_baseline_statistics_data_quality, supplied_baseline_constraints=supplied_baseline_constraints_data_quality,     model_package_group_name=model_package_group_name )</pre></li>
+				<li>同时，<a id="_idIndexMarker764"/>管道<a id="_idIndexMarker765"/>也使用从<code>ClarifyCheckStep()</code>类:<pre>data_bias_check_config = DataBiasCheckConfig(     data_config=data_bias_data_config,     data_bias_config=data_bias_config, ) data_bias_check_step = ClarifyCheckStep(     name="DataBiasCheckStep",     clarify_check_config=data_bias_check_config,     check_job_config=check_job_config,     skip_check=skip_check_data_bias,     register_new_baseline=register_new_baseline_data_bias,     model_package_group_name=model_package_group_name )</pre>实例化的步骤来计算数据偏差</li>
+			</ol>
+			<p>这两个检查步骤基于<code>skip_check</code>参数。<code>skip_check_data_quality</code>和<code>skip_check_data_bias</code>是流水线输入参数，可以为每次运行进行配置。对于第一次运行，您可以跳过检查，因为没有要检查的基线统计数据。<code>register_new_baseline</code>也取决于管道输入参数，但是<a id="_idIndexMarker766"/>大多数情况下<a id="_idIndexMarker767"/>当您有新数据集时，您会注册新的基线统计数据，除非您有特定的理由不更新统计数据。</p>
+			<ol>
+				<li value="4">在数据质量和偏差检查之后，从 SageMaker 估计器创建训练作业。在这个例子中，使用了内置的 XGBoost 算法。<code>TrainingStep</code>依赖于<code>DataQualityCheckStep</code>和<code>DataBiasCheckStep</code>，意味着训练步骤在开始之前等待两个检查步骤完成，并从预处理步骤<code>step_process</code> : <pre># Line 326 step_train = TrainingStep(     name="TrainAbaloneModel",     depends_on=["DataQualityCheckStep", "DataBiasCheckStep"],     estimator=xgb_train,     inputs={         "train": TrainingInput( s3_data=step_process.properties.ProcessingOutputConfig.Outputs["train"].S3Output.S3Uri,             content_type="text/csv",         ),         "validation": TrainingInput( s3_data=step_process.properties.ProcessingOutputConfig.Outputs["validation"].S3Output.S3Uri,             content_type="text/csv",         ),     }, )</pre>获取输出</li>
+				<li>接下来是<a id="_idIndexMarker768"/>到<a id="_idIndexMarker769"/>使用<code>CreateModelStep()</code>从培训工作中创建一个 SageMaker 模型。<code>CreateModelInput()</code>接受用于托管目的的实例类型:<pre># Line 346 model = Model(     image_uri=image_uri, model_data=step_train.properties.ModelArtifacts.S3ModelArtifacts,     sagemaker_session=sagemaker_session,     role=role, ) inputs = CreateModelInput(     instance_type="ml.m5.large",     accelerator_type="ml.eia1.medium", ) step_create_model = CreateModelStep(     name="AbaloneCreateModel",     model=model,     inputs=inputs, )</pre></li>
+				<li>Once the SageMaker Model is created, two branches of model evaluation are performed. One<a id="_idIndexMarker770"/> is applied on a<a id="_idIndexMarker771"/> held-out test set for evaluation purposes using SageMaker Batch Transform <code>Transformer</code>:<pre># Line 364
+transformer = Transformer(
+    model_name=step_create_model.properties.ModelName,
+    instance_type="ml.m5.xlarge",
+    instance_count=1,
+    accept="text/csv",
+    assemble_with="Line",
+    output_path=f"s3://{default_bucket}/AbaloneTransform",
+)
+step_transform = TransformStep(
+    name="AbaloneTransform",
+    transformer=transformer,
+    inputs=TransformInput(       data=step_process.properties.ProcessingOutputConfig.Outputs["test"].S3Output.S3Uri,
+    ...)
+)</pre><p class="callout-heading">注意</p><p class="callout"><code>TransformInput()</code>类中的附加参数在文本中已被省略，但在<code>pipeline.py</code>中可用，用于配置批量转换输入/输出，并将输出结果与输入记录相关联。更多信息请见<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/batch-transform-data-processing.html">https://docs . AWS . Amazon . com/sage maker/latest/DG/batch-transform-data-processing . html</a>。</p></li>
+			</ol>
+			<p><a id="_idIndexMarker772"/><a id="_idIndexMarker773"/>批量转换的输出，即预测，然后用于计算模型质量指标，如平均绝对误差、均方根误差和 r 平方值:</p>
+			<pre>model_quality_check_config = ModelQualityCheckConfig(
+    baseline_dataset=step_transform.properties.TransformOutput.S3OutputPath,
+    dataset_format=DatasetFormat.csv(header=False),
+    output_s3_uri=Join(on='/', values=['s3:/', default_bucket, base_job_prefix, ExecutionVariables.PIPELINE_EXECUTION_ID, 'modelqualitycheckstep']),
+    problem_type='Regression',
+    inference_attribute='_c0',
+    ground_truth_attribute='_c1'
+)
+model_quality_check_step = QualityCheckStep(
+    name="ModelQualityCheckStep",
+    skip_check=skip_check_model_quality,
+    register_new_baseline=register_new_baseline_model_quality,
+    quality_check_config=model_quality_check_config,
+    check_job_config=check_job_config,
+supplied_baseline_statistics=supplied_baseline_statistics_model_quality,
+supplied_baseline_constraints=supplied_baseline_constraints_model_quality,
+    model_package_group_name=model_package_group_name
+)</pre>
+			<ol>
+				<li value="7">另一条<a id="_idIndexMarker774"/>评估<a id="_idIndexMarker775"/>路线<code>EvaluateAbaloneModel</code>和<code>CheckMSEAbaloneEvalution</code>旨在评估测试数据集，并使用性能指标作为 ML 管道中的条件，以便仅在均方误差小于或等于<code>6.0</code> : <pre># Line 650 cond_lte = ConditionLessThanOrEqualTo(     left=JsonGet(         step=step_eval,         property_file=evaluation_report,         json_path="regression_metrics.mse.value"     ),     right=6.0, ) step_cond = ConditionStep(     name="CheckMSEAbaloneEvaluation",     conditions=[cond_lte],     if_steps=[step_register],     else_steps=[], )</pre>时，才在模型注册中心注册模型</li>
+				<li>另外两项检查<a id="_idIndexMarker776"/>也在<code>ModelBiasCheckStep</code>和<code>ModelExplainabilityCheckStep</code>的车型上进行<a id="_idIndexMarker777"/>。他们都使用 SageMaker Clarify 来计算模型偏差和模型可解释性:<pre># Line 450 model_bias_check_step = ClarifyCheckStep(     name="ModelBiasCheckStep",     clarify_check_config=model_bias_check_config,     check_job_config=check_job_config,     skip_check=skip_check_model_bias,     register_new_baseline=register_new_baseline_model_bias, supplied_baseline_constraints=supplied_baseline_constraints_model_bias,     model_package_group_name=model_package_group_name )  # Line 494 model_explainability_check_step = ClarifyCheckStep(     name="ModelExplainabilityCheckStep",     clarify_check_config=model_explainability_check_config,     check_job_config=check_job_config,     skip_check=skip_check_model_explainability, register_new_baseline=register_new_baseline_model_explainability, supplied_baseline_constraints=supplied_baseline_constraints_model_explainability,     model_package_group_name=model_package_group_name )</pre></li>
+				<li>在检查<a id="_idIndexMarker778"/>到<a id="_idIndexMarker779"/>确认模型的性能后，模型与评估度量一起注册在 SageMaker 模型注册表中，存储在<code>model_metrics</code>变量中，在过程中捕获，包括测试数据、数据偏差和模型偏差的性能度量:<pre># Line 635 step_register = RegisterModel(     name="RegisterAbaloneModel",     estimator=xgb_train, model_data=step_train.properties.ModelArtifacts.S3ModelArtifacts,     content_types=["text/csv"],     response_types=["text/csv"],     inference_instances=["ml.t2.medium", "ml.m5.large"],     transform_instances=["ml.m5.large"],     model_package_group_name=model_package_group_name,     approval_status=model_approval_status,     model_metrics=model_metrics,     drift_check_baselines=drift_check_baselines )</pre></li>
+				<li>定义了<a id="_idIndexMarker780"/>步骤<a id="_idIndexMarker781"/>后，它们被放入<code>Pipeline</code>对象的<code>steps</code>参数中。向用户公开的参数放在<code>parameters</code>参数中:<pre># Line 666 pipeline = Pipeline(     name=pipeline_name,     parameters=[         processing_instance_type,         processing_instance_count,         ...],     steps=[step_process, data_quality_check_step, data_bias_check_step, step_train, step_create_model, step_transform, model_quality_check_step, model_bias_check_step, model_explainability_check_step, step_eval, step_cond],     sagemaker_session=sagemaker_session, )</pre></li>
+			</ol>
+			<p>你可能想知道 SageMaker 是如何确定步骤顺序的。SageMaker 根据数据依赖关系和任何显式的自定义依赖关系来确定顺序。我们将这些步骤放在一个<code>steps</code>参数的列表中，SageMaker 负责剩下的部分。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">创建项目后，三个 CodePipeline 管道将自动运行。只有第一个管道<code>&lt;project-name-prefix&gt;-modelbuild</code>会正确运行。另外两条管道<code>&lt;project-name-prefix&gt;-modeldeploy</code>和<code>&lt;project-name-prefix&gt;-modelmonitor</code>依赖于第一条管道的输出，因此它们将在第一次运行中失败。不用担心现在的失败状态。</p>
+			<ol>
+				<li value="11">最后，一个成功执行的管道在 SageMaker <a id="_idIndexMarker782"/> Model <a id="_idIndexMarker783"/>注册表中创建和注册了一个模型。您可以在左侧栏的模型注册表中看到该模型，如图<em class="italic">图 11.10 </em>所示。我们将在后面的章节中了解更多关于模型注册中心的内容。</li>
+			</ol>
+			<div><div><img src="img/B17447_11_010.jpg" alt="Figure 11.10 – Resulting model in SageMaker Model Registry&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.10-sage maker 模型注册表中的结果模型</p>
+			<p>有几种方法可以运行管道。一个是 CI/CD 流程，这是从模板部署后管道最初的运行方式。我们将在下一节<em class="italic">在 SageMaker Studio </em>中运行 CI/CD 中更多地讨论 CI/CD 过程。下面显示了如何手动触发管道:</p>
+			<ol>
+				<li value="1">如图<em class="italic">图 11.11 </em>所示，可以在<a id="_idIndexMarker785"/> SageMaker Studio 界面中点击<strong class="bold">开始执行</strong>。</li>
+			</ol>
+			<div><div><img src="img/B17447_11_011.jpg" alt="Figure 11.11 – Starting an execution of a pipeline in the pipeline list&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.11-开始执行管道列表中的管道</p>
+			<ol>
+				<li value="2">您可以指定用户输入，如实例类型、训练数据位置和其他检查条件，如图<em class="italic">图 11.12 </em>所示。点击<strong class="bold">开始</strong>为新数据集单独启动工作流程。</li>
+			</ol>
+			<div><div><img src="img/B17447_11_012.jpg" alt="Figure 11.12 – Starting the execution of a pipeline with user inputs&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.12-通过用户输入开始执行管道</p>
+			<ol>
+				<li value="3">您还可以使用 SageMaker Python SDK 运行<a id="_idIndexMarker786"/>一个<a id="_idIndexMarker787"/>管道。模板化代码库<code>~/&lt;project-name-prefix&gt;/&lt;project-name-prefix&gt;-modelbuild/</code>有一个示例笔记本<code>sagemaker-pipelines-project.ipynb</code>，更详细地解释了代码结构，并展示了如何以编程方式运行管道。您可以打开笔记本，如图<em class="italic">图 11.13 </em>所示，作为备选运行。</li>
+			</ol>
+			<div><div><img src="img/B17447_11_013.jpg" alt="Figure 11.13 – A screenshot of the sagemaker-pipelines-project.ipynb notebook that shows you details such as code structure in the repository, and runs the pipeline programmatically&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.13–sage maker-pipelines-project . ipynb 笔记本的屏幕截图，向您显示了详细信息，如存储库中的代码结构，并以编程方式运行管道</p>
+			<p>有了 SageMaker 管道，我们可以编排使用 SageMaker 管理的特性来运行<a id="_idIndexMarker788"/>ML 生命周期的步骤。在下一节中，让我们看看模板创建的 CI/CD 系统如何为 MLOps 使用 SageMaker 管道。</p>
+			<h1 id="_idParaDest-150"><a id="_idTextAnchor149"/>在 SageMaker Studio 中运行 CI/CD</h1>
+			<p>我们之前看到运行的 ML <a id="_idIndexMarker790"/>管道<a id="_idIndexMarker791"/>只是我们工作中的 CI/CD 系统的一部分。ML 管道由 AWS 代码管道中的 CI/CD 管道触发。让我们深入研究 SageMaker 项目模板为我们设置的三个 CI/CD 管道。</p>
+			<p>有三种代码管道:</p>
+			<ul>
+				<li><code>&lt;project-name-prefix&gt;-modelbuild</code>:这个管道的目的是运行 ML 管道，并在 SageMaker 模型注册中心创建一个 ML 模型。当由对存储库的提交触发时，这个 CI/CD 管道将 ML 管道作为构建步骤运行。SageMaker 模型注册表中的 ML 模型需要被批准，以便触发下一个管道<code>modeldeploy</code>。</li>
+				<li><code>&lt;project-name-prefix&gt;-modeldeploy</code>:这个管道的目的是在 SageMaker 模型注册中心部署最新批准的 ML 模型作为 SageMaker 端点。构建过程首先部署一个临时端点，并在将模型部署到生产环境之前请求人工批准。这可确保模型和端点配置在部署到生产环境之前正常工作<a id="_idIndexMarker792"/>。一旦<a id="_idIndexMarker793"/>分段端点被部署并且变为具有<code>InService</code>状态的活动，它触发下一个管道<code>modelmonitor</code>。</li>
+				<li><code>&lt;project-name-prefix&gt;-modelmonitor</code>:该管道的目的是将 SageMaker 模型监视器部署到<code>modeldeploy</code>管道中创建的两个 SageMaker 端点。每当一个临时端点上线，并在将模型监视器部署到生产端点之前要求对临时端点的模型监视部署进行手动批准时，就会触发该管道。</li>
+			</ul>
+			<p>回到我们之前的 ML 管道执行，这是<code>modelbuild</code>构建过程的一部分，我们创建了一个模型，并在<strong class="bold">模型注册表</strong>中注册了<a id="_idIndexMarker794"/>。这是 CI/CD 系统的第一个检查点:<em class="italic">手动验证模型性能指标</em>。为了继续进行，我们需要进入如图<em class="italic">图 11.10 </em>所示的模型注册处查看结果。</p>
+			<ol>
+				<li value="1">在<em class="italic">图 11.10 </em>中的视图中，双击模型注册表中的模型版本条目，可以看到该模型版本的更多详细信息，如图<em class="italic">图 11.14 </em>所示。</li>
+			</ol>
+			<div><div><img src="img/B17447_11_014.jpg" alt="Figure 11.14 – Detail page of a model version&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.14–模型版本的详细页面</p>
+			<ol>
+				<li value="2">我们可以在<strong class="bold">模型质量</strong>选项卡中<a id="_idIndexMarker795"/>查看模型的性能，在<strong class="bold">可说明性</strong>选项卡中查看模型的可说明性，在<strong class="bold">偏差报告</strong>选项卡中查看数据偏差。这些都是相关的信息，可以帮助我们决定这是否是一个可接受的模型。</li>
+				<li>审核后，点击右上角的<strong class="bold">更新状态</strong>按钮，批准或拒绝该型号。为了便于演示，我们批准该模型继续使用 MLOps 系统，如图<em class="italic">图 11.15 </em>所示。如果我们拒绝这个模型，从这一点上什么都不会发生。<div> <img src="img/B17447_11_015.jpg" alt="Figure 11.15 – Approve or reject a model version. You can put a comment in the box too&#13;&#10;"/> </div></li>
+			</ol>
+			<p class="figure-caption"> </p>
+			<p class="figure-caption">图 11.15-批准或拒绝模型版本。你也可以在框中添加评论</p>
+			<ol>
+				<li value="4">模型<a id="_idIndexMarker797"/>批准<a id="_idIndexMarker798"/>自动触发<code>modeldeploy</code>管道的执行。如果你去 CodePipeline 控制台，你可以看到它处于<strong class="bold">进行中</strong>状态，如图<em class="italic">图 11.16 </em>所示。</li>
+			</ol>
+			<div><div><img src="img/B17447_11_016.jpg" alt="Figure 11.16 – Model approval automatically triggers the modeldeploy pipeline&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.16–模型批准自动触发模型部署管道</p>
+			<ol>
+				<li value="5">如前所述，<code>modeldeploy</code>管道首先部署一个 staging SageMaker 端点以供审查。一旦创建了端点(在 5-7 分钟内)，您可以在模型版本页面上看到一个<a id="_idIndexMarker799"/>新的<a id="_idIndexMarker800"/>事件，如图<em class="italic">图 11.17 </em>所示。点击<strong class="bold">端点:&lt;项目-名称-前缀&gt;-分期</strong>，了解更多关于端点的信息。您可以测试端点。</li>
+			</ol>
+			<div><div><img src="img/B17447_11_017.jpg" alt="Figure 11.17 – Model version showing the latest event in the deployment of the staging endpoint&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.17–模型版本显示了临时端点部署中的最新事件</p>
+			<ol>
+				<li value="6">确认端点的状态后，我们可以在 CodePipeline 控制台中批准临时端点部署。从<em class="italic">图 11.16 </em>中点击管道名称。我们可以看到管道的当前进度正处于<strong class="bold">部署阶段</strong>，如图<em class="italic">图 11.18 </em>所示。在<strong class="bold">批准部署</strong>步骤中点击<strong class="bold">审核</strong>按钮，批准/拒绝部署。</li>
+			</ol>
+			<div><div><img src="img/B17447_11_018.jpg" alt="Figure 11.18 – Manual approval required by the modeldeploy pipeline&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.18-model deploy 管道要求的手动批准</p>
+			<ol>
+				<li value="7">在弹出的<em class="italic">图 11.19 </em>中用任何注释批准或拒绝<a id="_idIndexMarker801"/>该<a id="_idIndexMarker802"/>部署。由于端点处于活动状态并正常工作，我们来批准试运行部署。</li>
+			</ol>
+			<div><div><img src="img/B17447_11_019.jpg" alt="Figure 11.19 – Approve/reject a staging deployment&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.19–批准/拒绝临时部署</p>
+			<ol>
+				<li value="8"><code>modeldeploy</code>管道移动到最后一个阶段，<strong class="bold">部署杆</strong>，将<a id="_idIndexMarker804"/>模型部署到<a id="_idIndexMarker803"/>生产端点。一旦被部署，管道被更新为<strong class="bold">成功</strong>状态。在模型版本页面可以看到一个新事件，如图<em class="italic">图 11.20 </em>所示。还要注意的是<strong class="bold">最后一级</strong>现在是<strong class="bold">产品</strong>。</li>
+			</ol>
+			<div><div><img src="img/B17447_11_020.jpg" alt="Figure 11.20 – Model version is now updated to prod&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.20–型号版本现已更新为产品版本</p>
+			<ol>
+				<li value="9">当我们批准登台部署时，会触发<code>modelmonitor</code>管道将 SageMaker 模型监视器部署到登台端点。在代码管道控制台中我们可以看到<code>modelmonitor</code>管道正在<strong class="bold">进行</strong>，如图<em class="italic">图 11.21 </em>所示。</li>
+			</ol>
+			<div><div><img src="img/B17447_11_021.jpg" alt="Figure 11.21 – Staging endpoint deployment triggers the modelmonitor pipeline&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.21–分段端点部署触发 modelmonitor 管道</p>
+			<ol>
+				<li value="10"><code>modelmonitor</code>管道<a id="_idIndexMarker805"/>在部署阶段也需要人工<a id="_idIndexMarker806"/>批准。我们应该检查端点以查看是否启用了模型监视器。如<em class="italic">图 11.22 </em>所示，我们可以在<strong class="bold">数据质量</strong>页签中看到，Model Monitor 确实被启用并被调度。我们还没有端点的实时流量设置，监控时间表只会在整点开始，所以让我们继续在代码管道控制台中批准部署，类似于<em class="italic">步骤 6 </em>和<em class="italic">步骤 7 </em>。</li>
+			</ol>
+			<div><div><img src="img/B17447_11_022.jpg" alt="Figure 11.22 – Reviewing the Model Monitor schedule for the staging endpoint&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.22–查看登台端点的模型监视器计划</p>
+			<ol>
+				<li value="11">最后，<a id="_idIndexMarker807"/> DeployProd 阶段还会将 SageMaker <a id="_idIndexMarker808"/>模型监视器部署到生产端点。这标志着完整的 MLOps 和 CI/CD 系统的终结。</li>
+			</ol>
+			<p>CodePipeline 中的三个 CI/CD 管道构成了一个通用的 MLOps 系统，该系统支持 ML 模型的持续集成和持续交付，以响应对<code>modelbuild</code>库的任何代码更改和任何手动 ML 管道运行。由于 SageMaker 项目模板，您不必担心复杂的实现，因为这些步骤会自动执行。</p>
+			<p>SageMaker 项目通过模板化的代码和存储库，可以轻松地将健壮的 MLOps 系统引入到您自己的 ML 用例中。你不必建立一个复杂的系统。您可以选择 SageMaker projects 提供的适合您的用例的模板，并按照 CodeCommit 中存储库中的自述文件为您自己的用例定制配置和代码。例如，我们可以更新<code>pipeline.py</code>中的模型训练，以使用不同的超参数集，如下面的<a id="_idIndexMarker809"/>代码<a id="_idIndexMarker810"/>块所示，并将更改提交到<code>modelbuild</code>存储库:</p>
+			<pre># Line 315 in <code>pipeline.py</code>
+xgb_train.set_hyperparameters(
+    objective="reg:linear",
+    num_round=70, # was 50
+    max_depth=7, # was 7
+    eta=0.2,
+    gamma=4,
+    min_child_weight=6,
+    subsample=0.7,
+    silent=0)</pre>
+			<p>您可以看到一个来自<code>modelbuild</code>管道的新执行，带有最新的提交消息，如图<em class="italic">图 11.23 </em>所示。</p>
+			<div><div><img src="img/B17447_11_023.jpg" alt="Figure 11.23 – A new modelbuild execution is triggered by a commit to the repository&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 11.23–一个新的 modelbuild 的执行是由一个对存储库的提交触发的</p>
+			<p>在我们更新核心训练算法的<a id="_idIndexMarker811"/>版本<a id="_idIndexMarker812"/>后，CI/CD 管道将再次按照我们在本章中描述的方式运行，以自动交付新的模型/端点(手动批准步骤除外)。您可以将此应用于对 ML 管道、<code>modelbuild</code>管道或其他两个 CI/CD 管道中的配置的任何更改。</p>
+			<h1 id="_idParaDest-151"><a id="_idTextAnchor150"/>总结</h1>
+			<p>在这一章中，我们描述了什么是 MLOps 以及它在 ML 生命周期中的作用。我们讨论了 MLOps 带来的好处。我们向您展示了如何通过 SageMaker Studio IDE 中的 SageMaker 项目轻松启动复杂的 MLOps 系统。我们从 SageMaker 项目部署了一个模型构建/部署/监控模板，体验了<em class="italic">一切如代码</em>的真正含义。</p>
+			<p>我们对 CI/CD 流程进行了一次完整的运行，以了解该 MLOps 系统的工作原理。我们详细了解了 ML 管道是如何用 SageMaker 管道和其他 SageMaker 管理的特性实现的。我们还学习了 SageMaker 模型注册中心如何对 ML 模型进行版本控制。</p>
+			<p>此外，我们展示了如何在 CodePipeline 中监控 CI/CD 过程和批准部署，这使您能够更好地控制模型和部署的质量。使用 MLOps 系统，您可以享受我们讨论的优势:更快的上市时间、生产率、可重复性、可靠性、可审计性和高质量的模型。</p>
+			<p>这个例子也完美地总结了我们在整本书中学到的关于 Amazon SageMaker Studio 的知识。Amazon SageMaker Studio 是一个专门构建的 ML IDE，通过其丰富的用户界面，可以轻松构建具有端到端 ML 生命周期的 ML 模型。通过本书中的 11 个章节、代码示例和真实的 ML 用例，您已经学会了如何使用 SageMaker Studio 和许多 SageMaker 特性来准备数据、构建、培训、部署 ML 模型，以及为生产级 ML 项目运行 MLOps 系统。现在，您可以在 Amazon SageMaker Studio 中开始构建自己的 ML 项目。</p>
+		</div>
+	
+
+</body></html>

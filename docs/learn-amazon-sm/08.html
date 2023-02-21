@@ -1,0 +1,369 @@
+<html><head/><body>
+
+
+
+
+
+<style type="text/css">body{margin:1em;background-color:transparent!important;}#sbo-rt-content *{text-indent:0pt!important;}#sbo-rt-content .bq{margin-right:1em!important;}</style>
+<div><div><h1 id="_idParaDest-110"><a id="_idTextAnchor108"/>第六章:训练自然语言处理模型</h1>
+			<p>在前一章中，您学习了如何使用 SageMaker 的内置算法用于<strong class="bold">计算机视觉</strong> ( <strong class="bold"> CV </strong>)来解决包括图像分类、对象检测和语义分割在内的问题。</p>
+			<p><strong class="bold">自然语言处理</strong> ( <strong class="bold"> NLP </strong>)是 ML 中另一个非常有前景的领域。事实上，NLP 算法已经被证明在建模语言和从非结构化文本中提取上下文方面非常有效。由于这一点，搜索和翻译应用程序以及聊天机器人等应用程序现在已经司空见惯。</p>
+			<p>在这一章中，你将学习专门为 NLP 任务设计的内置算法，我们将讨论你可以用它们解决的问题类型。和前一章一样，我们还将详细介绍如何准备真实的数据集，比如亚马逊客户评论。当然，我们也会培训和部署模型。我们将在以下主题下涵盖所有这些内容:</p>
+			<ul>
+				<li>在 Amazon SageMaker 中发现 NLP 内置算法</li>
+				<li>准备自然语言数据集</li>
+				<li>使用 NLP 的内置算法</li>
+			</ul>
+			<h1 id="_idParaDest-111"><a id="_idTextAnchor109"/>技术要求</h1>
+			<p>你需要一个<strong class="bold">亚马逊网络服务</strong> ( <strong class="bold"> AWS </strong>)账户来运行本章中的例子。如果您还没有，请浏览到<a href="https://aws.amazon.com/getting-started/">https://aws.amazon.com/getting-started/</a>创建一个。您还应该熟悉 AWS 免费层(<a href="https://aws.amazon.com/free/">https://aws.amazon.com/free/</a>)，它允许您在一定的使用限制内免费使用许多 AWS 服务。</p>
+			<p>您需要为您的帐户(<a href="https://aws.amazon.com/cli/">https://aws.amazon.com/cli/</a>)安装和配置 AWS <strong class="bold">命令行界面</strong> ( <strong class="bold"> CLI </strong>)工具。</p>
+			<p>您将需要一个工作的 Python 3.x 环境。安装 Anaconda 发行版(<a href="https://www.anaconda.com/">https://www.anaconda.com/</a>)不是强制性的，但是强烈建议安装，因为它包含了许多我们需要的项目(Jupyter、<code>pandas</code>、<code>numpy</code>等等)。</p>
+			<p>书中包含的代码示例可在 GitHub 上获得，网址为<a href="https://github.com/PacktPublishing/Learn-Amazon-SageMaker-second-edition">https://GitHub . com/packt publishing/Learn-Amazon-sage maker-second-edition</a>。你需要安装一个 Git 客户端来访问它们(<a href="https://git-scm.com/">https://git-scm.com/</a>)。</p>
+			<h1 id="_idParaDest-112"><a id="_idTextAnchor110"/>在 Amazon SageMaker 中发现 NLP 内置算法</h1>
+			<p>SageMaker <a id="_idIndexMarker497"/>包括四种 NLP 算法，支持<strong class="bold">监督学习</strong> ( <strong class="bold"> SL </strong>)和<strong class="bold">非监督学习</strong> ( <strong class="bold"> UL </strong>)场景。在这个<a id="_idIndexMarker498"/>部分，你将了解这些<a id="_idIndexMarker499"/>算法，它们解决什么<a id="_idIndexMarker500"/>类型的问题，以及它们的训练场景是什么。让我们看一下我们将要讨论的算法的概述:</p>
+			<ul>
+				<li><strong class="bold"> BlazingText </strong>构建文本分类模型(SL)或计算单词向量(UL)。BlazingText 是亚马逊发明的算法。</li>
+				<li><strong class="bold"> LDA </strong>构建 UL <a id="_idIndexMarker502"/>模型，该模型<a id="_idIndexMarker503"/>将一组文本文档分组为主题。这种技术叫做<strong class="bold">主题建模</strong>。</li>
+				<li><strong class="bold"> NTM </strong>是<a id="_idIndexMarker504"/>另一个基于神经网络的<strong class="bold">主题建模</strong>算法，它让你更深入地了解主题是如何构建的。</li>
+				<li><strong class="bold">Sequence to Sequence</strong>(<strong class="bold">seq 2 seq</strong>)构建<strong class="bold">深度学习</strong> ( <strong class="bold"> DL </strong>)模型，从输入令牌序列预测<a id="_idIndexMarker505"/>输出<a id="_idIndexMarker506"/>令牌序列。</li>
+			</ul>
+			<h2 id="_idParaDest-113"><a id="_idTextAnchor112"/>发现 BlazingText 算法</h2>
+			<p><a id="_idIndexMarker507"/> BlazingText 算法<a id="_idIndexMarker508"/>是亚马逊发明的。你可以在<a href="https://dl.acm.org/doi/10.1145/3146347.3146354">https://dl.acm.org/doi/10.1145/3146347.3146354</a>了解更多。BlazingText 是由脸书开发的<a id="_idIndexMarker510"/>高效文本分类和表示学习库(<a href="https://fasttext.cc">https://fast text . cc</a>)的演化而来。</p>
+			<p>它让你训练文本分类模型，以及<a id="_idIndexMarker511"/>计算<strong class="bold">单词向量</strong>。也被称为<strong class="bold">嵌入</strong>，<strong class="bold">单词向量</strong>是许多自然语言处理任务的基础，例如寻找单词相似性<a id="_idIndexMarker512"/>，单词类比，等等。<strong class="bold"> Word2Vec </strong>是计算这些向量的<a id="_idIndexMarker513"/>领先算法之一(<a href="https://arxiv.org/abs/1301.3781">https://arxiv.org/abs/1301.3781</a>)，也是 BlazingText 实现的算法。</p>
+			<p>BlazingText 的主要<a id="_idIndexMarker514"/>改进是<a id="_idIndexMarker515"/>它能够在<strong class="bold">图形处理单元</strong> ( <strong class="bold"> GPU </strong>)实例上训练，其中 FastText 仅<a id="_idIndexMarker516"/>支持<strong class="bold">中央处理单元</strong> ( <strong class="bold"> CPU </strong>)实例。</p>
+			<p>速度增益<a id="_idIndexMarker517"/>显著，这也是它名字的由来:“炽燃”比“快”更快！如果你对基准很好奇，你肯定会喜欢这篇博文:<a href="https://aws.amazon.com/blogs/machine-learning/amazon-sagemaker-blazingtext-parallelizing-word2vec-on-multiple-cpus-or-gpus/">https://AWS . Amazon . com/blogs/machine-learning/Amazon-sage maker-blazing text-parallelising-word 2 vec-on-multiple-CPU-or-GPU/</a>。</p>
+			<p>最后，BlazingText 完全兼容 FastText。模型可以非常容易地被导出和测试，正如你将在本章后面看到的。</p>
+			<h2 id="_idParaDest-114"><a id="_idTextAnchor113"/>发现 LDA 算法</h2>
+			<p>这种<a id="_idIndexMarker518"/> UL 算法使用一种称为<strong class="bold">主题建模</strong>的生成技术，来识别出现在大量文本文档集合中的<a id="_idIndexMarker519"/>主题。它于 2003 年首次应用于 ML(<a href="http://jmlr.csail.mit.edu/papers/v3/blei03a.html">http://jmlr.csail.mit.edu/papers/v3/blei03a.html</a>)。</p>
+			<p>请注意，LDA 是<a id="_idIndexMarker520"/>而不是分类算法。您传递给它的是要构建的主题数量，而不是您期望的主题列表。套用阿甘的话:“<em class="italic">主题建模就像一盒巧克力，你永远不知道你会得到什么。”</em></p>
+			<p>LDA 假设集合中的每个文本文档都是由几个潜在的(意思是“隐藏的”)主题生成的。一个主题用一个词的概率分布来表示。对于文档集合中出现的每个单词，该分布给出了该单词出现在由该主题生成的文档中的概率。例如，在一个“金融”主题中，分布将产生诸如“收入”、“季度”或“收益”等词的高概率，以及“弩车”或“鸭嘴兽”的低概率(或者我应该这样认为)。</p>
+			<p>主题分布不是独立考虑的。它们由一个<strong class="bold">狄利克雷分布</strong>，一个<a id="_idIndexMarker521"/>一元分布的多元推广(<a href="https://en.wikipedia.org/wiki/Dirichlet_distribution">https://en.wikipedia.org/wiki/Dirichlet_distribution</a>)来表示。这个数学对象给了算法它的名字。</p>
+			<p>给定词汇表中的<a id="_idIndexMarker522"/>单词的数量和潜在主题的数量，LDA 算法的<a id="_idIndexMarker523"/>目的是建立一个尽可能接近理想狄利克雷分布的模型。换句话说，它将尝试对单词进行分组，以便尽可能好地形成分布，并匹配指定数量的主题。</p>
+			<p>训练数据需要认真准备。每个文档都需要转换成一个<strong class="bold">单词包</strong> ( <strong class="bold"> BoW </strong>)表示:每个<a id="_idIndexMarker524"/>单词由一对整数代替，代表一个<a id="_idIndexMarker525"/>唯一单词<strong class="bold">标识符</strong> ( <strong class="bold"> ID </strong>)和文档中的字数。生成的数据集可以保存为<strong class="bold">逗号分隔值</strong> ( <strong class="bold"> CSV </strong>)格式<a id="_idIndexMarker526"/>或<strong class="bold">RecordIO-wrapped proto buf</strong>格式，这是一种<a id="_idIndexMarker527"/>技术，我们已经在<a href="B17705_04_Final_JM_ePub.xhtml#_idTextAnchor069"> <em class="italic">第 4 章</em> </a>、<em class="italic">训练机器学习模型</em>中用<strong class="bold">因式分解机</strong>研究过<a id="_idIndexMarker528"/>。</p>
+			<p>一旦模型被训练，我们可以对任何文档进行评分，并得到每个主题的分数。我们的期望是，包含相似单词的文档应该具有相似的分数，从而可以识别它们的热门主题。</p>
+			<h2 id="_idParaDest-115"><a id="_idTextAnchor114"/>发现 NTM 算法</h2>
+			<p>NTM 是另一个用于主题<a id="_idIndexMarker530"/>建模的<a id="_idIndexMarker529"/>算法。你可以在 https://arxiv.org/abs/1511.06038 了解更多信息。下面这篇博文也总结了论文的关键要素:<a href="https://aws.amazon.com/blogs/machine-learning/amazon-sagemaker-neural-topic-model-now-supports-auxiliary-vocabulary-channel-new-topic-evaluation-metrics-and-training-subsampling/">https://AWS . Amazon . com/blogs/machine-learning/Amazon-sage maker-neural-topic-model-now-supports-auxiliary-vocabulary-channel-new-topic-evaluation-metrics-and-training-sub sampling/</a>。</p>
+			<p>与 LDA 一样，文档<a id="_idIndexMarker531"/>需要转换成 BoW 表示，数据集可以保存为 CSV 或 RecordIO 包装的 protobuf 格式。</p>
+			<p>对于训练，NTM 使用了一种完全不同的方法，基于神经网络，更准确地说，基于编码器架构(<a href="https://en.wikipedia.org/wiki/Autoencoder">https://en.wikipedia.org/wiki/Autoencoder</a>)。在真正的 DL 风格中，编码器训练小批量的文档。它试图通过<a id="_idIndexMarker532"/>反向传播和优化调整网络参数来学习它们的潜在特征。</p>
+			<p>与 LDA 不同，NTM 可以告诉我们每个话题中哪些词最有影响力。它还给出了我们两个<a id="_idIndexMarker534"/>每主题度量，<strong class="bold">单词嵌入主题连贯性</strong> ( <strong class="bold"> WETC </strong>)和<strong class="bold">主题唯一性</strong> ( <strong class="bold"> TU </strong>)。下面将详细介绍这些功能:</p>
+			<ul>
+				<li>WETC 告诉我们主题词在语义上有多接近。该值介于 0 和 1 之间；越高越好。使用<a id="_idIndexMarker536"/>预训练的<strong class="bold">全局向量</strong> ( <strong class="bold">手套</strong>)模型(另一种类似于 Word2Vec 的算法)中相应单词向量的<strong class="bold">余弦相似度</strong>(<a href="https://en.wikipedia.org/wiki/Cosine_similarity">https://en.wikipedia.org/wiki/Cosine_similarity</a>)来计算<a id="_idIndexMarker535"/>。</li>
+				<li>涂告诉我们这个话题有多独特——也就是说，它的词在其他话题里有没有。同样，值在 0 到 1 之间，分数越高，题目越独特。</li>
+			</ul>
+			<p>一旦模型被训练，我们可以对文档进行评分，并得到每个主题的分数。</p>
+			<h2 id="_idParaDest-116"><a id="_idTextAnchor115"/>发现 seq2sea 算法</h2>
+			<p>seq2seq <a id="_idIndexMarker537"/>算法<a id="_idIndexMarker538"/>基于<a id="_idIndexMarker539"/>长短期记忆(<strong class="bold">https://arxiv.org/abs/1409.3215</strong>)神经网络<a href="https://arxiv.org/abs/1409.3215"/>)。顾名思义，seq2seq 可以被训练成将一个记号序列映射到另一个记号序列。其主要应用是机器翻译，对<a id="_idIndexMarker540"/>大型双语文本语料库的训练，如<strong class="bold">统计机器翻译研讨会</strong>(<strong class="bold">http://www.statmt.org/wmt20/</strong>)数据集<a href="http://www.statmt.org/wmt20/"/>)。</p>
+			<p>除了在<a id="_idIndexMarker541"/> SageMaker 中可用的实现，AWS 还将 seq2seq 算法打包到一个开源项目中，<strong class="bold">AWS Sockeye</strong>(<a href="https://github.com/awslabs/sockeye">https://github.com/awslabs/sockeye</a>)，该项目还包括用于数据集准备的工具。</p>
+			<p>本章不涉及<a id="_idIndexMarker542"/> seq2seq。要达到适当的详细程度需要太多的页面，而且仅仅重复 Sockeye 文档中已经可用的内容是没有意义的。</p>
+			<p>您可以在笔记本中找到 seq2seq 示例，网址为<a href="https://github.com/awslabs/amazon-sagemaker-examples/tree/master/introduction_to_amazon_algorithms/seq2seq_translation_en-de">https://github . com/aw slabs/Amazon-sage maker-examples/tree/master/introduction _ to _ Amazon _ algorithms/seq 2 seq _ translation _ en-de</a>。遗憾的是，它使用了底层的<code>boto3</code> <strong class="bold">应用编程接口</strong> ( <strong class="bold"> API </strong>)，我们将在<a href="B17705_12_Final_JM_ePub.xhtml#_idTextAnchor260"> <em class="italic">第十二章</em></a><em class="italic">自动化机器学习工作流</em>中涉及。尽管如此，这仍然是一本有价值的读物，你不会有太多的困难去理解它。</p>
+			<h2 id="_idParaDest-117"><a id="_idTextAnchor116"/>用自然语言处理算法训练</h2>
+			<p>就像 CV <a id="_idIndexMarker544"/>算法一样，训练是容易的部分，尤其是使用 SageMaker <strong class="bold">软件开发工具包</strong> ( <strong class="bold"> SDK </strong>)。现在，你应该熟悉工作流和 API，我们将在本章中继续使用它们。</p>
+			<p>为 NLP 算法准备数据是另一回事。首先，现实生活中的数据集通常非常庞大。在这一章中，我们将使用数百万个样本和数亿个单词。当然，它们需要被清理、处理并转换成算法所期望的格式。</p>
+			<p>在本章中，我们将使用以下技巧:</p>
+			<ul>
+				<li>用<a id="_idIndexMarker545"/><code>pandas</code>库(<a href="https://pandas.pydata.org">https://pandas.pydata.org</a>)加载和清理数据</li>
+				<li>用<strong class="bold">自然语言工具包</strong> ( <strong class="bold"> NLTK </strong>)库(<a href="https://www.nltk.org">https://www.nltk.org</a>)删除停用词并对<a id="_idIndexMarker546"/>进行词汇化</li>
+				<li>用<a id="_idIndexMarker547"/>对<code>spaCy</code>库(<a href="https://spacy.io/">https://spacy.io/</a>)进行标记</li>
+				<li>用【https://radimrehurek.com/gensim/】库<code>gensim</code>构建词汇表并生成 BoW 表示<a id="_idIndexMarker548"/></li>
+				<li>使用<strong class="bold"> Amazon SageMaker 处理</strong>运行数据处理作业，我们在<a href="B17705_02_Final_JM_ePub.xhtml#_idTextAnchor030"> <em class="italic">第 2 章</em> </a>、<em class="italic">处理数据准备技术</em>中学习过</li>
+			</ul>
+			<p>当然——这不是一本 NLP 书，我们也不会在处理数据方面走得太远。尽管如此，这将会非常有趣，并且有希望成为一个学习流行的 NLP 开源工具的机会。</p>
+			<h1 id="_idParaDest-118"><a id="_idTextAnchor117"/>准备自然语言数据集</h1>
+			<p>对于上一章中的 CV 算法<a id="_idIndexMarker549"/>，数据准备集中于数据集所需的技术格式(<strong class="bold">图像</strong>格式、<strong class="bold">记录</strong>或<strong class="bold">增强清单</strong>)。图像本身没有经过处理。</p>
+			<p>对于 NLP 算法来说，情况完全不同。文本需要进行大量的处理、转换，并以正确的格式保存。在大多数学习资源中，这些步骤被简化甚至忽略。数据已经“自动地”为训练做好了准备，这让读者对如何准备自己的数据集感到沮丧，有时甚至目瞪口呆。</p>
+			<p>这里没有这种东西！在本节中，您将学习如何准备不同格式的 NLP 数据集。再一次，准备好学习很多东西吧！</p>
+			<p>让我们从为 BlazingText 准备数据开始。</p>
+			<h2 id="_idParaDest-119"><a id="_idTextAnchor118"/>使用 BlazingText 准备分类数据</h2>
+			<p>BlazingText <a id="_idIndexMarker550"/>期望带标签的输入数据采用与 FastText 相同的<a id="_idIndexMarker551"/>格式，如下所示:</p>
+			<ul>
+				<li>一个纯文本文件，每行一个样本。</li>
+				<li>Each line has two fields, as follows:<p>A)一个<code>__label__LABELNAME__</code>形式的标签</p><p>b)文本本身，形成空格分隔的记号(单词和标点)</p></li>
+			</ul>
+			<p>让我们开始工作，准备一个用于情绪分析的客户评论数据集(正面、中性或负面)。我们将使用<strong class="bold">亚马逊顾客评论</strong>数据集，该数据集可在<a href="https://s3.amazonaws.com/amazon-reviews-pds/readme.html">https://s3.amazonaws.com/amazon-reviews-pds/readme.html</a>获得。这应该比现实生活中的数据要多。</p>
+			<p>开始之前，请确保您有足够的存储空间。在这里，我使用一个笔记本实例，它有 10gb 的存储空间。我还选择了 C5 实例类型来更快地运行处理步骤。我们将如下进行:</p>
+			<ol>
+				<li>让我们通过运行下面的代码来下载相机评论:<pre>%%sh aws s3 cp s3://amazon-reviews-pds/tsv/amazon_reviews_us_Camera_v1_00.tsv.gz /tmp</pre></li>
+				<li>我们用<code>pandas</code>加载数据，忽略任何导致错误的行。我们也会删除任何缺少值的行。代码如下面的代码片段所示:<pre>data = pd.read_csv(     '/tmp/amazon_reviews_us_Camera_v1_00.tsv.gz',      sep='\t', compression='gzip',      error_bad_lines=False, dtype='str') data.dropna(inplace=True)</pre></li>
+				<li>We print the data shape and the column names, like this:<pre>print(data.shape)
+print(data.columns)</pre><p>这为我们提供了以下输出:</p><pre><strong class="bold">(1800755, 15)</strong>
+<strong class="bold">Index(['marketplace','customer_id','review_id','product_id','product_parent', 'product_title','product_category',  'star_rating','helpful_votes','total_votes','vine', 'verified_purchase','review_headline','review_body', </strong>
+<strong class="bold">'review_date'], dtype='object')</strong></pre></li>
+				<li>180 万行！我们<a id="_idIndexMarker552"/>留 10 万，够我们用了。我们还删除了除<code>star_rating</code>和<code>review_body</code>之外的所有列<a id="_idIndexMarker553"/>，如下面的代码片段所示:<pre>data = data[:100000] data = data[['star_rating', 'review_body']]</pre></li>
+				<li>基于星级评定，我们添加了一个名为<code>label</code>的新列，标签格式正确。你一定会喜欢<code>pandas</code>让这一切变得如此简单。然后，我们删除<code>star_rating</code>列，如下面的代码片段所示:<pre>data['label'] = data.star_rating.map({     '1': '__label__negative__',     '2': '__label__negative__',     '3': '__label__neutral__',     '4': '__label__positive__',     '5': '__label__positive__'}) data = data.drop(['star_rating'], axis=1)</pre></li>
+				<li>BlazingText 希望标签出现在每一行的开头，所以我们将<code>label</code>列移到前面，如下所示:<pre>data = data[['label', 'review_body']]</pre></li>
+				<li>The data should<a id="_idIndexMarker554"/> now look<a id="_idIndexMarker555"/> like this:<div><img src="img/B17705_06_1.jpg" alt="Figure 6.1 – Viewing the dataset&#13;&#10;" width="442" height="170"/></div><p class="figure-caption">图 6.1–查看数据集</p></li>
+				<li>BlazingText 期望<a id="_idIndexMarker556"/>空格分隔的标记:每个单词和每个标点符号必须与下一个空格分隔。让我们使用<code>nltk</code>库中方便的<code>punkt</code>分词器。根据您使用的实例类型，这可能需要几分钟时间。这里是你需要的代码:<pre>!pip -q install nltk import nltk nltk.download('punkt') data['review_body'] = data['review_body'].apply(nltk.word_tokenize)</pre></li>
+				<li>我们将记号连接成一个字符串，我们也将它转换成小写，如下:<pre>data['review_body'] =      data.apply(lambda row: "".join(row['review_body'])         .lower(), axis=1)</pre></li>
+				<li>The data should now look like this (notice that all tokens are correctly space-separated):<div><img src="img/B17705_06_2.jpg" alt="Figure 6.2 – Viewing the tokenized dataset&#13;&#10;" width="417" height="170"/></div><p class="figure-caption">图 6.2–查看标记化数据集</p></li>
+				<li>最后，我们分割<a id="_idIndexMarker557"/>数据集用于训练(95%)和验证(5%)，并且我们将这两个分割保存为纯文本文件，如下面的代码片段中的<a id="_idIndexMarker558"/>所示:<pre>from sklearn.model_selection import train_test_split training, validation = train_test_split(data, test_size=0.05) np.savetxt('/tmp/training.txt', training.values, fmt='%s') np.savetxt('/tmp/validation.txt', validation.values, fmt='%s')</pre></li>
+				<li>打开其中一个文件，您应该会看到许多类似下面的行:<pre><strong class="bold">__label__neutral__ really works for me , especially on the streets of europe . wished it was less expensive though . the rain cover at the base really works . the padding which comes in contact with your back though will suffocate &amp; make your back sweaty .</strong></pre></li>
+			</ol>
+			<p>资料准备的不算太差吧？尽管如此，标记化还是持续了一两分钟。现在，想象一下对数百万个样本进行测试。当然，你可以在 SageMaker Studio 中创建一个更大的环境。只要你还在使用它，你就要支付更多的费用，如果只有这一步需要额外的计算能力，这可能是一种浪费。此外，想象一下必须在许多其他数据集上运行相同的脚本。你想一次又一次地手动这样做，每次等待 20 分钟，希望你的笔记本不要死机吗？我应该说，当然不是！</p>
+			<p>你已经知道这两个问题的答案了。是<strong class="bold">亚马逊 SageMaker 处理</strong>，我们在<a href="B17705_02_Final_JM_ePub.xhtml#_idTextAnchor030"> <em class="italic">第二章</em></a><em class="italic">处理数据准备技术</em>中学习过。您应该两全其美，尽可能使用最小、最便宜的环境进行实验，并在需要更多资源时运行按需作业。日复一日，你将节省资金并更快地完成工作。</p>
+			<p>让我们将这个处理代码转移到 SageMaker 处理中。</p>
+			<h2 id="_idParaDest-120"><a id="_idTextAnchor119"/>使用 BlazingText 第 2 版准备分类数据</h2>
+			<p>我们已经在<a href="B17705_02_Final_JM_ePub.xhtml#_idTextAnchor030"> <em class="italic">第二章</em> </a>、<em class="italic">处理数据准备技巧</em>中详细介绍了这一点，所以这次我会讲得更快。我们将<a id="_idIndexMarker560"/>进行如下操作:</p>
+			<ol>
+				<li value="1">我们将数据集上传到<strong class="bold">简单存储服务</strong> ( <strong class="bold"> S3 </strong>)，如下:<pre>import sagemaker session = sagemaker.Session() prefix = 'amazon-reviews-camera' input_data = session.upload_data(     path='/tmp/amazon_reviews_us_Camera_v1_00.tsv.gz',      key_prefix=prefix)</pre></li>
+				<li>我们通过运行下面的代码来定义处理器:<pre>from sagemaker.sklearn.processing import SKLearnProcessor sklearn_processor = SKLearnProcessor(    framework_version='0.23-1',    role= sagemaker.get_execution_role(),    instance_type='ml.c5.2xlarge',    instance_count=1)</pre></li>
+				<li>我们运行<a id="_idIndexMarker561"/>处理作业，向<a id="_idIndexMarker562"/>传递处理脚本及其参数，如下所示:<pre>from sagemaker.processing import ProcessingInput, ProcessingOutput sklearn_processor.run(     code='preprocessing.py',     inputs=[         ProcessingInput(             source=input_data,             destination='/opt/ml/processing/input')     ],     outputs=[         ProcessingOutput(             output_name='train_data',             source='/opt/ml/processing/train'),         ProcessingOutput(             output_name='validation_data',             source='/opt/ml/processing/validation')     ],     arguments=[         '--filename', 'amazon_reviews_us_Camera_v1_00.tsv.gz',         '--num-reviews', '100000',         '--split-ratio', '0.05'     ] )</pre></li>
+				<li>简短的<a id="_idIndexMarker563"/>预处理脚本如下面的代码片段所示。该书的完整版本在 GitHub 资源库中。我们首先安装<code>nltk</code>包，如下:<pre>import argparse, os, subprocess, sys import pandas as pd import numpy as np from sklearn.model_selection import train_test_split def install(package):     subprocess.call([sys.executable, "-m", "pip",                        "install", package])  if __name__=='__main__':     install('nltk')     import nltk</pre></li>
+				<li>我们阅读了<a id="_idIndexMarker564"/>命令行参数，如下:<pre>    parser = argparse.ArgumentParser()     parser.add_argument('--filename', type=str)     parser.add_argument('--num-reviews', type=int)     parser.add_argument('--split-ratio', type=float,                          default=0.1)     args, _ = parser.parse_known_args()     filename = args.filename     num_reviews = args.num_reviews     split_ratio = args.split_ratio</pre></li>
+				<li>我们读取<a id="_idIndexMarker565"/>输入数据集并对其进行处理，如下所示:<pre>    input_data_path =      os.path.join('/opt/ml/processing/input', filename)     data = pd.read_csv(input_data_path, sep='\t',             compression='gzip', error_bad_lines=False,            dtype='str')     # Process data     . . . </pre></li>
+				<li>最后，我们将它拆分为<a id="_idIndexMarker566"/>进行训练和验证，并保存为两个文本文件，如下:<pre>    training, validation = train_test_split(                            data,                             test_size=split_ratio)     training_output_path = os.path.join('     /opt/ml/processing/train', 'training.txt')         validation_output_path = os.path.join(     '/opt/ml/processing/validation', 'validation.txt')     np.savetxt(training_output_path,      training.values, fmt='%s')     np.savetxt(validation_output_path,      validation.values, fmt='%s')</pre></li>
+			</ol>
+			<p>如您所见，将手动处理代码转换成 SageMaker 处理作业并不需要花费太多时间。实际上，您也可以重用大部分代码，因为它处理的是通用主题，比如命令行参数、输入和输出。唯一的技巧是使用<code>subprocess.call</code>在处理容器中安装依赖项。</p>
+			<p>有了这个脚本，您现在可以随心所欲地处理大规模数据，而无需运行和管理持久耐用的笔记本电脑。</p>
+			<p>现在，让我们为另一个 BlazingText 场景准备数据:单词向量！</p>
+			<h2 id="_idParaDest-121"><a id="_idTextAnchor120"/>用 BlazingText 为词向量准备数据</h2>
+			<p>BlazingText 可以让你轻松地计算出<a id="_idIndexMarker567"/>单词向量，而且是在<a id="_idIndexMarker568"/>的范围内。它需要以下格式的输入数据:</p>
+			<ul>
+				<li>一个纯文本文件，每行一个样本。</li>
+				<li>每个样本必须有空格分隔的标记(单词和标点符号)。</li>
+			</ul>
+			<p>让我们处理与上一节相同的数据集，如下所示:</p>
+			<ol>
+				<li value="1">我们需要<code>spaCy</code>库，所以让我们安装它和它的英语语言模型，就像这样:<pre>%%sh pip -q install spacy python -m spacy download en_core_web_sm python -m spacy validate</pre></li>
+				<li>我们用<code>pandas</code>加载数据，忽略任何导致错误的行。我们也会删除任何缺少值的行。无论如何，我们应该有足够多的数据。下面是您需要的代码:<pre>data = pd.read_csv(     '/tmp/amazon_reviews_us_Camera_v1_00.tsv.gz',      sep='\t', compression='gzip',      error_bad_lines=False, dtype='str') data.dropna(inplace=True)</pre></li>
+				<li>We keep 100,000 lines, and we also drop all columns except <code>review_body</code>, as illustrated in the following code snippet:<pre>data = data[:100000]
+data = data[['review_body']]</pre><p>我们用<code>spaCy</code>编写一个函数来标记评论，并将它应用于<code>DataFrame</code>。这一步应该明显快于前面<a id="_idIndexMarker569"/>示例中的<code>nltk</code>标记化，因为<code>spaCy</code>是基于<code>cython</code>(<a href="https://cython.org">https://cython.org</a>)的<a id="_idIndexMarker570"/>。代码如下面的代码片段所示:</p><pre>import spacy
+spacy_nlp = spacy.load('en_core_web_sm')
+def tokenize(text):
+    tokens = spacy_nlp.tokenizer(text)
+    tokens = [ t.text for t in tokens ]
+    return " ".join(tokens).lower()
+data['review_body'] = 
+    data['review_body'].apply(tokenize)</pre><p>数据现在应该是这样的:</p><div><img src="img/B17705_06_3.jpg" alt="Figure 6.3 – Viewing the tokenized dataset&#13;&#10;" width="297" height="170"/></div><p class="figure-caption">图 6.3–查看标记化数据集</p></li>
+				<li>最后，我们将评论保存到一个明文文件中，如下所示:<pre>import numpy as np np.savetxt('/tmp/training.txt', data.values, fmt='%s')</pre></li>
+				<li>打开这个文件，您应该看到每行有一个标记化的审查，如下面的代码片段所示:<pre><strong class="bold">Ok</strong> <strong class="bold">perfect , even sturdier than the original !</strong></pre></li>
+			</ol>
+			<p>在这里，我们也应该使用 SageMaker 处理来运行这些步骤。您将在 GitHub 存储库中找到该书的相应笔记本和预处理脚本。</p>
+			<p>现在，让我们为 LDA 和 NTM 算法准备数据。</p>
+			<h2 id="_idParaDest-122"><a id="_idTextAnchor121"/>使用 LDA 和 NTM 为主题建模准备数据</h2>
+			<p>在这个<a id="_idIndexMarker572"/>例子中，我们将使用<strong class="bold">百万新闻标题</strong>数据集(<a href="https://doi.org/10.7910/DVN/SYBGZL">https://doi.org/10.7910/DVN/SYBGZL</a>)，它也可以在 GitHub <a id="_idIndexMarker573"/>存储库中获得。顾名思义，它包含了来自澳大利亚新闻来源<em class="italic">美国广播公司</em>的一百万个<a id="_idIndexMarker575"/>新闻标题。不像产品评论，标题都是很短的句子。构建主题模型应该是一个有趣的挑战！</p>
+			<h3>标记数据</h3>
+			<p>正如您所料，两种<a id="_idIndexMarker576"/>算法都需要一个标记化的数据集，因此我们将按如下方式进行:</p>
+			<ol>
+				<li value="1">我们需要<code>nltk</code>和<code>gensim</code>库，所以让我们安装它们，如下所示:<pre>%%sh pip -q install nltk gensim</pre></li>
+				<li>一旦我们下载了数据集，我们就用<code>pandas</code>加载它，就像这样:<pre>num_lines = 1000000 data = pd.read_csv('abcnews-date-text.csv.gz',                     compression='gzip', error_bad_lines=False,                     dtype='str', nrows=num_lines)</pre></li>
+				<li>The data should look like this:<div><img src="img/B17705_06_4.jpg" alt="Figure 6.4 – Viewing the tokenized dataset&#13;&#10;" width="396" height="166"/></div><p class="figure-caption">图 6.4–查看标记化数据集</p></li>
+				<li>它是按日期排序的，为了以防万一，我们把它打乱了。然后，我们通过运行下面的代码删除<code>date</code>列:<pre>data = data.sample(frac=1) data = data.drop(['publish_date'], axis=1)</pre></li>
+				<li>我们编写一个函数来清理和处理标题。首先，我们去掉所有的标点符号和数字。使用<code>nltk</code>，我们还删除了停用词——即<a id="_idIndexMarker577"/>极其常见且不添加任何上下文的词，如“this”、“any”等。为了在保持上下文的同时减少词汇量，我们可以应用<a id="_idIndexMarker578"/>或者<strong class="bold">词干</strong>(https://en.wikipedia.org/wiki/Stemming)或者<strong class="bold">词汇化</strong>(<a href="https://en.wikipedia.org/wiki/Lemmatisation">https://en.wikipedia.org/wiki/Lemmatisation</a>)，两种<a id="_idIndexMarker579"/>流行的自然语言处理技术。这里就用后者吧。根据您的实例类型，这可能会运行几分钟。以下是您需要的代码:<pre>import string import nltk from nltk.corpus import stopwords #from nltk.stem.snowball import SnowballStemmer from nltk.stem import WordNetLemmatizer  nltk.download('stopwords') stop_words = stopwords.words('english') #stemmer = SnowballStemmer("english") wnl = WordNetLemmatizer() def process_text(text):     for p in string.punctuation:         text = text.replace(p, '')         text = ''.join([c for c in text if not                          c.isdigit()])         text = text.lower().split()         text = [w for w in text if not w in                  stop_words]         #text = [stemmer.stem(w) for w in text]         text = [wnl.lemmatize(w) for w in text]         return text data['headline_text'] =      data['headline_text'].apply(process_text)</pre></li>
+				<li>处理后，<a id="_idIndexMarker580"/>数据应该如下所示:</li>
+			</ol>
+			<div><div><img src="img/B17705_06_5.jpg" alt="Figure 6.5 – Viewing the lemmatized dataset&#13;&#10;" width="301" height="168"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.5–查看词汇化数据集</p>
+			<p>现在评论已经被标记化了，我们需要将它们转换成 BoW 表示，用一个惟一的整数 ID 和它的频率计数替换每个单词。</p>
+			<h3>将数据转换为弓形表示</h3>
+			<p>我们将使用<a id="_idIndexMarker582"/>以下步骤将评论转换成<a id="_idIndexMarker581"/> BoW 表示:</p>
+			<ol>
+				<li value="1">The <code>gensim</code> library has exactly what we need! We build a <strong class="bold">dictionary</strong>, a list of all words present in the document collection, using the following code:<pre>from gensim import corpora
+dictionary = corpora.Dictionary(data['headline_text'])
+print(dictionary)</pre><p>字典是这样的:</p><pre><strong class="bold">Dictionary(83131 unique tokens: ['aba', 'broadcasting', 'community', 'decides', 'licence']...)</strong></pre><p>这个数字感觉很高。如果我们的维度太多，训练会很长，算法可能会有拟合数据的困难；例如，NTM 基于神经网络架构。输入层的大小将基于令牌的数量，因此我们需要将它们保持在合理的低水平。这将加速训练并帮助编码器学习可管理的潜在特征。</p></li>
+				<li>我们可以回到过去，再多清理一些标题。取而代之的是，我们使用一个<code>gensim</code>函数来删除极端单词——非常罕见或非常频繁的异常单词。然后，大胆打赌，我们决定将词汇表限制在剩余的前 512 个单词。是的——不到 1%。下面是实现这一点的代码:<pre>dictionary.filter_extremes(keep_n=512)</pre></li>
+				<li>我们将词汇表写入文本文件。这不仅有助于我们检查顶部的单词是什么，而且我们还将把这个文件作为额外的<strong class="bold">通道</strong>传递给 NTM 算法。当我们训练模型时，您将会看到为什么这很重要。完成这项工作的代码如下面的代码片段所示:<pre>with open('vocab.txt', 'w') as f:     for index in range(0,len(dictionary)):         f.write(dictionary.get(index)+'\n')</pre></li>
+				<li>我们使用字典为每个标题建立一个蝴蝶结。它存储在一个名为<code>tokens</code>的新列中。当我们完成的时候，我们放弃了文本审查。代码如下面的代码片段所示:<pre>data['tokens'] = data.apply(lambda row: dictionary.doc2bow(row['headline_text']), axis=1) data = data.drop(['headline_text'], axis=1)</pre></li>
+				<li>数据现在应该是这样的:</li>
+			</ol>
+			<div><div><img src="img/B17705_06_6.jpg" alt="Figure 6.6 – Viewing the BoW dataset&#13;&#10;" width="273" height="164"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.6–查看 BoW 数据集</p>
+			<p>正如您所看到的，每个<a id="_idIndexMarker585"/>单词都被替换成了它的<a id="_idIndexMarker586"/>唯一 ID 和它在评论中的出现频率。例如，最后一行告诉我们单词#11 出现过一次，单词#12 出现过一次，依此类推。</p>
+			<p>数据处理现在完成了。最后一步是将其保存为适当的输入格式。</p>
+			<h3>保存输入数据</h3>
+			<p>NTM 和 LDA 期待 CSV 格式或 RecordIO-wrapped protobuf 格式的数据。就像<a href="B17705_04_Final_JM_ePub.xhtml#_idTextAnchor069"> <em class="italic">第四章</em></a><em class="italic">训练机器学习模型</em>中的<strong class="bold">因式分解矩阵</strong>例子一样，我们正在处理的数据相当稀疏。任何给定的评论都只包含词汇表中的少量单词。由于 CSV 是一种密集格式，我们最终会得到大量的零频率单词。不是个好主意！</p>
+			<p>同样，我们将使用<code>lil_matrix</code>，一个<code>SciPy</code>。我们有多少评论，它就有多少行，我们在字典里有多少单词，它就有多少列。我们将如下进行:</p>
+			<ol>
+				<li value="1">我们创建稀疏矩阵，像这样:<pre>from scipy.sparse import lil_matrix num_lines = data.shape[0] num_columns = len(dictionary) token_matrix = lil_matrix((num_lines,num_columns))                .astype('float32')</pre></li>
+				<li>我们编写一个函数来给矩阵添加标题。对于每个令牌，我们只需将它的频率写在适当的列中，如下:<pre>def add_row_to_matrix(line, row):     for token_id, token_count in row['tokens']:         token_matrix[line, token_id] = token_count     return</pre></li>
+				<li>然后我们<a id="_idIndexMarker589"/>遍历标题并将它们添加到矩阵中。快速注意:我们不能使用行索引值，因为它们可能大于行数。代码如下面的代码片段所示:<pre>line = 0 for _, row in data.iterrows():     add_row_to_matrix(line, row)     line+=1</pre></li>
+				<li>最后一步是将该矩阵以<code>protobuf</code>格式写入内存缓冲区，并上传至 S3 以备将来使用，如下所示:<pre>import io, boto3 import sagemaker import sagemaker.amazon.common as smac buf = io.BytesIO() smac.write_spmatrix_to_sparse_tensor(buf, token_matrix, None) buf.seek(0) bucket = sagemaker.Session().default_bucket() prefix = 'headlines-lda-ntm' train_key = 'reviews.protobuf' obj = '{}/{}'.format(prefix, train_key)) s3 = boto3.resource('s3') s3.Bucket(bucket).Object(obj).upload_fileobj(buf) s3_train_path = 's3://{}/{}'.format(bucket,obj)</pre></li>
+				<li>构建(1000000，512)矩阵需要几分钟时间。一旦它被上传到 S3，我们可以看到它只有 42 兆字节。确实是小矩阵。代码如下面的代码片段所示:<pre><strong class="bold">$ aws s3 ls s3://sagemaker-eu-west-1-123456789012/amazon-reviews-ntm/training.protobuf</strong> <strong class="bold">43884300 training.protobuf</strong></pre></li>
+			</ol>
+			<p>LDA 和 NTM 的数据准备工作到此结束。现在，让我们看看如何使用用<strong class="bold"> SageMaker Ground Truth </strong>准备的文本数据集。</p>
+			<h2 id="_idParaDest-123"><a id="_idTextAnchor122"/>使用标有 SageMaker Ground Truth 的数据集</h2>
+			<p>如<a href="B17705_02_Final_JM_ePub.xhtml#_idTextAnchor030"> <em class="italic">第二章</em> </a>、<em class="italic">处理数据准备技术</em>所述，SageMaker Ground Truth <a id="_idIndexMarker591"/>支持文本分类任务。我们<a id="_idIndexMarker592"/>肯定可以使用它的输出为 FastText 或 BlazingText 构建数据集。</p>
+			<p>首先，我对几个句子进行了快速的文本分类，应用了两个标签中的一个:如果句子提到了 AWS 服务，则应用“T10”，如果没有提到，则应用“T11”。</p>
+			<p>一旦任务<a id="_idIndexMarker593"/>完成，我就可以从 S3 取回<strong class="bold">增加的清单</strong>。它采用<strong class="bold"> JavaScript 对象符号行</strong> ( <strong class="bold"> JSON 行</strong>)格式，下面是它的一个条目:</p>
+			<pre>{"source":"With great power come great responsibility. The second you create AWS resources, you're responsible for them: security of course, but also cost and scaling. This makes monitoring and alerting all the more important, which is why we built services like Amazon CloudWatch, AWS Config and AWS Systems Manager.","my-text-classification-job":0,"my-text-classification-job-metadata":{"confidence":0.84,"job-name":"labeling-job/my-text-classification-job","class-name":"aws_service","human-annotated":"yes","creation-date":"2020-05-11T12:44:50.620065","type":"groundtruth/text-classification"}}</pre>
+			<p>我们要不要写一点 Python 代码来把这个放到 BlazingText 格式中？当然啦！我们开始吧:</p>
+			<ol>
+				<li value="1">我们直接从 S3 加载扩充的清单，如下:<pre>import pandas as pd bucket = 'sagemaker-book' prefix = 'chapter2/classif/output/my-text-classification-job/manifests/output' manifest = 's3://{}/{}/output.manifest'.format(bucket, prefix) data = pd.read_json(manifest, lines=True)</pre></li>
+				<li>The data looks like this:<div><img src="img/B17705_06_7.jpg" alt="Figure 6.7 – Viewing the labeled dataset&#13;&#10;" width="727" height="145"/></div><p class="figure-caption">图 6.7–查看带标签的数据集</p></li>
+				<li>标签埋在<code>my-text-classification-job-metadata</code>栏里。我们将其提取到一个新的列中，如下:<pre>def get_label(metadata):     return metadata['class-name'] data['label'] =  data['my-text-classification-job-metadata'].apply(get_label) data = data[['label', 'source']]</pre></li>
+				<li>数据现在看起来如下图所示。从此，我们可以<a id="_idIndexMarker596"/>应用标记化，<a id="_idIndexMarker597"/>等等。那很容易，不是吗？</li>
+			</ol>
+			<div><div><img src="img/B17705_06_8.jpg" alt="Figure 6.8 – Viewing the processed dataset&#13;&#10;" width="414" height="134"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.8–查看已处理的数据集</p>
+			<p>现在，让我们建立 NLP 模型！</p>
+			<h1 id="_idParaDest-124"><a id="_idTextAnchor123"/>使用内置算法进行自然语言处理</h1>
+			<p>在本节中，我们将使用 BlazingText、LDA 和 NTM 来训练和部署模型。当然，我们将使用上一节准备的数据集。</p>
+			<h2 id="_idParaDest-125"><a id="_idTextAnchor124"/>使用 BlazingText 分类文本</h2>
+			<p>BlazingText <a id="_idIndexMarker598"/>使得构建文本分类<a id="_idIndexMarker599"/>模型变得极其容易，尤其是如果你没有 NLP 技能的话。让我们来看看如何，如下:</p>
+			<ol>
+				<li value="1">我们将训练和验证数据集上传到 S3。或者，我们可以使用 SageMaker 处理作业返回的输出路径。代码如下面的代码片段所示:<pre>import sagemaker session = sagemaker.Session() bucket = session.default_bucket() prefix = 'amazon-reviews' s3_train_path = session.upload_data(path='/tmp/training.txt', bucket=bucket, key_prefix=prefix+'/input/train') s3_val_path = session.upload_data(     path='/tmp/validation.txt', bucket=bucket,        key_prefix=prefix+'/input/validation') s3_output = 's3://{}/{}/output/'.format(bucket,      prefix)</pre></li>
+				<li>我们<a id="_idIndexMarker600"/>为 BlazingText 配置<code>Estimator</code>功能，如下<a id="_idIndexMarker601"/>:<pre>from sagemaker.image_uris import retrieve region_name = session.boto_session.region_name container = retrieve('blazingtext', region) bt = sagemaker.estimator.Estimator(container,       sagemaker.get_execution_role(),      instance_count=1,      instance_type='ml.p3.2xlarge',      output_path=s3_output)</pre></li>
+				<li>我们设置一个超参数，告诉 BlazingText 在监督模式下训练，如下:<pre>bt.set_hyperparameters(mode='supervised')</pre></li>
+				<li>我们定义频道，将内容类型设置为<code>text/plain</code>，然后启动培训，如下所示:<pre>from sagemaker import TrainingInput train_data = TrainingInput(     s3_train_path, content_type='text/plain') validation_data = TrainingInput(     s3_val_path, content_type='text/plain') s3_channels = {'train': train_data,                 'validation': validation_data} bt.fit(inputs=s3_channels)</pre></li>
+				<li>我们得到了 88.4%的<a id="_idIndexMarker602"/>验证准确度，在没有任何超参数调整的情况下，这是相当好的。然后，我们将模型部署到一个小型 CPU 实例，如下所示:<pre>bt_predictor = bt.deploy(initial_instance_count=1,                           instance_type='ml.t2.medium')</pre></li>
+				<li>一旦结束，我们发送三个用于预测的标记化样本，要求所有三个标签，如下:<pre>import json sentences = ['This is a bad camera it doesnt work at all , i want a refund  . ' , 'The camera works , the pictures are decent quality, nothing special to say about it . ' , 'Very happy to have bought this , exactly what I needed . '] payload = {"instances":sentences,             "configuration":{"k": 3}} bt_predictor.serializer =       sagemaker.serializers.JSONSerializer() response = bt_predictor.predict(json.dumps(payload))</pre></li>
+				<li>打印<a id="_idIndexMarker604"/>响应，我们看到三个样本被<a id="_idIndexMarker605"/>正确分类，如下所示:<pre><strong class="bold">[{'prob': [0.9758228063583374, 0.023583529517054558, 0.0006236258195713162], 'label': ['__label__negative__', '__label__neutral__', '__label__positive__']}, </strong> <strong class="bold">{'prob': [0.5177792906761169, 0.2864232063293457, 0.19582746922969818], 'label': ['__label__neutral__', '__label__positive__', '__label__negative__']}, </strong> <strong class="bold">{'prob': [0.9997835755348206, 0.000205090589588508, 4.133415131946094e-05], 'label': ['__label__positive__', '__label__neutral__', '__label__negative__']}]</strong></pre></li>
+				<li>像往常一样，我们通过运行下面的代码删除端点:<pre>bt_predictor.delete_endpoint()</pre></li>
+			</ol>
+			<p>现在，让我们训练 BlazingText 计算单词向量。</p>
+			<h2 id="_idParaDest-126"><a id="_idTextAnchor125"/>用 BlazingText 计算单词向量</h2>
+			<p>代码几乎与前面的例子相同，只有两处不同。首先，只有一个通道，包含训练数据。其次，我们需要将 BlazingText 设置为 UL 模式。</p>
+			<p>BlazingText 支持在<a id="_idIndexMarker609"/>word 2 vec:<strong class="bold">skip program</strong>和<strong class="bold">continuous BoW</strong>(<strong class="bold">CBOW</strong>)中实现的<a id="_idIndexMarker608"/>训练模式。它增加了第三种模式<a id="_idIndexMarker610"/>，<strong class="bold">batch _ skip program</strong>，用于更快的分布式训练。它还支持<strong class="bold">子词嵌入</strong>，这是一种<a id="_idIndexMarker611"/>技术，可以为拼写错误或不属于词汇表的词返回词向量。</p>
+			<p>让我们使用嵌入子词的 skipgram。我们保持向量的维数不变(默认值是 100)。以下是您需要的代码:</p>
+			<pre>bt.set_hyperparameters(mode='skipgram', subwords=True)</pre>
+			<p>不像其他的<a id="_idIndexMarker612"/>算法，这里没有什么需要部署<a id="_idIndexMarker613"/>的。模型工件在 S3，可以用于下游的 NLP 应用程序。</p>
+			<p>说到这里，BlazingText 与 FastText 是兼容的，那么尝试将我们刚刚训练的模型加载到 FastText 中怎么样？</p>
+			<h2 id="_idParaDest-127"><a id="_idTextAnchor126"/>通过 FastText 使用 BlazingText 模型</h2>
+			<p>首先，我们需要<a id="_idIndexMarker614"/>编译 FastText，这非常简单。您甚至可以在笔记本实例上这样做，而无需安装任何东西。以下是您需要的代码:</p>
+			<pre>$ git clone https://github.com/facebookresearch/fastText.git
+$ cd fastText
+$ make</pre>
+			<p>让我们首先尝试我们的分类模型。</p>
+			<h3>通过 FastText 使用 BlazingText 分类模型</h3>
+			<p>我们<a id="_idIndexMarker616"/>将使用以下<a id="_idIndexMarker617"/>步骤尝试该模型:</p>
+			<ol>
+				<li value="1">我们从 S3 复制模型工件，并提取如下:<pre><strong class="bold">$ aws s3 cp s3://sagemaker-eu-west-1-123456789012/amazon-reviews/output/JOB_NAME/output/model.tar.gz .</strong> <strong class="bold">$ tar xvfz model.tar.gz</strong></pre></li>
+				<li>我们用快速文本加载<code>model.bin</code>，如下:<pre><strong class="bold">$ ./fasttext predict model.bin -</strong></pre></li>
+				<li>我们<a id="_idIndexMarker618"/>预测样本并查看它们的顶级类别，如下:<pre><strong class="bold">This is a bad camera it doesnt work at all , i want a refund  .</strong> <strong class="bold">__label__negative__</strong> <strong class="bold">The camera works , the pictures are decent quality, nothing</strong> <strong class="bold">special to say about it .</strong> <strong class="bold">__label__neutral__</strong> <strong class="bold">Very happy to have bought this , exactly what I needed</strong> <strong class="bold">__label__positive__</strong></pre></li>
+			</ol>
+			<p>我们用<em class="italic"> Ctrl </em> + <em class="italic"> C </em>退出<a id="_idIndexMarker619"/>。现在，让我们探索我们的向量。</p>
+			<h3>对 FastText 使用 BlazingText 单词向量</h3>
+			<p>我们现在将<a id="_idIndexMarker620"/>与矢量一起使用 FastText，如<a id="_idIndexMarker621"/>所示:</p>
+			<ol>
+				<li value="1">我们从 S3 复制模型工件并提取它，就像这样:<pre><strong class="bold">$ aws s3 cp s3://sagemaker-eu-west-1-123456789012/amazon-reviews-word2vec/output/JOB_NAME/output/model.tar.gz .</strong> <strong class="bold">$ tar xvfz model.tar.gz</strong></pre></li>
+				<li>我们可以探索单词的相似性。比如，我们来寻找与“长焦”最接近的词。这可以帮助我们改进处理搜索查询或推荐类似产品的方式。以下是您需要的代码:<pre><strong class="bold">$ ./fasttext nn vectors.bin</strong> <strong class="bold">Query word? Telephoto</strong> <strong class="bold">telephotos 0.951023</strong> <strong class="bold">75-300mm 0.79659</strong> <strong class="bold">55-300mm 0.788019</strong> <strong class="bold">18-300mm 0.782396</strong> <strong class="bold">. . .</strong></pre></li>
+				<li>We can also<a id="_idIndexMarker622"/> look for analogies. For<a id="_idIndexMarker623"/> example, let's ask our model the following question: What's the Canon equivalent for the Nikon D3300 camera? The code is illustrated in the following snippet:<pre><strong class="bold">$ ./fasttext analogies vectors.bin</strong>
+<strong class="bold">Query triplet (A - B + C)? nikon d3300 canon</strong>
+<strong class="bold">xsi 0.748873</strong>
+<strong class="bold">700d 0.744358</strong>
+<strong class="bold">100d 0.735871</strong></pre><p>根据我们的模型，你应该考虑 XSI 和 700D 相机！</p></li>
+			</ol>
+			<p>正如你所看到的，单词向量是惊人的，BlazingText 使得在任何规模上计算它们都很容易。现在，让我们继续主题建模，另一个迷人的主题。</p>
+			<h2 id="_idParaDest-128"><a id="_idTextAnchor127"/>用 LDA 建模主题</h2>
+			<p>在前面的部分中，我们<a id="_idIndexMarker624"/>准备了一百万个新闻标题，现在我们<a id="_idIndexMarker625"/>将使用它们通过 LDA 进行主题建模，如下所示:</p>
+			<ol>
+				<li value="1">首先，我们通过运行下面的代码来定义有用的路径:<pre>import sagemaker session = sagemaker.Session() bucket = session.default_bucket() prefix = reviews-lda-ntm' train_key = 'reviews.protobuf' obj = '{}/{}'.format(prefix, train_key) s3_train_path = 's3://{}/{}'.format(bucket,obj) s3_output = 's3://{}/{}/output/'.format(bucket, prefix)</pre></li>
+				<li>我们<a id="_idIndexMarker626"/>配置<a id="_idIndexMarker627"/>的<code>Estimator</code>功能，像这样:<pre>from sagemaker.image_uris import retrieve region_name = session.boto_session.region_name container = retrieve('lda', region) lda = sagemaker.estimator.Estimator(container,        role = sagemaker.get_execution_role(),        instance_count=1,                                       instance_type='ml.c5.2xlarge',        output_path=s3_output)</pre></li>
+				<li>我们设置超参数:我们想要构建多少个主题(10)，问题有多少个维度(词汇量)，以及我们要训练多少个样本。可选地，我们可以设置一个名为<code>alpha0</code>的参数。根据文档:“<em class="italic">小值更可能产生稀疏的主题混合，而大值(大于 1.0)产生更均匀的混合。”</em>我们将其设置为 0.1，并希望该算法确实可以构建良好识别的主题。以下是您需要的代码:<pre>lda.set_hyperparameters(num_topics=5,    feature_dim=len(dictionary),    mini_batch_size=num_lines,    alpha0=0.1)</pre></li>
+				<li>我们<a id="_idIndexMarker628"/>开展培训。由于 RecordIO 是算法期望的默认格式<a id="_idIndexMarker629"/>，我们不需要定义通道。代码如下面的代码片段所示:<pre>lda.fit(inputs={'train': s3_train_path})</pre></li>
+				<li>一旦训练完成，我们就部署到一个小的 CPU 实例，如下:<pre>lda_predictor = lda.deploy(     initial_instance_count=1,         instance_type='ml.t2.medium')</pre></li>
+				<li>Before we send samples for prediction, we need to process them just like we processed the training set. We write a function that takes care of this: building a sparse matrix, filling it with BoW, and saving to an in-memory protobuf buffer, as follows:<pre>def process_samples(samples, dictionary):
+    num_lines = len(samples)
+    num_columns = len(dictionary)
+    sample_matrix = lil_matrix((num_lines,  
+                    num_columns)).astype('float32')
+    for line in range(0, num_lines):
+        s = samples[line]
+        s = process_text(s)
+        s = dictionary.doc2bow(s)
+        for token_id, token_count in s:
+            sample_matrix[line, token_id] = token_count
+        line+=1
+    buf = io.BytesIO()
+    smac.write_spmatrix_to_sparse_tensor(
+        buf,
+        sample_matrix,
+        None)
+    buf.seek(0)
+    return buf</pre><p>请注意，我们这里需要这本字典。这就是为什么相应的 SageMaker <a id="_idIndexMarker630"/>处理作业保存了它的一个 pickle 版本，我们可以在以后取消 pickle 并使用它。</p></li>
+				<li>然后，我们<a id="_idIndexMarker631"/>定义一个包含五个标题的 Python 数组，命名为<code>samples</code>。这些是我在 https://www.abc.net.au/news/从 ABC 新闻网站上复制的真实标题。代码如下面的代码片段所示:<pre>samples = [ "Major tariffs expected to end Australian barley trade to China", "Satellite imagery sparks more speculation on North Korean leader Kim Jong-un", "Fifty trains out of service as fault forces Adelaide passengers to 'pack like sardines", "Germany's Bundesliga plans its return from lockdown as football world watches", "All AFL players to face COVID-19 testing before training resumes" ]</pre></li>
+				<li>让我们对它们进行处理和预测，如下:<pre>lda_predictor.serializer =       sagemaker.serializers.CSVSerializer() response = lda_predictor.predict(            process_samples(samples, dictionary)) print(response)</pre></li>
+				<li>回复包含每个评论的分数向量(为简洁起见，去掉了多余的小数)。每个向量反映了一个主题组合，每个主题有一个分数。所有分数加起来是 1。代码如下面的代码片段所示:<pre><strong class="bold">{'predictions': [</strong> <strong class="bold">{'topic_mixture': [0,0.22,0.54,0.23,0,0,0,0,0,0]}, </strong> <strong class="bold">{'topic_mixture': [0.51,0.49,0,0,0,0,0,0,0,0]}, {'topic_mixture': [0.38,0,0.22,0,0.40,0,0,0,0,0]}, {'topic_mixture': [0.38,0.62,0,0,0,0,0,0,0,0]}, {'topic_mixture': [0,0.75,0,0,0,0,0,0.25,0,0]}]}</strong></pre></li>
+				<li>This isn't <a id="_idIndexMarker632"/>easy to read. Let's print the top topic and its score, as<a id="_idIndexMarker633"/> follows:<pre>import numpy as np
+vecs = [r['topic_mixture'] for r in response['predictions']]
+for v in vecs:
+    top_topic = np.argmax(v)
+    print("topic %s, %2.2f"%(top_topic,v[top_topic]))</pre><p>这会打印出以下结果:</p><pre><strong class="bold">topic 2, 0.54</strong>
+<strong class="bold">topic 0, 0.51</strong>
+<strong class="bold">topic 4, 0.40</strong>
+<strong class="bold">topic 1, 0.62</strong>
+<strong class="bold">topic 1, 0.75 </strong></pre></li>
+				<li>像往常一样，一旦完成，我们就删除端点，如下:<pre>lda_predictor.delete_endpoint()</pre></li>
+			</ol>
+			<p>解释 LDA 结果并不容易，所以我们在这里要小心。没有一厢情愿！</p>
+			<ul>
+				<li>我们看到每个标题都有确定的主题，这是好消息。显然，LDA 能够识别可靠的主题，这可能要归功于较低的<code>alpha0</code>值。</li>
+				<li>不相关标题的热门话题是不同的，这是有希望的。</li>
+				<li>最后两个标题都是关于体育的，它们的主题是一样的，这是另一个好的迹象。</li>
+				<li>所有五篇评论在主题 5、6、8 和 9 上都得了零分。这可能意味着已经构建了其他主题，我们需要运行更多的示例来发现它们。</li>
+			</ul>
+			<p>这是一个<a id="_idIndexMarker634"/>成功的模式吗？大概吧。我们能自信 0 号话题是关于<a id="_idIndexMarker635"/>世界事务，1 号话题是关于体育，2 号话题是关于体育吗？直到我们预测了几千多篇评论，并检查了相关的标题是否被分配到了同一个主题。</p>
+			<p>正如本章开头提到的，LDA 不是一种分类算法。它有自己的想法，可以创造完全意想不到的话题。也许它会根据情绪或城市名称对标题进行分组。这完全取决于这些单词在文档集合中的分布。</p>
+			<p>如果能看到某个话题里哪些词“权重”更大不是很好吗？这肯定会帮助我们更好地理解主题。进入 NTM！</p>
+			<h2 id="_idParaDest-129"><a id="_idTextAnchor128"/>与 NTM 的造型话题</h2>
+			<p>这个例子<a id="_idIndexMarker636"/>和上一个很像。我们将只强调<a id="_idIndexMarker637"/>的不同，你会在 GitHub 库中找到这本书的完整例子。让我们进入它，如下:</p>
+			<ol>
+				<li value="1">我们把<strong class="bold">词汇文件</strong>上传到 S3，就像这样:<pre>s3_auxiliary_path =         session.upload_data(path='vocab.txt',        key_prefix=prefix + '/input/auxiliary')</pre></li>
+				<li>我们选择 NTM 算法，如下:<pre>from sagemaker.image_uris import retrieve region_name = session.boto_session.region_name container = retrieve('ntm', region)</pre></li>
+				<li>一旦我们配置了<code>Estimator</code>函数，我们就设置超参数，如下:<pre>ntm.set_hyperparameters(num_topics=10,                          feature_dim=len(dictionary),                         optimizer='adam',                         mini_batch_size=256,                         num_patience_epochs=10)</pre></li>
+				<li>我们启动<a id="_idIndexMarker638"/>训练，在<code>auxiliary</code>频道传递词汇文件，如下:<pre>ntm.fit(inputs={'train': s3_training_path,                  'auxiliary': s3_auxiliary_path})</pre></li>
+			</ol>
+			<p>当训练完成时，我们会在训练日志中看到大量信息。首先，我们看到 10 个主题的 WETC 和屠的平均分数，如下所示:</p>
+			<pre>(num_topics:10) [wetc 0.42, tu 0.86]</pre>
+			<p>这些都是不错的结果。话题单一性高，话题词间语义距离一般。</p>
+			<p>对于每个主题，我们可以看到它的 WETC 和屠得分，以及它的热门词，也就是说，在与该主题相关的文档中出现概率最高的词。</p>
+			<p>让我们详细地看一下每一个，并试着给主题命名。</p>
+			<p>我认为，主题 0 非常明显。几乎所有的词都和犯罪有关，所以姑且称之为<code>crime</code>。你可以在这里看到这个主题:</p>
+			<pre><strong class="bold">[0.51, 0.84] stabbing charged guilty pleads murder fatal man assault bail jailed alleged shooting arrested teen girl accused boy car found crash</strong></pre>
+			<p>下面的题目 1 有点模糊。<code>legal</code>怎么样？请看这里:</p>
+			<pre><strong class="bold">[0.36, 0.85] seeker asylum climate live front hears change export carbon tax court wind challenge told accused rule legal face stand boat</strong></pre>
+			<p>主题 2 是关于事故和火灾。姑且称之为<code>disaster</code>。你可以在这里看到主题:</p>
+			<pre><strong class="bold">[0.39, 0.78] seeker crew hour asylum cause damage truck country firefighter blaze crash warning ta plane near highway accident one fire fatal</strong></pre>
+			<p>题目 3 很明显:<code>sports</code>。TU 得分最高，表明体育文章使用了在其他地方找不到的非常特殊的<a id="_idIndexMarker640"/>词汇，正如我们在这里看到的:</p>
+			<pre><strong class="bold">[0.54, 0.93] cup world v league one match win title final star live victory england day nrl miss beat team afl player</strong></pre>
+			<p>主题 4 是天气信息和自然资源的奇怪组合。它有最低的 WETC 和最低的 TU 值。姑且称之为<code>unknown1</code>。请看这里:</p>
+			<pre><strong class="bold">[0.35, 0.77] coast korea gold north east central pleads west south guilty queensland found qld rain beach cyclone northern nuclear crop mine</strong></pre>
+			<p>话题 5 似乎是关于世界事务的。姑且称之为<code>international</code>。你可以在这里看到主题:</p>
+			<pre><strong class="bold">[0.38, 0.88] iraq troop bomb trade korea nuclear kill soldier iraqi blast pm president china pakistan howard visit pacific u abc anti</strong></pre>
+			<p>主题 6 感觉像本地新闻，因为它包含澳大利亚地区的缩写:<code>qld</code>是昆士兰，<code>ta</code>是塔斯马尼亚，<code>nsw</code>是新南威尔士，等等。姑且称之为<code>local</code>。此处显示了主题:</p>
+			<pre><strong class="bold">[0.25, 0.88] news hour country rural national abc ta sport vic abuse sa nsw weather nt club qld award business</strong></pre>
+			<p>题目 7 是一个显而易见的问题:<code>finance</code>。它有最高的 WETC 分数，表明从语义的角度来看，它的单词是密切相关的。主题单一性也非常高，我们可能会在医学或工程领域的特定主题中看到同样的情况。看看这里的题目:</p>
+			<pre><strong class="bold">[0.62, 0.90] share dollar rise rate market fall profit price interest toll record export bank despite drop loss post high strong trade</strong></pre>
+			<p>主题 8 是关于政治的，也有一点犯罪的成分。有些人会说这其实是一回事。因为我们已经有了一个<code>crime</code>主题，所以我们将它命名为<code>politics</code>。看看这里的题目:</p>
+			<pre><strong class="bold">[0.41, 0.90] issue election vote league hunt interest poll parliament gun investigate opposition raid arrest police candidate victoria house northern crime rate</strong></pre>
+			<p>话题 9 又是一个<a id="_idIndexMarker642"/>鱼龙混杂。很难说是为了种地<a id="_idIndexMarker643"/>还是为了思念人！还是用<code>unknown2</code>吧。你可以在这里看到主题:</p>
+			<pre><strong class="bold">[0.37, 0.84] missing search crop body found wind rain continues speaks john drought farm farmer smith pacific crew river find mark tourist</strong></pre>
+			<p>总的来说，这是一个非常好的模型:10 个主题中有 8 个是清晰的。</p>
+			<p>让我们定义我们的主题列表，并在部署后通过模型运行我们的示例标题，如下所示:</p>
+			<pre>topics = ['crime','legal','disaster','sports','unknown1',
+          'international','local','finance','politics', 
+          'unknown2']
+samples = [ "Major tariffs expected to end Australian barley trade to China", "US woman wanted over fatal crash asks for release after coronavirus halts extradition", "Fifty trains out of service as fault forces Adelaide passengers to 'pack like sardines", "Germany's Bundesliga plans its return from lockdown as football world watches", "All AFL players to face COVID-19 testing before training resumes" ]</pre>
+			<p>我们使用以下函数打印前三个主题及其分数:</p>
+			<pre>import numpy as np
+for r in response['predictions']:
+    sorted_indexes = np.argsort(r['topic_weights']).tolist()
+    sorted_indexes.reverse()
+    top_topics = [topics[i] for i in sorted_indexes]
+    top_weights = [r['topic_weights'][i] 
+                   for i in sorted_indexes]
+    pairs = list(zip(top_topics, top_weights))
+    print(pairs[:3])</pre>
+			<p>这里是<a id="_idIndexMarker644"/>的<a id="_idIndexMarker645"/>输出:</p>
+			<pre><strong class="bold">[('finance', 0.30),('international', 0.22),('sports', 0.09)]</strong>
+<strong class="bold">[('unknown1', 0.19),('legal', 0.15),('politics', 0.14)]</strong>
+<strong class="bold">[('crime', 0.32), ('legal', 0.18), ('international', 0.09)]</strong>
+<strong class="bold">[('sports', 0.28),('unknown1', 0.09),('unknown2', 0.08)]</strong>
+<strong class="bold">[('sports', 0.27),('disaster', 0.12),('crime', 0.11)]</strong></pre>
+			<p>标题 0、2、3 和 4 都是正确的。考虑到这些话题的强度，这并不奇怪。</p>
+			<p>头条 1 在我们称之为<code>legal</code>的题目上得分很高。也许阿德莱德的乘客应该起诉火车公司？说真的，我们需要找到其他匹配的标题来更好地理解这个主题到底是关于什么的。</p>
+			<p>正如你所看到的，NTM 让我们更容易理解主题是什么。我们可以通过处理词汇表文件、添加或删除特定单词来影响主题、增加主题数量、摆弄<code>alpha0</code>等等来改进模型。我的直觉告诉我，我们真的应该在那里看到一个“天气”话题。请实验一下，看看是否要让它出现。</p>
+			<p>如果你想运行另一个例子，你会在这个笔记本中找到有趣的技术:</p>
+			<p><a href="https://github.com/awslabs/amazon-sagemaker-examples/blob/master/introduction_to_applying_machine_learning/ntm_20newsgroups_topic_modeling/ntm_20newsgroups_topic_model.ipynb">https://github . com/aw slabs/Amazon-sagemaker-examples/blob/master/introduction _ to _ applying _ machine _ learning/ntm _ 20 news groups _ topic _ modeling/ntm _ 20 news groups _ topic _ model . ipynb</a></p>
+			<h1 id="_idParaDest-130"><a id="_idTextAnchor129"/>总结</h1>
+			<p>NLP 是一个非常令人兴奋的话题。这也是一个困难的问题，因为一般来说语言很复杂，而且建立数据集需要大量的处理。话虽如此，SageMaker 中的内置算法将帮助您获得开箱即用的良好结果。训练和部署模型是简单的过程，这使您有更多的时间来探索、理解和准备数据。</p>
+			<p>在本章中，您学习了 BlazingText、LDA 和 NTM 算法。您还学习了如何使用流行的开源工具处理数据集，例如<code>nltk</code>、<code>spaCy</code>和<code>gensim</code>，以及如何以适当的格式保存它们。最后，您学习了如何使用 SageMaker SDK 来训练和部署具有所有三种算法的模型，以及如何解释结果。我们对内置算法的探索到此结束。</p>
+			<p>在下一章，你将学习如何使用内置的 ML 框架，比如<strong class="bold"> scikit-learn </strong>、<strong class="bold"> TensorFlow </strong>、<strong class="bold"> PyTorch </strong>和<strong class="bold"> Apache MXNet </strong>。</p>
+		</div>
+	</div>
+</body></html>

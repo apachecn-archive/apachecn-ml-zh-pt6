@@ -1,0 +1,156 @@
+<html><head/><body>
+
+
+  
+    <title>Recommender System – Getting to Know Their Taste</title>
+    
+    <meta charset="utf-8"/>
+  
+  
+    
+      
+                    Recommender System – Getting to Know Their Taste
+                
+      
+        <p class="mce-root">外行人可能不知道控制证券交易所高频交易的复杂机器学习算法。他们可能也不知道检测网上犯罪和控制太空任务的算法。然而，他们每天都与推荐引擎互动。他们每天都见证着推荐引擎在亚马逊上为他们挑选阅读的书籍，在网飞上选择他们接下来应该看的电影，并影响他们每天阅读的新闻文章。推荐引擎在许多行业的流行需要不同风格的推荐算法。</p>
+        <p>在这一章中，我们将学习推荐系统使用的不同方法。我们将主要使用一个名为 Surprise 的姐妹库来学习 scikit。Surprise 是一个实现不同协同过滤算法的工具包。因此，我们将从学习推荐引擎中使用的<em>c</em>T3】协同过滤算法和<em>基于内容的过滤</em>算法之间的区别开始。我们还将学习如何将我们训练好的模型打包，以供其他软件使用，而无需重新培训。这里将讨论以下主题:</p>
+        <ul>
+          <li>不同的推荐范例</li>
+          <li>下载惊喜和数据集</li>
+          <li>使用 KNN 启发的算法</li>
+          <li>使用基线算法</li>
+          <li>使用奇异值分解</li>
+          <li>在生产中部署机器学习模型</li>
+        </ul>
+        <h1 id="uuid-c719c6e2-0aeb-4bd3-b7c8-65d91e5a0aaa">不同的推荐范例</h1>
+        <p>在推荐任务中，您有一组用户与一组项目进行交互，您的工作是找出哪些项目适合哪些用户。你可能对每个用户略知一二:他们住在哪里，他们挣多少钱，他们是通过手机还是平板电脑登录的，等等。类似地，对于一个项目——比如说一部电影——你知道它的类型、制作年份以及它获得了多少奥斯卡奖。显然，这看起来像是一个分类问题。您可以将用户特征与项目特征结合起来，为每个用户-项目对构建一个分类器，然后尝试预测用户是否会喜欢该项目。这种方法被称为<strong>基于内容的过滤</strong>。顾名思义，它和从每个用户、每个项目中提取的内容或特征一样好。实际上，您可能只知道每个用户的基本信息。用户的位置或性别可能会充分揭示他们的口味。这种方法也很难推广。假设我们决定扩展我们的推荐引擎来推荐电视剧。奥斯卡金像奖的数量可能无关紧要，我们可能需要用金球奖提名的数量来代替这个特征。如果以后扩展到音乐呢？相反，考虑一种与内容无关的不同方法是有意义的。</p>
+        <p><strong>协同过滤</strong>则不太关心用户或者物品特性。相反，它假设已经对某些项目感兴趣的用户将来可能会有同样的兴趣。为你做一个推荐，它基本上是招募其他和你相似的用户，并利用他们做出的决定在未来向你推荐物品。这里一个明显的问题是冷启动问题。当一个新用户加入时，很难马上知道哪些用户和他们相似。同样，对于一个新的项目，一些用户需要一段时间才能发现它，只有到那时，系统才能向其他用户推荐它。</p>
+        <p>由于每种方法都有其缺点，因此可以使用两者的混合方法。最简单的形式是，我们可以向新用户推荐平台上最受欢迎的商品。一旦这些新用户消费了足够多的商品，让我们知道他们的口味，我们就可以开始整合一种更具协作性的过滤方法，为他们量身定制推荐。</p>
+        <p>在这一章中，我们将关注<em>协同过滤</em>范例。这是更常见的方法，我们已经在前面的章节中学习了如何构建<em>基于内容的过滤</em>方法所需的分类器。我们将使用一个名为 Surprise 的库来演示不同的协同过滤算法。在下一节中，我们将安装 Surprise 并下载本章剩余部分所需的数据。</p>
+        <h1 id="uuid-cd35ffd7-ccb3-4525-9d79-81cede8565a2">下载惊喜和数据集</h1>
+        <p>Nicolas Hug 创造了 Surprise[<a href="http://surpriselib.com">http://surpriselib.com</a>]，它实现了许多我们将在这里使用的<em/>协同过滤算法。我使用的是 1.1.0 版本的库。要通过<kbd>pip</kbd>下载相同版本的库，您可以在终端中运行以下命令:</p>
+        <pre>
+          <strong>pip install -U scikit-surprise==1.1.0</strong>
+        </pre>
+        <p>在使用库之前，我们还需要下载本章中使用的数据集。</p>
+        <h2 id="uuid-f44afbb8-86ca-4911-92e4-25d10201f974">下载 2012 年 KDD 杯数据集</h2>
+        <p>我们将使用我们在<a href="https://cdp.packtpub.com/hands_on_machine_learning_with_scikit_learn/wp-admin/post.php?post=32&amp;action=edit">第 10 章</a> <em>中使用的相同数据集，不平衡学习——甚至不到 1%的人赢得彩票</em>。数据发布在<strong> OpenML </strong>平台上。它包含一个记录列表。在每条记录中，都有一个用户看过一个在线广告，还有一个额外的列说明用户是否点击了该广告。在前面提到的章节中，我们构建了一个分类器来预测用户是否点击了广告。我们在分类器中使用了为广告和来访用户提供的特征。在这一章中，我们将把这个问题框架为一个协同过滤问题。因此，我们将只使用用户和广告的 id。所有其他特性都将被忽略，这一次，目标标签将是用户评级。在这里，我们将下载数据并将其放入数据框中:</p>
+        <pre>from sklearn.datasets import fetch_openml<br/><br/>data = fetch_openml(data_id=1220)<br/><br/>df = pd.DataFrame(<br/>    data['data'],<br/>    columns=data['feature_names']<br/>)[['user_id', 'ad_id']].astype(int)<br/><br/><br/>df['user_rating'] = pd.Series(data['target']).astype(int)</pre>
+        <p>我们将所有列转换成整数。评级列采用二进制值，其中<kbd>1</kbd>表示点击或正面评级。我们可以看到，记录中只有<kbd>16.8%</kbd>得到了正面评价。我们可以通过打印<kbd>user_rating</kbd>列的含义来检查这一点，如下所示:</p>
+        <pre>df['user_rating'].mean()</pre>
+        <p>我们还可以显示数据集的前四行。在这里，您可以看到用户和广告的 id，以及给定的评级:</p>
+        <p class="CDPAlignCenter CDPAlign"><img src="img/6206c67f-cdb9-4636-ba2a-63dc3c8bc68e.png" style="width:19.25em;"/></p>
+        <p>惊喜库希望数据列完全按照这种顺序排列。因此，现在不需要更多的数据操作。在下一节中，我们将了解如何将该数据帧加载到库中，并将其分成训练集和测试集。</p>
+        <h2 id="uuid-0ee33565-672e-4491-be62-d9dbc483954a">处理和分割数据集</h2>
+        <p>最简单的形式是，从协同过滤的角度来看，两个用户是相似的，如果他们对相同的项目给出相同的评价。在当前的数据格式中很难看到这一点。最好将数据放入用户项目评级矩阵中。矩阵中的每一行代表一个用户，每一列代表一个项目，每个单元格中的值代表每个用户对相应项目的评分。我们可以使用<kbd>pandas</kbd>中的<kbd>pivot</kbd>方法来创建这个矩阵。在这里，我为数据集的前 10 条记录创建了矩阵:</p>
+        <pre>df.head(10).groupby(<br/>    ['user_id', 'ad_id']<br/>).max().reset_index().pivot(<br/>    'user_id', 'ad_id', 'user_rating'<br/>).fillna(0).astype(int)</pre>
+        <p>下面是由<kbd>10</kbd>项生成的<kbd>10</kbd>用户矩阵:</p>
+        <p class="CDPAlignCenter CDPAlign"><img src="img/8d73ec36-11fd-47a7-9d7b-2d3c5acd48a5.png" style="width:54.42em;"/></p>
+        <p>我们自己使用数据框来做这件事并不是最有效的方法。惊喜图书馆以更有效的方式存储数据。因此，我们将使用库的<kbd>Dataset</kbd>模块。在加载数据之前，我们需要指定给定评级的范围。这里，我们将使用<kbd>Reader</kbd>模块来指定我们的评级采用二进制值。然后，我们将使用数据集的<kbd>load_from_df</kbd>方法加载数据框。该方法采用我们的数据帧以及上述阅读器的实例:</p>
+        <pre>from surprise.dataset import Dataset<br/>from surprise import Reader<br/><br/>reader = Reader(rating_scale=(0, 1))<br/>dataset = Dataset.load_from_df(df, reader)</pre>
+        <p>由于缺少诸如特征和目标的概念，协同过滤算法不被认为是监督学习算法。尽管如此，用户给项目评分，我们试图预测这些评分。这意味着我们仍然可以通过比较实际评分和预测评分来评估我们的算法。这就是为什么通常将数据分成训练集和测试集，并使用指标来评估我们的预测。Surprise 的功能和 scikit-learn 的<kbd>train_test_split</kbd>功能类似。我们将在这里使用它来将数据分成 75%的训练集和 25%的测试集:</p>
+        <pre>from surprise.model_selection import train_test_split<br/>trainset, testset = train_test_split(dataset, test_size=0.25)</pre>
+        <p>除了训练测试分割，我们还可以执行<strong> K 倍交叉验证</strong>。我们将使用<strong>平均绝对误差</strong> ( <strong> MAE </strong>)和<strong>均方根误差</strong> ( <strong> RMSE </strong>)来比较预测评级和实际评级。下面的代码使用四重交叉验证，并打印四重的平均平均相对误差和 RMSE。为了更容易应用于不同的算法，我创建了一个<kbd>predict_evaluate</kbd>函数，它获取我们想要使用的算法的一个实例。它还需要整个数据集，算法的名称用于将它与结果一起打印在最后。然后使用<kbd>cross_validate</kbd> <em> <strong/> </em>模块 od <kbd>surprise</kbd>计算预期误差并打印其平均值:</p>
+        <pre>from surprise.model_selection import cross_validate<br/><br/>def predict_evaluate(recsys, dataset, name='Algorithm'):<br/>    scores = cross_validate(<br/>        recsys, dataset, measures=['RMSE', 'MAE'], cv=4<br/>    )<br/>    print(<br/>        'Testset Avg. MAE: {:.2f} &amp; Avg. RMSE: {:.2f} [{}]'.format(<br/>            scores['test_mae'].mean(),<br/>            scores['test_rmse'].mean(),<br/>            name<br/>        )<br/>    )</pre>
+        <p>我们将在下面的章节中使用这个函数。在学习不同的算法之前，我们需要创建一个参考算法——在沙地上划出一条线，与其余的算法进行比较。在下一节中，我们将创建一个给出随机结果的推荐系统。这将是我们今后的参考算法。</p>
+        <h2 id="uuid-2bc6bc26-bf69-41eb-8cc6-9a2d92b7a57a">创建随机推荐器</h2>
+        <p>我们知道 16.8%的记录会带来正面评价。因此，随机给出 16.8%的正面评价的推荐器似乎是比较其他算法的好参考。顺便说一下，我在这里故意避免使用术语<em>基线</em>，而是使用术语<em>引用</em>，因为这里使用的算法之一叫做<em>基线</em>。无论如何，我们可以通过创建一个继承自惊奇库的<kbd>AlgoBase</kbd>类的<kbd>RandomRating</kbd>类来创建我们的参考算法。库中的所有算法都是由<kbd>AlgoBase</kbd>基类驱动的，它们应该实现一个估算方法。</p>
+        <p>对每个用户-项目对调用此方法，并期望它返回该特定用户-项目对的预测评级。由于我们在这里返回随机评分，我们将使用 NumPy 的<kbd>random</kbd>模块。这里，我们在二项式方法中设置了<kbd>n=1</kbd>,这就把它变成了伯努利分布。在类初始化期间给<kbd>p</kbd>的值指定了返回 1 的概率。默认情况下，50%的用户-项目对将获得评分<kbd>1</kbd>，其中 50%将获得评分<kbd>0</kbd>。我们将覆盖这个缺省值，并在以后使用该类时将其设置为 16.8%。下面是新创建的方法的代码:</p>
+        <pre>from surprise import AlgoBase<br/><br/>class RandomRating(AlgoBase):<br/><br/>    def __init__(self, p=0.5):<br/>        self.p = p<br/>        AlgoBase.__init__(self)<br/><br/>    def estimate(self, u, i):<br/>        return np.random.binomial(n=1, p=self.p, size=1)[0]</pre>
+        <p>我们需要将<kbd>p</kbd>的默认值改为<kbd>16.8%</kbd>。然后我们可以将<kbd>RandomRating</kbd>实例传递给<kbd>predict_evaluate</kbd>来获得估计的误差:</p>
+        <pre>recsys = RandomRating(p=0.168)<br/>predict_evaluate(recsys, dataset, 'RandomRating')</pre>
+        <p>前面的代码给出了平均 MAE 为<kbd>0.28</kbd>和平均 RMSE 为<kbd>0.53</kbd>。请记住，我们正在使用 K 倍交叉验证。因此，我们计算每个折叠返回的平均误差的平均值。请记住这些错误数字，因为我们希望更高级的算法会产生更低的错误。在下一节中，我们将了解最基本的协同过滤算法家族，其灵感来自于<strong>K-最近邻</strong> ( <strong> KNN </strong>)算法。</p>
+        <h1 id="uuid-c84ae693-43d9-459d-a0e6-a6a342da73b2">使用 KNN 启发的算法</h1>
+        <p>我们已经遇到了足够多的 KNN <strong/>算法的变体，因此它是我们解决推荐问题的首选。在上一节的用户-项目评分矩阵中，每行代表一个用户，每列代表一个项目。因此，相似的行表示具有相似品味的用户，相同的列表示相同用户喜欢的项目。因此，如果我们想估计用户(<em>u<em>I</em>)对项目的评分(<em> r <sub> u，i </sub> </em>)，<strong> <sub/> </strong>，我们可以得到用户(<em> u </em>)的 KNNs，找到他们对项目(<em> i </em>)的评分，并计算他们评分的平均值作为对(<em> r 【T48)的估计然而，由于这些邻居中的一些与用户(<em> u </em>)相比更相似，我们可能需要使用加权平均来代替。由更相似的用户给出的评级应该比其他的给予更大的权重。下面是一个公式，其中相似性得分用于衡量用户邻居给出的评级:</em></em></p>
+        <p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/f8c3f918-d8f1-4121-9414-2c2e147ba36e.png" style="width:22.58em;"/></p>
+        <p>我们用术语<em> v </em>来指代<em> u </em>的邻居。所以，<em> r <sub> v，i </sub> </em> <strong> <sub/> </strong>是他们各自给物品的评分(<em> i </em>)。相反，我们可以基于<em>项目相似度</em>而不是<em>用户相似度来进行评估。然后，期望评级(<em> r <sub> u，i </sub> </em>)将是用户(<em> u </em>)对他们最相似的项目(<em> i </em>)给出的评级的加权平均值。</em></p>
+        <p>您可能想知道我们现在是否可以设置邻居的数量，以及是否有多个相似性度量可供选择。两个问题的答案都是肯定的。我们稍后会更深入地研究算法的超参数，但是现在，让我们使用它的默认值。一旦<kbd>KNNBasic</kbd>被初始化，我们可以将它传递给<kbd>predict_evaluate</kbd>函数，就像我们在上一节中将<kbd>RandomRating</kbd>估算器传递给它一样。在运行以下代码之前，请确保您的计算机上有足够的内存:</p>
+        <pre>from surprise.prediction_algorithms.knns import KNNBasic<br/>recsys = KNNBasic()<br/>predict_evaluate(recsys, dataset, 'KNNBasic')</pre>
+        <p>这一次我们得到了平均 MAE 为<kbd>0.28</kbd>和平均 RMSE 为<kbd>0.38</kbd>。考虑到<kbd>RandomRating</kbd>估计器盲目地进行随机预测，而<kbd>KNNBasic</kbd>基于用户的相似性做出决定，平方误差的改善是可以预期的。</p>
+        <p>这里使用的数据集中的等级是二进制值。在其他一些情况下，用户可能被允许给出 5 星评级，甚至给出从 0 到 100 的分数。在这些情况下，一个用户可能比另一个用户更慷慨。我们可能有相同的口味，但对我来说，5 星的评级表明这部电影很棒，而你自己从来没有给过 5 星的评级，你最喜欢的电影得到了 4 星的评级。<kbd>KNNWithMeans</kbd>算法处理这个问题。这是一个与<kbd>KNNBasic</kbd>几乎相同的算法，除了它最初将每个用户给出的评分标准化以使它们具有可比性。</p>
+        <p>如前所述，我们可以为<kbd>K</kbd>选择数字，以及使用的相似性分数。此外，我们可以决定是基于用户相似性还是基于项目相似性进行评估。这里，我们将邻居的数量设置为<kbd>20</kbd>，使用余弦相似度，并基于项目相似度进行估计:</p>
+        <pre>from surprise.prediction_algorithms.knns import KNNBasic<br/><br/>sim_options = {<br/>    'name': 'cosine', 'user_based': False<br/>}<br/>recsys = KNNBasic(k=20, sim_options=sim_options, verbose=False)<br/>predict_evaluate(recsys, dataset, 'KNNBasic')</pre>
+        <p>由此产生的误差比以前更大。我们得到了<kbd>0.29</kbd>的平均 MAE 和<kbd>0.39</kbd>的平均 RMSE。显然，我们需要尝试不同的超参数，直到我们得到最好的结果。幸运的是，Surprise 为调整算法的超参数提供了一个<kbd>GridSearchCV</kbd>助手。我们基本上提供了一个超参数值的列表，并指定了我们需要用来评估算法的度量。在下面的代码片段中，我们将度量值设置为<kbd>rmse</kbd>和<kbd>mae</kbd>。在运行网格搜索时，我们使用 4 重交叉验证，并使用机器中所有可用的处理器。你现在可能知道 KNN 算法的预测时间很慢。因此，为了加快这个过程，我只对数据集的一个子集进行了搜索，如下所示:</p>
+        <pre>from surprise.model_selection import GridSearchCV<br/>from surprise.prediction_algorithms.knns import KNNBasic<br/><br/>param_grid = {<br/>    'sim_options': {<br/>        'name':['cosine', 'pearson'],<br/>    },<br/>    'k': [5, 10, 20, 40],<br/>    'verbose': [True],<br/>}<br/><br/>dataset_subset = Dataset.load_from_df(<br/>    df.sample(frac=0.25, random_state=0), reader<br/>)<br/>gscv = GridSearchCV(<br/>    KNNBasic, param_grid, measures=['rmse', 'mae'], <br/>    cv=4, n_jobs=-1<br/>)<br/>gscv.fit(dataset_subset)<br/><br/>print('Best MAE:', gscv.best_score['mae'].round(2))<br/>print('Best RMSE:', gscv.best_score['rmse'].round(2))<br/>print('Best Params', gscv.best_params['rmse'])</pre>
+        <p>我们得到平均 MAE 为<kbd>0.28</kbd>，平均 RMSE 为<kbd>0.38</kbd>。这些结果与默认超参数的结果相同。然而，<kbd>GridSearchCV</kbd>选择了<kbd>20</kbd>的<kbd>K</kbd>值，而不是默认的<kbd>40</kbd>。它还选择了<strong>皮尔逊相关系数</strong> t 作为其相似性度量。</p>
+        <p>KNN 算法速度很慢，不能为我们的数据集提供最佳性能。因此，在下一节中，我们将尝试一个非基于实例的学习者。</p>
+        <h1 id="uuid-cd4f402a-25e6-42e5-8aab-fed96cdb1afa">使用基线算法</h1>
+        <p>最近邻算法的简单性是一把双刃剑。一方面更容易把握，但另一方面又缺少一个我们在训练时可以优化的目标函数。这也意味着它的大部分计算是在预测时间进行的。为了克服这些问题，Yehuda Koren 将推荐问题公式化为一个优化任务。尽管如此，对于每个用户-项目对，我们需要估计一个评分(<em> r <sub> u，i </sub> </em>)。这次的预期评级是以下三个因素的总和:</p>
+        <ul>
+          <li><img class="fm-editor-equation" src="img/a8e42ccd-0aab-45e7-9757-acf0bea746cb.png" style="width:0.83em;"/>:所有用户对所有项目的总体平均评分</li>
+          <li><em> b <sub> u </sub></em></li>
+          <li><em> b <sub> i </sub></em></li>
+        </ul>
+        <p>以下是预期评级的公式:</p>
+        <p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/3804eba7-13fb-4efc-9233-ebc145f874b5.png" style="width:15.83em;"/></p>
+        <p>对于我们训练集中的每个用户-项目对，我们知道它的实际评分(<em> r <sub> u，i </sub> </em>)，我们现在需要做的就是找出<em> b <sub> u </sub> </em>和<em> b <sub> i </sub> </em>的最优值。我们从上述公式中寻找使实际额定值(<em> r <sub> u，I</sub>T52】)和<em>预期额定值</em> ( <em> r <sub> u，I</sub>T58)之间的差值最小的值。换句话说，当给定训练数据时，我们需要一个求解器来学习各项的值。实际上，基线算法试图最小化实际和预期评级之间的均方差。它还增加了一个惩罚(<em> b <sub> u </sub> </em>)和(<em> b <sub> i </sub> </em>)的正则项，以避免过拟合。请参考<a href="https://cdp.packtpub.com/hands_on_machine_learning_with_scikit_learn/wp-admin/post.php?post=26&amp;action=edit">第 3 章</a> <em>，用线性方程</em>做决策，更好的理解正则化的概念。</em></em></p>
+        <p>学习到的系数(<em> b <sub> u </sub> </em>和<em>b<sub>I</sub></em>)<strong><sub/></strong>是描述每个用户和每个项目的向量。在预测时，如果遇到新用户，则将<em>b<sub>u</sub>T85】设置为<kbd>0</kbd>。同样，如果遇到训练集中没有的新项目，则将<em>b<sub>I</sub>T89】设置为<kbd>0</kbd>。</em></em></p>
+        <p>解决这个优化问题有两个求解器:<strong>随机梯度下降</strong> ( <strong> SGD </strong>)和<strong>交替最小二乘</strong> ( <strong> ALS </strong>)。默认情况下使用 ALS。两个解算器都有自己的设置，例如最大历元数和学习速率。此外，您还可以调整正则化参数。</p>
+        <p>以下是模型与其默认超参数的使用方式:</p>
+        <pre>from surprise.prediction_algorithms.baseline_only import BaselineOnly<br/>recsys = BaselineOnly(verbose=False)<br/>predict_evaluate(recsys, dataset, 'BaselineOnly')</pre>
+        <p>这一次，我们得到平均 MAE 为<kbd>0.27</kbd>，平均 RMSE 为<kbd>0.37</kbd>。同样，<kbd>GridSearchCV</kbd>可以用来调整模型的超参数。我将把参数调整留给您来尝试。现在，是时候进入我们的第三个算法:<strong>奇异值分解</strong> ( <strong> SVD </strong>)。</p>
+        <h1 id="uuid-8fc3f20b-00db-4c9a-a4aa-7d03e59192c2">使用奇异值分解</h1>
+        <p>用户项目评级矩阵通常是一个巨大的矩阵。我们从数据集得到的这个矩阵包含 30，114 行和 19，228 列，这个矩阵中的大多数值(99.999%)都是零。这是意料之中的。假设你拥有一个流媒体服务，在你的库中有数以千计的电影。一个用户观看几十个以上是不太可能的。这种稀疏造成了另一个问题。如果一个用户看了电影《宿醉:第一部 T21》，而另一个用户看了《宿醉:第二部》，从矩阵的角度来看，他们看了两部不同的电影。我们已经知道，协同过滤算法不使用用户或项目特征。因此，它不知道《宿醉》电影的两个部分属于同一个系列，更不知道它们都是喜剧。为了解决这个缺点，我们需要转换我们的用户项目评级矩阵。我们希望新的矩阵更小，更好地捕捉用户和商品之间的相似之处。</p>
+        <p><strong> SVD </strong>是一种用于降维的矩阵分解算法。与<strong>主成分分析</strong> ( <strong> PCA </strong>)非常相似，我们在<a href="https://cdp.packtpub.com/hands_on_machine_learning_with_scikit_learn/wp-admin/post.php?post=28&amp;action=edit">第五章</a> <em>最近邻图像处理</em>中看到了。与 PCA 中的主成分相反，所得到的奇异值捕捉了关于用户-项目评级矩阵中的用户和项目的潜在信息。如果前一句还没说清楚也不用担心。在下一节中，我们将通过一个例子来更好地理解这个算法。</p>
+        <h2 id="uuid-f2efdfec-706f-4457-89d6-69f189a3477c">通过奇异值分解提取潜在信息</h2>
+        <p>没有什么咒语尝起来像音乐。让我们看看下面的数据集。在这里，我们有六个用户，每个人都为他们喜欢的音乐家投票:</p>
+        <pre>music_ratings = [('U1', 'Metallica'), ('U1', 'Rammstein'), ('U2', 'Rammstein'), ('U3', 'Tiesto'), ('U3', 'Paul van Dyk'), ('U2', 'Metallica'), ('U4', 'Tiesto'), ('U4', 'Paul van Dyk'), ('U5', 'Metallica'), ('U5', 'Slipknot'), ('U6', 'Tiesto'), ('U6', 'Aly &amp; Fila'), ('U3', 'Aly &amp; Fila')]</pre>
+        <p>我们可以将这些评级放入数据框，并使用数据框的<kbd>pivot</kbd>方法将其转换为用户项目评级矩阵，如下所示:</p>
+        <pre>df_music_ratings = pd.DataFrame(music_ratings, columns=['User', 'Artist'])<br/>df_music_ratings['Rating'] = 1<br/><br/>df_music_ratings_pivoted = df_music_ratings.pivot(<br/>    'User', 'Artist', 'Rating'<br/>).fillna(0)</pre>
+        <p>这是生成的矩阵。为了清晰起见，我使用了<kbd>pandas</kbd>的风格给不同的评分以不同的颜色:</p>
+        <p class="CDPAlignCenter CDPAlign"><img src="img/69a9ab17-90b1-41d6-b515-269105890a30.png" style="width:34.25em;"/></p>
+        <p>显然，用户 1、2、5 喜欢金属音乐，而用户 3、4、6 喜欢恍惚音乐。尽管用户 5 仅与用户 1 和用户 2 共享一个频带，但我们可以看到这一点。我们也许也能看到这一点，因为我们意识到这些音乐家，因为我们对矩阵有一个整体的看法，而不是专注于个人对。我们可以使用 scikit-learn 的<kbd>TruncatedSVD</kbd>函数来降低矩阵的维度，并通过<em> N </em>个分量(单个向量)来表示每个用户和音乐家。下面的代码片段用两个<em>单一向量</em>计算<kbd>TruncatedSVD</kbd>。然后，<kbd>transform</kbd>函数返回一个新的矩阵，其中每一行代表六个用户中的一个，其两列中的每一列对应于两个单一向量中的一个:</p>
+        <pre>from sklearn.decomposition import TruncatedSVD<br/>svd = TruncatedSVD(n_components=2)<br/>svd.fit_transform(df_music_ratings_pivoted).round(2)</pre>
+        <p>我再次将生成的矩阵放入数据框中，并使用其样式根据单元格的值对它们进行着色。下面是代码:</p>
+        <pre>pd.DataFrame(<br/>    svd.fit_transform(df_music_ratings_pivoted),<br/>    index=df_music_ratings_pivoted.index,<br/>    columns=['SV1', 'SV2'], <br/>).round(2).style.bar(<br/>    subset=['SV1', 'SV2'], align='mid', color='#AAA'<br/>)</pre>
+        <p>这是生成的数据框:</p>
+        <p class="CDPAlignCenter CDPAlign"><img src="img/c51d9ed9-ea3a-4f77-8d37-b8ac40ac745c.png" style="width:19.42em;"/></p>
+        <p>你可以把这两个部分中的每一个都当作一种音乐类型。很明显，较小的矩阵能够在流派方面捕捉用户的口味。用户 1、2 和 5 现在彼此更加靠近，用户 3、4 和 6 也是如此，他们彼此之间的距离比在原始矩阵中更近。在下一节中，我们将使用余弦相似性分数来更清楚地展示这一点。</p>
+        <p>这里使用的概念也适用于文本数据。像<kbd>search</kbd>、<kbd>find</kbd>和<kbd>forage</kbd>这样的词有相似的意思。因此，<kbd>TruncatedSVD</kbd>变换器可用于将<em/> <strong>向量空间模型</strong> ( <strong> VSM </strong>)压缩到较低的空间，然后在监督或非监督学习算法中使用。当用在那个语境中，它被称为<strong>潜在语义分析</strong> ( <strong> LSA </strong>)。</p>
+        <p>这种压缩不仅捕获了在较大矩阵中不清楚的潜在信息，而且有助于距离计算。我们已经知道，像 KNN 这样的算法在低维度下效果最好。不要相信我的话。在下一节中，我们将比较基于原始用户项目评级矩阵和二维矩阵计算的余弦距离。</p>
+        <h3 id="uuid-a8a3a1ba-8636-413b-8160-1fe5a7130b3d">比较两个矩阵的相似性度量</h3>
+        <p>我们可以计算所有用户之间的余弦相似度。我们将从原始的用户项目评级矩阵开始。在计算了用户 1、2、3 和 5 的成对余弦相似性之后，我们将结果放入一个数据框中，并为清晰起见应用了一些样式:</p>
+        <pre>from sklearn.metrics.pairwise import cosine_similarity<br/><br/>user_ids = ['U1', 'U2', 'U3', 'U5']<br/><br/>pd.DataFrame(<br/>    cosine_similarity(<br/>        df_music_ratings_pivoted.loc[user_ids, :].values<br/>    ),<br/>    index=user_ids,<br/>    columns=user_ids<br/>).round(2).style.bar(<br/>    subset=user_ids, align='mid', color='#AAA'<br/>)</pre>
+        <p>以下是四个用户之间的成对相似性:</p>
+        <p class="CDPAlignCenter CDPAlign"><img src="img/1524d18a-9d9d-4df8-9de5-2bc635683bbc.png" style="width:35.50em;"/></p>
+        <p>事实上，与用户 3 相比，用户 5 更类似于用户 1 和 2。然而，它们并不像我们预期的那样相似。现在让我们通过使用<kbd>TruncatedSVD</kbd>来计算相同的相似性:</p>
+        <pre>from sklearn.metrics.pairwise import cosine_similarity<br/>from sklearn.decomposition import TruncatedSVD<br/><br/>user_ids = ['U1', 'U2', 'U3', 'U5']<br/><br/>svd = TruncatedSVD(n_components=2)<br/>df_user_svd = pd.DataFrame(<br/>    svd.fit_transform(df_music_ratings_pivoted),<br/>    index=df_music_ratings_pivoted.index,<br/>    columns=['SV1', 'SV2'], <br/>)<br/><br/>pd.DataFrame(<br/>    cosine_similarity(<br/>        df_user_svd.loc[user_ids, :].values<br/>    ),<br/>    index=user_ids,<br/>    columns=user_ids<br/>).round(2).style.bar(<br/>    subset=user_ids, align='mid', color='#AAA'<br/>)</pre>
+        <p>新的计算捕捉到了这一次音乐家之间潜在的相似之处，并在比较用户时将其纳入。这是新的相似度矩阵:</p>
+        <p class="CDPAlignCenter CDPAlign"><img src="img/931b2f30-502d-49d9-bbff-9142f321f25f.png" style="width:36.75em;"/></p>
+        <p>显然，用户 5 比以前更类似于用户 1 和 2。忽略这里一些零前面的负号。这是因为 Python 实现了浮点运算的<strong> IEEE </strong> ( <strong>电气电子工程师协会</strong>)标准。<br/></p>
+        <p>自然，我们也可以根据音乐家的流派(单一向量)来表示他们。该另一个矩阵可通过<kbd>svd.components_</kbd>检索。然后，我们可以计算不同音乐家之间的相似性。在对稀疏数据进行聚类之前，建议将此转换作为初步步骤。</p>
+        <p>现在这个版本的<kbd>SVD</kbd>已经很清楚了，实际上在处理大型数据集的时候，通常会使用更具可扩展性的因式分解算法。<strong>概率矩阵分解</strong>(<strong>P</strong><strong>MF</strong><em>)</em>随着观测值的数量线性缩放，在稀疏和不平衡数据集上表现良好。我们将在下一节使用 PMF 的惊喜实现。</p>
+        <h2 id="uuid-b7a4bea0-733e-4d36-a963-fc74a61be429">使用奇异值分解的点击预测</h2>
+        <p>我们现在可以使用 Surprise 的<kbd>SVD</kbd>算法来预测我们数据集中的点击量。让我们从算法的默认参数开始，稍后再解释:</p>
+        <pre>from surprise.prediction_algorithms.matrix_factorization import SVD<br/>recsys = SVD()<br/>predict_evaluate(recsys, dataset, 'SVD')</pre>
+        <p>这一次，我们得到了平均 MAE 为<kbd>0.27</kbd>和平均 RMSE 为<kbd>0.37</kbd>。这些结果类似于之前使用的基线算法。事实上，Surprise 对<kbd>SVD</kbd>的实现是基线算法和<kbd>SVD</kbd>的结合。它使用以下公式表示用户项目评级:</p>
+        <p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/f29915ef-89b9-4866-be27-9a1b9d6880ae.png" style="width:19.17em;"/></p>
+        <p>等式的前三项(<img class="fm-editor-equation" src="img/a8e42ccd-0aab-45e7-9757-acf0bea746cb.png" style="width:0.75em;"/>、<em> b <sub> u </sub> </em>和<em> b <sub> i </sub> </em>)与基线算法中的相同。第四项表示我们从<kbd>TruncatedSVD</kbd>中得到的两个相似矩阵的乘积。<em> q <sub> i </sub>类似地，<em>p<sub>u</sub></em>matrix 将每个用户表示为多个单一向量。物品矩阵被调换，因此字母<em> T </em>在它的上面。然后，该算法使用<strong> SGD </strong>来最小化预期额定值和实际额定值之间的平方差。与基线模型类似，它也正则化期望评级的系数(<em> b <sub> u </sub>，b <sub> i </sub>，q <sub> i </sub>，</em>和<em> p <sub> u </sub> </em>)，以避免过拟合。</em></p>
+        <p>我们可以忽略方程的基线部分——也就是通过设置<kbd>biased=False</kbd>去掉它的前三个系数(<img class="fm-editor-equation" src="img/a8e42ccd-0aab-45e7-9757-acf0bea746cb.png" style="width:0.75em;"/>、<em> b <sub> u </sub> </em>、<em> b <sub> i </sub> </em>)。使用<kbd>n_factors</kbd>超参数设置要使用的单个矢量的数量。我们还可以通过<kbd>n_epochs</kbd>控制<kbd>SGD</kbd>的纪元数量。此外，还有额外的超参数用于设置算法的学习率、正则化及其系数的初始值。您可以使用<kbd>surprise</kbd>提供的参数调整助手，即<kbd>GridSearchCV</kbd>或<kbd>RandomizedSearchCV</kbd>，找到这些参数的最佳组合。</p>
+        <p class="mce-root">我们对推荐系统及其各种算法的讨论标志着本书中讨论的机器学习主题的结束。像这里讨论的所有其他算法一样，它们只有在投入生产供其他人使用时才有用。在下一节中，我们将了解如何部署一个经过训练的算法，并让其他人也能使用它。</p>
+        <h1 id="uuid-7393a24e-b617-4f5e-8858-db7c018dc0e1">在生产中部署机器学习模型</h1>
+        <p>使用机器学习模型有两种主要模式:</p>
+        <ul>
+          <li><strong>批量预测</strong>:在这种模式下，你在某个时间段之后加载一堆数据记录——比如每晚或者每个月。然后你对这些数据进行预测。通常，延迟在这里不是问题，您可以将您的训练和预测代码放入单个批处理作业中。一个例外是，如果您需要过于频繁地运行作业，以至于没有足够的时间在每次作业运行时重新训练模型。然后，有必要对模型进行一次训练，将其存储在某个地方，并在每次进行新的批量预测时加载它。</li>
+          <li><strong>在线</strong> <strong>预测</strong>:在这个模型中，你的模型通常部署在一个<strong>应用编程接口</strong> ( <strong> API </strong>)的后面。您的 API 通常每次都用一个数据记录来调用，它应该对这个记录进行预测并返回它。在这里，低延迟是最重要的，通常建议对模型进行一次训练，将其存储在某个地方，并在进行新的 API 调用时使用预训练的模型。</li>
+        </ul>
+        <p>如您所见，在这两种情况下，我们可能需要将模型训练期间使用的代码与预测时使用的代码分开。无论是监督学习算法还是非监督学习算法，除了编写的代码行之外，拟合的模型还取决于从数据中学习的系数和参数。因此，我们需要一种方法将代码和学习到的参数存储为一个单元。这个单个单元可以在训练后保存，然后在以后的预测时间使用。为了能够在文件中存储函数或对象，或者通过互联网共享它们，我们需要将它们转换成标准格式或协议。这个过程被称为序列化。<kbd>pickle</kbd>是 Python 中最常用的序列化协议之一。Python 标准库提供了酸洗对象的工具；然而，在处理 NumPy 数组时，<kbd>joblib</kbd>是更有效的选择。为了能够使用该库，您需要通过在您的终端中运行以下命令来通过<kbd>pip</kbd>安装它:</p>
+        <pre>
+          pip
+          install
+          joblib
+        </pre>
+        <p>一旦安装完毕，你可以使用<kbd>joblib</kbd>将任何东西保存到磁盘上的一个文件中。例如，在拟合一个基线算法之后，我们可以使用<kbd>joblib</kbd>函数的<kbd>dump</kbd>方法存储拟合的对象。该方法需要模型的对象以及用于保存对象的文件的名称。我们通常使用一个<kbd>.pkl</kbd>扩展名来引用<kbd>pickle</kbd>文件:</p>
+        <pre>import joblib<br/>from surprise.prediction_algorithms.baseline_only import BaselineOnly<br/><br/>recsys = BaselineOnly()<br/>recsys.fit(trainset)<br/>joblib.dump(recsys, 'recsys.pkl') </pre>
+        <p>一旦保存到磁盘，任何其他 Python 代码都可以再次加载相同的模型并立即使用，而无需重新安装。在这里，我们加载 pickled 算法，并使用它对测试集进行预测:</p>
+        <pre>from surprise import accuracy<br/>recsys = joblib.load('recsys.pkl') <br/>predictions = recsys.test(testset)</pre>
+        <p>这里使用了一个<kbd>surprise</kbd>估算器，因为这是我们在本章中使用的库。尽管如此，任何 Python 对象都可以用同样的方式进行处理和加载。前几章中使用的任何估算器都可以同样的方式使用。此外，您还可以编写自己的类，实例化它们，并处理结果对象。</p>
+        <p>要将您的模型部署为 API，您可能需要使用 web 框架，例如<strong> Flask </strong>或<strong> CherryPy </strong>。开发 web 应用程序超出了本书的范围，但是一旦您知道如何构建它们，加载 pickled 模型应该很简单。建议在 web 应用程序启动时加载 pickled 对象。这样，如果每次收到新请求时都重新加载对象，就不会引入任何额外的延迟。</p>
+        <h1 id="uuid-30d911d6-8c77-4713-8426-a0c57bf68e25">摘要</h1>
+        <p>这一章标志着这本书的结束。我希望这里讨论的所有概念现在都清楚了。我也希望每种算法的理论背景和它的实际应用的结合为你在现实生活中适应不同的问题铺平了道路。显然，没有哪本书可以定论，未来会有新的算法和工具提供给你。然而，佩德罗·多明戈斯将机器学习算法分为五个部落。除了进化算法，我们遇到了属于多明戈斯五个部落中四个部落的算法。因此，我希望这里讨论的各种算法，每种算法都有自己的方法，将成为未来处理任何新的机器学习解决方案的良好基础。</p>
+        <p>所有的书都是进行中的作品。他们的价值不仅在于他们的内容，还包括他们引发的未来讨论的价值。请相信，每当你分享你基于从书中获得的知识而创作的东西时，你都会让任何一本书的作者高兴。每次你引用他们的话，分享新的更好的方法来解释他们书中的东西，甚至纠正他们犯的错误，你都会让他们同样高兴。我也期待着您做出如此宝贵的贡献。</p>
+      
+    
+  
+
+</body></html>

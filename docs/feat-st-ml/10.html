@@ -1,0 +1,278 @@
+<html><head/><body>
+
+
+	
+		<title>B18024_07_ePub</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-112">第 7 章:盛宴选择和 ML 最佳实践</h1>
+			<p>在上一章中，我们讨论了如何使用 Amazon Managed Workflows 和 Apache Airflow 来编排和生产带有<strong class="bold"> Feast </strong>的在线和批处理模型。到目前为止，在本书中，我们已经讨论了一个特性商店——Feast。然而，现在市场上有很多功能商店。在这一章中，我们将看看其中的几个，并讨论它们与 Feast 有何不同，以及使用它们优于 Feast 的优缺点。</p>
+			<p>在这一章中，我们将尝试另一个功能商店，特别是 Amazon SageMaker。我们将采用在构建客户<strong class="bold">终身价值(LTV) </strong>模型时生成的相同功能集，并将其导入 SageMaker 功能商店，同时运行几个查询。选择 AWS 而不是其他功能商店(如 Tecton、Hopworks 和 H2O.ai)的原因是可以轻松访问试用版。然而，为你选择正确的特性库取决于你已经拥有的工具和基础设施，我们将在本章中讨论。</p>
+			<p>本章的目的是向您介绍市场上有哪些产品，以及它与 Feast 等自我管理的特色商店有何不同。我们还将讨论这些功能存储之间的相似之处和不同之处。我想在本章讨论的另一个方面是 ML 开发中的最佳实践。不管我们使用什么工具/软件进行 ML 开发，有一些事情可以被我们所有人普遍采用来改进 ML 工程。</p>
+			<p>在本章中，我们将讨论以下主题:</p>
+			<ul>
+				<li>市场上可用的功能商店</li>
+				<li>使用 SageMaker 功能库进行功能管理</li>
+				<li>ML 最佳实践</li>
+			</ul>
+			<h1 id="_idParaDest-113"><a id="_idTextAnchor114"/>技术要求</h1>
+			<p>为了浏览示例并更好地理解本章，前几章中涉及的主题是有用的，但不是必需的。要理解本章中的代码示例，您需要熟悉笔记本环境，它可以是本地设置，如 Jupyter，也可以是在线笔记本环境，如 Google Colab、Kaggle 或 SageMaker。您还需要一个对 SageMaker 和 AWS Glue 控制台具有完全访问权限的 AWS 帐户。您可以创建一个新帐户，并在试用期内免费使用所有服务。您可以使用以下 GitHub 链接找到本书的代码示例:</p>
+			<p><a href="https://github.com/PacktPublishing/Feature-Store-for-Machine-Learning/tree/main/Chapter07">https://github . com/packt publishing/Feature-Store-for-Machine-Learning/tree/main/chapter 07</a></p>
+			<h1 id="_idParaDest-114"><a id="_idTextAnchor115"/>市场上可用的功能商店</h1>
+			<p>在本节中，我们将简要讨论市场上可用的一些功能商店以及它们与 Feast 的比较，以及这些功能商店之间的一些共性和差异。</p>
+			<h2 id="_idParaDest-115"><a id="_idTextAnchor116"/>泰克顿特色店</h2>
+			<p><em class="italic"> Tecton 是一家企业功能商店，由优步机器学习平台米开朗基罗</em>(https://eng . Uber . com/Michelangelo-machine-learning-platform/)的创建者打造。泰克顿也是盛宴的主要贡献者之一。因此，当你<a id="_idIndexMarker449"/>查看泰克顿的<a id="_idIndexMarker450"/>文档(<a href="https://docs.tecton.ai/index.html">https://docs.tecton.ai/index.html</a>)时，你<a id="_idIndexMarker451"/>会发现在 API 和术语上有很多相似之处。然而，Tecton 中有很多功能是 Feast 中不存在的。还有，Tecton 是一个托管的特性库，这意味着你不需要构建和管理基础设施；它会为你管理。</p>
+			<p>与大多数功能存储一样，Tecton 分别使用在线和离线存储来实现低延迟和历史存储。但是线上线下店铺的选择比 Feast 少，目前只在 AWS 上支持。如果你更喜欢蓝色或 GCP，你没有任何其他选择，只能等待。我相信最终会支持多个云提供商和数据存储。泰克顿使用<strong class="bold">软件即服务</strong> ( <strong class="bold"> SaaS </strong>)部署<a id="_idIndexMarker452"/>模型，并将部署分为数据和控制平面。可以在以下链接找到他们的部署模型:<a href="https://docs.tecton.ai/setting-up-tecton/07a-deployment_saas.html">https://docs . tect on . ai/setting-up-tect on/07a-deployment _ SaaS . html</a>。<a id="_idIndexMarker453"/>最好的一点是，数据永远不会离开客户的 AWS 账户，只有控制面板工作所需的元数据才会被泰克顿拥有的 AWS 账户访问；此外，用户界面将在他们的帐户托管。但是，如果您希望通过 REST/gRPC API 端点公开在线数据，该服务将托管在 Tecton 的 AWS 帐户中。在线功能请求和响应将通过他们的帐户发送。</p>
+			<p>一旦 Tecton <a id="_idIndexMarker454"/>部署到您的 AWS 帐户中，您就可以使用 Python SDK 与它进行交互。CLI 命令类似于 Feast 命令；但是，有一些选项，例如能够管理要素定义的版本以及降级到定义的先前版本。除了您可以使用要素存储执行的常见工作流(如摄取、低延迟查询和执行时间点连接)之外，使用 Tecton，您还可以将转换定义为要素存储的一部分。这是我最喜欢的泰克顿的特点之一。以下是功能商店中功能视图和转换页面的链接:<a href="https://docs.tecton.ai/overviews/framework/feature_views/feature_views.html">https://docs . tecton . ai/overviews/framework/feature _ views/feature _ views . html</a>。这意味着您可以为数据仓库(雪花)、数据库、Kinesis 或 Kafka 定义原始数据源配置，并定义 PySpark、Spark SQL 或 pandas 转换来生成特性。泰克顿按照定义的时间表编排这些工作，生成功能，并将其纳入在线和离线商店。这有助于跟踪数据沿袭。</p>
+			<p>以下是关于如何定义特征视图和转换的示例代码片段:</p>
+			<pre class="source-code"># Feature View type</pre>
+			<pre class="source-code">@batch_feature_view(</pre>
+			<pre class="source-code">    # Pipeline attributes</pre>
+			<pre class="source-code">    inputs=...</pre>
+			<pre class="source-code">    mode=...</pre>
+			<pre class="source-code">    # Entities</pre>
+			<pre class="source-code">    entities=...</pre>
+			<pre class="source-code">    # Materialization and serving configuration</pre>
+			<pre class="source-code">    online=...</pre>
+			<pre class="source-code">    offline=...</pre>
+			<pre class="source-code">    batch_schedule=...</pre>
+			<pre class="source-code">    feature_start_time=...</pre>
+			<pre class="source-code">    ttl=...</pre>
+			<pre class="source-code">    backfill_config=...</pre>
+			<pre class="source-code">    # Metadata</pre>
+			<pre class="source-code">    owner=...</pre>
+			<pre class="source-code">    description=...</pre>
+			<pre class="source-code">    tags=...</pre>
+			<pre class="source-code">)</pre>
+			<pre class="source-code"># Feature View name</pre>
+			<pre class="source-code">def my_feature_view(input_data):</pre>
+			<pre class="source-code">    intermediate_data = my_transformation(input_data)</pre>
+			<pre class="source-code">    output_data = my_transformation_two(intermediate_data)</pre>
+			<pre class="source-code">    return output_data</pre>
+			<p>您可能会<a id="_idIndexMarker456"/>认出您在前面的代码块中看到的<a id="_idIndexMarker457"/>一些参数。这里，注释说这是一个批处理转换，您可以在其上定义参数，例如使用哪些实体、时间表是什么，以及它是否应该将数据接收到在线和离线存储中。在方法定义中，输入数据将根据在注释定义中分配给<code>input</code>参数的内容注入(您可以假设它是来自原始数据源的 DataFrame)。在数据帧上，添加变换并返回输出数据帧，这将是要素。这些功能将按照规定的时间表纳入在线和离线商店。一旦您定义了前面的转换，您将不得不运行<code>tecton apply</code>，它类似于<code>feast apply</code>命令，来注册这个转换。其他功能类似于其他功能商店提供的功能；因此，我将跳过它们，让您研究它们的文档。</p>
+			<p>然而<a id="_idIndexMarker458"/>值得记住的是，在撰写本文时<a id="_idIndexMarker459"/> Tecton 部署是单租户的，这意味着如果有团队不能共享数据，您可能需要多个部署。需要创建一组角色，以允许 Tecton 使用跨帐户角色安装和创建所需的资源，这涉及到您的一次性初始设置。</p>
+			<h2 id="_idParaDest-116"><a id="_idTextAnchor117"/>数据块特征存储</h2>
+			<p>Databricks 功能存储是用户可以使用的另一个选项。如果你已经在使用 Databricks 作为你的<a id="_idIndexMarker461"/>笔记本环境和数据处理工作，这是有意义的。它附带了 Databricks 工作空间，因此您不能只拥有功能存储。但是，您可以获得一个工作空间，而不使用除了功能存储之外的任何东西。它可以托管在 AWS、GCP 或 Azure 上。因此，如果你是任何主要的云提供商，这可能是一个选择。</p>
+			<p>这些概念类似于其他要素存储，如要素表、行的时间戳版本控制、进行时间点连接的能力以及在线和离线存储。它使用一个三角洲湖作为其离线商店，并使用一个键值存储，基于您所在的云提供商在云上提供。Databricks 功能存储的最佳之处在于它与 Databricks 的所有其他方面和组件集成良好，例如 Spark 数据帧摄取、检索、与 MLflow 模型库的现成集成、访问控制以及跟踪用于生成特定功能表的笔记本的沿袭。它也有一个很好的用户界面，你可以浏览和搜索功能。下一个最好的部分是，如果您已经有了 Databricks 工作区，就不需要设置了。这里有一个笔记本的链接，其中包含了特征创建、摄取、检索、训练和模型评分的示例:<a href="https://docs.databricks.com/_static/notebooks/machine-learning/feature-store-taxi-example.html">https://docs . data bricks . com/_ static/notebooks/machine-learning/feature-store-taxi-example . html</a>。</p>
+			<p>然而，有几件事要记住。Databricks 功能存储没有项目的概念；因此，特性表是最高级别的抽象，而访问控制是在特性表级别。此外，Databricks 的在线模型托管仍在公开预览中(尽管毫无疑问它最终将成为一个标准产品)。这意味着，如果您将 Databricks 功能存储用于托管在 Databricks 外部的在线模型，它可能必须使用直接客户端连接到在线存储。例如，如果<a id="_idIndexMarker462"/>你使用 DynamoDB 作为在线商店(Databricks 提供多种选择，具体取决于云提供商),并且<a id="_idIndexMarker463"/>在亚马逊<code>boto3</code>客户端托管模型，以获得预测期间的特性。此外，跨工作空间共享要素可能需要对访问令牌或使用要素存储的中央工作空间进行额外配置。以下是<a id="_idIndexMarker465"/> Databricks 功能存储文档的链接，了解更多详细信息:<a href="https://docs.databricks.com/applications/machine-learning/feature-store/index.html">https://docs . data bricks . com/applications/machine-learning/Feature-Store/index . html</a>。</p>
+			<h2 id="_idParaDest-117"><a id="_idTextAnchor118"/>谷歌的 Vertex AI 功能商店</h2>
+			<p>谷歌的 Vertex AI 是<a id="_idIndexMarker466"/>谷歌为 ML 和 AI 提供的<strong class="bold">平台即服务</strong> ( <strong class="bold"> PaaS </strong>)。Vertex AI <a id="_idIndexMarker468"/>旨在提供一个端到端的 ML 平台，为 ML 开发、培训、编排、模型部署、监控等提供一套工具。我们最感兴趣的工具是顶点 AI 特征库。如果您已经使用 GCP 为您的服务，它应该是一个自动选择。</p>
+			<p>这些概念和术语与 Feast 非常相似。Vertex AI 中最高层的抽象叫做<em class="italic"> featurestore </em>，类似于 Feast 中的<em class="italic">项目</em>，一个<em class="italic"> featurestore </em>可以有<em class="italic">实体</em>，<em class="italic">特征</em>应该属于<em class="italic">实体</em>。它支持在线和批量服务，就像所有其他功能商店一样。然而，与 Feast 和 Tecton 不同，在线商店和历史商店没有可用的选项。由于这是一个托管基础设施，用户不需要担心安装和选择在线和离线商店-可能只是价格。以下是它的价格链接:<a href="https://cloud.google.com/vertex-ai/pricing#featurestore">https://cloud.google.com/vertex-ai/pricing#featurestore</a>。它使用<strong class="bold"> IAM </strong>(简称<strong class="bold">身份和访问管理</strong>)进行<a id="_idIndexMarker469"/>认证和授权，您还可以获得一个 UI 来搜索和浏览功能。</p>
+			<p>Vertex AI 最好的部分是它与 GCP 的其他组件以及 Vertex AI 服务本身的集成，用于特征生成、管道管理和数据谱系跟踪。我最喜欢的功能之一是漂移监控。您可以在特性表上设置一个特性监控配置，它可以为您生成数据分布报告，而不需要任何额外的工作。</p>
+			<p>同样，有一些事情<a id="_idIndexMarker470"/>要记住。对于在线服务，您<a id="_idIndexMarker471"/>需要确定容量大小，并设置处理流量所需的节点数量。在线服务的自动扩展选项仍在公开预览中(尽管它成为标准产品只是时间问题)，但容量规划应该是一个需要解决的主要问题。一些负载测试模拟应该可以帮助您轻松地解决这个问题。此外，对于功能存储的在线服务节点数量、数据保留时间长度以及每个实体的功能数量，也有配额和限制。其中一些<a id="_idIndexMarker472"/>可以根据要求增加，而另一些则不能。以下是功能商店配额和限制列表的链接:https://cloud . Google . com/vertex-ai/docs/quotas # featurestore。</p>
+			<h2 id="_idParaDest-118"><a id="_idTextAnchor119"/>hops works 特色商店</h2>
+			<p>Hopsworks 是 AGPL-V3 许可下的另一个开源特性商店，可以在内部、AWS 或 Azure 上运行。它还有一个支持 GCP 以及任何 Kubernetes 环境的企业版功能商店。与其他 ML 平台服务类似，它也提供多个组件，如模型管理和计算环境管理。</p>
+			<p>这些概念类似于其他特征存储的概念；然而，术语是不同的。它没有实体的概念，并且<em class="italic"> Hopsworks </em>中的<em class="italic"> featuregroups </em>类似于<em class="italic">feature 盛宴</em>中的<em class="italic"> featureviews </em>。就像其他功能商店一样，Hopsworks 支持在线和离线服务。它使用 Apache Hive 和 Apache 胡迪作为离线商店，MySQL Cluster 作为在线商店。还是那句话，没有线上或线下店铺的选项。然而，Hopsworks 开发了不同的存储连接器，可用于创建按需外部功能组，例如我们在<a href="B18024_04_ePub.xhtml#_idTextAnchor065"> <em class="italic">第四章</em></a><em class="italic">中的<em class="italic">盛宴</em>中定义的<em class="italic"> RedShiftSource </em>，<em class="italic">向 ML 模型添加功能存储</em>。但是对外部特征组有限制，意味着没有时间旅行、在线服务等等。</em></p>
+			<p>Hopsworks 功能商店中有很多功能很花哨，非常有趣。一些最好的如下:</p>
+			<ul>
+				<li><strong class="bold">项目级多租户</strong>:每个<a id="_idIndexMarker475"/>项目都有一个所有者，可以与团队中的其他成员以及跨团队共享资源。</li>
+				<li><strong class="bold">功能组版本化</strong> : Hopsworks <a id="_idIndexMarker476"/>支持功能组版本化，目前市面上其他任何功能商店都不支持。</li>
+				<li><strong class="bold">特征组统计</strong>:它<a id="_idIndexMarker477"/>提供了一些现成的特征组统计，如特征相关性计算、特征频率直方图和唯一性。以下是特征组的示例:<pre>store_fg_meta = fs.create_feature_group(     name="store_fg",     version=1,     primary_key=["store"],     description="Store related features",     statistics_config={"enabled": True,                           "histograms": True,                           "correlations": True})</pre></li>
+				<li><strong class="bold">特性验证</strong>:这个<a id="_idIndexMarker478"/>是另一个开箱即用的奇特特性。这是一组存在于要素组中的预定义验证规则，例如要素的最小值和最大值、要素的唯一性计数、要素的熵以及要素的最大长度。它有足够多的规则类型，您不会有需要定制验证规则的用例。以下是几个示例规则:<pre>#the minimum value of the feature needs to be between 0 and 10 rules=[Rule(name="HAS_MIN", level="WARNING",               min=0, max=10)]  #Exactly 10% of all instances of the feature need to be contained in the legal_values list rules=[Rule(name="IS_CONTAINED_IN", level="ERROR",               legal_values=["a", "b"], min=0.1,               max=0.1)] </pre></li>
+				<li><strong class="bold">转换函数</strong>:类似于特征视图的 Tecton 转换<a id="_idIndexMarker479"/>，在 Hopsworks 中，您可以在训练数据集上定义或使用内置转换(Hopsworks 有一个训练数据的概念，您可以从不同的特征组中挑选特征，并在它们的基础上创建训练数据集定义，这是一个类似于数据库视图的概念)。</li>
+			</ul>
+			<p>尽管如此，还是有一些<a id="_idIndexMarker480"/>的事情需要记住。如果你选择开源版本，你可能没有几个特性，基础设施将不得不自我管理。相反，对于企业版，您必须与 Hopsworks 工程师合作，并创建一些在云提供商上安装 Hopsworks 所需的资源和角色。这里有一个所有<a id="_idIndexMarker481"/>文档的链接:https://docs.hopsworks.ai/feature-store-api/2.5.8/.我推荐你看看这些特性，即使你不使用它们；这可能会让您了解您可能想要构建或在您的功能库中拥有的一些功能。</p>
+			<h2 id="_idParaDest-119"><a id="_idTextAnchor120"/> SageMaker 特色店</h2>
+			<p>SageMaker <a id="_idIndexMarker482"/>是 AWS 提供的一个<a id="_idIndexMarker483"/>端到端的 ML 平台。就像 Vertex AI 一样，它有一个笔记本环境，AutoML，处理作业和模型管理，一个特征库，等等。如果你是一家专注于 AWS 的公司，这肯定是一个自然的选择。</p>
+			<p>这些概念与其他功能存储的概念相似，尽管有些术语不同。比如 SageMaker 功能商店也没有实体的概念，Feature 中的<em class="italic"> featureviews </em>类似于 SageMaker 中的<em class="italic"> featuregroups </em>。它有所有的基本功能，如线上和线下商店和服务。然而，你没有选择的余地。它使用 S3 作为线下商店，使用一个键值商店作为在线商店(AWS 在其文档中没有说明在线商店的用途)。AWS 使用 IAM 进行身份验证和授权。目前要访问功能商店，您需要完全访问 SageMaker 和 AWS Glue 控制台。如果将 SageMaker 比作 Feast，两者都使用/支持 S3 作为离线商店，键值存储作为在线商店，以及管理模式的胶合目录。除了 SageMaker 是一个托管的特性商店之外，另一个区别是 Feast 使用 Redshift 查询离线数据，而 SageMaker 使用 Amazon Athena(无服务器)进行查询。如果您是无服务器技术的爱好者，您可以将此功能添加到 Feast 中。</p>
+			<p>我最喜欢 SageMaker 功能商店的一点是，它没有基础设施管理。除了创建 IAM 角色来访问特性库之外，您不需要管理任何东西。任何给定负载的所有资源都由 AWS 管理。您需要担心的只是开发和吸收特性。SageMaker 功能商店还支持在 EMR 或 Glue 作业(无服务器)上使用 Spark 进行摄取。除了这些特性，它还添加了元数据，比如可以在查询中使用的<code>write_time</code>和<code>api_invocation_time</code>。最棒的是，您可以使用 Amazon Athena SQL 查询来查询离线数据。</p>
+			<p>不过，有几件事要记住。当前的实现还没有精细的访问管理。现在，你需要完全访问 SageMaker 才能使用 Feature Store，尽管我相信 AWS 开始提供粒度访问只是时间问题。时间点联接不是现成可用的；然而，这些可以使用 SQL 查询或 Spark 来实现。</p>
+			<p>到目前为止，我们已经查看了市场上的一些可用选项；您可以在此链接找到其他可用的特色商店:<a href="https://www.featurestore.org/">https://www.featurestore.org/</a>。然而，为您的项目或团队选择正确的特性存储可能会很棘手。选择功能商店时，请记住以下几点:</p>
+			<ul>
+				<li>您的主要云提供商非常重要。如果你专注于 GCP，使用 SageMaker 功能商店是没有意义的，反之亦然。如果你是多云，那么你将有更多的选择。</li>
+				<li>数据处理框架也是决定使用什么特征库的另一个关键因素。例如，如果你使用 SageMaker 作为你的 ML 平台，在其他人之前尝试 SageMaker 特性库更有意义。</li>
+				<li>与您的生态系统中的其他组件的集成<a id="_idIndexMarker486"/>也很关键——例如，回答诸如它与您的处理平台、编排框架、模型管理服务、数据验证框架以及您的 ML 开发流程的集成程度如何之类的问题，确实有助于选择正确的功能库。</li>
+				<li>所需的<a id="_idIndexMarker487"/>功能和你的团队结构有很大的不同。如果你是一个只想专注于 ML 的小团队，那么功能商店的托管产品是有意义的，而如果你有一个平台团队来管理基础设施，你可能会考虑开源产品，并评估构建与购买的选择。如果您有一个平台团队，他们可能会寻找额外的功能，如多租户、粒度访问控制和 PaaS 平台即服务。</li>
+			</ul>
+			<p>总之，除了它提供的功能外，还有许多因素影响着功能商店的选择，因为它必须与更广泛的生态系统很好地集成。</p>
+			<p>接下来，让我们看看托管功能存储是如何工作的。</p>
+			<h1 id="_idParaDest-120"><a id="_idTextAnchor121"/>使用 SageMaker 功能商店进行功能管理</h1>
+			<p>在本节中，我们<a id="_idIndexMarker488"/>将研究如果我们要使用一个托管特性库而不是第 4 章 、<em class="italic">添加特性库到 ML 模型</em>中的 Feast，我们可能<a id="_idIndexMarker489"/>必须采取什么行动。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">所有托管功能存储都有类似的工作流；有些可能是基于 API 的，有些通过 CLI 工作。但是不考虑这一点，使用特征库所涉及的工作量与我们将在本节中讨论的相似。我经历 SageMaker 的唯一原因是熟悉和容易使用它，将免费试用作为 AWS 中的特色产品。</p>
+			<h2 id="_idParaDest-121"><a id="_idTextAnchor122"/>使用 SageMaker 的资源</h2>
+			<p>在<a href="B18024_04_ePub.xhtml#_idTextAnchor065"> <em class="italic">第四章</em> </a>，<em class="italic">添加特性库到 ML 模型</em>中，在我们开始使用特性库之前，我们<a id="_idIndexMarker490"/>在 AWS 上创建了一堆资源，比如 S3 桶、红移集群、IAM 角色和胶合目录表。相反，对于像 SageMaker 这样的托管特性库，您所需要的只是一个 IAM 角色，它对 SageMaker 拥有完全的访问权限，一切都准备好了。现在让我们来试试。</p>
+			<p>我们需要一些 IAM 用户凭证和一个 SageMaker 功能库可以承担的 IAM 角色。创建 IAM 用户与我们之前所做的类似。遵循相同的步骤，创建一个 IAM 用户，并分配<strong class="bold"> AmazonS3FullAccess </strong>和<strong class="bold">amazonsagemakerfull access</strong>权限。IAM 角色创建与我们之前所做的相同；然而，我们需要允许 SageMaker 服务承担这个角色。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">正如前面多次提到的，分配完全访问权限从来都不是一个好主意；权限应该始终基于资源进行限制。</p>
+			<p>让我们创建一个 IAM 角色:</p>
+			<ol>
+				<li>使用搜索栏登录到您的 AWS 帐户并导航到 IAM 角色页面。或者，访问以下 URL:https://us-east-1.console.aws.amazon.com/iamv2/home#/roles.将显示以下页面:</li>
+			</ol>
+			<div><div><img src="img/B18024_07_001.jpg" alt="Figure 7.1 – The IAM role home page&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 7.1–IAM 角色主页</p>
+			<ol>
+				<li value="2">在<a id="_idIndexMarker491"/>显示的网页上，点击<strong class="bold">创建角色</strong>导航至以下屏幕:</li>
+			</ol>
+			<div><div><img src="img/B18024_07_002.jpg" alt="Figure 7.2 – The IAM role creation page&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 7.2–IAM 角色创建页面</p>
+			<ol>
+				<li value="3">在<em class="italic">图 7.2 </em>显示的屏幕上，在<strong class="bold">其他 AWS 服务的用例</strong>下拉列表中，选择<strong class="bold"> SageMaker </strong>，然后点击<strong class="bold"> SageMaker - Execution </strong>单选按钮。向下滚动并点击<strong class="bold">下一个</strong>，在<a id="_idIndexMarker492"/>的<strong class="bold">添加权限</strong>页面上保留所有默认设置，然后点击<strong class="bold">下一个</strong>。将显示以下页面:</li>
+			</ol>
+			<div><div><img src="img/B18024_07_003.jpg" alt="Figure 7.3 – The Name, review and create page&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 7.3–命名、检查和创建页面</p>
+			<ol>
+				<li value="4">在显示的网页上，填写<code>sagemaker-iam-role</code>。向下滚动并点击<code>arn:aws:iam::&lt;account_number&gt;:role/sagemaker-iam-role</code>。</li>
+			</ol>
+			<p>这就是我们访问 SageMaker 功能商店所需的全部内容。接下来让我们创建特性定义。</p>
+			<h2 id="_idParaDest-122"><a id="_idTextAnchor123"/>生成特征</h2>
+			<p>为了定义<a id="_idIndexMarker494"/>特性组，因为我们试图比较它与 Feast 的不同之处，我们将采用相同的特性集。可以从 S3 桶下载之前摄取的特性，也可以从 GitHub 链接下载:<a href="https://github.com/PacktPublishing/Feature-Store-for-Machine-Learning/blob/main/Chapter07/rfm_features.parquet">https://GitHub . com/packt publishing/Feature-Store-for-Machine-Learning/blob/main/chapter 07/RFM _ features . parquet</a>。下载完拼花文件后，将其复制到可以从笔记本访问的位置。下一步是创建一个新的笔记本，我称之为<code>ch7-sagemaker-feature-store.ipynb</code>:</p>
+			<ol>
+				<li value="1">让我们先安装所需的库:<pre>!pip install sagemaker pandas</pre></li>
+				<li>安装完库之后，让我们生成特性。这里，我们将只是从这个位置读取复制的文件，并对数据集做一些小的修改:<pre>import pandas as pd import time df = pd.read_parquet(path="/content/rfm_features.parquet") df = df.drop(columns=["created_timestamp"]) df["event_timestamp"] = float(round(time.time())) df["customerid"] = df['customerid'].astype(float) df.head()</pre></li>
+			</ol>
+			<p>前面的代码块读取文件并删除<code>created_timestamp</code>列，因为 SageMaker 不需要它。我们还将<code>event_timestamp</code>列更新为最新时间，并将类型从<code>datetime</code>改为<code>float</code>。原因是 SageMaker 在编写时只支持<code>int</code>、<code>float</code>和<code>string</code>特性，并且<code>datetime</code>文件可以是<code>datetime</code> ISO 格式的<code>float</code>或<code>string</code>对象。</p>
+			<p>代码块产生以下输出:</p>
+			<div><div><img src="img/B18024_07_004.jpg" alt="Figure 7.4 – Recency, Frequency, and Monetary value (RFM) features&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 7.4–新近性、频率和货币价值(RFM)特征</p>
+			<p>现在我们已经有了 RFM 特性，下一步是定义特性组。如果您还记得第 4 章 、<em class="italic">将特征库添加到 ML 模型</em>中的<a href="B18024_04_ePub.xhtml#_idTextAnchor065"> <em class="italic">，在生成特征后，我们创建了特征定义并将其应用到特征库。</em></a></p>
+			<h2 id="_idParaDest-123"><a id="_idTextAnchor124"/>定义特征组</h2>
+			<p>定义<a id="_idIndexMarker496"/>特性组，因为它是一次性活动，所以应该在单独的笔记本中完成，而不是由特性工程完成。在本练习中，我们继续在同一个笔记本中定义功能组:</p>
+			<ol>
+				<li value="1">下面的代码块定义了一些导入并创建了 SageMaker 会话:<pre>import sagemaker import sys import boto3 from sagemaker.session import Session from sagemaker import get_execution_role import os os.environ["AWS_ACCESS_KEY_ID"] = "&lt;aws_key_id&gt;" os.environ["AWS_SECRET_ACCESS_KEY"] ="&lt;aws_secret_id&gt;" os.environ["AWS_DEFAULT_REGION"] = "us-east-1" prefix = 'sagemaker-featurestore-introduction' role = "arn:aws:iam::&lt;account_number&gt;:role/sagemaker-iam-role" sagemaker_session = sagemaker.Session() region = sagemaker_session.boto_region_name s3_bucket_name = "feast-demo-mar-2022"</pre></li>
+			</ol>
+			<p>在代码块中，用之前创建的 IAM 用户的密钥和密码替换<code>&lt;aws_key_id&gt;</code>和<code>&lt;aws_secret_id&gt;</code>。此外，为<code>role</code>分配您的 IAM 角色 ARN。</p>
+			<ol>
+				<li value="2"><a id="_idIndexMarker497"/>下面的代码块创建特征组对象并从输入数据帧加载特征定义:<pre>from sagemaker.feature_store.feature_group import \   FeatureGroup customers_feature_group = FeatureGroup(     name="customer-rfm-features",      sagemaker_session=sagemaker_session ) customers_feature_group.load_feature_definitions(df)</pre></li>
+			</ol>
+			<p>前面的代码块产生以下输出:</p>
+			<div><div><img src="img/B18024_07_005.jpg" alt="Figure 7.5 – The load feature definitions call&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 7.5–加载特征定义调用</p>
+			<p>如<a id="_idIndexMarker498"/>图 7.5 所示，<code>load_feature_definitions</code>调用读取输入数据帧并自动加载特征定义。</p>
+			<ol>
+				<li value="3">下一步是创建特性组。下面的代码块在 SageMaker 中创建特性组:<pre>customers_feature_group.create(     s3_uri=f"s3://{s3_bucket_name}/{prefix}",     record_identifier_name="customerid",     event_time_feature_name="event_timestamp",     role_arn=role,     enable_online_store=True )</pre></li>
+			</ol>
+			<p>上述代码块通过传递以下参数来调用 create API:</p>
+			<ul>
+				<li><code>s3_uri</code>:存储特征数据的位置</li>
+				<li><code>record_identifier_name</code>:<code>id</code>列的名称(与 Feast 中的实体列相同)</li>
+				<li><code>event_time_feature_name</code>:将用于时间旅行的时间戳列</li>
+				<li><code>role_arn</code>:sage maker 功能商店可以承担的角色</li>
+				<li><code>enable_online_store</code>:该功能组是否启用在线服务</li>
+			</ul>
+			<p>成功创建特征组后，<a id="_idIndexMarker499"/>代码块产生以下输出:</p>
+			<div><div><img src="img/B18024_07_006.jpg" alt="Figure 7.6 – Feature group creation&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 7.6–功能组创建</p>
+			<p>就这样，我们的功能组已经可以使用了。接下来让我们来消化这些特性。</p>
+			<h2 id="_idParaDest-124"><a id="_idTextAnchor125"/>特征摄取</h2>
+			<p>SageMaker 特性存储中的特性摄取非常简单。这是一个简单的 API 调用，如下面的<a id="_idIndexMarker500"/>代码块所示:</p>
+			<pre class="source-code">ingestion_manager = customers_feature_group.ingest(df))</pre>
+			<pre class="source-code">ingestion_manager.wait()</pre>
+			<pre class="source-code">ingestion_manager.failed_rows</pre>
+			<p>前面的代码块将接收特性并打印失败的行号(如果有的话)。</p>
+			<p>这里要记住的一点是，像 Feast 一样，你不需要做任何额外的事情来实现从线下到在线商店的最新功能。如果在线商店被启用，数据将被摄取到在线和离线商店，并且最新的数据将在在线商店中立即可用<a id="_idIndexMarker501"/>用于查询。</p>
+			<p>接下来我们来查询一下网店。</p>
+			<h2 id="_idParaDest-125"><a id="_idTextAnchor126"/>从在线商店获取记录</h2>
+			<p>像盛宴一样，从网上商店查询<a id="_idIndexMarker502"/>很简单。您所需要的只是记录 ID 和特性组名称。以下代码块从在线商店获取记录:</p>
+			<pre class="source-code">customer_id = 12747.0</pre>
+			<pre class="source-code">sg_runtime_client = sagemaker_session.boto_session.client(</pre>
+			<pre class="source-code">    'sagemaker-featurestore-runtime', </pre>
+			<pre class="source-code">    region_name=region)</pre>
+			<pre class="source-code">record = sg_runtime_client.get_record(</pre>
+			<pre class="source-code">    FeatureGroupName="customer-rfm-features", </pre>
+			<pre class="source-code">    RecordIdentifierValueAsString=str(customer_id))</pre>
+			<pre class="source-code">print(record)</pre>
+			<p>前面的代码块从在线商店获取 ID 为<code>12747.0</code>的客户的所有特性。查询应该在几毫秒内返回结果。输出将类似于以下代码块:</p>
+			<pre class="source-code">{'ResponseMetadata': {'RequestId': '55342bbc-c69b-49ca-bbd8-xxxx', 'HTTPStatusCode': 200, 'HTTPHeaders': {'x-amzn-requestid': '55342bbc-c69b-49ca-bbd8-xxx, 'content-type': 'application/json', 'content-length': '729', 'date': 'Mon, 02 May 2022 01:36:27 GMT'}, 'RetryAttempts': 0}, </pre>
+			<pre class="source-code">'Record': [{'FeatureName': 'customerid', 'ValueAsString': '12747.0'}, {'FeatureName': 'recency', 'ValueAsString': '7'}, {'FeatureName': 'frequency', 'ValueAsString': '35'}, {'FeatureName': 'monetaryvalue', 'ValueAsString': '1082.09'}, {'FeatureName': 'r', 'ValueAsString': '3'}, {'FeatureName': 'f', 'ValueAsString': '2'}, {'FeatureName': 'm', 'ValueAsString': '3'}, {'FeatureName': 'rfmscore', 'ValueAsString': '8'}, {'FeatureName': 'revenue6m', 'ValueAsString': '1666.1100000000001'}, {'FeatureName': 'ltvcluster', 'ValueAsString': '1'}, {'FeatureName': 'segmenthighvalue', 'ValueAsString': '1'}, {'FeatureName': 'segmentlowValue', 'ValueAsString': '0'}, {'FeatureName': 'segmentmidvalue', 'ValueAsString': '0'}, {'FeatureName': 'event_timestamp', 'ValueAsString': '1651455004.0'}]}</pre>
+			<p>正如您所看到的,<a id="_idIndexMarker503"/>输出包含了所有的特性和相应的值。</p>
+			<p>现在我们已经了解了如何查询在线商店，接下来让我们看看如何生成训练数据集和查询历史数据。</p>
+			<h2 id="_idParaDest-126"><a id="_idTextAnchor127"/>使用 Amazon Athena 查询历史数据</h2>
+			<p>正如前面提到的<a id="_idIndexMarker504"/>，SageMaker 特性商店提供了使用 Amazon Athena 在历史商店上运行 SQL 查询的能力。</p>
+			<p>以下代码块生成所有客户及其特征的最新快照:</p>
+			<pre class="source-code">get_latest_snapshot_query = customers_feature_group.athena_query()</pre>
+			<pre class="source-code">query = f"""SELECT *</pre>
+			<pre class="source-code">FROM</pre>
+			<pre class="source-code">    (SELECT *,</pre>
+			<pre class="source-code">         row_number()</pre>
+			<pre class="source-code">        OVER (PARTITION BY customerid</pre>
+			<pre class="source-code">    ORDER BY  event_timestamp desc, Api_Invocation_Time DESC, write_time DESC) AS row_num</pre>
+			<pre class="source-code">    FROM "{get_latest_snapshot_query.table_name}")</pre>
+			<pre class="source-code">WHERE row_num = 1 and </pre>
+			<pre class="source-code">NOT is_deleted;"""</pre>
+			<pre class="source-code">get_latest_snapshot_query.run(query_string=query, output_location=f"s3://{s3_bucket_name}/output")</pre>
+			<pre class="source-code">get_latest_snapshot_query.get_query_execution()</pre>
+			<p>代码<a id="_idIndexMarker505"/>块使用一个嵌套的 SQL 查询，其中内部查询从<code>event_time</code>、<code>Api_Invocation_Time</code>和<code>write_time</code>列按降序获取所有客户及其特征。外部查询从内部查询的结果中选择每个客户的第一个匹配项。成功执行查询后，代码块输出查询结果的位置以及其他详细信息。</p>
+			<p>结果可以作为 DataFrame 加载，如下面的代码块所示:</p>
+			<pre class="source-code">latest_df = get_latest_snapshot_query.as_dataframe()</pre>
+			<pre class="source-code">latest_df.head()</pre>
+			<p>前面的代码块输出以下内容:</p>
+			<div><div><img src="img/B18024_07_007.jpg" alt="Figure 7.7 – Athena query results&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 7.7–Athena 查询结果</p>
+			<p>请随意尝试功能商店上的其他 Athena 查询。下面是亚马逊雅典娜查询的文档:<a href="https://docs.aws.amazon.com/athena/latest/ug/what-is.html">https://docs.aws.amazon.com/athena/latest/ug/what-is.html</a>。</p>
+			<h2 id="_idParaDest-127"><a id="_idTextAnchor128"/>清理 SageMaker 特征组</h2>
+			<p>在我们继续前进之前，让我们清理一下<a id="_idIndexMarker506"/> SageMaker 资源以节约成本。清理相当容易；这只是删除特性组的另一个 API 调用。以下代码块执行该操作:</p>
+			<pre class="source-code">customers_feature_group.delete()</pre>
+			<p>仅此而已。成功执行后，它删除了特性组，但留下了 S3 和 Glue 目录中的数据，如果需要，仍然可以使用 Amazon Athena(使用<code>boto3</code>客户端)查询这些数据。为了确保一切都被清理干净，在同一个笔记本中运行下面的代码块<a id="_idIndexMarker507"/>。它应该返回一个空的特性组列表:</p>
+			<pre class="source-code">sagemaker_client = sagemaker_session.boto_session.client(</pre>
+			<pre class="source-code">    "sagemaker", region_name=region</pre>
+			<pre class="source-code">) </pre>
+			<pre class="source-code">sagemaker_client.list_feature_groups()</pre>
+			<p>既然我们已经看了 SageMaker 特性组，接下来让我们看看 ML 最佳实践。</p>
+			<h1 id="_idParaDest-128"><a id="_idTextAnchor129"/> ML 最佳实践</h1>
+			<p>到目前为止，在本书中，我们已经讨论了特性库，如何在 ML 开发和生产中使用它们，以及在选择特性库时有哪些可用的选项。尽管特性库是 ML 的主要组成部分之一，但是还有一些 ML 的其他方面我们在本书中没有过多关注。在这一节中，让我们简要地讨论一下 ML 的其他一些方面和最佳实践。</p>
+			<h2 id="_idParaDest-129"><a id="_idTextAnchor130"/>在源头进行数据验证</h2>
+			<p>不管我们用于构建 ML 模型的<a id="_idIndexMarker509"/>技术、算法和基础设施如何，如果数据中存在错误和异常，模型性能将受到严重影响。数据应该被视为任何 ML 系统的一等公民。因此，在数据进入 ML 管道之前检测数据中的错误和异常是非常重要的。</p>
+			<p>为了在原始数据源上运行验证，我们需要一个组件来创建和编排针对数据的验证规则。数据用户应该能够在 SQL 查询、Python 脚本或 Spark SQL 中编写任何自定义规则。规则中的任何失败都应该通知给数据使用者，反过来，数据使用者应该能够决定是停止管道执行、重新训练模型还是不采取任何行动。</p>
+			<p>一些常见的<a id="_idIndexMarker510"/>规则包括按计划对数据集进行描述性分析，这可以提供对数据漂移的洞察。更高级的统计数据<a id="_idIndexMarker511"/>比如<strong class="bold">kull back-lei bler</strong>(<strong class="bold">KL</strong>)散度和<a id="_idIndexMarker512"/>人口稳定指数 ( <strong class="bold"> PSI </strong>)都是不错的选择。拥有简单的数据验证规则(如数据新鲜度、唯一值、字符串字段长度、模式和值范围阈值)非常有益。模式验证是数据验证的另一个重要方面。验证中的任何更改都会影响所有的使用者和管道。我们在源位置的数据验证越好，我们的模型和管道就越健康、越高效。</p>
+			<h2 id="_idParaDest-130"><a id="_idTextAnchor131"/>分解 ML 渠道和流程编排</h2>
+			<p>一个不好的做法是<a id="_idIndexMarker513"/>在一个笔记本上开发所有东西，从数据验证和特征工程到模型预测。这不是一种可扩展或可重用的方法。大部分时间花在清理不需要的代码和生产模型上。因此，将 ML 管道分解成多个更小的步骤总是一个好主意，例如数据验证、清理、转换、特征工程、模型训练和模型预测。转换步骤越小，代码的可读性、可重用性和错误调试就越好。这就是为什么 Tecton 中的特性视图和转换，以及 Hopsworks 中的存储连接器和转换函数都是很棒的特性。许多<strong class="bold">提取、转换和加载</strong> ( <strong class="bold"> ETL </strong>)框架也提供了类似的特性<a id="_idIndexMarker514"/>。</p>
+			<p>除了打破 ML 管道之外，编排是 ML 平台的另一个重要部分。每个云提供商都有一个，也有许多开源产品。开发不需要太多工作就可以编排的管道步骤是关键。现在，有很多用于编排的工具，只要步骤很小并且有意义，它应该很容易与任何现有的框架进行编排。</p>
+			<h2 id="_idParaDest-131"><a id="_idTextAnchor132"/>跟踪数据沿袭和版本控制</h2>
+			<p>如果你还记得第六章<a href="B18024_06_ePub.xhtml#_idTextAnchor096"><em class="italic"/></a>，<em class="italic">模型投产并超越</em>，我们讨论过调试<a id="_idIndexMarker516"/>预测问题。在该示例中，我们讨论了生成在预测中产生异常的相同特征集；然而，很多时候，仅仅找出系统中的问题以及它是由代码还是数据集引起的是不够的。因此，除此之外，能够一直跟踪到数据源的特性集的数据沿袭对于调试问题非常有帮助。</p>
+			<p>对于<a id="_idIndexMarker517"/>管道的每次运行，用时间戳版本保存每个步骤的输入和输出是这里的关键。有了这个，我们可以追踪预测中的异常，一直追溯到它的源头，也就是数据。例如，除了拥有在网站上为客户产生不良推荐的功能外，最好还能够追踪这些功能，一直追溯到事件发生时它们的交互，以及事件发生时在 ML 管道中产生的不同转换。</p>
+			<p>以下是一些有助于更好地跟踪沿袭的管道信息:</p>
+			<ul>
+				<li>步骤中使用的所有库的版本</li>
+				<li>管道中运行的代码版本，包括管道版本本身</li>
+				<li>由管道的每一步产生的输入参数和工件，例如原始数据、数据集和模型</li>
+			</ul>
+			<p>接下来，让我们看看特性库。</p>
+			<h2 id="_idParaDest-132"><a id="_idTextAnchor133"/>特征库</h2>
+			<p>拥有一个<a id="_idIndexMarker518"/>特性库对 ML 开发非常有益。尽管在要素表模式的更新方面存在一些灰色区域，但要素存储的优势(如可重用性、可浏览的要素、在线服务的就绪性、时间旅行和时间点连接)在模型开发中非常有用。正如我们在前一章所观察到的，在开发客户终身价值模型的过程中开发的特性在下一个购买日模型中是有用的。同样，随着特征库规模的增长，越来越多的特征可供使用，数据科学家和工程师要做的重复工作也越来越少，从而加快了模型的开发。</p>
+			<p>下面的屏幕截图描述了开发 ML 模型的成本与特征库中精选特征的数量的关系:</p>
+			<div><div><img src="img/B18024_07_008.jpg" alt="Figure 7.8 – The average cost of the model versus the number of curated features in the feature store&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 7.8–模型的平均成本与特征库中精选特征的数量</p>
+			<p>如<em class="italic">图 7.8 </em>所示，开发和生产模型的成本随着特征库的增长而下降。按照重用和添加新的(如果不可用)，特性库中所有可用的特性要么是生产就绪的，要么是服务于生产模型的。我们将为每个新型号添加 delta 功能。这意味着，基础架构上唯一的额外成本是运行这些额外的功能工程转换和新功能表，如果我们使用托管功能存储，其余的成本会根据生产负载自动调整。因此，新模型的开发和生产所涉及的成本应该随着时间的推移而降低，并且一旦特征库饱和，成本就会持平。</p>
+			<h2 id="_idParaDest-133">实验跟踪、模型版本控制和模型库</h2>
+			<p>实验跟踪<a id="_idIndexMarker519"/>和模型库是 ML 开发的其他重要方面。当开发一个模型时，我们运行不同的实验——可能是不同的算法，不同的实现，如 TensorFlow 与 PyTorch 的<a id="_idIndexMarker520"/>,超参数调整，模型的不同功能集，不同的训练数据集，以及对训练数据集的<a id="_idIndexMarker521"/>不同转换。跟踪这些实验并不容易，因为其中一些实验可能会持续几天或几周。因此，在许多笔记本环境中使用开箱即用的实验跟踪软件非常重要。</p>
+			<p>每次运行都应记录以下内容:</p>
+			<ul>
+				<li>模型培训笔记本或脚本的版本。</li>
+				<li>关于数据集的一些参数，可用于重现相同的训练和评估数据集。如果你正在使用一个特性库，那么它可能是时间戳和所使用的实体；如果没有，您也可以将训练数据集保存到文件中，并记录数据集的位置。</li>
+				<li>训练算法中使用的所有参数。</li>
+				<li>每次运行的性能指标。</li>
+				<li>任何可视化的结果也非常有用。</li>
+			</ul>
+			<p>每次运行的记录度量可用于比较不同运行的模型的性能度量。这些指标对于决定哪个模型运行的性能更好至关重要，应该转移到新的阶段，例如阶段部署和 AB 测试。此外，如果您或团队中的任何人需要回顾和重现某些特定的运行，每次运行还可以帮助您浏览实验的历史。</p>
+			<p>类似地，模型库可以帮助跟踪模型的所有不同版本。模型注册/存储库存储加载和运行模型所需的信息——例如，MLflow 模型存储库存储 conda 环境、模型的<code>pickle</code>文件以及模型的任何其他<em class="italic">依赖</em>等信息。如果您有一个模型的中央存储库，它对于消费者浏览和搜索以及模型的生命周期管理都很有用，例如将模型移动到不同的阶段——开发、试运行、生产和归档。模型存储库也可以用于扫描代码中的任何漏洞以及模型中使用的任何包。因此，模型库在 ML 开发中起着关键作用。</p>
+			<h2 id="_idParaDest-134"><a id="_idTextAnchor135"/>特征和模型监控</h2>
+			<p>正如我们在前一章中讨论的<a id="_idIndexMarker522"/>，特性监控是另一个重要的方面。特性库的一个重要的对应部分是监视变更和异常。功能监控规则将类似于数据监控规则。一些有用的特征规则是特征新鲜度、最小值和最大值规则、异常值监控、最新特征的描述性统计以及 KL 散度和 PSI 之类的度量。Hopsworks 监控规则应该是您可能拥有的关于特性的规则列表的良好起点。下面是文档的链接:<a href="https://docs.hopsworks.ai/feature-store-api/2.5.8/generated/feature_validation/">https://docs . hops works . ai/feature-store-API/2 . 5 . 8/generated/feature _ validation/</a>。</p>
+			<p>型号监控是<a id="_idIndexMarker523"/>的另一个重要方面。将模型投入生产后，它的性能会随着时间的推移而下降。这种情况随着用户行为的改变而发生；因此有了数据分析。跟踪模型在生产中的表现是很重要的。这些性能报告应该按时生成，如果不是实时的话，并且必须采取适当的行动，比如用新数据进行模型再训练，或者开始一个新的迭代。</p>
+			<h2 id="_idParaDest-135"><a id="_idTextAnchor136"/>杂项</h2>
+			<p>在 ML 开发过程中需要记住的其他一些事情包括跟踪运行时环境、库升级和贬值。最好是积极主动地采取行动。例如，如果您使用严格绑定到特定环境的工具，如 Python 或 Spark 版本，一旦特定的运行时被弃用并从生产支持中删除，作业可能会开始失败，生产系统可能会受到阻碍。另一个例子是 Databricks 的运行时依赖于特定的 Python 和 Spark 版本。如果在不推荐使用的版本上运行作业，一旦该版本不再受支持，如果新版本中有重大更改，作业可能会开始失败。因此，最好主动升级。</p>
+			<p>至此，在下一章查看端到端用例之前，让我们总结一下本章所学的内容。</p>
+			<h1 id="_idParaDest-136"><a id="_idTextAnchor137"/>总结</h1>
+			<p>在本章中，我们看了一下市场上一些可用的功能商店。我们讨论了其中的五个，即 Tecton、Databricks、Vertex AI、Hopsworks 和 SageMaker Feature Store。我们还深入研究了 SageMaker 特性库，以感受使用托管特性库而不是 Feast，以及它在资源创建、特性摄取和查询方面的不同之处。在上一节中，我们简要讨论了一组 ML 开发的最佳实践。</p>
+			<p>在下一章中，我们将通过一个托管 ML 平台上的端到端用例。</p>
+		</div>
+	
+
+</body></html>

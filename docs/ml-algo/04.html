@@ -1,0 +1,1380 @@
+<html><head/><body><html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Regression Algorithms</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">回归算法</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p><strong>线性模型</strong>是最简单的参数方法，总是值得关注，因为许多问题，甚至本质上是非线性的问题，都可以用这些模型轻松解决。如前所述，<em>回归</em>是一种预测，其中目标是连续的，它有多种应用，因此了解线性模型如何拟合数据、其优缺点以及何时选择替代方案是更可取的，这一点很重要。在本章的最后一部分，我们将讨论一个有趣的方法，使用相同的模型有效地处理非线性数据。</p>
+
+<p>特别是，我们将讨论以下内容:</p>
+
+<ul>
+
+<li>标准线性回归</li>
+
+<li>正则化回归(岭回归、套索和弹性网)</li>
+
+<li>稳健回归(<strong>随机样本一致性</strong> ( <strong> RANSAC </strong>)和 Huber 回归)</li>
+
+<li>多项式回归</li>
+
+<li>贝叶斯回归(这个题目比较高级，开头可以跳过)</li>
+
+<li>保序回归</li>
+
+<li>回归评估指标</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Linear models for regression</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">回归的线性模型</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>让我们考虑从数据生成过程<em> p <sub> data </sub> </em>中提取的实值向量的数据集:</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/b2b2637f-7c91-46ed-ab9e-9bda7fce1f19.png" style="width:23.17em;height:1.75em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">每个输入向量都与一个实数值<em xmlns:epub="http://www.idpf.org/2007/ops">y<sub>I</sub>T16】相关联:</em></p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/ee6f8ab8-0f78-400c-af55-c64036d761ff.png" style="width:20.58em;height:1.67em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">线性模型基于这样的假设，即可以通过基于以下规则的回归过程来逼近输出值:</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/8c7f73b1-bfbc-4c93-8937-48a453445a6f.png" style="width:34.67em;height:4.00em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">换句话说，强有力的假设是，我们的数据集和所有其他未知点位于由超平面和依赖于单个点的随机正态噪声定义的体积中。很多情况下，协方差矩阵是<em xmlns:epub="http://www.idpf.org/2007/ops">σ=σ<sup>2</sup>I<sub>m</sub>T24】(即<em xmlns:epub="http://www.idpf.org/2007/ops">同方差</em>噪声)；因此，噪声对所有特性都有相同的影响。每当这种情况不发生时(即噪声为<em xmlns:epub="http://www.idpf.org/2007/ops">异方差</em>时)，就不可能简化<em xmlns:epub="http://www.idpf.org/2007/ops">σ</em>的表达式。了解这种情况比预期的更常见是有帮助的，这意味着某些要素的不确定性更高，模型无法以足够的精度解释它们。一般来说，最大误差与训练质量和原始数据集的适应性都成比例，原始数据集的适应性与随机噪声的方差成比例。在下图中，有两种可能情况的示例:</em></p>
+
+<div><img src="img/67d350c9-77b3-455e-b270-544a9aff3c85.png" style="width:45.08em;height:17.83em;"/></div>
+
+<p>低随机噪声的时间序列(左)。具有高随机噪声的时间序列(右)。</p>
+
+<p class="CDPAlignLeft CDPAlign">线性回归方法基于<em>平面</em>结构(线、平面、超平面)；因此，它不能适应高度分散的数据集。当数据集明显是非线性的并且必须考虑其他模型(例如<strong>多项式回归</strong>、<strong>神经网络</strong>或<strong>核支持向量机</strong>)时，最常见的问题之一就会出现。在这一章中，我们将分析不同的情况，展示如何衡量算法的性能，以及如何做出最合适的决定来解决特定的问题。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>A bidimensional example</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">二维例子</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>让我们考虑一个小数据集，该数据集是通过向属于在<strong> -6 </strong>和<strong> 6 </strong>之间界定的片段的点添加一些均匀噪声而构建的。原方程为<em> y = x + 2 + η </em>，其中<em> η </em>为噪声项。</p>
+
+<p>在下图中，有一个带有<em>候选</em>回归函数的图:</p>
+
+<div><img class="image-border" src="img/de4be3e2-cff2-4197-9126-47a6bf96722a.png" style="width:51.33em;height:36.42em;"/></div>
+
+<p>带有候选回归线的简单二维数据集</p>
+
+<p>数据集定义如下:</p>
+
+<pre>import numpy as np<br/><br/>nb_samples = 200<br/><br/>X = np.arange(-5, 5, 0.05)<br/><br/>Y = X + 2<br/>Y += np.random.normal(0.0, 0.5, size=nb_samples)</pre>
+
+<p class="mce-root">当我们在一个平面上工作时，我们寻找的回归量是只有两个参数(截距和唯一的乘法系数)的函数，带有与每个数据点<em> x </em> <sub> <em> i </em> </sub>相关联的附加随机正态噪声项(形式上，所有<em> η <sub> i </sub> </em>都是<strong>独立且同分布的</strong> ( <strong> i.i.d </strong>)变量):</p>
+
+<div><img class="fm-editor-equation" src="img/b2eb01e9-6ccf-47e2-850c-c241192c130a.png" style="width:10.75em;height:1.67em;"/></div>
+
+<p>为了拟合我们的模型，我们必须找到最佳参数，我们从基于已知数据点的<strong xmlns:epub="http://www.idpf.org/2007/ops">普通最小二乘法</strong> ( <strong xmlns:epub="http://www.idpf.org/2007/ops"> OLS </strong>)方法开始(<em xmlns:epub="http://www.idpf.org/2007/ops">x<sub>I</sub>T21、<em xmlns:epub="http://www.idpf.org/2007/ops">y<sub>I</sub>T25)。最小化的成本函数如下:</em></em></p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/56f7ea66-f0a2-4246-b929-d877f0fe0071.png" style="width:35.50em;height:4.50em;"/></p>
+
+<p>通过分析方法，为了找到全局最小值，我们必须使两个导数都等于<em> 0 </em>(在一般情况下，必须使用梯度<em> ∇L = 0 </em>来做同样的事情):</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/387b85fc-97e6-4198-b1e0-e41c89def0cb.png" style="width:23.25em;height:5.17em;"/></p>
+
+<p>因此，我们可以使用包含α和β的输入向量在 Python 中定义函数:</p>
+
+<pre>import numpy as np<br/><br/>def loss(v):<br/>   e = 0.0<br/>   for i in range(nb_samples):<br/>      e += np.square(v[0] + v[1]*X[i] - Y[i])<br/>   return 0.5 * e</pre>
+
+<p>并且梯度可以定义如下:</p>
+
+<pre>import numpy as np<br/><br/>def gradient(v):<br/>   g = np.zeros(shape=2)<br/>   for i in range(nb_samples):<br/>     g[0] += (v[0] + v[1]*X[i] - Y[i])<br/>     g[1] += ((v[0] + v[1]*X[i] - Y[i]) * X[i])<br/>   return g</pre>
+
+<p>现在可以使用 SciPy 解决优化问题:</p>
+
+<pre>from scipy.optimize import minimize<br/><br/>minimize(fun=loss, x0=[0.0, 0.0], jac=gradient, method='L-BFGS-B')<br/><br/>fun: 25.224432728145842<br/> hess_inv: &lt;2x2 LbfgsInvHessProduct with dtype=float64&gt;<br/>      jac: array([ -8.03369622e-07, 3.60194360e-06])<br/>  message: b'CONVERGENCE: NORM_OF_PROJECTED_GRADIENT_&lt;=_PGTOL'<br/>     nfev: 8<br/>      nit: 7<br/>   status: 0<br/>  success: True<br/>        x: array([ 1.96534464, 0.98451589])</pre>
+
+<p>正如所料，回归去除了数据集的噪声，重建了原始方程:<em> y = x + 2 </em>(近似误差可以忽略不计)。这个程序是绝对可以接受的；不过也不难理解，问题可以一步到位的封闭形式解决。首先要做的是通过添加一个等于<em> 1 </em>的额外特性来消除截距:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/c522794e-72c2-4606-8496-9b357aadecd1.png" style="width:37.92em;height:2.17em;"/></p>
+
+<p>在这一点上，一般问题可以用系数向量θ用向量符号表示:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/fc4bbd39-a6a9-458d-9eef-defd5edc7edc.png" style="width:9.42em;height:2.00em;"/></p>
+
+<p class="mce-root">在二维情况下<em> θ = (β，α) </em>因为截距总是对应于最后一个值。如果我们假设噪声是方差等于<em> σ <sup> 2 </sup> </em>(即<em>η∾N(0，σ <sup> 2 </sup> I) </em>)的均方误差，成本函数可以改写如下:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/5867fe33-59db-4e62-ba85-641c18367045.png" style="width:35.33em;height:1.92em;"/></p>
+
+<p>如果矩阵<em> X <sup> T </sup> X </em>有<em>满秩</em>(即<em> det(X <sup> T </sup> X) ≠ 0 </em>)，使用摩尔-彭罗斯伪逆(是形状不是正方形时矩阵求逆的一种扩展)很容易找到解<em> ∇L = 0 </em>:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/e672a07e-b348-44ae-8c92-b0cb78c92627.png" style="width:13.25em;height:1.92em;"/></p>
+
+<p>前面的例子变成了这样:</p>
+
+<pre>import numpy as np<br/><br/>Xs = np.expand_dims(X, axis=1)<br/>Ys = np.expand_dims(Y, axis=1)<br/>Xs = np.concatenate((Xs, np.ones_like(Xs)), axis=1)<br/><br/>result = np.linalg.inv(np.dot(Xs.T, Xs)).dot(Xs.T).dot(Y)<br/><br/>print('y = %.2fx + %2.f' % (result[0], result[1]))<br/>y = 0.98x +  2</pre>
+
+<p>显然，这种方法效率更高，并且利用了 NumPy 提供的矢量化功能(大型数据集上的计算速度极快，并且不再需要多次梯度计算)。根据<strong xmlns:epub="http://www.idpf.org/2007/ops">高斯-马尔可夫定理</strong>，这是<strong xmlns:epub="http://www.idpf.org/2007/ops">最佳线性无偏估计量</strong> ( <strong xmlns:epub="http://www.idpf.org/2007/ops">蓝</strong>)，意思是没有其他系数方差更小的解。我们省略了证明(应用标准公式很容易得到)，但是我们有<em xmlns:epub="http://www.idpf.org/2007/ops">E[θ<sub>opt</sub>= 0</em>和<em xmlns:epub="http://www.idpf.org/2007/ops">Var[θ<sub>opt</sub>]=σ<sup>2</sup>(X<sup>T</sup>X)<sup>-1</sup></em>它依赖于<em xmlns:epub="http://www.idpf.org/2007/ops"> σ <sup> 2 </sup> </em>和<em xmlns:epub="http://www.idpf.org/2007/ops"> X 的逆对于我们的示例，系数协方差矩阵如下:</em></p>
+
+<pre>import numpy as np<br/><br/>covariance = (0.5 ** 2) * np.linalg.inv(np.dot(Xs.T, Xs))<br/><br/>print(covariance)<br/>[[ 1.50003750e-04 3.75009375e-06]<br/> [ 3.75009375e-06 1.25009375e-03]]</pre>
+
+<p>协方差矩阵是去相关的(所有非对角项都接近<em> 0 </em>)，系数和截距的方差非常小(这也是由于问题的简单性)。有趣的是，截距的方差比系数的方差大十倍。这是由于我们期望一半的点在回归线之上，另一半在回归线之下。因此，小的垂直移动减少了 50%点的误差，并增加了剩余部分的误差。另一方面，斜率的微小变化会对所有点产生影响，总会增加均方误差。</p>
+
+<p>考虑到<em> m 个</em>样本和<em> m 个</em> i.i.d .正态噪声项，给定样本集<em> X </em>，参数向量<em> θ <sub> opt </sub> </em>，噪声方差<em> σ <sup> 2 </sup> </em>的输出<em> Y </em>的概率是高斯的，其密度函数等于:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/700e0198-7f46-41b4-bed0-09467522fc67.png" style="width:24.17em;height:4.08em;"/></p>
+
+<p>这意味着，一旦训练了模型并且找到了<em xmlns:epub="http://www.idpf.org/2007/ops">θ<sub>opt</sub>T50】，我们期望所有样本都具有以回归超平面为中心的高斯分布。在下图中，有一个这个概念的二维例子:</em></p>
+
+<div><img src="img/dbde14c5-bc09-491d-acb0-ca81bf3f349b.png" style="width:28.00em;height:24.17em;"/></div>
+
+<p>回归线周围输出<em> y </em>的预期分布</p>
+
+<p>在异方差噪声的一般情况下，我们可以将噪声协方差矩阵表示为<em xmlns:epub="http://www.idpf.org/2007/ops">σ=σ<sup>2</sup>C，</em>其中<em xmlns:epub="http://www.idpf.org/2007/ops"> C </em>是一般的平方可逆矩阵，其值通常有界在<em xmlns:epub="http://www.idpf.org/2007/ops"> 0 </em>和<em xmlns:epub="http://www.idpf.org/2007/ops"> 1 </em>之间。这不是一个限制，因为，如果我们选择<em xmlns:epub="http://www.idpf.org/2007/ops"> σ </em> <sup xmlns:epub="http://www.idpf.org/2007/ops"> <em> 2 </em> </sup>作为最大方差，那么一个类属元素<em xmlns:epub="http://www.idpf.org/2007/ops"> C <sub> ij </sub> </em>就成为参数特征<em xmlns:epub="http://www.idpf.org/2007/ops"> θ <sub> i </sub> </em>和<em xmlns:epub="http://www.idpf.org/2007/ops"> θ </em> <sub xmlns:epub="http://www.idpf.org/2007/ops"> <em> j </em>之间协方差的一个权重</sub></p>
+
+<p>成本函数略有不同，因为我们必须考虑噪声对单个特征的不同影响:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/b9d8459a-444d-49d7-b22d-685842d3dd07.png" style="width:19.33em;height:1.83em;"/></p>
+
+<p>很容易计算梯度并导出参数的表达式，类似于我们在前面的案例中获得的结果:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/97586442-a623-4fd1-bfcb-9f20fe263031.png" style="width:16.83em;height:1.75em;"/></p>
+
+<p>对于基于平方误差最小化的一般线性回归问题，可以证明新样本的<em> x <sub> j </sub> </em>的最佳预测(即，具有最小方差)对应于:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/b050bb01-47d8-4489-bc6c-6d227a1eef7d.png" style="width:29.50em;height:2.25em;"/></p>
+
+<p>这个结果证实了我们的预期:最佳回归变量将总是预测因变量<em xmlns:epub="http://www.idpf.org/2007/ops"> y </em>的期望值，该因变量受输入<em xmlns:epub="http://www.idpf.org/2007/ops">x<sub>j</sub>T12】的约束。因此，考虑到前面的图，高斯分布被优化以使它们的均值尽可能接近每个训练样本(当然，具有全局线性的约束)。</em></p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Linear regression with scikit-learn and higher dimensionality</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">具有 scikit-learn 和更高维度的线性回归</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>scikit-learn 库提供了用于 n 维空间的<kbd>LinearRegression</kbd>类。为此，我们将使用波士顿数据集:</p>
+
+<pre>from sklearn.datasets import load_boston<br/><br/>boston = load_boston()<br/><br/>print(boston.data.shape)<br/>(506L, 13L)<br/><br/>print(boston.target.shape)<br/>(506L,)</pre>
+
+<p>它具有带有<kbd>13</kbd>输入特征的<kbd>506</kbd>个样本和一个输出。在下图中，收集了前 12 个特征的曲线图:</p>
+
+<div><img class="image-border" src="img/eeb3164a-7c5b-4cd7-89d1-08dfe272af6c.png" style="width:61.83em;height:43.17em;"/></div>
+
+<p>波士顿数据集的前 12 个要素的图</p>
+
+<p>使用数据集时，使用表格视图来操作数据非常有用。<strong> Pandas </strong>是完成这项任务的完美框架，尽管这超出了本书的范围，但我建议您使用<kbd>pandas.DataFrame(boston.data, columns=boston.feature_names)</kbd>命令创建一个数据框，并使用 Jupyter 将其可视化。有关更多信息，请参考<em>学习 pandas -使 Python 数据发现和分析变得简单</em>、<em> Heydt M </em>。、<em>帕克特出版</em>、<em> 2017 </em>。</p>
+
+<p>存在不同的标度和异常值(可以使用前面章节中研究的方法移除)，因此最好在处理数据之前要求模型对数据进行归一化(设置<kbd>normalize=True</kbd>参数)。此外，出于测试目的，我们将原始数据集分为训练集(90%)和测试集(10%):</p>
+
+<pre>from sklearn.linear_model import LinearRegression<br/>from sklearn.model_selection import train_test_split<br/><br/>X_train, X_test, Y_train, Y_test = train_test_split(boston.data, boston.target, test_size=0.1)<br/><br/>lr = LinearRegression(normalize=True)<br/>lr.fit(X_train, Y_train)<br/><br/>LinearRegression(copy_X=True, fit_intercept=True, n_jobs=1, normalize=True)</pre>
+
+<p>当原始数据集不够大时，将其拆分为定型集和测试集可能会减少可用于拟合模型的样本数量。因为我们假设数据集代表一个底层的数据生成过程，所以绝对有必要让训练集和测试集都遵守这个规则。小型数据集可能恰好只有少量样本代表数据生成过程的特定区域，因此将它们包含在训练集中很重要，以避免缺乏泛化能力。</p>
+
+<p><strong> K 倍交叉验证</strong>可以用不同的策略帮助解决这个问题。整个数据集被分成<em> k </em>个褶皱，始终使用<em> k-1 </em>个褶皱用于训练，剩余的一个用于验证模型。将执行 K 次迭代，总是使用不同的验证折叠。在下图中，有一个包含三个折叠/迭代的示例:</p>
+
+<div><img class="image-border" src="img/bd5077d0-5cab-4436-a4d5-0367a4cae689.png" style="width:25.67em;height:17.58em;"/></div>
+
+<p>k 重交叉验证模式</p>
+
+<p>这样就可以确定最终得分为所有值的平均值，选取所有样本训练<em> k-1 </em>次。只要训练时间不是特别长，这种方法就是评估模型性能(尤其是泛化能力)的最佳方式，当训练集中不存在某些样本时，泛化能力可能会受到影响。</p>
+
+<p>为了检查回归的准确性，scikit-learn 提供了内部方法<kbd xmlns:epub="http://www.idpf.org/2007/ops">score(X, y)</kbd>方法，该方法使用<em xmlns:epub="http://www.idpf.org/2007/ops">R<sup>2</sup>T36】分数来评估测试数据上的模型(参见下一节):</em></p>
+
+<pre>print(lr.score(X_test, Y_test))<br/>0.77371996006718879</pre>
+
+<p>因此，总体精度约为 77%，考虑到原始数据集的非线性，这是一个可接受的结果，但它也会受到由<kbd>train_test_split</kbd> <em> <strong> </strong> </em>进行的细分的影响(如我们的情况)。事实上，测试集可以包含在整体精度不可接受的情况下也可以很容易预测的点。出于这个原因，最好不要立即相信这个方法，默认交叉验证(<strong> CV </strong>)评估。</p>
+
+<p>为了执行 k-fold 交叉验证，我们可以使用<kbd>cross_val_score()</kbd>函数，它适用于所有的分类器。<kbd>scoring</kbd>参数非常重要，因为它决定了测试将采用哪个指标。由于<kbd>LinearRegression</kbd>使用普通的最小二乘法，我们更喜欢负的均方误差，这是一个累积的度量，必须根据实际值来评估(它不是相对的):</p>
+
+<pre>from sklearn.model_selection import cross_val_score<br/><br/>scores = cross_val_score(lr, boston.data, boston.target, cv=7, scoring='neg_mean_squared_error')<br/>array([ -11.32601065,  -10.96365388,  -32.12770594,  -33.62294354,<br/>        -10.55957139, -146.42926647,  -12.98538412])<br/><br/>print(scores.mean())<br/>-36.859219426420601<br/><br/>print(scores.std())<br/>45.704973900600457</pre>
+
+<p>高标准差证实了该数据集对分割策略非常敏感。在某些情况下，训练集和测试集的概率分布相当相似，但在其他情况下(至少有三个七倍)，它们是不同的；因此，算法无法学会正确预测。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>R2 score</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">R2 分数</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>回归中使用的另一个非常重要的指标叫做<strong>决定系数</strong>或<strong> <em> R <sup> 2 </sup> </em> </strong>。它测量由数据集解释的预测的方差。换句话说，给定数据生成过程<em> p <sub>数据</sub> </em>的方差，该度量与预测实际属于<em> p <sub>数据</sub> </em>的新样本的概率成比例。直观上，如果回归超平面以低于固定阈值的误差逼近大多数样本，我们可以假设未来值将被正确估计。另一方面，例如，如果斜率仅允许数据集的一部分有小误差，则未来错误预测的概率会增加，因为模型无法捕捉完整的动态。</p>
+
+<p>为了引入该度量，让我们将下面的量定义为<strong>剩余</strong>:</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/44c86f8f-cfe1-4b13-a5ff-614df2cf71d7.png" style="width:15.92em;height:1.83em;"/></p>
+
+<p>换句话说，就是样本和预测的差异。所以，<em xmlns:epub="http://www.idpf.org/2007/ops">R<sup>2</sup>T26】定义如下:</em></p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/46f02341-a51f-4a01-85f2-bc6799803834.png" style="width:12.75em;height:3.75em;"/></p>
+
+<p>术语<img xmlns:epub="http://www.idpf.org/2007/ops" class="fm-editor-equation" src="img/bb132b37-bd3d-4528-8629-48117991d021.png" style="width:0.83em;height:1.42em;"/>代表对所有样本计算的平均值。出于我们的目的，接近于<em xmlns:epub="http://www.idpf.org/2007/ops"> 1 </em>的<em xmlns:epub="http://www.idpf.org/2007/ops">R<sup>2</sup>T32】值意味着近乎完美的回归，而接近于<em xmlns:epub="http://www.idpf.org/2007/ops"> 0 </em>的值(或负值)意味着模型不好。将这一指标与 CV 一起使用非常简单:</em></p>
+
+<pre>print(cross_val_score(lr, X, Y, cv=10, scoring='r2').mean())<br/>0.2</pre>
+
+<p>结果很低，这意味着该模型很容易在未来预测中失败(与<kbd>score()</kbd>方法提供的结果相反)。事实上，考虑到标准偏差，我们可以进行确认:</p>
+
+<pre>print(cross_val_score(lr, X, Y, cv=10, scoring='r2').std())<br/>0.599</pre>
+
+<p>考虑到原始数据集的差异和几个<em>异常</em>的存在，这并不奇怪。CV 方法的最大优点是最小化只选择接近回归超平面的点的风险。</p>
+
+<p>读者应该意识到，这样的模型很可能产生不准确的预测，不应该试图找到更好的训练/测试分割。一个合理的解决方案的特点是高 CV 分数均值和低标准差。另一方面，当 CV 标准偏差较高时，应采用另一种解决方案，因为该算法对结构训练集非常敏感。我们将在本章末尾分析一些更强大的模型；然而，选择通常必须限于非线性解决方案，它能够捕捉复杂的动态(因此，解释更多的变化)。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Explained variance</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">解释方差</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在线性回归问题中(以及在<strong xmlns:epub="http://www.idpf.org/2007/ops">主成分分析</strong> ( <strong xmlns:epub="http://www.idpf.org/2007/ops"> PCA </strong>))，了解模型可以解释多少原始方差是有帮助的。这个概念有助于理解我们通过近似数据集而丢失的信息量。当该值较小时，意味着数据生成过程具有强烈的振荡，而线性模型无法捕捉它们。一个非常简单但有效的措施(与<em xmlns:epub="http://www.idpf.org/2007/ops">R<sup>2</sup>T11】没有太大区别)定义如下:</em></p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/37c866a0-90fa-46f7-8d7a-5e62625cfeec.png" style="width:15.50em;height:4.17em;"/></p>
+
+<p class="mce-root">当<em> Y </em>被很好地逼近时，分子接近于<em> 0 </em>和<em> EV → 1 </em>，为最优值。在所有其他情况下，指数代表误差方差和原始过程方差之间的比率。我们可以使用之前采用的相同 CV 策略来计算本例的得分:</p>
+
+<pre>print(cross_val_score(lr, X, Y, cv=10, scoring='explained_variance').mean())<br/>0.271</pre>
+
+<p>类似于<em xmlns:epub="http://www.idpf.org/2007/ops">R<sup>2</sup>T22】的值是不可接受的，即使它稍微高一点。很明显，不能使用线性系统对数据集的动态进行建模，因为只有少数要素表现出可表示为带有加性高斯噪声的一般线的行为。一般来说，当<em xmlns:epub="http://www.idpf.org/2007/ops"> R <sup> 2 </sup> </em>不可接受时，计算其他度量是没有意义的，因为模型的精度通常会很低。相反，最好是分析数据，以便更好地理解单个时间序列。在波士顿数据集中，许多值表现出极其非线性的行为，并且最规则的要素似乎不是静止的。这意味着有(通常未知的)事件会戏剧性地改变动态。如果时间窗口很短，可以想象振荡和季节性的存在，但是当样本在足够长的时间内收集时，更有可能假设模型中没有包括的因素的存在。例如，在一场自然灾害之后，房屋的价格会发生巨大的变化，这种情况显然是不可预测的。每当不规则样本的数量很少时，可以将它们视为异常值，并使用特定的算法将其过滤掉，但当它们更频繁时，最好采用可以学习非线性动力学的模型。在本章以及本书的其余部分，我们将讨论可以解决或减轻这些问题的方法。</em></p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Regressor analytic expression</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">回归分析表达式</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>如果我们想要一个模型(超平面)的解析表达式，<kbd>LinearRegression</kbd>提供了两个实例变量，<kbd>intercept_</kbd>和<kbd>coef_</kbd>:</p>
+
+<pre>print('y = ' + str(lr.intercept_) + ' ')<br/>for i, c in enumerate(lr.coef_):<br/>    print(str(c) + ' * x' + str(i))<br/><br/>y = 38.0974166342 <br/>-0.105375005552 * x0<br/>0.0494815380304 * x1<br/>0.0371643549528 * x2<br/>3.37092201039 * x3<br/>-18.9885299511 * x4<br/>3.73331692311 * x5<br/>0.00111437695492 * x6<br/>-1.55681538908 * x7<br/>0.325992743837 * x8<br/>-0.01252057277 * x9<br/>-0.978221746439 * x10<br/>0.0101679515792 * x11<br/>-0.550117114635 * x12</pre>
+
+<p>对于任何其他模型，可以通过<kbd>predict(X)</kbd>方法进行预测。作为一个实验，我们可以尝试向我们的训练数据添加一些高斯噪声，并预测值:</p>
+
+<pre>X = boston.data[0:10] + np.random.normal(0.0, 0.1)<br/><br/>lr.predict(X)<br/>array([ 29.5588731 ,  24.49601998,  30.0981552 ,  28.01864586,<br/>        27.28870704,  24.65881135,  22.46335968,  18.79690943,<br/>        10.53493932,  18.18093544])<br/><br/>print(boston.target[0:10])<br/>[ 24. ,  21.6,  34.7,  33.4,  36.2,  28.7,  22.9,  27.1,  16.5,  18.9]</pre>
+
+<p>很明显，该模型并没有以理想的方式运行，有许多可能的原因，最主要的是非线性和异常值的存在。一般来说，线性回归模型并不是一个非常稳健的解决方案。然而，在这种情况下，一个常见的威胁是由导致低秩<em> X </em>矩阵的共线性表示的。这决定了病态矩阵对噪声特别敏感，导致一些参数爆炸。为了降低这种风险并提供更可靠的解决方案，我们研究了以下方法。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Ridge, Lasso, and ElasticNet</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">脊、套索和弹性网</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在本节中，我们将分析最常见的正则化方法，以及它们如何影响线性回归器的性能。在现实生活中，处理<em>脏</em>数据集是很常见的，包含离群值、相互依赖的特征和对噪声的不同敏感度。这些方法可以帮助数据科学家缓解问题，产生更有效和准确的解决方案。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Ridge</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">山脉</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p><strong xmlns:epub="http://www.idpf.org/2007/ops">岭</strong>T5】回归(也称为<strong xmlns:epub="http://www.idpf.org/2007/ops">吉洪诺夫正则化</strong>)对普通最小二乘成本函数施加额外的收缩惩罚，以限制其平方<em xmlns:epub="http://www.idpf.org/2007/ops">L<sub>2</sub>T12】范数:</em></p>
+
+<div><img class="fm-editor-equation" src="img/94e0f5ef-9378-4070-8b71-6ecefa1f3061.png" style="width:14.92em;height:2.08em;"/></div>
+
+<p class="CDPAlignLeft CDPAlign"><em> X </em>是包含所有样本行的矩阵，θ项代表权重向量。附加项(通过阿尔法系数——如果大，则意味着更强的正则化和更小的值)迫使损失函数不允许<em> w </em>的无限增长，这可能是由多重共线性或病态造成的。</p>
+
+<p class="CDPAlignLeft CDPAlign">在下图中，有一个应用山脊惩罚时发生的情况的表示:</p>
+
+<div><img src="img/32699c9d-7407-4278-9517-ffa7d7535115.png" style="width:48.42em;height:35.50em;"/></div>
+
+<p>使用岭惩罚的二维解决方案(灰色表面代表成本函数)</p>
+
+<p>灰色表面表示成本函数(这里，为了简单起见，我们只使用两个权重)，而圆心<strong> O </strong>是由脊条件施加的边界。最小值将具有更小的<em> w </em>值，避免了潜在的爆炸。在这种情况下，很容易验证最佳系数向量是标准线性回归公式的略微不同的版本:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/66cb98d9-552c-4d16-8652-81cfdd83eae0.png" style="width:17.58em;height:1.92em;"/></p>
+
+<p>所以，只要α选择正确，<em>det(X<sup>T</sup>X+</em><em>αI<sub>m</sub>)≠0</em>和解总是可以找到的。通常，当数据集包含线性相关的要素时(在某种程度上，这种情况非常常见)，收缩项起着重要作用。在这种情况下，矩阵<em> X <sup> T </sup> X </em>可能是病态的(例如，<em> det(X <sup> T </sup> X) ≈ 0，</em>)，并且逆可能对值的微小变化非常敏感，因此，系数方差可能变得非常高。对它们的增长施加约束保证了更稳定的解决方案和对噪声更强的鲁棒性。</p>
+
+<p>在下面的代码片段中，我们将通过交叉验证来比较<kbd>LinearRegression</kbd>和<kbd>Ridge</kbd> <em> <strong> </strong> </em>:</p>
+
+<pre>from sklearn.datasets import load_boston<br/>from sklearn.linear_model import LinearRegression, Ridge<br/><br/>boston = load_boston()<br/><br/>lr = LinearRegression(normalize=True)<br/>rg = Ridge(0.05, normalize=True)<br/><br/>lr_scores = cross_val_score(lr, boston.data, boston.target, cv=10)<br/>print(lr_scores.mean())<br/>0.200138<br/><br/>rg_scores = cross_val_score(rg, boston.data, boston.target, cv=10)<br/>print(rg_scores.mean())<br/>0.287476</pre>
+
+<p>由于房屋定价是基于 13 个很可能是部分相关的变量(例如，无人居住房屋的数量和犯罪率)，我们可以观察到在施加<em> L <sub> 2 </sub> </em>惩罚时 CV 分数的明显增加。</p>
+
+<p>有时，找到 alpha(脊系数)的正确值并不容易。scikit-learn 库提供了<kbd>RidgeCV</kbd>类，该类允许在集合中执行自动网格搜索并返回最佳估计:</p>
+
+<pre>from sklearn.linear_model import RidgeCV<br/><br/>rg = RidgeCV(alphas=(1.0, 0.1, 0.01, 0.005, 0.0025, 0.001, 0.00025), normalize=True)<br/>rg.fit(boston.data, boston.target)<br/><br/>print(rg.alpha_)<br/>0.010</pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Lasso</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">套索</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>一个<strong xmlns:epub="http://www.idpf.org/2007/ops">套索</strong>回归器对<em xmlns:epub="http://www.idpf.org/2007/ops"> w </em>的<em xmlns:epub="http://www.idpf.org/2007/ops">L<sub>1</sub>T51】范数施加惩罚，以确定一个潜在的更大数量的零系数:</em></p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/c03fe94c-d51d-4c2f-a651-fa5dda7b1fea.png" style="width:15.50em;height:2.17em;"/></p>
+
+<p>稀疏性是惩罚项的结果(数学证明是重要的，但是我们已经在第 2 章、<em xmlns:epub="http://www.idpf.org/2007/ops">机器学习的重要元素</em>中提供了直观的解释)。套索约束也会产生收缩，但是动力学与山脊略有不同。当使用一个<em xmlns:epub="http://www.idpf.org/2007/ops">L<sub>1</sub>T18】范数时，根据<em xmlns:epub="http://www.idpf.org/2007/ops">θ<sub>I</sub>T22】的符号，对系数计算的偏导数只能是+1 或-1。因此，该约束迫使最小的分量以更高的速度向零移动，因为对最小化的影响与系数的大小无关。相反，<em xmlns:epub="http://www.idpf.org/2007/ops"> L <sub> 2 </sub> </em>范数的导数与参数的大小成比例，并且对于小值，其影响减小。这就是为什么 Lasso 通常用于通过隐式特征选择来诱导稀疏性。当特征的数量很大时，Lasso 选择一个子集，丢弃(即设置<em xmlns:epub="http://www.idpf.org/2007/ops"> θ <sub> i </sub> ≈ 0 </em>)其他特征，这些特征在未来的预测中不被考虑。在下图中，有一个套索正则化效果的表示:</em></em></p>
+
+<div><img src="img/d0760786-b5a5-4546-8915-d47951ba6ce5.png" style="width:45.33em;height:34.83em;"/></div>
+
+<p>使用套索惩罚的二维解决方案(灰色表面代表成本函数)</p>
+
+<p>在这种情况下，存在这样的顶点，其中一个分量为非空，而所有其他权重为零。与顶点相交的概率与<em> w，</em>的维数成正比，因此，在训练套索回归器后发现一个相当稀疏的模型是正常的。</p>
+
+<p>在以下代码片段中，波士顿数据集用于拟合套索模型:</p>
+
+<pre>from sklearn.linear_model import Lasso<br/><br/>ls = Lasso(alpha=0.01, normalize=True)<br/>ls_scores = cross_val_score(ls, boston.data, boston.target, cv=10)<br/><br/>print(ls_scores.mean())<br/>0.270937</pre>
+
+<p>同样，对于 Lasso，有可能运行网格搜索来寻找最佳的<kbd>alpha</kbd>参数。在这种情况下，这个类是<kbd>LassoCV</kbd>，它的内部动态类似于我们已经看到的 Ridge。Lasso 还可以有效地处理通过<kbd>scipy.sparse</kbd>类生成的稀疏数据，允许训练更大的模型，而不需要部分拟合:</p>
+
+<pre>from scipy import sparse<br/><br/>ls = Lasso(alpha=0.001, normalize=True)<br/>ls.fit(sparse.coo_matrix(boston.data), boston.target)<br/><br/>Lasso(alpha=0.001, copy_X=True, fit_intercept=True, max_iter=1000,<br/>   normalize=True, positive=False, precompute=False, random_state=None,<br/>   selection='cyclic', tol=0.0001, warm_start=False)</pre>
+
+<p>当处理大量数据时，一些模型无法完全适应内存，因此不可能训练它们。scikit-learn 库提供了一些模型，如<strong>随机梯度下降</strong> ( <strong> SGD </strong>)，其工作方式与使用脊/套索的<kbd>LinearRegression</kbd>非常相似；然而，它们也实现了<kbd>partial_fit()</kbd>方法，该方法也允许通过 Python 生成器进行连续训练。详见<a href="http://scikit-learn.org/stable/modules/linear_model.html#stochastic-gradient-descent-sgd">http://sci kit-learn . org/stable/modules/linear _ model . html # random-gradient-descent-SGD</a>。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>ElasticNet</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">弹性网</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>最后一个选项被称为<strong xmlns:epub="http://www.idpf.org/2007/ops"> ElasticNet </strong>，它将套索和脊结合成一个具有两个惩罚因子的单一模型:一个与<em xmlns:epub="http://www.idpf.org/2007/ops">L<sub>1</sub>T44】范数成比例，另一个与<em xmlns:epub="http://www.idpf.org/2007/ops">L<sub>2</sub></em><sub xmlns:epub="http://www.idpf.org/2007/ops">T50】范数成比例。这样，生成的模型将像纯套索一样稀疏，但具有与 Ridge 提供的相同的正则化能力。由此产生的损失函数如下:</sub></em></p>
+
+<div><img class="fm-editor-equation" src="img/da717ff8-734c-4199-99b7-d2b2f25ff5cb.png" style="width:25.33em;height:3.17em;"/></div>
+
+<p><kbd xmlns:epub="http://www.idpf.org/2007/ops">ElasticNet</kbd>类提供了一个实现，其中<kbd xmlns:epub="http://www.idpf.org/2007/ops">alpha</kbd>参数与<kbd xmlns:epub="http://www.idpf.org/2007/ops">l1_ratio</kbd>(公式<strong xmlns:epub="http://www.idpf.org/2007/ops"> ) </strong>协同工作。由于<em xmlns:epub="http://www.idpf.org/2007/ops">L<sub>1</sub>T56】和<em xmlns:epub="http://www.idpf.org/2007/ops">L<sub>2</sub>T60】规范的平衡作用，<kbd xmlns:epub="http://www.idpf.org/2007/ops">ElasticNet</kbd>的主要特点是避免选择性排除相关特征。</em></em></p>
+
+<p>在下面的代码片段中，有一个同时使用了<kbd>ElasticNet</kbd>和<kbd>ElasticNetCV</kbd>类的示例:</p>
+
+<pre>from sklearn.linear_model import ElasticNet, ElasticNetCV<br/><br/>en = ElasticNet(alpha=0.001, l1_ratio=0.8, normalize=True)<br/>en_scores = cross_val_score(en, boston.data, boston.target, cv=10)<br/><br/>print(en_scores.mean())<br/>0.324458<br/><br/>encv = ElasticNetCV(alphas=(0.1, 0.01, 0.005, 0.0025, 0.001), l1_ratio=(0.1, 0.25, 0.5, 0.75, 0.8), normalize=True)<br/>encv.fit(boston.data, boston.target)<br/><br/>ElasticNetCV(alphas=(0.1, 0.01, 0.005, 0.0025, 0.001), copy_X=True, cv=None,<br/>       eps=0.001, fit_intercept=True, l1_ratio=(0.1, 0.25, 0.5, 0.75, 0.8),<br/>       max_iter=1000, n_alphas=100, n_jobs=1, normalize=True,<br/>       positive=False, precompute='auto', random_state=None,<br/>       selection='cyclic', tol=0.0001, verbose=0)<br/><br/>print(encv.alpha_)<br/>0.005<br/><br/>print(encv.l1_ratio_)<br/>0.7500</pre>
+
+<p>正如所料，<kbd>ElasticNet</kbd>的性能优于 Ridge 和 Lasso，因为它结合了前者的收缩效果和后者的特征选择。然而，由于这两种惩罚的相互作用更难预测，我总是建议用大范围的参数进行网格搜索。必要时，可以通过<em>将</em>放大到包含先前选择的参数的范围来重复该过程，从而找到可能的最佳组合。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Robust regression</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">稳健回归</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在本节中，我们将考虑当数据集包含异常值时可以采用的两种解决方案。不幸的是，线性回归对它们非常敏感，因为系数被强制最小化平方误差，因此超平面被强制向离群值移动(这产生更高的误差)。然而，在大多数实际应用中，我们期望有很好的能力来区分属于数据生成过程的点和离群点。本节介绍的算法旨在缓解这一问题。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>RANSAC</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">兰萨克</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>线性回归的一个常见问题是异常值的存在。普通的最小二乘法会将它们考虑在内，因此结果(就系数而言)会有偏差。下图是这种行为的一个示例:</p>
+
+<p class="packt_figref CDPAlignCenter CDPAlign"><img class="image-border" src="img/e9af4025-94c7-467c-8af1-20ec2d41e3e1.png" style="width:47.67em;height:33.08em;"/></p>
+
+<p>包含异常值的数据集示例</p>
+
+<p>较浅的斜线表示丢弃异常值的可接受回归，而另一条则受异常值影响。RANSAC 提供了一种避免这个问题的有趣方法，它在将数据集分成内点和外点后，通过后续迭代处理每个回归变量。该模型仅使用有效样本进行训练(内部评估或通过可调用的<kbd>is_data_valid()</kbd>)，并且所有样本都被重新评估，以验证它们是否仍然是内联者或者它们是否已经变成了外联者。在固定数量的迭代之后，或者当达到期望的分数时，该过程结束。</p>
+
+<p>在下面的代码片段中，有一个简单的线性回归示例应用于上图中显示的数据集:</p>
+
+<pre>from sklearn.linear_model import LinearRegression<br/><br/>lr = LinearRegression(normalize=True)<br/>lr.fit(X.reshape((-1, 1)), Y.reshape((-1, 1)))<br/><br/>print(lr.intercept_)<br/>5.500572<br/><br/>print(lr.coef_)<br/>2.53688672</pre>
+
+<p>正如想象的那样，由于异常值的存在，斜率很高。得到的回归量是<em> y = 5.5 + 2.5x </em>(比图表中显示的斜率稍小)。现在我们将 RANSAC 与同一个线性回归器一起使用:</p>
+
+<pre>from sklearn.linear_model import RANSACRegressor<br/><br/>rs = RANSACRegressor(lr)<br/>rs.fit(X.reshape((-1, 1)), Y.reshape((-1, 1)))<br/><br/>print(rs.estimator_.intercept_)<br/>2.03602026<br/><br/>print(es.estimator_.coef_)<br/>0.99545348</pre>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p>在这种情况下，回归量大约为<em> y = 2 + x </em>(这是没有异常值的原始干净数据集)。</p>
+
+<p>如果想有进一步的了解，建议访问页面<a href="http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.RANSACRegressor.html">http://sci kit-learn . org/stable/modules/generated/sk learn . linear _ model。RANSACRegressor.html</a>。有关其他稳健回归技术，请访问<a href="http://scikit-learn.org/stable/modules/linear_model.html#robustness-regression-outliers-and-modeling-errors">http://sci kit-learn . org/stable/modules/linear _ model . html # robustness-regression-outliers-and-modeling-errors</a>。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Huber regression</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">胡伯回归</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>另一种方法基于稍微修改的损失函数，称为<strong> Huber 损失</strong>(针对单个样本):</p>
+
+<div><img class="fm-editor-equation" src="img/19d24deb-2629-4975-bf64-20aea18f2c14.png" style="width:31.42em;height:5.08em;"/></div>
+
+<p>参数<em xmlns:epub="http://www.idpf.org/2007/ops"> t <sub> H </sub>通过这种方式，当点被认为是异常值时，损失的大小相应地改变，从二次行为变成线性行为。以这种方式，它们对全局成本函数的贡献被减少，并且超平面将保持更接近大多数点，即使存在异常值。当然，参数<em xmlns:epub="http://www.idpf.org/2007/ops"> t <sub> H </sub> </em>必须选择适当，事实上，一个非常小的值(以及一个非常大的值)将使损失函数几乎总是偏好一个度量(二次或线性)，排除由于两个项的共同存在而产生的影响。</em></p>
+
+<p>让我们考虑一个由 500 个点和 50 个异常值(非正态分布)组成的简单二维示例:</p>
+
+<div><img src="img/bd41a11b-656e-43f6-8fe7-3198862c8f0e.png"/><br/>
+
+<br/>
+
+ A dataset with a linear structure and some outliers</div>
+
+<p>数据集的线性部分可以通过<em> y = x + 2 </em>函数成功插值；然而，我们预计异常值的存在会对斜率和截距产生影响。让我们用标准的线性回归来检验我们的假设:</p>
+
+<pre>from sklearn.linear_model import LinearRegression<br/><br/>lr = LinearRegression(normalize=True)<br/>lr.fit(X.reshape((-1, 1)), Y.reshape((-1, 1)))<br/><br/>print(lr.intercept_)<br/>2.550<br/><br/>print(lr.coef_)<br/>0.978</pre>
+
+<p>斜率显示最小(可忽略)影响，因为异常值均匀分布在同一侧；然而，截距现在比预期的要高。这显然是由于由异常值确定的较大误差。为了使其最小化，回归器将直线推向异常值，对所有其他样本产生较高的相对误差。事实上，还记得我们期望它们沿着回归线呈高斯分布吗？在这种情况下，它们中的大多数都在线下，并且它们的概率低于最优概率。</p>
+
+<p>现在让我们使用<kbd>HuberRegressor</kbd>类和一个<kbd>epsilon=1.25</kbd>参数来重复回归:</p>
+
+<pre>from sklearn.linear_model import HuberRegressor<br/><br/>hr = HuberRegressor(epsilon=1.25)<br/>hr.fit(X.reshape(-1, 1), Y)<br/><br/>print(hr.intercept_)<br/>2.033<br/><br/>print(hr.coef_)<br/>1.001</pre>
+
+<p>在这种情况下，插值几乎是完美的，离群值的影响已被过滤掉。我总是建议使用网格搜索来找到最佳的<kbd xmlns:epub="http://www.idpf.org/2007/ops">epsilon</kbd>值，其策略可以基于没有异常值的模型的评估(考虑到方差阈值，可以很容易地去除异常值)和基于具有不同参数的 Huber 回归器的一些评估(例如，使用<em xmlns:epub="http://www.idpf.org/2007/ops">R<sup>2</sup>T8】分数)。真实场景通常比前面讨论的例子更复杂；然而，强异常值通常很容易被检测到，并且它们的影响可以被最小化。</em></p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Bayesian regression</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">贝叶斯回归</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在本章的开始，我们讨论了线性回归模型拟合后样本是如何分布的:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/c4bf8dd5-34fd-4b1b-8a8f-3815a0d58173.png" style="width:24.17em;height:4.08em;"/></p>
+
+<p>显然，高斯本身对于系数的确定方式是<em xmlns:epub="http://www.idpf.org/2007/ops">不可知的</em>，通过采用标准方法，如 OLS 或封闭形式的表达式，我们隐含地只依赖数据集。我们的假设是，我们有足够的样本来正确地表示底层数据生成过程，并且必须以最小化平方误差的方式来选择系数。然而，我们可能对所有参数的分布有一些先验信念(例如，我们可以想象θ <sub xmlns:epub="http://www.idpf.org/2007/ops"> i </sub>来自高斯分布),我们希望在我们的模型中包含这些信息。正如我们将要在第六章、<em xmlns:epub="http://www.idpf.org/2007/ops">中讨论的<a xmlns:epub="http://www.idpf.org/2007/ops" href="99be831f-aab0-4f44-b47c-159405fe5f44.xhtml">朴素贝叶斯和判别分析</a></em>(更多细节，也请参考<em xmlns:epub="http://www.idpf.org/2007/ops">掌握机器学习算法</em>、<em xmlns:epub="http://www.idpf.org/2007/ops">博纳科索 G </em>。，<em xmlns:epub="http://www.idpf.org/2007/ops"> Packt Publishing </em>，<em xmlns:epub="http://www.idpf.org/2007/ops"> 2018 </em>)，采用贝叶斯框架背后的主要概念是，我们可以推导出基于数据可能性和先验信念的后验分布。</p>
+
+<p>在我们的具体例子中，我们总是假设因变量<em xmlns:epub="http://www.idpf.org/2007/ops">y<sub>I</sub>T29】是正态分布的:</em></p>
+
+<div><img class="fm-editor-equation" src="img/a4f9f645-0859-4941-bb64-f4843ff0ba22.png" style="width:16.33em;height:2.00em;"/></div>
+
+<p>均值向量和协方差矩阵是数据集<em> X </em>、系数向量<em> θ </em>和噪声方差的函数。我们的目标是估计参数，考虑它们的先验分布。利用条件概率的规则，我们可以将联合先验概率分布写成两个分布的因子:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/9836829a-445a-43e7-b6a7-054ae4e45032.png" style="width:15.75em;height:2.00em;"/></p>
+
+<p class="mce-root">正确分布的选择通常是很重要的，在许多情况下，这样做是为了使问题在封闭形式下易于处理。由于这个主题超出了本书的范围，我们不打算定义所有的细节，但是考虑一下<strong>共轭优先</strong>的概念是有用的。在<a href="https://cdp.packtpub.com/machine_learning_algorithms__second_edition/wp-admin/post.php?post=27&amp;action=edit#post_29">第 6 章</a>、<em>朴素贝叶斯和判别分析</em>、<em>、</em>中，一切都会更清楚，但对于没有背景知识的读者来说，展示一下通用贝叶斯公式还是很有帮助的:</p>
+
+<div><img class="fm-editor-equation" src="img/605585ca-ed5d-4a1f-8846-be9ad94c9e4d.png" style="width:12.75em;height:1.83em;"/></div>
+
+<p>后验概率<em> p(a|b) </em>与可能性<em> p(b|a) </em>和先验分布<em> p(a) </em>成比例(达到归一化因子)。在我们的例子中，术语<em> a </em>代表参数，而<em> b </em>是独立变量<em> X </em>的集合。给定一个可能性<em> p(b|a) </em>，如果后验分布与先验分布相同，则称先验与其共轭。这个<em>绝招</em>可以让我们简化计算，得到闭合形式的表达式。</p>
+
+<p>在我们的具体问题中，让我们考虑一个势<em> p(θ|σ <sup> 2 </sup> ) </em>。可能性<em>p(Y | X；θ，σ <sup> 2 </sup> ) </em>是高斯的，并且先验的<em>p(θ|σ<sup>2</sup></em><em>)</em>可以被选择为高斯的(在这种情况下，它与其自身共轭)，因为在<em> θ </em>中可能性是二次的。主要问题出现在<em> p(σ <sup> 2 </sup> ) </em>。事实上，这一项出现在指数的分母和乘法因子中(总是作为倒数)；因此，先验不可能是高斯的。方差最合适的分布是反伽马分布，其概率密度函数(在支持下，<em>σ<sup>2</sup>T64】0</em>，始终为真)定义如下:</p>
+
+<div><img class="fm-editor-equation" src="img/33922a6e-adda-44b2-8dd7-b254cf442454.png" style="width:18.17em;height:4.08em;"/></div>
+
+<p class="mce-root CDPAlignLeft CDPAlign">有了这个选择，我们可以得到一个可以分析计算的后验分布。事实上，<em> σ </em>变量既出现在乘法因子中(如<em> σ <sup> -k </sup> </em>)，也出现在指数的分母中。或者，也可以考虑方差的倒数，称为<em>精度</em>:</p>
+
+<div><img class="fm-editor-equation" src="img/d3206323-1183-410b-a5c0-b62c2e5f1651.png" style="width:5.00em;height:3.42em;"/></div>
+
+<p>在这种情况下，<em> τ </em>出现在指数的分子处，作为乘法因子，共轭先验是伽马分布。然而，这一选择相当于前一个选择，它只是出于教学目的而被包括在内。</p>
+
+<p class="mce-root CDPAlignLeft CDPAlign">后验概率的一般表达式(不替换单项)是这样的:</p>
+
+<div><img class="fm-editor-equation" src="img/2bcccb0d-8e06-40c5-9983-cf9bf5af29c1.png" style="width:28.17em;height:2.00em;"/></div>
+
+<p>此时，我们如何估计参数呢？在贝叶斯框架中，这可以通过最大化关于所有参数的边际似然<em> p(Y|model) </em>(有时称为<strong>模型证据</strong>)来完成。模型效用变量将可能性和先验分组到一个项中。因此，通过最大化模型证据，我们将寻找允许我们找到最佳描述特定问题的模型的参数，或者其<em> p(Y|model) </em>是最大值的参数。换句话说，给定为参数选择的可能性和先验，我们希望找到与数据生成过程的距离最小的最佳分布。在下图中，有一个过程的表示，该过程导致给定先验的参数的后验分布:</p>
+
+<div><img src="img/b1492e88-7c1c-441e-9dea-b5f6ed539ad4.png" style="width:52.67em;height:23.92em;"/></div>
+
+<p>参数的先验分布(非常高的方差)，后验分布(平均值附近的峰值)</p>
+
+<p>通常，先验分布被选择为无信息的或者具有非常高的熵(这种情况可以与适当的共轭先验相容)。这样就没有具体的数值有更高的几率被选中(也就是分布非常平坦)。相反，由于可能性的贡献，我们预期一个非常尖峰的后验概率。正如 D .麦凯(在<em>贝叶斯插值</em>，<em>麦凯 D </em>中所指出的。<em> J </em>。<em> C </em>。，<em>神经计算</em>，<em> 1991 </em>，这个过程类似于<strong>奥卡姆剃刀</strong>概念，因为它排除了所有那些更不确定的假设，只关注最简单的(也是最有可能的)假设。</p>
+
+<p>这种方法在很多情况下是非常有效的(特别是当我们想要用新的样本更新模型的时候)，但是它对于推理部分需要更复杂的计算。事实上，为了计算输出的概率，我们需要对所有可能的值<em> θ </em>和<em> σ </em> <em> <sup> 2 </sup> </em>进行积分，考虑独立变量<em> X </em>的当前数据集:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/d5ebda5a-1e98-41a9-9201-71fb8e94e319.png" style="width:32.92em;height:3.67em;"/></p>
+
+<p>通过之前所做的选择，该二重积分可以以封闭形式求解，但是其值取决于伽马函数<em>γ(x)</em>并且需要一些行列式的计算。因此，它显然比本章介绍的所有其他解决方案在计算上更昂贵。</p>
+
+<p>scikit-learn 库通过<kbd>BayesianRidge</kbd>类实现了基于岭惩罚的贝叶斯回归。在下一个示例中，我们将把它用于波士顿数据集:</p>
+
+<pre>from sklearn.linear_model import BayesianRidge<br/><br/>br = BayesianRidge(n_iter=1000)<br/>br.fit(X_train, Y_train)<br/><br/>print(br.score(X_test, Y_test))<br/>0.702</pre>
+
+<p><kbd xmlns:epub="http://www.idpf.org/2007/ops">n_iter</kbd>参数允许我们指定参数估计的最大迭代次数。固定训练/测试分割的分数与用标准线性回归获得的分数相当。现在让我们计算平均<em xmlns:epub="http://www.idpf.org/2007/ops">CV R<sup>2</sup>T32】分数:</em></p>
+
+<pre>r2_scores = cross_val_score(br, boston.data, boston.target, cv=10, scoring='r2')<br/><br/>print(r2_scores.mean())<br/>0.257</pre>
+
+<p>该值略高于用线性回归获得的值(但仍然很小)。原因是由于脊罚的存在和参数的优越适应性。作为练习，我邀请读者用其他数据集来测试这个模型(与标准的岭回归相比较)。scikit-learn 提供了一些可能性，但一个非常有用的资源是 UCI 机器学习知识库(<a href="https://archive.ics.uci.edu/ml/datasets.html">https://archive.ics.uci.edu/ml/datasets.html</a>)，在那里可以找到针对任何类型问题的不同复杂程度的免费数据集。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Polynomial regression</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">多项式回归</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>多项式回归是一种基于技巧的技术，即使数据集具有很强的非线性，该技巧也允许使用线性模型。想法是添加一些从现有变量计算的额外变量，并且只使用(在这种情况下)多项式组合:</p>
+
+<div><img class="fm-editor-equation" src="img/54726730-7b18-42da-b819-cd3d66f49577.png" style="width:37.00em;height:5.08em;"/></div>
+
+<p class="CDPAlignLeft CDPAlign">在前面的表达式中，每个<em>f<sub>Pj</sub>()</em>都是单个特征的多项式函数。例如，对于两个变量，可以通过将初始向量(其维数等于<em> m </em>)转换为另一个具有更高维度的向量(其维数为<em> k </em> &gt; <em> m </em>)来扩展到二次问题:</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/47d384b5-cba0-4a45-82d3-9ff9692a0336.png" style="width:25.50em;height:2.00em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">在这种情况下，模型保持外部线性，但它可以捕捉内部非线性。为了展示 scikit-learn 如何实现这一技术，让我们考虑下图中显示的数据集:</p>
+
+<div><img class="image-border" src="img/ae4b1333-d1a4-4e48-8a5c-a402fb43f679.png" style="width:43.33em;height:36.00em;"/></div>
+
+<p>可使用抛物线回归进行有效插值的非线性数据集示例</p>
+
+<p>这显然是一个非线性数据集，任何仅基于原始二维点的线性回归都无法捕捉到动态。为了尝试这一点，我们可以训练一个简单的模型(在同一个数据集上测试):</p>
+
+<pre>from sklearn.linear_model import LinearRegression<br/><br/>lr = LinearRegression(normalize=True)<br/>lr.fit(X.reshape((-1, 1)), Y.reshape((-1, 1)))<br/><br/>print(lr.score(X.reshape((-1, 1)), Y.reshape((-1, 1))))<br/>0.10888218817034558</pre>
+
+<p>精度极差，不出所料。然而，看着图表，我们可能会认为二次回归可以很容易地解决这个问题。scikit-learn 库提供了<kbd>PolynomialFeatures</kbd>类，它根据<kbd>degree</kbd>参数将原始集合转换为扩展集合:</p>
+
+<pre>from sklearn.preprocessing import PolynomialFeatures<br/><br/>pf = PolynomialFeatures(degree=2)<br/>Xp = pf.fit_transform(X.reshape(-1, 1))<br/><br/>print(Xp.shape)<br/>(100L, 3L)</pre>
+
+<p>不出所料，旧的<em xmlns:epub="http://www.idpf.org/2007/ops">x<sub>1</sub>T13】坐标已经被一个三联体取代，其中也包含了二次项和混合项。此时，可以训练线性回归模型:</em></p>
+
+<pre>lr.fit(Xp, Y.reshape((-1, 1)))<br/><br/>print(lr.score(Xp, Y.reshape((-1, 1))))<br/>0.99692778265941961</pre>
+
+<p>分数要高得多，我们付出的唯一代价是功能的增加。总的来说，这是可行的；然而，如果这个数字超过了一个可接受的阈值，尝试降维是有用的，或者作为一个极端的解决方案，转向非线性模型(如<strong>支持向量机-核</strong>(<strong>SVM-核</strong>))。通常，一个好的方法是使用<kbd>SelectFromModel</kbd>类让 scikit-learn 根据它们的重要性选择最佳特性。事实上，当特征的数量增加时，所有特征具有相同重要性的概率降低。这是主要趋势和次要趋势相互关联或共同存在的结果，它们就像噪音一样，没有改变超平面斜率的感知能力。此外，当使用多项式展开时，一些弱特征(不能用于线性分离)被它们的函数代替，因此强特征的实际数量减少。</p>
+
+<p>在下面的代码片段中，有一个先前使用的波士顿数据集的示例。<kbd>threshold</kbd>参数用于设置最低重要性级别。如果缺少，该类将尝试通过移除尽可能多的要素来最大化效率:</p>
+
+<pre>from sklearn.feature_selection import SelectFromModel<br/><br/>boston = load_boston()<br/><br/>pf = PolynomialFeatures(degree=2)<br/>Xp = pf.fit_transform(boston.data)<br/><br/>print(Xp.shape)<br/>(506L, 105L)<br/><br/>lr = LinearRegression(normalize=True)<br/>lr.fit(Xp, boston.target)<br/><br/>print(lr.score(Xp, boston.target))<br/>0.91795268869997404<br/><br/>sm = SelectFromModel(lr, threshold=10)<br/>Xt = sm.fit_transform(Xp, boston.target)<br/><br/>print(sm.estimator_.score(Xp, boston.target))<br/>0.91795268869997404<br/><br/>print(Xt.shape)<br/>(506L, 8L)</pre>
+
+<p>仅选择最佳特征(阈值设置为<kbd>10</kbd>)后，分数保持大致相同，维度减少一致(仅<kbd>8</kbd>特征被认为对预测重要)。而且总体<em> R </em> <sup> <em> 2 </em> </sup>分数(不是 CV one)现在还是比较高的。我邀请读者测试一下简历的分数，看看这个解决方案是否可以接受。在后一种情况下，使用更高的学位是否可能获得更好的结果？</p>
+
+<p>如果在任何其他处理步骤之后，有必要返回到原始数据集，可以使用逆变换:</p>
+
+<pre>Xo = sm.inverse_transform(Xt)<br/><br/>print(Xo.shape)<br/>(506L, 105L)</pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Isotonic regression</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">保序回归</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>有些情况下，我们需要为可能出现低水平振荡(如噪声)的非递减点数据集找到一个回归量。线性回归可以很容易地获得非常高的分数(考虑到斜率大约是常数)，但它的工作方式就像一个降噪器，产生的线无法捕捉我们想要建模的内部动态。对于这些情况，scikit-learn 提供了<kbd>IsotonicRegression</kbd>类，它产生一个分段插值函数，最大限度地减少了以下泛函:</p>
+
+<p class="mce-root CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/dc114b50-10dd-49c7-869c-12581ac5807a.png" style="width:25.92em;height:3.00em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">接下来提供了一个示例(带有玩具数据集):</p>
+
+<pre>import numpy as np<br/><br/>X = np.arange(-5, 5, 0.1)<br/>Y = X + np.random.uniform(-0.5, 1, size=X.shape)</pre>
+
+<p>下图显示了数据集的绘图。正如大家所见，可以通过线性回归器轻松建模，但如果没有高度非线性函数，则很难捕捉斜率的轻微(和局部)变化:</p>
+
+<div><sub><img class="image-border" src="img/f152707e-ae7a-4d8f-820b-bbf32f90ff1f.png" style="width:33.67em;height:27.67em;"/></sub></div>
+
+<p>等渗数据集的示例</p>
+
+<p><kbd>IsotonicRegression</kbd>类需要知道<em> y <sub> min </sub> </em>和<em> y <sub> max </sub> </em>(分别对应损失函数中的<em> y </em> <sub> <em> 0 </em> </sub>和<em> y </em> <sub> <em> n </em> </sub>变量)。在这种情况下，我们选择施加由<kbd>−6</kbd>和<kbd>10</kbd>限定的范围:</p>
+
+<pre>from sklearn.isotonic import IsotonicRegression<br/><br/>ir = IsotonicRegression(-6, 10)<br/>Yi = ir.fit_transform(X, Y)</pre>
+
+<p>结果通过三个实例变量提供:</p>
+
+<pre>print(ir.X_min_)<br/>-5.0<br/><br/>print(ir.X_max_)<br/>4.8999999999999648<br/><br/>print(ir.f_)<br/>&lt;scipy.interpolate.interpolate.interp1d at 0x126edef8&gt;</pre>
+
+<p>最后一个，<kbd>(ir.f_)</kbd>，是可以在域[ <em> x <sub>最小</sub> </em>，<em> x <sub>最大</sub> </em> ]中求值的插值函数，例如:</p>
+
+<pre>print(ir.f_(2))<br/>1.7294334618146134</pre>
+
+<p>下图显示了此函数(绿色实线)以及原始数据集的曲线图:</p>
+
+<div><img class="image-border" src="img/e4bba321-be2f-4249-a996-04a5ce9a5994.png" style="width:36.42em;height:29.92em;"/></div>
+
+<p>使用保序回归进行插值</p>
+
+<p>有关 SciPy 插值的更多信息，请访问<a href="https://docs.scipy.org/doc/scipy-0.18.1/reference/interpolate.html">https://docs . SciPy . org/doc/SciPy-0 . 18 . 1/reference/interpolate . html</a>。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Summary</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">摘要</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在本章中，我们介绍了线性模型的重要概念，并描述了线性回归的工作原理。特别是，我们把重点放在了基本模型及其主要变体上:Lasso、Ridge 和 ElasticNet。它们不修改内部动态，但作为权重的归一化器，以避免数据集包含未缩放样本时的常见问题。这些处罚有其独特之处。当 Lasso 促进稀疏性时，Ridge 试图找到一个最小值，其约束条件是权重必须位于以原点为中心的圆内(其半径被参数化以增加/减少归一化强度)。ElasticNet 是这两种技术的混合，它试图在权重足够小的地方找到一个最小值，并实现一定程度的稀疏性。</p>
+
+<p>我们还讨论了高级技术，如 RANSAC，它使我们能够以非常稳健的方式处理异常值，以及多项式回归，这是一种非常智能的方法，可以在我们的模型中包括虚拟非线性要素，并继续以相同的线性方法处理它们。这样，就可以创建另一个数据集，包含原始列以及它们的多项式组合。这个新数据集可用于训练线性回归模型，然后可以只选择那些有助于实现良好性能的特征。我们看到的最后一种方法是保序回归，当要插值的函数从不减少时，这种方法特别有用。此外，它还能捕捉到被一般线性回归拉平的小波动。</p>
+
+<p>在下一章，<a href="12eae5a4-4216-4bb2-a195-337a64743f01.xhtml" target="_blank">第 5 章</a>，<em>线性分类算法，</em>我们将讨论一些用于分类的线性模型。特别是，我们将把注意力集中在逻辑回归和 SGD 算法上。此外，我们将引入一些有用的度量来评估分类系统的准确性，以及一种自动找到最佳超参数的强大技术。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html></body></html>

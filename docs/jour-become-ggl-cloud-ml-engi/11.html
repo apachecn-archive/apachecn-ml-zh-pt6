@@ -1,0 +1,271 @@
+<html><head/><body>
+
+
+
+
+
+
+
+
+
+<title>Chapter 8: Discovering Google Cloud ML API</title>
+
+
+
+
+
+
+
+<div><div><h1 class="chapter-number" id="_idParaDest-158"><a id="_idTextAnchor159"/> 8</h1>
+
+<h1 id="_idParaDest-159"><a id="_idTextAnchor160"/>发现谷歌云 ML API</h1>
+
+<p><strong class="bold">应用编程接口</strong>(<strong class="bold">API</strong>)允许一个计算机程序将其数据和<a id="_idIndexMarker471"/>功能提供给其他程序使用。换句话说，通过程序或服务的 API，用户可以向程序/服务发送请求，并从程序/服务获得响应。ML APIs 是基于云的人工智能服务，通过利用来自<strong class="bold">云服务提供商</strong> ( <strong class="bold"> CSP </strong>)的 API<a id="_idIndexMarker472"/>，帮助你将 ML 智能构建到你的应用中。它们以 REST APIs、客户端库 SDK 和用户界面的形式提供。</p>
+
+<p>Google Cloud ML APIs 提供了一个在云中利用 Google ML 服务的接口。在本章中，我们将讨论 Google Cloud ML API 频谱，它包括以下云服务:</p>
+
+<ul>
+
+<li>Google Cloud sight APIs，包括云视觉 API 和云视频 API</li>
+
+<li>Google Cloud <a id="_idIndexMarker473"/>语言 API，包括<strong class="bold">自然语言处理</strong> ( <strong class="bold"> NLP </strong>)和翻译</li>
+
+<li>Google Cloud 对话 API，包括语音到文本、文本到语音和 Dialogflow</li>
+
+</ul>
+
+<p>先说谷歌的 Cloud Sight API。</p>
+
+<h1 id="_idParaDest-160"><a id="_idTextAnchor161"/>谷歌云视线 API</h1>
+
+<p><strong class="bold"> Google Cloud Sight API </strong>为视觉处理和视频处理提供了<a id="_idIndexMarker474"/>强大的 Google 预训练机器学习模型。我们将研究云视觉 API 和云视频 API 的概念。</p>
+
+<h2 id="_idParaDest-161"><a id="_idTextAnchor162"/>云端视觉 API</h2>
+
+<p><strong class="bold">云视觉 API </strong>是一个<a id="_idIndexMarker475"/>工具，通过谷歌预先训练的高级 ML 模型来破译图像。它可以解释图像并把它们分成许多种类。它可以提取和检测文本，无论文本是图片还是文档照片。</p>
+
+<p>Google Cloud Vision 允许开发人员在应用程序中轻松集成视觉检测功能，包括图像标记、地标检测、徽标检测和内容检测:</p>
+
+<ul>
+
+<li>图像标签<a id="_idIndexMarker476"/>检测可以检测、识别和标记图像中存在的对象、位置、活动、动物种类、产品和许多其他东西。</li>
+
+<li>地标检测可以识别图像中的地标，例如受欢迎的地标和自然或人造结构。它提供了地标的名称、边界多边形顶点以及地标的位置(纬度和经度)。</li>
+
+<li>徽标检测<a id="_idIndexMarker478"/>检测图像中流行的产品徽标，如流行的公司徽标、产品徽标等。</li>
+
+<li>内容检测<a id="_idIndexMarker479"/>检测图像中的露骨内容，如成人内容、暴力内容、色情内容等。它提供了这种内容存在于图像中的可能性。</li>
+
+</ul>
+
+<p>Google Cloud Vision API 的一些用例如下所示:</p>
+
+<ul>
+
+<li><strong class="bold">文本数字化</strong>:云视觉 API 可以检测图像中的文本，尤其是扫描的<a id="_idIndexMarker480"/>图像中的文本。最棒的是，你可以定制自己的模型，并在核心内置特性的基础上针对特定场景对它们进行训练。例如，你可以将特定医生的处方放在一个定制的模型中，并在谷歌已经提供的模型上对其进行训练，以使其更加强大。</li>
+
+<li><strong class="bold">安全和监控</strong>:谷歌<a id="_idIndexMarker481"/>云视觉提供非常精确的面部识别、面部对比和面部跟踪。</li>
+
+<li><strong class="bold">使用徽标 API 进行品牌研究</strong> : Google Cloud Vision 提供了一个单独的徽标检测 API<a id="_idIndexMarker482"/>，您可以在横幅广告中查找徽标来识别品牌名称。</li>
+
+<li><strong class="bold">店内情绪分析</strong>:如果<a id="_idIndexMarker483"/>我们能够实时检测到店内顾客的意见和情绪，那么实时营销和顾客支持将会突飞猛进。谷歌云视觉通过商店中用户的面部表情捕捉客户的情绪。</li>
+
+<li><strong class="bold">机器人</strong>:让<a id="_idIndexMarker484"/>机器人了解它们的环境是一个巨大的挑战，需要通过谷歌视觉 API 进行精确的物体检测。</li>
+
+</ul>
+
+<p>云视觉的<a id="_idIndexMarker485"/>主要领域之一是谷歌的云视觉<strong class="bold">光学字符识别</strong> ( <strong class="bold"> OCR </strong>)，一种将手写文本或印刷文本转换为机器编码文本的方法。通过 OCR，Google Vision API 可以从图像中识别和提取文本，有两个注释:<strong class="bold">文本检测</strong>识别<a id="_idIndexMarker486"/>并从图像中提取文本，<strong class="bold">文档文本检测</strong>从图像中提取<a id="_idIndexMarker487"/>文本，其格式针对密集文本和文档进行了优化。来自文本检测的 JSON 提取响应包含提取的文本以及该文本中出现的所有单词，来自文档文本检测的 JSON 提取响应包括页面信息、块、段落和单词，以及分页符信息。Google Cloud Vision OCR 具有以下优势:</p>
+
+<ul>
+
+<li><strong class="bold">多语言支持</strong>:谷歌<a id="_idIndexMarker488"/>云视觉 OCR 支持多种语言。</li>
+
+<li><code>librarysur</code>。并且可以非常容易地使用。</li>
+
+<li><strong class="bold">速度快</strong>:Google 云存储平台集成了 OCR API 服务。利用 GCS，OCR API 可以非常快。</li>
+
+<li>可扩展性:它可以扩展，谷歌的 OCR 定价策略鼓励用户扩大 API 的使用，因为更多的使用会导致更便宜的平均价格。</li>
+
+</ul>
+
+<p>借助 Google 预先训练的模型，Cloud Vision API 提供了许多 ML 特性，使<a id="_idIndexMarker492"/>开发者能够将它们集成到各种应用开发中。OCR 有许多业务用例:银行使用 OCR 比较报表，医院使用 OCR 将手写表单转换为标准文本填充的表单，政府使用 OCR 收集调查反馈，等等。</p>
+
+<h2 id="_idParaDest-162"><a id="_idTextAnchor163"/>云视频 API</h2>
+
+<p><code>.MOVIE</code>、<code>.MPEG4</code>、<code>.MP4</code>和<code>.AVI</code>。谷歌云视频 API 提供以下功能:</p>
+
+<ul>
+
+<li><strong class="bold">标签检测</strong>:它<a id="_idIndexMarker494"/>可以检测视频中的实体，并根据请求提供视频片段注释列表、帧注释列表或镜头注释列表。</li>
+
+<li><strong class="bold">镜头变化检测</strong>:可以通过镜头或场景对视频进行标注，标注与视频场景相关的对象<a id="_idIndexMarker495"/>。</li>
+
+<li><strong class="bold">文本检测</strong>:它可以<a id="_idIndexMarker496"/>提供实际的文本以及文本在视频中的位置。</li>
+
+<li><strong class="bold">露骨内容检测</strong>:可以<a id="_idIndexMarker497"/>标注露骨内容，并在视频内放置时间戳。</li>
+
+<li><strong class="bold">对象跟踪</strong>:它可以<a id="_idIndexMarker498"/>跟踪一个视频中的多个对象，并提供每个对象在各个帧中的位置。</li>
+
+<li><strong class="bold">语音转录</strong>:它可以<a id="_idIndexMarker499"/>捕获视频中的口语单词/句子，并将其转录为文本。</li>
+
+</ul>
+
+<p>通过<a id="_idIndexMarker500"/> Google Cloud Video API，开发人员可以在整个视频、每段、每镜头、每帧的级别上，用上下文信息注释本地或云存储或直播的视频，并开发相关的智能应用程序。</p>
+
+<h1 id="_idParaDest-163"><a id="_idTextAnchor164"/>谷歌云语言 API</h1>
+
+<p>Google 的<strong class="bold">云语言 API </strong>包括语言翻译和 NLP。云翻译 API 允许您检测一种语言并将其翻译成另一种语言，因此您只需要指定一种目标语言，因为它会自动检测源语言。NLP 允许你发现输入文本的结构和含义。它为开发人员或计算机程序提供了一个发送请求和获得响应的接口。</p>
+
+<p>Google 的 NLP API 有几种方法来执行文本分析和注释:</p>
+
+<ul>
+
+<li><code>analyzeSentiment</code>方法。情绪分析响应字段包括以下内容:<ul><li><code>-1.0</code>(消极的)和<code>1.0</code>(积极的)，基于文本的整体情感倾向，以及情感的大小，其指示给定文本内情感(积极的和消极的)的整体强度，在<code>0.0</code>和<code>+inf</code>之间。文档的情感得分表示文档的整体情感。文档情感的大小表明文档中存在多少情感内容。</li>
+
+<li><strong class="bold">语言</strong>包含<a id="_idIndexMarker503"/>文档的语言，要么在初始请求中传递，要么在不存在时自动检测。</li>
+
+<li><strong class="bold">句子</strong>包含从原始文档中提取的句子列表，以及<a id="_idIndexMarker504"/>附加到每个句子的句子级情感值，其包含如前所述的分数和量值。</li>
+
+</ul></li>
+
+</ul>
+
+<p>情绪<a id="_idIndexMarker505"/>分析指出了文档中积极情绪和消极情绪之间的差异，但它不能识别具体的积极情绪和消极情绪。例如，当检测到被认为是<em class="italic">生气</em>的东西，或者被认为是<em class="italic">难过</em>的文字时，分析响应只表示情绪是负面的，而不是<em class="italic">难过</em>或<em class="italic">生气</em>。</p>
+
+<ul>
+
+<li><strong class="bold">实体分析</strong>:检查给定文本中的已知实体，如映射到唯一实体(特定的人、地点等)的专有名词<a id="_idIndexMarker506"/>或普通名词(也称为<strong class="bold">名词</strong>，如<a id="_idIndexMarker507"/>餐馆、体育场等)。实体分析返回一组检测到的实体和与这些实体相关联的参数，例如实体的类型、实体与整个文本的相关性以及文本中引用同一实体的位置。实体按照其显著性分数的顺序(从高到低)返回，这反映了它们与整个文本的相关性。</li>
+
+<li><strong class="bold">实体情感分析</strong>:结合实体分析和情感分析<a id="_idIndexMarker508"/>，并尝试确定对文本内实体表达的情感(正面或负面)。实体情感由每个检测到的实体的数值分数和量值来表示。这些分数然后被聚合成实体的总体情绪分数和大小。</li>
+
+<li><code>analyzeSyntax</code>法。句法分析由以下<a id="_idIndexMarker510"/>操作组成:<ul><li>句子抽取将文本流分解成一系列句子。</li>
+
+<li>记号化将文本流分解成一系列记号，每个记号通常对应一个单词。</li>
+
+<li>然后，自然语言 API 处理记号，并利用它们在句子中的位置，向记号添加句法信息。</li>
+
+</ul></li>
+
+<li><code>classifyText</code>方法。对于一个输入文本，谷歌的自然语言 API 过滤掉由<code>classifyText</code>方法返回的类别，只包括最相关的类别。</li>
+
+</ul>
+
+<p>总之，通过情感分析、实体分析、实体情感分析、内容分类和语法分析，谷歌自然语言 API 的预训练模型可以帮助开发人员将自然语言理解应用到他们的应用程序中，并解决许多业务用例。</p>
+
+<h1 id="_idParaDest-164"><a id="_idTextAnchor165"/>谷歌云对话 API</h1>
+
+<p>谷歌云对话 API 提供了一种交互式自然语言人工智能对话的方式。它有三个方面:云对话流、云文本到语音、云语音到文本:</p>
+
+<ul>
+
+<li><strong class="bold"> Dialogflow </strong>为<a id="_idIndexMarker512"/>提供了一个自然的<a id="_idIndexMarker513"/>语言理解平台，在这里你可以设计和集成一个对话式的用户界面。</li>
+
+<li><strong class="bold">文本到语音</strong>将<a id="_idIndexMarker514"/>文本输入<a id="_idIndexMarker515"/>转换成自然人声的音频数据。</li>
+
+<li><strong class="bold">语音转文本</strong>将<a id="_idIndexMarker516"/>音频或<a id="_idIndexMarker517"/>语音输入转换为文本。</li>
+
+</ul>
+
+<p>Google Cloud Dialogflow 允许您构建虚拟代理和聊天机器人。Dialogflow 分析文本或音频输入，并使用文本或语音进行响应。</p>
+
+<p>意图是对话流的核心。意图<a id="_idIndexMarker518"/>对终端用户的意图进行分类。当用户添加输入时，Dialogflow 通过使用训练短语(终端用户实际可能说的话的示例)来训练模型，进行意图分类，训练结果是短语到意图的映射。使用用户意图，Dialogflow 的典型工作流如下:</p>
+
+<ol>
+
+<li>最终用户<a id="_idIndexMarker519"/>将提供一个输入短语，该短语将被发送给某种类型的代理。代理执行意图分类并将输入短语映射到意图。</li>
+
+<li>从意图中，它将提取相关的参数并将动作链接到意图，比如检索银行账户余额。</li>
+
+<li>将发送参数和操作以创建响应。</li>
+
+<li>响应是返回给最终用户的语音或文本。</li>
+
+</ol>
+
+<p>谷歌云语音到文本支持使用谷歌先进的人工智能技术将谷歌语音识别技术集成到应用程序开发中。语音到文本转换有三种主要方法:</p>
+
+<ul>
+
+<li><strong class="bold">同步识别</strong>:当语音转文本 API 接收到语音音频<a id="_idIndexMarker520"/>数据时，执行数据识别/处理<a id="_idIndexMarker521"/>并在处理完所有音频数据后返回结果，然后再处理下一个请求。</li>
+
+<li><strong class="bold">异步识别</strong>:当语音到文本 API 接收到音频数据<a id="_idIndexMarker522"/>输入时，它启动一个长时间运行的<a id="_idIndexMarker523"/>操作，周期性地轮询识别结果。</li>
+
+<li><strong class="bold">流识别</strong>:实时<a id="_idIndexMarker524"/>音频识别，如<a id="_idIndexMarker525"/>从麦克风捕捉现场音频。流式识别在捕获音频时提供临时结果，允许在用户仍在说话时显示结果。</li>
+
+</ul>
+
+<p>语音转文本<a id="_idIndexMarker526"/>可以使用几种机器学习模型中的一种来转录你的音频文件。谷歌已经针对特定的音频类型和来源训练了这些语音识别模型。当您向语音到文本功能发送音频转录请求时，您可以通过指定原始音频的来源来改善收到的结果。这允许语音到文本 API 使用经过训练的机器学习模型来处理您的音频文件，以识别来自特定类型源的语音音频。</p>
+
+<p>Google Cloud <a id="_idIndexMarker527"/>文本到语音 API 允许您使用 WaveNet voices 将文本转换为类似人类的语音，wave net voices 可以在音节、音素和单词上以更类似人类的方式强调和变调来合成语音。WaveNet 生产的语音音频比其他文本到语音转换技术更受人们青睐。</p>
+
+<p>文本到语音转换使用合成声音从呈现给它的文本中创建音频。它创造出听起来自然的人类语音作为可播放的音频。除了普通文本，云<a id="_idIndexMarker528"/>文本到语音 API 可以将<strong class="bold">语音合成标记语言</strong> ( <strong class="bold"> SSML </strong>)转换为音频。SSML 允许您控制文本转换为语音的方式。</p>
+
+<h1 id="_idParaDest-165"><a id="_idTextAnchor166"/>总结</h1>
+
+<p>在本章中，我们介绍了 Google Cloud ML API 服务:包含视觉和视频 API 的 Cloud Sight API，包含翻译和 NPL APIs 的 Cloud Language API，以及包含 Dialogflow、语音到文本和文本到语音的 Cloud conversation API。这些 Google 预先训练的 API 服务为 ML 应用程序开发提供了最好的功能和接口，我们已经展示了一些利用 Google ML APIs 的示例业务用例。</p>
+
+<p>为了掌握 Google ML API 服务，实验室是学习过程的重要组成部分，我们在<a href="B18333_15.xhtml#_idTextAnchor233"> <em class="italic">附录 5 </em> </a>、<em class="italic">使用 Google Cloud ML API </em>中提供了一些 ML API 实践演示。请复习并理解所有练习步骤。</p>
+
+<p>在下一章，我们将讨论在 Google Cloud 中实现 ML 的最佳实践。</p>
+
+<h1 id="_idParaDest-166"><a id="_idTextAnchor167"/>延伸阅读</h1>
+
+<p>要进一步了解本章的内容，您可以参考以下链接:</p>
+
+<ul>
+
+<li><em class="italic">视觉人工智能|通过 ML 获得图像洞察力|云视觉 API </em>:</li>
+
+</ul>
+
+<p><a href="https://cloud.google.com/vision/">https://cloud.google.com/vision/</a></p>
+
+<ul>
+
+<li><em class="italic">视频 AI -视频内容分析|云视频智能 API </em>:</li>
+
+</ul>
+
+<p><a href="https://cloud.google.com/video-intelligence/">https://cloud.google.com/video-intelligence/</a></p>
+
+<ul>
+
+<li><em class="italic">语音转文本:自动语音识别</em>:</li>
+
+</ul>
+
+<p><a href="https://cloud.google.com/speech-to-text">https://cloud.google.com/speech-to-text</a></p>
+
+<ul>
+
+<li><em class="italic">文本到语音:逼真的语音合成</em>:</li>
+
+</ul>
+
+<p><a href="https://cloud.google.com/text-to-speech">https://cloud.google.com/text-to-speech</a></p>
+
+<ul>
+
+<li><em class="italic">对话流程</em>:</li>
+
+</ul>
+
+<p><a href="https://cloud.google.com/dialogflow/">https://cloud.google.com/dialogflow/</a></p>
+
+<ul>
+
+<li><a href="B18333_15.xhtml#_idTextAnchor233"> <em class="italic">附录 5 </em> </a>，<em class="italic">用 Google Cloud ML API 练习</em></li>
+
+</ul>
+
+</div>
+
+<div><div/>
+
+</div>
+
+</div>
+
+
+
+</body></html>

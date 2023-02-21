@@ -1,0 +1,779 @@
+<html><head/><body>
+
+
+
+
+
+
+
+
+
+<title>Appendix 3: Practicing with Scikit-Learn</title>
+
+
+
+
+
+
+
+<div><div><h1 class="chapter-number" id="_idParaDest-208"><a id="_idTextAnchor209"/></h1>
+
+<h1 id="_idParaDest-209"><a id="_idTextAnchor210"/>附录 3:使用 Scikit 练习-学习</h1>
+
+<p>在<a href="B18333_03.xhtml#_idTextAnchor072"> <em class="italic">第三章</em> </a>、<em class="italic">准备 ML 开发</em>和<a href="B18333_04.xhtml#_idTextAnchor094"> <em class="italic">第四章</em> </a>、<em class="italic">开发和部署 ML 模型</em>中，我们讨论了数据准备和 ML 模型开发流程。在本附录中，我们将通过在 Google 协作平台(<a href="http://colab.research.google.com">colab.research.google.com</a>)上练习使用 scikit-learn 包来继续学习 ML 建模技巧。</p>
+
+<p>通过一步一步的方法，我们将向您展示如何利用 scikit-learn 库开发 ML 模型。我们将涵盖以下实践:</p>
+
+<ul>
+
+<li>数据准备</li>
+
+<li>回归</li>
+
+<li>分类</li>
+
+</ul>
+
+<p>最佳实践是遵循这些示例，并确保您理解其中的每一个示例。在 Google Colab 上练习每个例子会产生最好的结果。</p>
+
+<h1 id="_idParaDest-210"><a id="_idTextAnchor211"/>数据准备</h1>
+
+<p>在前几章中，我们<a id="_idIndexMarker688"/>讨论了用于处理和可视化数据的 Python 库，如 NumPy、Pandas、Matplotlib 和 Seaborn。让我们从简单地导入库开始:</p>
+
+<pre class="source-code">import numpy as np
+
+import pandas as pd
+
+import matplotlib.pyplot as plt</pre>
+
+<p>我们将使用一个只有 4 列 10 行的简单数据集。</p>
+
+<div><div><img alt="" height="411" src="img/B18333_13_1.jpg" width="662"/>
+
+</div>
+
+</div>
+
+<p>请注意，有些列<a id="_idIndexMarker689"/>是分类的，有些是数字的，其中有些缺少值，我们需要修复。数据集<code>.csv</code>文件被上传到 Google Colab。</p>
+
+<div><div><img alt="" height="257" src="img/B18333_13_2.jpg" width="610"/>
+
+</div>
+
+</div>
+
+<p>使用<code>pandas</code>库和<code>read_csv</code>函数，我们读取数据并将其保存到变量数据集中，分配前三列(<code>X</code>，并将最后一列数据集分配给<code>y</code>，如预测:</p>
+
+<pre class="source-code">dataset = pd.read_csv('Data.csv')
+
+X = dataset.iloc[:,:-1].values
+
+y = dataset.iloc[:, -1].values
+
+print(X)
+
+<strong class="bold">[['France' 44.0 72000.0]</strong>
+
+<strong class="bold">['Spain' 27.0 48000.0]</strong>
+
+<strong class="bold">['Germany' 30.0 54000.0]</strong>
+
+<strong class="bold">['Spain' 38.0 61000.0]</strong>
+
+<strong class="bold">['Germany' 40.0 nan]</strong>
+
+<strong class="bold">['France' 35.0 58000.0]</strong>
+
+<strong class="bold">['Spain' nan 52000.0]</strong>
+
+<strong class="bold">['France' 48.0 79000.0]</strong>
+
+<strong class="bold">['Germany' 50.0 83000.0]</strong>
+
+<strong class="bold">['France' 37.0 67000.0]]</strong></pre>
+
+<p>请注意，它有<a id="_idIndexMarker690"/>一些丢失的值。在 ML 训练过程中，我们需要最小化缺失值的数量，因此您可以删除包含缺失数据单元格的行，或者用输入值替换缺失值，例如，该列中所有值的平均值。以下示例是用该特定列的平均值填充缺失值:</p>
+
+<pre class="source-code">from sklearn.impute import SimpleImputer
+
+imputer = SimpleImputer(missing_values=np.nan, strategy='mean')
+
+imputer.fit(X[:, 1:3])
+
+X[:, 1:3] = imputer.transform(X[:,1:3])
+
+print(X)
+
+<strong class="bold">[['France' 44.0 72000.0]</strong>
+
+<strong class="bold">['Spain' 27.0 48000.0]</strong>
+
+<strong class="bold">['Germany' 30.0 54000.0]</strong>
+
+<strong class="bold">['Spain' 38.0 61000.0]</strong>
+
+<strong class="bold">['Germany' 40.0 63777.77777777778]</strong>
+
+<strong class="bold">['France' 35.0 58000.0]</strong>
+
+<strong class="bold">['Spain' 38.77777777777778 52000.0]</strong>
+
+<strong class="bold">['France' 48.0 79000.0]</strong>
+
+<strong class="bold">['Germany' 50.0 83000.0]</strong>
+
+<strong class="bold">['France' 37.0 67000.0]]</strong></pre>
+
+<p>下一步是将分类值<a id="_idIndexMarker691"/>转换成数值。在我们加载的数据集(<code>‘data.cvs’</code>)中，列的名称是<code>Country</code>，它有三个不同的值(<code>France</code>、<code>Spain</code>和<code>Germany</code>)。我们将使用 one-hot 编码将其转换为三列二进制值:</p>
+
+<pre class="source-code">from sklearn.compose import ColumnTransformer
+
+from sklearn.preprocessing import OneHotEncoder
+
+ct = ColumnTransformer(transformers=[('encoder', OneHotEncoder(), [0])],
+
+remainder = 'passthrough')
+
+X = np.array(ct.fit_transform(X))
+
+print(X)
+
+<strong class="bold">[[1.0 0.0 0.0 44.0 72000.0]</strong>
+
+<strong class="bold">[0.0 0.0 1.0 27.0 48000.0]</strong>
+
+<strong class="bold">[0.0 1.0 0.0 30.0 54000.0]</strong>
+
+<strong class="bold">[0.0 0.0 1.0 38.0 61000.0]</strong>
+
+<strong class="bold">[0.0 1.0 0.0 40.0 63777.77777777778]</strong>
+
+<strong class="bold">[1.0 0.0 0.0 35.0 58000.0]</strong>
+
+<strong class="bold">[0.0 0.0 1.0 38.77777777777778 52000.0]</strong>
+
+<strong class="bold">[1.0 0.0 0.0 48.0 79000.0]</strong>
+
+<strong class="bold">[0.0 1.0 0.0 50.0 83000.0]</strong>
+
+<strong class="bold">[1.0 0.0 0.0 37.0 67000.0]]</strong></pre>
+
+<p>我们还需要将数据集的最后一列(其中值仅为<code>Yes</code>或<code>No</code>)编码为 0 和 1:</p>
+
+<pre class="source-code">from sklearn.preprocessing import LabelEncoder
+
+le = LabelEncoder()
+
+y = le.fit_transform(y)
+
+print(y)
+
+<strong class="bold">[0 1 0 0 1 1 0 1 0 1]</strong></pre>
+
+<p>下一步是将它们<a id="_idIndexMarker692"/>分成训练和测试数据集:</p>
+
+<pre class="source-code">from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(X, y , test_size = 0.2, random_state = 1)
+
+print(X_train)
+
+<strong class="bold">[[0.0 0.0 1.0 38.77777777777778 52000.0]</strong>
+
+<strong class="bold">[0.0 1.0 0.0 40.0 63777.77777777778]</strong>
+
+<strong class="bold">[1.0 0.0 0.0 44.0 72000.0]</strong>
+
+<strong class="bold">[0.0 0.0 1.0 38.0 61000.0]</strong>
+
+<strong class="bold">[0.0 0.0 1.0 27.0 48000.0]</strong>
+
+<strong class="bold">[1.0 0.0 0.0 48.0 79000.0]</strong>
+
+<strong class="bold">[0.0 1.0 0.0 50.0 83000.0]</strong>
+
+<strong class="bold">[1.0 0.0 0.0 35.0 58000.0]]</strong>
+
+print(X_test)
+
+<strong class="bold">[[0.0 1.0 0.0 30.0 54000.0]</strong>
+
+<strong class="bold">[1.0 0.0 0.0 37.0 67000.0]]</strong>
+
+print(y_train)
+
+<strong class="bold">[0 1 0 0 1 1 0 1]</strong>
+
+print(y_test)
+
+<strong class="bold">[0 1]</strong></pre>
+
+<p>现在我们已经练习了基本的数据处理技能，让我们在开始训练 ML 模型之前进入特征缩放。有两种类型的特征缩放:标准化和规范化。目标是使特性的所有值<a id="_idIndexMarker693"/>都在同一范围内。让我们检查一下训练数据:</p>
+
+<div><div><img alt="" height="191" src="img/B18333_13_3.jpg" width="352"/>
+
+</div>
+
+</div>
+
+<p>我们发现前三行是先前编码的，因此我们将仅对第 4 行和第 5 行应用特征缩放:</p>
+
+<pre class="source-code">from sklearn.preprocessing import StandardScaler
+
+sc  = StandardScaler()
+
+X_train[:, 3:] = sc.fit_transform(X_train[:, 3:])
+
+X_test[:, 3:] = sc.transform(X_test[:, 3:])
+
+print(X_train)
+
+<strong class="bold">[[0.0 0.0 1.0 -0.1915918438457856 -1.0781259408412427]</strong>
+
+<strong class="bold">[0.0 1.0 0.0 -0.014117293757057902 -0.07013167641635401]</strong>
+
+<strong class="bold">[1.0 0.0 0.0 0.5667085065333239 0.6335624327104546]</strong>
+
+<strong class="bold">[0.0 0.0 1.0 -0.3045301939022488 -0.30786617274297895]</strong>
+
+<strong class="bold">[0.0 0.0 1.0 -1.901801144700799 -1.4204636155515822]</strong>
+
+<strong class="bold">[1.0 0.0 0.0 1.1475343068237056 1.2326533634535488]</strong>
+
+<strong class="bold">[0.0 1.0 0.0 1.4379472069688966 1.5749910381638883]</strong>
+
+<strong class="bold">[1.0 0.0 0.0 -0.7401495441200352 -0.5646194287757336]]</strong></pre>
+
+<p>注意<code>X_train</code>的结果在-2 和+2 之间(非常短的范围)。</p>
+
+<h1 id="_idParaDest-211"><a id="_idTextAnchor212"/>回归</h1>
+
+<p>现在我们已经分割了数据集并转换了数据，我们将向您展示如何使用 scikit-learn 库来构建 ML 模型。我们将从回归开始，并向您展示以下示例:</p>
+
+<ul>
+
+<li>简单线性回归</li>
+
+<li>多元线性回归</li>
+
+<li>多项式/非线性回归</li>
+
+</ul>
+
+<h2 id="_idParaDest-212"><a id="_idTextAnchor213"/>简单线性回归</h2>
+
+<p>首要任务<a id="_idIndexMarker694"/>首先，我们需要准备<a id="_idIndexMarker695"/>数据集:</p>
+
+<pre class="source-code">import numpy as pd
+
+import pandas as pd
+
+import matplotlib.pyplot as plt
+
+dataset = pd.read_csv('Salary_Data.csv')
+
+X = dataset.iloc[:,:-1].values
+
+y = dataset.iloc[:, -1].values
+
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(X, y , test_size = 0.2, random_state = 1)</pre>
+
+<p>现在我们可以开始训练我们的回归模型了。我们需要导入一个类并输入我们的训练数据:</p>
+
+<pre class="source-code">from sklearn.linear_model import LinearRegression
+
+regressor = LinearRegression()
+
+regressor.fit(X_train, y_train)</pre>
+
+<p>接下来，我们将预测测试集中的观察结果:</p>
+
+<pre class="source-code">y_pred = regressor.predict(X_test)</pre>
+
+<p>让我们把我们的预测<a id="_idIndexMarker696"/>和真实数据<a id="_idIndexMarker697"/>画出来，看看它们有多接近:</p>
+
+<pre class="source-code">plt.scatter(X_train, y_train, color = 'red')
+
+plt.plot(X_train, regressor.predict(X_train), color='blue')
+
+plt.title("Salary vs Experiment (Training Set")
+
+plt.xlabel("Years of Experience")
+
+plt.ylabel("Salary")
+
+plt.show()</pre>
+
+<div><div><img alt="" height="271" src="img/B18333_13_4.jpg" width="400"/>
+
+</div>
+
+</div>
+
+<pre class="source-code">plt.scatter(X_test, y_test, color = 'red')
+
+plt.plot(X_train, regressor.predict(X_train), color='blue')
+
+plt.title("Salary vs Experiment (Training Set")
+
+plt.xlabel("Years of Experience")
+
+plt.ylabel("Salary")
+
+plt.show()</pre>
+
+<div><div><img alt="" height="273" src="img/B18333_13_5.jpg" width="403"/>
+
+</div>
+
+</div>
+
+<p>如您所见，<a id="_idIndexMarker698"/>简单线性回归模型与<a id="_idIndexMarker699"/>的数据集非常吻合。</p>
+
+<h2 id="_idParaDest-213"><a id="_idTextAnchor214"/>多元线性回归</h2>
+
+<p>在本节中，我们将<a id="_idIndexMarker700"/>使用另一个数据集，它有多个列<a id="_idIndexMarker701"/>作为数据特征，一个列用于预测值:</p>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US"> </p>
+
+<div><div><img alt="" height="230" src="img/B18333_13_6.jpg" width="556"/>
+
+</div>
+
+</div>
+
+<p>首先，我们执行<a id="_idIndexMarker702"/>数据<a id="_idIndexMarker703"/>准备:</p>
+
+<ol>
+
+<li>导入必要的库和/或类。</li>
+
+<li>将数据集分为<code>X</code>(特征)和<code>y</code>(预测)。</li>
+
+<li>对列索引 3 进行编码(州名已被转换为二进制值并保存为三个附加列)。</li>
+
+<li>将数据分为培训和测试:</li>
+
+</ol>
+
+<pre class="source-code">import numpy as np
+
+import pandas as pd
+
+import matplotlib.pyplot as plt
+
+dataset = pd.read_csv('50_Startups.csv')
+
+X = dataset.iloc[:,:-1].values
+
+y = dataset.iloc[:, -1].values
+
+from sklearn.compose import ColumnTransformer
+
+from sklearn.preprocessing import OneHotEncoder
+
+ct = ColumnTransformer(transformers=[('encoder', OneHotEncoder(), [3])], remainder='passthrough')
+
+X = np.array(ct.fit_transform(X))
+
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(X, y , test_size = 0.2, random_state=1)</pre>
+
+<p>我们现在可以开始训练我们的模型了:</p>
+
+<pre class="source-code">from sklearn.linear_model import LinearRegression
+
+regressor = LinearRegression()
+
+regressor.fit(X_train, y_train)</pre>
+
+<p>现在是<a id="_idIndexMarker704"/>验证/测试我们模型的时候了。我们不能像在简单线性回归中那样将<a id="_idIndexMarker705"/>可视化，因为我们有四个不同的特征，并且不能在五维图中绘制它们。然而，我们可以显示两个向量:测试集中的<em class="italic">实际利润</em>的向量，以及<em class="italic">预测利润</em>的向量:</p>
+
+<pre class="source-code">y_pred = regressor.predict(X_test)
+
+np.set_printoptions(precision=2)
+
+print(np.concatenate((y_pred.reshape(len(y_pred),1), y_test.reshape(len(y_test),1)),1))
+
+<strong class="bold">[[114664.42 105008.31]</strong>
+
+<strong class="bold">[ 90593.16  96479.51]</strong>
+
+<strong class="bold">[ 75692.84  78239.91]</strong>
+
+<strong class="bold">[ 70221.89  81229.06]</strong>
+
+<strong class="bold">[179790.26 191050.39]</strong>
+
+<strong class="bold">[171576.92 182901.99]</strong>
+
+<strong class="bold">[ 49753.59  35673.41]</strong>
+
+<strong class="bold">[102276.66 101004.64]</strong>
+
+<strong class="bold">[ 58649.38  49490.75]</strong>
+
+<strong class="bold">[ 98272.03  97483.56]]</strong></pre>
+
+<p>输出的左边表示<a id="_idIndexMarker706"/>预测利润，右边表示<a id="_idIndexMarker707"/>实际利润。</p>
+
+<h2 id="_idParaDest-214"><a id="_idTextAnchor215"/>多项式/非线性回归</h2>
+
+<p>在本节中，我们将展示非线性回归的<a id="_idIndexMarker708"/>示例，其中目标<a id="_idIndexMarker710"/>和特征之间的关系<a id="_idIndexMarker709"/>不是<a id="_idIndexMarker711"/>线性的，即它是多项式的。我们将使用线性模型和非线性模型，并比较它们与真实数据集的拟合程度。</p>
+
+<p>我们将从数据准备开始:</p>
+
+<pre class="source-code">import numpy as np
+
+import pandas as pd 
+
+import matplotlib.pyplot as plt
+
+dataset = pd.read_csv('Position_Salaries.csv')
+
+X = dataset.iloc[:, 1:-1].values
+
+y = dataset.iloc[:, -1].values</pre>
+
+<p>现在，我们要训练两个模型:线性回归和多项式回归。以下示例显示了两种回归模型:</p>
+
+<pre class="source-code">from sklearn.linear_model import LinearRegression
+
+lin_reg = LinearRegression()
+
+lin_reg.fit(X,y)
+
+from sklearn.preprocessing import PolynomialFeatures
+
+poly_reg = PolynomialFeatures(degree = 2)
+
+X_poly = poly_reg.fit_transform(X)
+
+lin_reg_2 = LinearRegression()
+
+lin_reg_2.fit(X_poly, y)</pre>
+
+<p>接下来，我们<a id="_idIndexMarker712"/>将<a id="_idIndexMarker713"/>可视化<a id="_idIndexMarker714"/>两个<a id="_idIndexMarker715"/>回归。</p>
+
+<p>这是线性回归:</p>
+
+<pre class="source-code">plt.scatter(X, y, color = 'red')
+
+plt.plot(X, lin_reg.predict(X), color = 'blue')
+
+plt.title("Linear Regression")
+
+plt.xlabel("Position Level")
+
+plt.ylabel("Salary")
+
+plt.show()</pre>
+
+<div><div><img alt="" height="270" src="img/B18333_13_7.jpg" width="379"/>
+
+</div>
+
+</div>
+
+<p>然后，这是多项式回归:</p>
+
+<pre class="source-code">plt.scatter(X, y, color = 'red')
+
+plt.plot(X, lin_reg_2.predict(X_poly), color = 'blue')
+
+plt.title("Linear Regression")
+
+plt.xlabel("Position Level")
+
+plt.ylabel("Salary")
+
+plt.show()</pre>
+
+<div><div><img alt="" height="271" src="img/B18333_13_8.jpg" width="380"/>
+
+</div>
+
+</div>
+
+<p>正如我们所见，多项式<a id="_idIndexMarker716"/>回归(我们使用了<code>2</code>的幂)产生了精确的<a id="_idIndexMarker717"/>预测。如果我们带着更高的力量去，我们会收获更好的结果。在下面的例子中，我们将把功率改为<code>4</code>(见第 2 行)，结果将更好地符合数据集:</p>
+
+<pre class="source-code">from sklearn.linear_model import LinearRegression
+
+lin_reg = LinearRegression()
+
+lin_reg.fit(X,y)
+
+from sklearn.preprocessing import PolynomialFeatures
+
+poly_reg = PolynomialFeatures(degree = 4)
+
+X_poly = poly_reg.fit_transform(X)
+
+lin_reg_2 = LinearRegression()
+
+lin_reg_2.fit(X_poly, y)
+
+plt.scatter(X, y, color = 'red')
+
+plt.plot(X, lin_reg_2.predict(X_poly), color = 'blue')
+
+plt.title("Linear Regression")
+
+plt.xlabel("Position Level")
+
+plt.ylabel("Salary")
+
+plt.show()</pre>
+
+<div><div><img alt="" height="269" src="img/B18333_13_9.jpg" width="379"/>
+
+</div>
+
+</div>
+
+<p>到目前为止，我们已经通过练习<a id="_idIndexMarker721"/>简单线性回归、<a id="_idIndexMarker722"/>多重线性回归和<a id="_idIndexMarker723"/>非线性回归介绍了<a id="_idIndexMarker720"/>回归建模过程。在下一节中，我们将讨论分类模型。</p>
+
+<h1 id="_idParaDest-215"><a id="_idTextAnchor216"/>分类</h1>
+
+<p>与预测连续数字的回归不同，您使用分类来预测类别。我们将在这里讨论逻辑回归。</p>
+
+<p>我们将使用 iPhone 购买历史数据的数据集，基于购买者的年龄和工资，来预测新的潜在购买者是否会购买 iPhone。</p>
+
+<div><div><img alt="" height="434" src="img/B18333_13_10.jpg" width="331"/>
+
+</div>
+
+</div>
+
+<p>先做准备<a id="_idIndexMarker725"/>:</p>
+
+<pre class="source-code">import numpy as np
+
+import pandas as pd
+
+import matplotlib.pyplot as plt
+
+dataset = pd.read_csv('Social_Network_Ads.csv')
+
+X = dataset.iloc[:,:-1].values
+
+y = dataset.iloc[:, -1].values
+
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(X, y , test_size = 0.2, random_state=1)
+
+from sklearn.preprocessing import StandardScaler
+
+sc = StandardScaler()
+
+X_train = sc.fit_transform(X_train)
+
+X_test = sc.transform(X_test)
+
+print(X_train)
+
+<strong class="bold">[[-0.8  -1.19]</strong>
+
+<strong class="bold">[ 0.76 -1.37]</strong>
+
+<strong class="bold">[ 0.85  1.44]</strong>
+
+<strong class="bold">[-0.51 -1.49]</strong>
+
+<strong class="bold">[-1.49  0.38]</strong>
+
+<strong class="bold">[-1.19  0.55]</strong>
+
+<strong class="bold">[ 1.05 -1.04]</strong>
+
+<strong class="bold">[-0.22 -0.3 ]</strong>
+
+<strong class="bold">[ 0.95 -1.34]</strong>
+
+<strong class="bold">[-1.1  -1.07]</strong>
+
+<strong class="bold">[-0.51  1.97]</strong>
+
+<strong class="bold">[ 2.22 -1.01]</strong>
+
+<strong class="bold">[ 1.44 -1.4 ]</strong>
+
+<strong class="bold">[ 0.07 -0.39]</strong>
+
+<strong class="bold">[-1.19  0.64]</strong>
+
+<strong class="bold">[ 2.02 -0.9 ]</strong>
+
+<strong class="bold">[ 1.15  0.58]</strong>
+
+<strong class="bold">[-0.02  0.29]</strong>
+
+<strong class="bold">[-0.22  0.26]</strong>
+
+<strong class="bold">[-0.32 -0.75]</strong>
+
+<strong class="bold">[-1.68 -0.57]</strong>
+
+<strong class="bold">[ 0.85  0.58]</strong>
+
+<strong class="bold">[-0.61 -1.01]</strong>
+
+<strong class="bold">[ 0.95 -1.13]</strong>
+
+<strong class="bold">[-0.22 -0.54]</strong>
+
+<strong class="bold">[ 0.17  0.82]</strong>
+
+<strong class="bold">[-0.41  1.32]</strong>
+
+<strong class="bold">[ 1.15  0.52]</strong>
+
+<strong class="bold">[ 0.76  0.32]</strong>
+
+<strong class="bold">[ 0.66 -0.87]</strong>
+
+<strong class="bold">[ 0.37 -0.27]</strong>
+
+<strong class="bold">[ 0.46 -0.45]</strong>
+
+<strong class="bold">[-0.22  0.14]</strong>
+
+<strong class="bold">[ 0.37  0.11]</strong>
+
+<strong class="bold">[-1.    0.82]</strong>
+
+<strong class="bold">[-0.71  1.41]</strong>
+
+<strong class="bold">[ 0.37 -0.48]</strong>
+
+<strong class="bold">[ 0.37 -0.48]</strong>
+
+<strong class="bold">[-1.68  0.41]</strong>
+
+<strong class="bold">[ 0.85 -0.81]</strong>
+
+<strong class="bold">[-1.   -1.1 ]</strong>
+
+<strong class="bold">[...]</strong></pre>
+
+<p>请注意，所有值<a id="_idIndexMarker726"/>都在-3 和+3 之间。</p>
+
+<p>接下来，我们训练逻辑回归模型:</p>
+
+<pre class="source-code">from sklearn.linear_model import LogisticRegression
+
+classifier = LogisticRegression()
+
+classifier.fit(X_train, y_train)</pre>
+
+<p>让我们预测一个新的结果。在运行<a id="_idIndexMarker727"/>预测脚本之前，让我们看看我们的原始数据集，并选取一个随机特征集(在我们的例子中，是<code>30</code>的年龄和<code>87000</code>的薪水)，结果是<code>0</code>。</p>
+
+<p>运行预测函数后，结果也是一样的:</p>
+
+<pre class="source-code">print(classifier.predict(sc.transform([[30, 87000]])))
+
+<strong class="bold">[0]</strong></pre>
+
+<p>以下示例演示了测试数据集的实际结果和预测结果的比较，以便我们可以比较训练模型的准确性/效率:</p>
+
+<pre class="source-code">y_pred = classifier.predict(X_test)
+
+print(np.concatenate((y_pred.reshape(len(y_pred),1), y_test.reshape(len(y_test),1)),1))
+
+<strong class="bold">[[0 0]</strong>
+
+<strong class="bold">[0 0]</strong>
+
+<strong class="bold">[1 1]</strong>
+
+<strong class="bold">[1 1]</strong>
+
+<strong class="bold">[0 0]</strong>
+
+<strong class="bold">[0 0]</strong>
+
+<strong class="bold">[0 0]</strong>
+
+<strong class="bold">[1 1]</strong>
+
+<strong class="bold">[0 0]</strong>
+
+<strong class="bold">[1 0]</strong>
+
+<strong class="bold">[0 0]</strong>
+
+<strong class="bold">[0 0]</strong>
+
+<strong class="bold">[0 0]</strong>
+
+<strong class="bold">[1 1]</strong>
+
+<strong class="bold">[1 1]</strong>
+
+<strong class="bold">[1 1]</strong>
+
+<strong class="bold">[1 1]</strong>
+
+<strong class="bold">[0 0]</strong>
+
+<strong class="bold">[0 0]</strong>
+
+<strong class="bold">[1 1]</strong>
+
+<strong class="bold">[0 0]</strong>
+
+<strong class="bold">[1 1]</strong>
+
+<strong class="bold">[1 1]</strong>
+
+<strong class="bold">[1 0]</strong>
+
+<strong class="bold">[0 1]</strong>
+
+<strong class="bold">[0 0]</strong>
+
+<strong class="bold">[...]]</strong></pre>
+
+<p>我们在前面的<a id="_idIndexMarker728"/>代码中的输出显示了比较结果:第一列是预测值，第二列是真实值。为了计算模型的准确性/效率，我们可以将预测中正确数字的总数除以测试数据集中实际数字的总数，并构建其混淆矩阵:</p>
+
+<pre class="source-code">from sklearn.metrics import confusion_matrix, accuracy_score
+
+cm = confusion_matrix(y_test, y_pred)
+
+print(cm)
+
+accuracy_score(y_test, y_pred)
+
+<strong class="bold">[[41  7]</strong>
+
+<strong class="bold">[ 6 26]]</strong>
+
+<strong class="bold">0.8375</strong></pre>
+
+<p>输出显示以下内容:</p>
+
+<pre class="source-code">TP=41
+
+FP=6
+
+FN=7
+
+TN=26</pre>
+
+<p>模型的准确率/效率<a id="_idIndexMarker729"/>为 83%。</p>
+
+<h1 id="_idParaDest-216"><a id="_idTextAnchor217"/>总结</h1>
+
+<p>在本附录中，我们展示了使用 scikit-learn 库进行数据准备和模型开发(回归和分类)的示例。浏览这些例子并理解过程将有助于你理解 ML 的概念和过程。</p>
+
+</div>
+
+</div>
+
+
+
+</body></html>

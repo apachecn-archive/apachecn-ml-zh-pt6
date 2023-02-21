@@ -1,0 +1,2508 @@
+<html><head/><body><html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Computing Foundations – Databases</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">计算基础–数据库</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>本章将向您介绍数据库和<strong>结构化查询语言</strong> ( <strong> SQL </strong>)。它主要面向对医疗保健数据库感兴趣的医疗保健专业人员、初级数据科学家和程序员。本章结束时，你将知道什么是数据库，以及如何使用基本的 SQL 来提取和操作临床数据库中的信息。我们将展示一个示例任务和 SQL 语句，它们对于在一个包含五名患者的小型样本数据库中操作数据非常有用。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Introduction to databases</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">数据库简介</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>一个<strong>数据库</strong>可以定义为相关数据的集合(Elmasri 和 Navathe，2010)。数据库通常被细分为<strong> SQL 数据库</strong>或<strong> NoSQL 数据库</strong>。在 SQL 数据库中，数据记录在表中，由行和列组成。相关数据可以分布在几个表中，在高效存储和便利性之间进行权衡。<strong>数据库管理系统</strong> ( <strong> DBMS </strong>)是一个使数据库能够提供多种功能的软件。首先，它允许使用 SQL 语言对数据进行<em>检索</em>(针对 SQL 数据库)。另一个功能是在需要时更新数据，也是使用 SQL。DBMS 的附加功能包括保护和保证数据安全。</p>
+
+<p>数据库管理本身是一个复杂的领域。在本书中，我们将重点介绍<em>使用 SQL 检索和更新通常分布在多个相关表中的临床数据</em>。有关数据库的其他综合资源，请参见本章末尾的<em>参考文献</em>部分。</p>
+
+<p class="mce-root"/>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Data engineering with SQL – an example case</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">使用 SQL 的数据工程–一个示例案例</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在本章中，让我们假设你在美国的一家心脏病诊所获得了一项预测分析任务。该诊所希望您预测哪些患者在就诊后的 6 个月内有死亡风险。他们以包含六个表的数据库形式向您提供数据。为了简单起见，我们截断了数据库，只包含了 5 名患者的信息。我们的任务是使用 SQL 语言操纵数据，将其合并到一个表中，以便用于机器学习。我们将首先检查数据库中的患者和数据库结构。然后，我们将介绍工程的基本 SQL 概念，并将数据处理成机器学习的形式。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Case details – predicting mortality for a cardiology practice</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">案例详情——预测心脏病实践的死亡率</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>您所在的心脏病诊所有两名医生:Johnson 医生和 Wu 医生。虽然该诊所有许多患者，但他们感兴趣的是确定哪些就诊患者在未来 6 个月内存在全因死亡的高风险。在 2016 年的某个时候进行门诊访问构成了分析的入选标准。目标变量是患者是否在就诊后 6 个月内去世。</p>
+
+<p>现在我们已经回顾了建模任务的细节，让我们看看数据库中的五个病人。心脏病学诊所发送给您的初步数据包括五名患者的信息，分布在六个表格中。以下是每个病人的案例简介。请注意，这一部分大量使用与心血管疾病相关的临床术语。我们鼓励您使用可用的在线资源来回答您关于该术语的问题。一份全面的临床参考文献是<em> Harrison 的《内科学原理》</em> (Kasper 等人，2005)，本章末尾给出了相关信息。</p>
+
+<p class="mce-root"/>
+
+<p>以下是关于患者的信息:</p>
+
+<ul>
+
+<li><strong>患者 ID-1 </strong>:数据库中的患者#1 是一名 65 岁的男性，患有<strong>充血性心力衰竭</strong> ( <strong> CHF </strong>)，这是一种心脏无法将血液正常泵送到身体其他部位的慢性疾病。他还患有高血压，这是充血性心力衰竭的一个危险因素。他于 2016 年 9 月 1 日和 2016 年 1 月 17 日拜访了他的心脏病专家约翰逊医生。在 1 月 9 日的就诊中，他被发现血压升高(154/94)，B-钠尿肽(BNP)实验室值升高至 350。BNP 是充血性心力衰竭严重程度的标志。他随后被给予赖诺普利和呋塞米，这是治疗充血性心力衰竭和高血压的一线药物。不幸的是，他于 2016 年 5 月 15 日去世。</li>
+
+<li><strong>患者 ID-2 </strong>:患者#2 为 39 岁女性，有心绞痛(运动时心血管相关的胸痛)和糖尿病病史。糖尿病是心肌梗塞(心脏病发作；动脉粥样硬化性心脏病的晚期、通常是致命的表现)，而心绞痛可被视为动脉粥样硬化性心脏病的早期表现。她于 2016 年 1 月 15 日拜访了她的心脏病专家吴医生，当时她被发现血糖水平升高到 225，这是糖尿病未得到控制的迹象。她开始用二甲双胍治疗糖尿病，用硝酸甘油、阿司匹林和美托洛尔治疗心绞痛。</li>
+
+<li><strong>患者 ID-3 </strong>:患者#3 是一名 32 岁的女性，她为了她的高血压去看约翰逊医生。在 2016 年 2 月 1 日就诊期间，她的血压升至 161/100。她开始服用缬沙坦/氢氯噻嗪，这是一种抗高血压的组合药物。</li>
+
+<li><strong>患者 ID: 4 </strong>:患者#4 为患有严重 CHF 并伴有肺动脉高压的 51 岁男性。2016 年 2 月 27 日看了吴医生。在那次访问中，他的体重为 211 磅，血压略有升高，为 143/84。他的脑钠肽水平升高到 1000。他的充血性心力衰竭用赖诺普利和速尿治疗，肺动脉高压用地尔硫卓治疗。不幸的是，他于 2016 年 6 月 8 日去世。</li>
+
+<li><strong>患者 ID-5 </strong>:我们数据库中的最后一名患者，患者#5，是一名 58 岁的男性，于 2016 年 3 月 1 日就诊于 Wu 医生，有充血性心力衰竭和 2 型糖尿病病史。在就诊期间，他的血糖升高到 318，脑钠肽中度升高到 400。他开始用赖诺普利和呋塞米治疗充血性心力衰竭，用二甲双胍治疗糖尿病。</li>
+
+</ul>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p class="mceNonEditable"/>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>The clinical database</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">临床数据库</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>现在我们已经了解了数据库中包含的五名患者的信息，我们可以描述数据库中包含的表结构和字段，针对六个模拟表:<kbd>PATIENT</kbd>、<kbd>VISIT</kbd>、<kbd>MEDICATIONS</kbd>、<kbd>LABS</kbd>、<kbd>VITALS</kbd>和<kbd>MORT</kbd>。尽管每个临床数据库都不同，但我还是尝试使用医疗保健中常见的结构。通常，表格按临床领域呈现(关于以这种分布式格式接收表格的研究实例，参见 Basole 等人，2015)。例如，通常有一个包含人口统计和个人信息的表，一个包含实验室结果的表，一个包含药物的表，等等，所以这就是我们在这个例子中构建数据库的方式。它们往往被一个公共标识符联系在一起，在我们的例子中是<kbd>Pid</kbd>字段。</p>
+
+<p>在描述表格时，我们必须牢记数据工程阶段的最终目标——将六个表格中的相关信息合并到一个表格中，该表格的列中除了预测变量之外还包括目标变量(本例中为死亡率),这对预测目标变量应该很有用。这将使我们能够用 Python 的<kbd>scikit-learn</kbd>等流行的包制作一个机器学习模型。考虑到这一点，我们将突出显示对我们的作业有用的选定字段。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>The PATIENT table</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">病床</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在我们的示例中，我们可以在下面的截图中看到的<kbd>PATIENT</kbd>表包含了我们的患者的人口统计和身份信息——他们的姓名、联系信息、生日和生物性别。在这个例子中，只有 5 个观察值和 11 列；在实际操作中，该表将包含医疗保健组织的所有患者。该表中的行数可能从数百到数十万不等，而该表可能包含几十列，其中包含详细的人口统计信息:</p>
+
+<div><img src="img/46661fa9-00b7-42a5-8c7b-ad93ecf6056c.png"/></div>
+
+<p>在数据库中，每个独特的患者都被分配了一个标识符(标记为<kbd>Pid</kbd>的字段)，在我们的例子中，它被简单地编号为 1 - 5。<kbd>Pid</kbd>栏允许我们跟踪不同桌子上的病人。另外，请注意，每个不同的患者 ID 有且只有一个条目。</p>
+
+<p class="mce-root"/>
+
+<p>在确定了必不可少的标识符列之后，重点应该是保留哪些变量，丢弃哪些变量。当然，年龄和性别是死亡率的重要人口统计学预测指标。如果种族在这张表中，那将是另一个重要的人口统计变量。</p>
+
+<p>该表中另一个值得注意的变量是邮政编码。越来越多的社会经济数据被用于机器学习分析。邮政编码可能与公开可用的人口普查数据相关联；然后，可以将该数据与该表中关于邮政编码的数据相结合，并有可能提供关于每个患者邮政编码的平均教育水平、收入和医疗保健覆盖范围的信息。甚至还有出售家庭级信息的机构；然而，随之而来的是隐私保护和数据安全的重大责任。对于这个例子，我们将省略邮政编码，以保持最终表的简单。</p>
+
+<p>我们将从最终表格中删除的信息包括姓名、街道地址和电话号码。只要我们有患者 ID，这些字段就不会对我们的目标变量产生太大的预测影响。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>The VISIT table</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">探视台</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>虽然<kbd>PATIENT</kbd>表包含每个患者的基本管理信息，但我们的任务是根据每次<em>就诊</em>预测死亡风险。<kbd>VISIT</kbd>表包含每次患者就诊的一个观察结果，以及每次就诊的一些临床信息:</p>
+
+<div><img src="img/4ba30aec-3223-4a93-af82-f720bd647816.png"/></div>
+
+<p>请注意，患者 ID 不再是该表的主要标识符，因为患者#1 有两次就诊；相反，在本例中有一个从<kbd>10001</kbd>到<kbd>10006</kbd>编号的<kbd>Visit_id</kbd>字段，每次访问都有一个不同的 ID。</p>
+
+<p>此表还包含<kbd>Visit_date</kbd>。由于心脏病学实践表明他们希望了解患者就诊后 6 个月内的死亡风险，因此我们在计算目标变量时将不得不使用该字段。</p>
+
+<p class="mce-root"/>
+
+<p>该表中的两个字段包含 ICD(诊断)代码。实际的表可能包含每次访问的几十个代码。对于每个编码字段，都有一个相应的名称字段，其中包含代码表示的条件的名称。医疗保健中的一种流行方法是，在最终表格中，为我们感兴趣跟踪的每个临床代码创建一列(Futoma 等人，2015；Rajkomar 等人，2018 年)。我们将在本章的后面采用这种方法。</p>
+
+<p>最后，我们注意到主治医生的姓名也包括在内，这可以用来衡量医生的表现。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>The MEDICATIONS table</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">药物表</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p><kbd>MEDICATIONS</kbd>表包含五名患者正在服用的每种药物的一个条目。在这个例子中，没有一个单独的列作为这个表的主键。正如我们在下面的屏幕截图中所看到的，该表包括关于药物名称、剂量、频率、途径、处方医生和处方日期的信息。每种药物的 NDC 代码也包括在内；我们在<a href="71c31b0a-fa9e-4b31-8b58-f563a815e338.xhtml" target="_blank">第 2 章</a>、<em>医疗保健基金会</em>中介绍了 NDC 准则:</p>
+
+<div><img src="img/07e90df1-dec5-4169-988a-82198225d7ea.png" style="width:48.00em;height:17.50em;"/></div>
+
+<p class="mce-root">将药物纳入我们的最终表格并不简单。例如，表格中的信息并不表示每种药物的类别。NDC 代码是存在的，但是 NDC 代码甚至比药物名称更精细，因为它在制作每个独特代码时包括给药途径和剂量；因此，多种形式的赖诺普利可能具有不同的 NDC 密码。为了为每种药物创建一个列，我们可以为每种药物单独创建一个表，其中包含组成它的所有药物，然后将这些信息合并到我们的表中。</p>
+
+<p class="mce-root"/>
+
+<p>如果我们选择包含剂量信息，该字段将需要一些清理。请注意，3 号患者正在接受一种抗高血压复合药物——缬沙坦成分的剂量为 160 mg，而氢氯噻嗪成分的剂量为 12.5 mg。这可能被编码为两种独立的药物，但是创建一个将组合药物分成两行的脚本并不简单。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>The LABS table</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">实验室桌子</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>实验室信息是临床诊断的重要组成部分，许多实验室检验结果有助于预测变量(Donze 等人，2013；Sahni 等人，2018 年)。<kbd>LABS</kbd>表包括描述实验室测试名称、缩写、LOINC 代码和结果的字段:</p>
+
+<div><img src="img/70660895-ce3a-4f59-a96c-3a7720579f59.png" style="width:48.25em;height:11.67em;"/></div>
+
+<p class="mce-root">在最终表格中包含实验室信息有几种不同的方法。一种方法是将原始实验室结果作为一个连续变量。然而，这导致了一个问题，因为对于大多数实验来说结果将是空的。当它丢失时，我们可以通过输入一个正常范围内的值来解决这个问题。另一种方法是在异常范围内为实验室测试结果设置一个二元变量。这解决了丢失数据的问题，因为如果结果丢失，它将是零。然而，采用这种方法，BNP 值为 1000(表明重度充血性心力衰竭)与 BNP 值为 350(表明轻度充血性心力衰竭)没有区别。我们将在本章中演示这两种方法。</p>
+
+<p>另请注意，<kbd>Lab_value</kbd>字段有时包含特殊字符，例如在肌钙蛋白结果中。这些将需要被删除，并相应地解释实验室值。培养结果(不包括在本例中)完全是文字性的，通常命名特定的细菌菌株而不是编号。</p>
+
+<p>我们再次重申，这是一个简化的示例，许多针对这些患者的常见实验室检查(例如，WBC 计数、血红蛋白、钠、钾等)都被排除在外。</p>
+
+<p class="mce-root"/>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>The VITALS table</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">生命体征表</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>生命体征是患者健康状况的重要指标，可以作为医疗保健机器学习模型的良好预测器(Sahni et al .，2018)。生命体征通常在每次患者就诊时采集，因此它们可以很容易地以原始(数字)形式包含在内，以保持粒度。</p>
+
+<p>在下面的表格截图中，我们注意到虽然身高和体重都存在，但是体重指数 ( <strong xmlns:epub="http://www.idpf.org/2007/ops">身体质量指数</strong>)却不见了。我们将在第 5 章、<em xmlns:epub="http://www.idpf.org/2007/ops">计算基础 Python 简介</em>中演示身体质量指数的计算。其次，Visit #10004 缺少一个温度读数。这在医疗保健中很常见，可能是由护理中的疏忽引起的:</p>
+
+<div><img src="img/d0320c9d-5191-414e-b101-76ba65cc2243.png" style="width:57.25em;height:10.33em;"/></div>
+
+<p>生命体征表</p>
+
+<p>在本章的后面，我们将估算这次访问的正常温度。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>The MORT table</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">死亡之桌</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>最后，我们来到包含目标变量的表。<kbd>MORT</kbd>表只包含两个字段，病人标识符和病人去世的日期。未列在此表中的患者可以假定为健在:</p>
+
+<div><img src="img/55885bd2-47e9-4317-992a-4dc302a4aee6.png" style="width:13.67em;height:5.83em;"/></div>
+
+<p class="mce-root">稍后，我们将学习如何将该表中的信息转换为二进制目标变量。</p>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p class="mceNonEditable"/>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Starting an SQLite session</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">启动 SQLite 会话</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>我们将用来转换数据库的数据库引擎是<strong> SQLite </strong>。在<a href="b15b2b73-d2bb-410f-ab55-5f0f1e91730e.xhtml" target="_blank">第 1 章</a>、<em>医疗保健分析简介</em>中，我们介绍了安装说明以及基本的 SQLite 命令。应该提到的是，SQL 有许多变体，SQLite 专用的 SQL 与 MySQL 或 SQL Server 数据库专用的 SQL 略有不同。然而，基本原则在所有 SQL 方言中保持不变。</p>
+
+<p>此时，请执行以下操作:</p>
+
+<ol>
+
+<li>在您的 shell 或命令提示符下导航到包含<kbd>sqlite3.exe</kbd>程序的目录(使用<kbd>cd</kbd>命令)。</li>
+
+<li>键入<kbd>sqlite3 mortality.db</kbd>并按<em>进入</em>。您应该会看到如下所示的提示:<kbd>sqlite&gt;</kbd>。该提示表明您正在使用 SQLite 程序。</li>
+
+<li>在本章的其余部分，我们将创建一些表，并在 SQLite 程序中对它们执行一些 SQLite 命令。</li>
+
+<li>要随时退出会话，键入<kbd>.exit</kbd>并按<em>键进入</em>。</li>
+
+</ol>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Data engineering, one table at a time with SQL</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">数据工程，使用 SQL 一次一个表</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>现在让我们看看如何使用 SQLite 执行数据工程。首先，我们必须在数据库中创建我们的表。然后，我们将一个接一个地操纵它们，以得到想要的最终表格。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #0 – creating the six tables</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">查询集# 0–创建六个表</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在这个模拟作业中，让我们假设可以从心脏病学诊所下载数据的门户网站不工作。取而代之的是，一名技术人员向您发送 SQLite 命令，您可以使用这些命令来创建六个表。你可以跟着书走，手动输入每个命令。或者，您可以去该书的官方代码库并从那里下载命令。</p>
+
+<p class="mce-root"/>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #0a – creating the PATIENT table</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">查询集# 0a–创建患者表</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在数据库中创建表的一种方法是手动指定它的模式。让我们用第一张表<kbd>PATIENT</kbd>来做这件事:</p>
+
+<pre><strong>sqlite&gt; CREATE TABLE PATIENT(</strong><br/><strong>  Pid VARCHAR(30) NOT NULL,</strong><br/><strong>  Fname VARCHAR(30) NOT NULL,</strong><br/><strong>  Minit CHAR,</strong><br/><strong>  Lname VARCHAR(30) NOT NULL,</strong><br/><strong>  Bdate TEXT NOT NULL,</strong><br/><strong>  Street VARCHAR(50),</strong><br/><strong>  City VARCHAR(30),</strong><br/><strong>  State VARCHAR(2),</strong><br/><strong>  Zip VARCHAR(5),</strong><br/><strong>  Phone VARCHAR(10) NOT NULL,</strong><br/><strong>  Sex CHAR,</strong><br/><strong>  PRIMARY KEY (Pid)</strong><br/><strong>);</strong></pre>
+
+<p>在前面的例子中，注意表的名称出现在<kbd>CREATE TABLE</kbd>短语之后。接下来是一个左括号，每行都有一个新列(例如，<kbd>Pid</kbd>和<kbd>Fname</kbd>)。在每一行中，列名之后是每一列的类型。在本例中，我们对大多数列使用<kbd>VARCHAR(<img src="img/132125d6-1eb7-42e6-9fb1-55b899cf2b65.png" style="width:1.00em;height:1.08em;"/>)</kbd>，其中<img class="fm-editor-equation" src="img/719756ac-ad5e-4df0-b962-c416cf4860ff.png" style="width:0.92em;height:1.00em;"/>是该列包含的最大字符数。一个<kbd>CHAR</kbd>列只包含一个字符。最后，一些重要的字段(比如名称和标识符)我们不允许为空，我们使用<kbd>NOT NULL</kbd>短语为这些列指定。</p>
+
+<p>现在我们已经创建了表的模式，下一步是用数据填充表。正如我们所说的，在数据库中我们只有 5 名患者，因此<kbd>PATIENT</kbd>表将有 5 行。我们使用一个<kbd>INSERT</kbd>命令将每一行插入表中，如下所示:</p>
+
+<pre><strong>sqlite&gt; INSERT INTO PATIENT (Pid, Fname, Minit, Lname, Bdate, Street, City, State, Zip, Phone, Sex)</strong><br/><strong>VALUES ('1','John','A','Smith','1952-01-01','1206 Fox Hollow Rd.','Pittsburgh','PA','15213','6789871234','M');</strong><br/><br/><strong>sqlite&gt; INSERT INTO PATIENT (Pid, Fname, Minit, Lname, Bdate, Street, City, State, Zip, Phone, Sex)</strong><br/><strong>VALUES ('2','Candice','P','Jones','1978-02-03','1429 Orlyn Dr.','Los Angeles','CA','90024','3107381419','F');</strong><br/><br/><strong>sqlite&gt; INSERT INTO PATIENT (Pid, Fname, Minit, Lname, Bdate, Street, City, State, Zip, Phone, Sex)</strong><br/><strong>VALUES ('3','Regina','H','Wilson','1985-04-23','765 Chestnut Ln.','Albany','NY','12065','5184590206','F');</strong><br/><br/><strong>sqlite&gt; INSERT INTO PATIENT (Pid, Fname, Minit, Lname, Bdate, Street, City, State, Zip, Phone, Sex)</strong><br/><strong>VALUES ('4','Harold','','Lee','1966-11-15','2928 Policy St.','Providence','RI','02912','6593482691','M');</strong><br/><br/><strong>sqlite&gt; INSERT INTO PATIENT (Pid, Fname, Minit, Lname, Bdate, Street, City, State, Zip, Phone, Sex)</strong><br/><strong>VALUES ('5','Stan','P','Davis','1958-12-30','4271 12th St.','Atlanta','GA','30339','4049814933','M');</strong></pre>
+
+<p>注意，在使用<kbd>VALUES</kbd>关键字之前，<kbd>INSERT</kbd>语句首先指定将要插入的字段，然后列出实际的数据元素。如果使用了<kbd>VARCHAR</kbd>或<kbd>CHAR</kbd>，数据元素应该用单引号括起来。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #0b – creating the VISIT table</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">查询集# 0b–创建访问表</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>现在让我们制作<kbd>VISIT</kbd>表格。同样，首先我们使用一个<kbd>CREATE TABLE</kbd>语句，然后是六个<kbd>INSERT</kbd>语句:</p>
+
+<pre><strong>sqlite&gt; CREATE TABLE VISIT(</strong><br/><strong>  Pid VARCHAR(30) NOT NULL,</strong><br/><strong>  Visit_id VARCHAR(30) NOT NULL,</strong><br/><strong>  Visit_date DATE NOT NULL,</strong><br/><strong>  Attending_md VARCHAR(30) NOT NULL,</strong><br/><strong>  Pri_dx_icd VARCHAR(20) NOT NULL,</strong><br/><strong>  Pri_dx_name VARCHAR(100) NOT NULL,</strong><br/><strong>  Sec_dx_icd VARCHAR(20),</strong><br/><strong>  Sec_dx_name VARCHAR(100),</strong><br/><strong>  PRIMARY KEY (Visit_id)</strong><br/><strong>);</strong><br/><br/><strong>sqlite&gt; INSERT INTO VISIT (Pid, Visit_id, Visit_date, Attending_md, Pri_dx_icd, Pri_dx_name, Sec_dx_icd, Sec_dx_name)</strong><br/><strong>VALUES ('1','10001','2016-01-09','JOHNSON','I50.9','Heart failure, unspecified','I10','Essential (primary) hypertension');</strong><br/><br/><strong>sqlite&gt; INSERT INTO VISIT (Pid, Visit_id, Visit_date, Attending_md, Pri_dx_icd, Pri_dx_name, Sec_dx_icd, Sec_dx_name)</strong><br/><strong>VALUES ('1','10002','2016-01-17','JOHNSON','I50.9','Heart failure, unspecified','I10','Essential (primary) hypertension');</strong><br/><br/><strong>sqlite&gt; INSERT INTO VISIT (Pid, Visit_id, Visit_date, Attending_md, Pri_dx_icd, Pri_dx_name, Sec_dx_icd, Sec_dx_name)</strong><br/><strong>VALUES ('2','10003','2016-01-15','WU','I20.9','Angina pectoris, unspecified','E11.9','Type 2 diabetes mellitus without complications');</strong><br/><br/><strong>sqlite&gt; INSERT INTO VISIT (Pid, Visit_id, Visit_date, Attending_md, Pri_dx_icd, Pri_dx_name, Sec_dx_icd, Sec_dx_name)</strong><br/><strong>VALUES ('3','10004','2016-02-01','JOHNSON','I10','Essential (primary) hypertension','','');</strong><br/><br/><strong>sqlite&gt; INSERT INTO VISIT (Pid, Visit_id, Visit_date, Attending_md, Pri_dx_icd, Pri_dx_name, Sec_dx_icd, Sec_dx_name)</strong><br/><strong>VALUES ('4','10005','2016-02-27','WU','I27.0','Primary pulmonary hypertension','I50.9','Heart failure, unspecified');</strong><br/><br/><strong>sqlite&gt; INSERT INTO VISIT (Pid, Visit_id, Visit_date, Attending_md, Pri_dx_icd, Pri_dx_name, Sec_dx_icd, Sec_dx_name)</strong><br/><strong>VALUES ('5','10006','2016-03-01','WU','I50.9','Heart failure, unspecified','E11.9','Type 2 diabetes mellitus without complications');</strong></pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #0c – creating the MEDICATIONS table</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">查询集# 0c–创建药物表</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>要创建<kbd>MEDICATIONS</kbd>表，使用下面的代码:</p>
+
+<pre><strong>sqlite&gt; CREATE TABLE MEDICATIONS(</strong><br/><strong>  Pid VARCHAR(30) NOT NULL,</strong><br/><strong>  Rx_name VARCHAR(50) NOT NULL,</strong><br/><strong>  Rx_dose VARCHAR(20),</strong><br/><strong>  Rx_freq VARCHAR(10),</strong><br/><strong>  Rx_route VARCHAR(10),</strong><br/><strong>  Prescribing_md VARCHAR(30) NOT NULL,</strong><br/><strong>  Rx_date DATE NOT NULL,</strong><br/><strong>  Rx_ndc VARCHAR(30)</strong><br/><strong>);</strong><br/><br/><strong>sqlite&gt; INSERT INTO MEDICATIONS (Pid, Rx_name, Rx_dose, Rx_freq, Rx_route, Prescribing_md, Rx_date, Rx_ndc)</strong><br/><strong>VALUES ('1', 'LISINOPRIL','5 mg','bid','po','JOHNSON','01/09/2016','68180-513-01');</strong><br/><br/><strong>sqlite&gt; INSERT INTO MEDICATIONS (Pid, Rx_name, Rx_dose, Rx_freq, Rx_route, Prescribing_md, Rx_date, Rx_ndc)</strong><br/><strong>VALUES ('1', 'FUROSEMIDE','20 mg','bid','po','JOHNSON','01/09/2016','50742-104-01');</strong><br/><br/><strong>sqlite&gt; INSERT INTO MEDICATIONS (Pid, Rx_name, Rx_dose, Rx_freq, Rx_route, Prescribing_md, Rx_date, Rx_ndc)</strong><br/><strong>VALUES ('2', 'NITROGLYCERIN','0.4 mg','tid','sl','WU','01/15/2016','59762-3304-1');</strong><br/><br/><strong>sqlite&gt; INSERT INTO MEDICATIONS (Pid, Rx_name, Rx_dose, Rx_freq, Rx_route, Prescribing_md, Rx_date, Rx_ndc)</strong><br/><strong>VALUES ('2', 'METFORMIN','500 mg','bid','po','WU','01/15/2016','65162-175-10');</strong><br/><br/><strong>sqlite&gt; INSERT INTO MEDICATIONS (Pid, Rx_name, Rx_dose, Rx_freq, Rx_route, Prescribing_md, Rx_date, Rx_ndc)</strong><br/><strong>VALUES ('2', 'ASPIRIN','81 mg','qdaily','po','WU','01/15/2016','63981-563-51');</strong><br/><br/><strong>sqlite&gt; INSERT INTO MEDICATIONS (Pid, Rx_name, Rx_dose, Rx_freq, Rx_route, Prescribing_md, Rx_date, Rx_ndc)</strong><br/><strong>VALUES ('2', 'METOPROLOL TARTRATE','25 mg','bid','po','WU','01/15/2016','62332-112-31');</strong><br/><br/><strong>sqlite&gt; INSERT INTO MEDICATIONS (Pid, Rx_name, Rx_dose, Rx_freq, Rx_route, Prescribing_md, Rx_date, Rx_ndc)</strong><br/><strong>VALUES ('3', 'VALSARTAN HCTZ','160/12.5 mg','qdaily','po','JOHNSON','02/01/2016','51655-950-52');</strong><br/><br/><strong>sqlite&gt; INSERT INTO MEDICATIONS (Pid, Rx_name, Rx_dose, Rx_freq, Rx_route, Prescribing_md, Rx_date, Rx_ndc)</strong><br/><strong>VALUES ('4', 'DILTIAZEM HYDROCHOLORIDE','300 mg','qdaily','po','WU','02/27/2016','52544-693-19');</strong><br/><br/><strong>sqlite&gt; INSERT INTO MEDICATIONS (Pid, Rx_name, Rx_dose, Rx_freq, Rx_route, Prescribing_md, Rx_date, Rx_ndc)</strong><br/><strong>VALUES ('4', 'LISINOPRIL','10 mg','bid','po','WU','02/27/2016','68180-514-01');</strong><br/><br/><strong>sqlite&gt; INSERT INTO MEDICATIONS (Pid, Rx_name, Rx_dose, Rx_freq, Rx_route, Prescribing_md, Rx_date, Rx_ndc)</strong><br/><strong>VALUES ('4', 'FUROSEMIDE','40 mg','bid','po','WU','02/27/2016','68788-1966-1');</strong><br/><br/><strong>sqlite&gt; INSERT INTO MEDICATIONS (Pid, Rx_name, Rx_dose, Rx_freq, Rx_route, Prescribing_md, Rx_date, Rx_ndc)</strong><br/><strong>VALUES ('5', 'LISINOPRIL','5 mg','bid','po','WU','03/01/2016','68180-513-01');</strong><br/><br/><strong>sqlite&gt; INSERT INTO MEDICATIONS (Pid, Rx_name, Rx_dose, Rx_freq, Rx_route, Prescribing_md, Rx_date, Rx_ndc)</strong><br/><strong>VALUES ('5', 'FUROSEMIDE','20 mg','bid','po','WU','03/01/2016','50742-104-01');</strong><br/><br/>
+<strong>sqlite&gt; INSERT INTO MEDICATIONS (Pid, Rx_name, Rx_dose, Rx_freq, Rx_route, Prescribing_md, Rx_date, Rx_ndc)</strong><br/><strong>VALUES ('5', 'METFORMIN','500 mg','bid','po','WU','03/01/2016','65162-175-10');</strong></pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #0d – creating the LABS table</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">查询集# 0d–创建实验室表</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>要创建<kbd>LABS</kbd>表，使用以下代码:</p>
+
+<pre><strong>sqlite&gt; CREATE TABLE LABS(</strong><br/><strong>  Pid VARCHAR(30) NOT NULL,</strong><br/><strong>  Lab_name VARCHAR(50),</strong><br/><strong>  Lab_abbrev VARCHAR(20), </strong><br/><strong>  Lab_loinc VARCHAR(10) NOT NULL,</strong><br/><strong>  Lab_value VARCHAR(20) NOT NULL,</strong><br/><strong>  Ordering_md VARCHAR(30),</strong><br/><strong>  Lab_date DATE NOT NULL</strong><br/><strong>);</strong><br/><br/><strong>sqlite&gt; INSERT INTO LABS (Pid, Lab_name, Lab_abbrev, Lab_loinc, Lab_value, Ordering_md, Lab_date)</strong><br/><strong>VALUES ('1','Natriuretic peptide B','BNP','42637-9','350','JOHNSON','2016-01-09');</strong><br/><br/><strong>sqlite&gt; INSERT INTO LABS (Pid, Lab_name, Lab_abbrev, Lab_loinc, Lab_value, Ordering_md, Lab_date)</strong><br/><strong>VALUES ('2','Natriuretic peptide B','BNP','42637-9','100','WU','2016-01-15');</strong><br/><br/><strong>sqlite&gt; INSERT INTO LABS (Pid, Lab_name, Lab_abbrev, Lab_loinc, Lab_value, Ordering_md, Lab_date)</strong><br/><strong>VALUES ('2','Glucose','GLU','2345-7','225','WU','2016-01-15');</strong><br/><br/><strong>sqlite&gt; INSERT INTO LABS (Pid, Lab_name, Lab_abbrev, Lab_loinc, Lab_value, Ordering_md, Lab_date)</strong><br/><strong>VALUES ('2','Troponin I','TROP','10839-9','&lt;0.004','WU','2016-01-15');</strong><br/><br/><strong>sqlite&gt; INSERT INTO LABS (Pid, Lab_name, Lab_abbrev, Lab_loinc, Lab_value, Ordering_md, Lab_date)</strong><br/><strong>VALUES ('4','Natriuretic peptide B','BNP','42637-9','1000','WU','2016-02-27');</strong><br/><br/><strong>sqlite&gt; INSERT INTO LABS (Pid, Lab_name, Lab_abbrev, Lab_loinc, Lab_value, Ordering_md, Lab_date)</strong><br/><strong>VALUES ('5','Natriuretic peptide B','BNP','42637-9','400','WU','2016-03-01');</strong><br/><br/></pre>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p class="mceNonEditable"/>
+
+<pre><strong>sqlite&gt; INSERT INTO LABS (Pid, Lab_name, Lab_abbrev, Lab_loinc, Lab_value, Ordering_md, Lab_date)</strong><br/><strong>VALUES ('5','Glucose','GLU','2345-7','318','WU','2016-03-01');</strong></pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #0e – creating the VITALS table</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">查询集# 0e–创建生命体征表</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>请注意，<kbd>VITALS</kbd>表使用了数字类型，如<kbd>FLOAT</kbd>和<kbd>INT</kbd>。要创建<kbd>VITALS</kbd>表，使用以下代码:</p>
+
+<pre><strong>sqlite&gt; CREATE TABLE VITALS(</strong><br/><strong>  Pid VARCHAR(30) NOT NULL,</strong><br/><strong>  Visit_id VARCHAR(30) NOT NULL,</strong><br/><strong>  Height_in INT,</strong><br/><strong>  Weight_lb FLOAT,</strong><br/><strong>  Temp_f FLOAT,</strong><br/><strong>  Pulse INT,</strong><br/><strong>  Resp_rate INT,</strong><br/><strong>  Bp_syst INT,</strong><br/><strong>  Bp_diast INT,</strong><br/><strong>  SpO2 INT</strong><br/><strong>);</strong><br/><br/><strong>sqlite&gt; INSERT INTO VITALS (Pid, Visit_id, Height_in, Weight_lb, Temp_f, Pulse, Resp_rate, Bp_syst, Bp_diast, SpO2)</strong><br/><strong>VALUES ('1','10001',70,188.4,98.6,95,18,154,94,97);</strong><br/><br/><strong>sqlite&gt; INSERT INTO VITALS (Pid, Visit_id, Height_in, Weight_lb, Temp_f, Pulse, Resp_rate, Bp_syst, Bp_diast, SpO2)</strong><br/><strong>VALUES ('1','10002',70,188.4,99.1,85,17,157,96,100);</strong><br/><br/><strong>sqlite&gt; INSERT INTO VITALS (Pid, Visit_id, Height_in, Weight_lb, Temp_f, Pulse, Resp_rate, Bp_syst, Bp_diast, SpO2)</strong><br/><strong>VALUES ('2','10003',63,130.2,98.7,82,16,120,81,100);</strong><br/><br/><strong>sqlite&gt; INSERT INTO VITALS (Pid, Visit_id, Height_in, Weight_lb, Temp_f, Pulse, Resp_rate, Bp_syst, Bp_diast, SpO2)</strong><br/><strong>VALUES ('3','10004',65,120.0,NULL,100,19,161,100,98);</strong><br/><br/><strong>sqlite&gt; INSERT INTO VITALS (Pid, Visit_id, Height_in, Weight_lb, Temp_f, Pulse, Resp_rate, Bp_syst, Bp_diast, SpO2)</strong><br/><strong>VALUES ('4','10005',66,211.4,98.2,95,19,143,84,93);</strong><br/><br/><strong>sqlite&gt; INSERT INTO VITALS (Pid, Visit_id, Height_in, Weight_lb, Temp_f, Pulse, Resp_rate, Bp_syst, Bp_diast, SpO2)</strong><br/><strong>VALUES ('5','10006',69,150.0,97.6,77,18,130,86,99);</strong></pre>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p class="mceNonEditable"/>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #0f – creating the MORT table</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">查询集# 0f–创建 MORT 表</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>要创建<kbd>MORT</kbd>表，使用以下代码:</p>
+
+<pre><strong>sqlite&gt; CREATE TABLE MORT(</strong><br/><strong>  Pid VARCHAR(30) NOT NULL,</strong><br/><strong>  Mortality_date DATE NOT NULL,</strong><br/><strong>  PRIMARY KEY (Pid)</strong><br/><strong>);</strong><br/><br/><strong>sqlite&gt; INSERT INTO MORT (Pid, Mortality_date)</strong><br/><strong>VALUES ('1', '2016-05-15');</strong><br/><br/><strong>sqlite&gt; INSERT INTO MORT (Pid, Mortality_date)</strong><br/><strong>VALUES ('4', '2016-06-08');</strong></pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #0g – displaying our tables</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">查询集# 0g–显示我们的表</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>为了确认一个表(例如，<kbd>PATIENT</kbd>)是正确生成的，我们可以使用<kbd>SELECT * FROM PATIENT;</kbd>查询(我们将在查询集#2 中进一步解释这个语法):</p>
+
+<pre><strong>sqlite&gt; SELECT * FROM PATIENT;</strong><br/><strong>1 John A Smith 1952-01-01 1206 Fox Hollow Rd. Pittsburgh PA 15213 6789871234 M</strong><br/><strong>2 Candice P Jones 1978-02-03 1429 Orlyn Dr. Los Angele CA 90024 3107381419 F</strong><br/><strong>3 Regina H Wilson 1985-04-23 765 Chestnut Ln. Albany NY 12065 5184590206 F</strong><br/><strong>4 Harold Lee 1966-11-15 2928 Policy St. Providence RI 02912 6593482691 M</strong><br/><strong>5 Stan P Davis 1958-12-30 4271 12th St. Atlanta GA 30339 4049814933 M</strong></pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #1 – creating the MORT_FINAL table</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">查询集# 1–创建 MORT_FINAL 表</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>我们编写的第一个查询将使用<kbd>CREATE TABLE</kbd>语句创建表。在一个版本的<kbd>CREATE TABLE</kbd>语句中，每个变量都用其对应的数据类型拼写出来。在前面的例子中，我们使用这个版本从头开始创建了六个表。或者，可以通过从现有的表中复制来创建一个表。我们将选择第二个选项。</p>
+
+<p class="mce-root"/>
+
+<p>既然我们已经回答了这个问题，第二个问题仍然存在——我们应该从哪个表复制？将患者信息从<kbd>PATIENT</kbd>表复制到我们的最终表可能很有诱惑力，因为它包含每个患者的一行，并且包含基本的人口统计信息。然而，我们必须记住用例是基于每次<em>访问</em>，而不是病人。因此，如果患者有两次就诊(如患者#1)，从技术上讲，该患者将获得两个风险评分:每次就诊一个。因此，我们应该从复制<kbd>VISIT</kbd>表中的信息开始。这将创建一个有六行的表，每次访问一行。</p>
+
+<p>因此，我们使用一个<kbd>CREATE TABLE</kbd>子句开始我们的查询，其中<kbd>MORT_FINAL</kbd>是我们新表的名称。然后我们使用<kbd>AS</kbd>关键字。接下来的两行查询使用一个<kbd>SELECT-FROM-WHERE</kbd>结构指定要复制的信息:</p>
+
+<pre><strong>sqlite&gt; CREATE TABLE MORT_FINAL AS</strong><br/><strong>SELECT Visit_id, Pid, Attending_md, Visit_date, Pri_dx_icd, Sec_dx_icd</strong><br/><strong>FROM VISIT;</strong></pre>
+
+<p><kbd>SELECT-FROM-WHERE</kbd>语句是从表格中选择我们想要的信息的系统方法。<kbd>SELECT</kbd>部分充当<em>列</em>选择器——跟在<kbd>SELECT</kbd>关键字后面的是我们想要复制到新表中的列。请注意，我们省略了诊断名称(<kbd>Pri_dx_name</kbd>、<kbd>Sec_dx_name</kbd>)，因为这些名称在技术上不是预测变量，只要我们有每个代码，就可以参考它们的含义。关键字<kbd>FROM</kbd>指定了我们希望从中复制的表名(在本例中为<kbd>VISIT</kbd>)。<kbd>WHERE</kbd>关键字是一个可选子句，它允许我们只选择那些满足特定条件的<em>行</em>。例如，如果我们想将我们的模型限制在那些患者患有心力衰竭的就诊中，我们可以说<kbd>WHERE Pri_dx_code == 'I50.9'</kbd>。因为我们想在这个例子中包含所有的访问，所以这个查询不需要 WHERE 子句。我们将在下一个查询集中看到 WHERE 子句的作用。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #2 – adding columns to MORT_FINAL</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">查询集# 2–将列添加到 MORT_FINAL</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在本节中，我们将演示添加附加列的两种方法。一种方法使用一个<kbd>ALTER TABLE</kbd>语句，而第二种方法使用一个<kbd>JOIN</kbd>操作。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #2a – adding columns using ALTER TABLE</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">查询集# 2a–使用 ALTER TABLE 添加列</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>现在我们已经将来自<kbd>VISIT</kbd>表的信息填充到了<kbd>MORT_FINAL</kbd>表中，是时候开始集成其他表了。我们将从<kbd>PATIENT</kbd>表开始；具体来说，我们想从这个表中添加出生日期和性别。我们从生日开始。</p>
+
+<p class="mce-root">在查询集#2 中，我们演示了向表中添加新列(生日)的基本查询模式。我们从一个<kbd>ALTER TABLE</kbd>语句开始，然后是表名、操作(在本例中是<kbd>ADD COLUMN</kbd>)、新列名和变量类型。尽管标准 SQL 支持日期的<kbd>DATE</kbd>变量类型，但在 SQLite 中，我们使用的是<kbd>TEXT</kbd>类型。日期总是以<kbd>YYYY-MM-DD</kbd>格式指定。</p>
+
+<p class="mce-root">在我们用<kbd>ALTER TABLE</kbd>语句初始化了新列之后，下一步是从<kbd>PATIENT</kbd>表中填充实际的出生日期。为此，我们使用了一个<kbd>UPDATE</kbd>语句。我们指定我们正在更新的表，后面跟着一个<kbd>SET</kbd>语句和我们正在修改的列的名称，后面有一个等号。</p>
+
+<p class="mce-root"><kbd>SELECT-FROM-WHERE</kbd>块是 SQL 语言的基本<em>检索</em>查询。我们试图从<kbd>PATIENT</kbd>表中<em>检索</em>信息并填充到新的<kbd>Bdate</kbd>列中，所以我们在等号后面使用了一个<kbd>SELECT-FROM-WHERE</kbd>语句，用括号括起来。将 SQL 语句想象成用其<kbd>SELECT</kbd>语句向数据库发出以下命令:“对于<kbd>MORT_FINAL</kbd>表中的每一行，从<kbd>PATIENT</kbd>表中找到我的出生日期，其中<kbd>PATIENT</kbd>表中的<kbd>Pid</kbd>等于<kbd>MORT_FINAL</kbd>表中的<kbd>Pid</kbd>。”</p>
+
+<p class="mce-root">在针对<kbd>Bdate</kbd>列的<kbd>UPDATE</kbd>语句之后，我们使用相同的查询序列(<kbd>ALTER TABLE</kbd>和<kbd>UPDATE</kbd>)从<kbd>PATIENT</kbd>表中检索<kbd>Sex</kbd>列:</p>
+
+<p class="mce-root">查询集# 2b–使用连接添加列</p>
+
+<p class="mceNonEditable">虽然<kbd>ALTER TABLE</kbd>和<kbd>UPDATE</kbd>序列是一次向一个表中添加一列的好方法，但是当您想要从同一个表中复制许多列时，这可能会很繁琐。一个<kbd>JOIN</kbd>操作为我们提供了从同一个表中复制许多列的第二种选择。</p>
+
+<p>In Query Set #2, we demonstrate the basic query pattern for adding a new column (the birthdate) to our table. We start with an <kbd>ALTER TABLE</kbd> statement, followed by the name of the table, the operation (<kbd>ADD COLUMN</kbd>, in this case), the name of our new column, and the variable type. Although standard SQL supports a <kbd>DATE</kbd> variable type for dates, in SQLite, we use the <kbd>TEXT</kbd> type. Dates are always specified in <kbd>YYYY-MM-DD</kbd> format.</p>
+
+<p>在<kbd>JOIN</kbd>操作中，两个表格被组合成一个表格。在下面的查询示例中，<kbd>VITALS</kbd>表的选定列被追加到<kbd>MORT_FINAL</kbd>表的末尾。</p>
+
+<p>然而，<kbd>MORT_FINAL</kbd>表和<kbd>VITALS</kbd>表都包含若干行。查询如何知道每个表的哪些行相互对应？这是使用一个<kbd>ON</kbd>子句指定的(在查询的末尾)。<kbd>ON</kbd>子句说，“当连接表时，组合那些访问 id 相等的行。”因此对于<kbd>MORT_FINAL</kbd>表中的每一行，它对应的<kbd>VISITS</kbd>表中只有一行:具有相同访问 ID 的行。这是有意义的，因为我们感兴趣的是在单独的行中从单独的访问中收集信息。</p>
+
+<p>关于连接需要知道的另一件事是，在标准 SQL 中有四种不同的连接类型:左连接、右连接、内连接和外连接。左连接(在 SQLite 中称为左外连接)是我们在这里使用的类型；它说，“对于第一个表的每一行(本例中为<kbd>MORT_FINAL</kbd>)，添加访问 ID 相等的相应访问列，如果访问表中没有相应的访问 ID，则添加空值。”换句话说，不管右表中是否有相应的行，第一个表的所有行都被保留。在第二个表中有一行但在第一个表中没有的访问将被丢弃。</p>
+
+<pre><strong>sqlite&gt; ALTER TABLE MORT_FINAL ADD COLUMN Bdate TEXT;</strong><br/><br/><strong>sqlite&gt; UPDATE MORT_FINAL SET Bdate = </strong><br/><strong>(SELECT P.Bdate</strong><br/><strong>FROM PATIENT AS P</strong><br/><strong>WHERE P.Pid = MORT_FINAL.Pid);</strong><br/><br/><strong>sqlite&gt; ALTER TABLE MORT_FINAL ADD COLUMN Sex CHAR;</strong><br/><br/><strong>sqlite&gt; UPDATE MORT_FINAL SET Sex = </strong><br/><strong>(SELECT P.Sex</strong><br/><strong>FROM PATIENT AS P</strong><br/><strong>WHERE P.Pid = MORT_FINAL.Pid);</strong></pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #2b – adding columns using JOIN</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">在右连接中，情况正好相反:第二个表的惟一访问 id 被保留，并且它们与第一个表的相应访问 id 对齐。在第一个表中出现但在第二个表中丢失的访问 id 被丢弃。内部连接包含在最终结果中:只访问两个表中都存在的 id。外部联接包括两个表的所有行，并用空值替换所有缺少的条目。注意，我们应该补充的是，SQLite 不支持右连接和外连接。</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>那么我们为什么选择左连接呢？从根本上说，我们的工作是为每一次就诊指定一个预测，无论在那次就诊时是否记录了生命体征。因此，<kbd>MORT_FINAL</kbd>表中出现的每个访问 ID 都应该出现在最终结果中，左连接确保了这一点。</p>
+
+<p class="mce-root">在下面的代码中，我们看到通过使用一个连接，只需要一个总计查询就可以添加八列<kbd xmlns:epub="http://www.idpf.org/2007/ops">VITALS</kbd>表。这种方法的缺点是什么？首先，注意创建了一个新表:<kbd xmlns:epub="http://www.idpf.org/2007/ops">MORT_FINAL_2</kbd>。我们不能追加到旧的<kbd xmlns:epub="http://www.idpf.org/2007/ops">MORT_FINAL</kbd>表中；必须创建一个新表。另外，请注意，我们必须键入我们希望在最终结果中保留的每一列。在 SQL 中，星号(*)表示添加两个表中的所有列的<em xmlns:epub="http://www.idpf.org/2007/ops">；我们本来可以写<kbd xmlns:epub="http://www.idpf.org/2007/ops">SELECT * FROM MORT_FINAL ...</kbd>。但是，如果我们使用星号，就会有重复的列(例如，<kbd xmlns:epub="http://www.idpf.org/2007/ops">Visit_id</kbd>列会出现两次，因为它在两个表中都存在)。</em></p>
+
+<p>In a <kbd>JOIN</kbd> operation, two tables are combined to produce a single table. In the following example query, the selected columns of the <kbd>VITALS</kbd> table are appended on the end of the <kbd>MORT_FINAL</kbd> table.</p>
+
+<p>然后我们必须用一个<kbd>SELECT</kbd>语句排除重复的列。尽管如此，当第二个表中有许多列需要合并到第一个表中时，联接还是很有用的:</p>
+
+<p>查询集# 3-日期处理-计算年龄</p>
+
+<p>到目前为止，我们的<kbd>MORT_FINAL_2</kbd>表包含 16 列:6 列来自<kbd>VISIT</kbd>表，2 列来自<kbd>PATIENT</kbd>表，8 列来自<kbd>VITALS</kbd>表(您可以使用<kbd>SELECT * FROM MORT_FINAL_2;</kbd>命令来验证这一点)。在这个查询集中，我们使用日期操作将其中一个变量 birthdate 变量转换成可用的形式:我们计算病人的年龄。</p>
+
+<p>正如我们前面在查询集#2a 中提到的，日期在 SQLite 中存储为<kbd>TEXT</kbd>变量类型，并且是<kbd>YYYY-MM-DD</kbd>格式。计算年龄需要两次调用<kbd>julianday()</kbd>函数。在 SQLite 中，<kbd>julianday()</kbd>函数将<kbd>YYYY-MM-DD</kbd>中的日期作为输入，并以浮点形式返回自公元前 4714 年 11 月 24 日 12:00 PM 以来的天数。它本身似乎不是很有用，但是当与另一个<kbd>julianday()</kbd>调用和一个减号结合使用时，它允许您找到两个日期之间过去的天数。接下来，我们计算出诊日期和出生日期之间的儒略日差，并将结果除以 365.25，得到患者的年龄。我们还将<kbd>ROUND()</kbd>函数应用于该结果，并四舍五入到小数点后两位(这是<kbd>2</kbd>在最后的括号结束之前所指示的):</p>
+
+<p>In the following code, we see that by using a JOIN, only one total query is needed to add eight columns of the <kbd>VITALS</kbd> table. What are the downsides of this method? For one thing, notice that a new table is created: <kbd>MORT_FINAL_2</kbd>. We cannot append to the old <kbd>MORT_FINAL</kbd> table; a new table must be created. Also, notice that we have to type out each column that we wish to preserve in the final result. In SQL, the asterisk (*) indicates to add <em>all</em> columns from both tables; we could have written <kbd>SELECT * FROM MORT_FINAL ...</kbd>. However, if we used an asterisk, there would be duplicate columns (for example, the <kbd>Visit_id</kbd> column would be present twice, since it is in both tables).</p>
+
+<p class="mce-root"/>
+
+<p>Then we would have to exclude the duplicate columns with a <kbd>SELECT</kbd> statement. Nevertheless, JOINs are useful when there are many columns in a second table that you would like to merge into a first table:</p>
+
+<pre><strong>sqlite&gt; CREATE TABLE MORT_FINAL_2 AS</strong><br/><strong>SELECT M.Visit_id, M.Pid, M.Attending_md, M.Visit_date, M.Pri_dx_icd, M.Sec_dx_icd, M.Bdate, M.Sex, V.Height_in, V.Weight_lb, V.Temp_f, V.Pulse, V.Resp_rate, V.Bp_syst, V.Bp_Diast, V.SpO2</strong><br/><strong>FROM MORT_FINAL AS M LEFT OUTER JOIN VITALS AS V ON M.Visit_id = V.Visit_id;</strong></pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #3 – date manipulation – calculating age</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">Query Set #3 – date manipulation – calculating age</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>So far, our <kbd>MORT_FINAL_2</kbd> table contains 16 columns: 6 from the <kbd>VISIT</kbd> table, 2 from the <kbd>PATIENT</kbd> table, and 8 from the <kbd>VITALS</kbd> table (you can verify this by using the <kbd>SELECT * FROM MORT_FINAL_2;</kbd> command). In this query set, we transform one of these variables, the birthdate variable, into a usable form using date manipulation: we calculate the patients' age.</p>
+
+<p>As we said earlier in Query Set #2a, dates are stored in SQLite as <kbd>TEXT</kbd> variable types and are in the <kbd>YYYY-MM-DD</kbd> format. Calculating the age takes two calls to the <kbd>julianday()</kbd> function. In SQLite, the <kbd>julianday()</kbd> function takes a date in <kbd>YYYY-MM-DD</kbd> as input and returns the number of days since November 24th, 4714 BC 12:00 PM as a float. By itself, it may not seem very useful, but when used in combination with another <kbd>julianday()</kbd> call and a subtraction sign, it allows you to find the number of days that have elapsed between two dates. Following that, we calculate the Julian day difference between the visit date and the birthdate and divide the result by 365.25 to give us the patient ages in years. We also apply the <kbd>ROUND()</kbd> function to this result and round to two places after the decimal point (which is what the <kbd>2</kbd> indicates before the final parentheses are closed):</p>
+
+<pre><strong>sqlite&gt; ALTER TABLE MORT_FINAL_2 ADD COLUMN Age_years REAL;</strong><br/><br/><strong>sqlite&gt; UPDATE MORT_FINAL_2 SET Age_years = </strong><br/><strong>ROUND((julianday(Visit_date) - julianday(Bdate)) / 365.25,2);</strong></pre>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p class="mce-root">查询集# 4-宁滨和汇总诊断</p>
+
+<p class="mce-root">在我们的示例数据库中，<kbd>VISIT</kbd>表包含了就诊的诊断代码。尽管在我们的示例中，他们没有得到自己的表，但诊断代码是许多分析问题中最重要的信息之一。首先，它们允许我们选择与我们的模型相关的观察值。例如，如果我们正在构建一个预测恶性癌症的模型，我们将需要诊断代码来告诉我们哪些患者患有癌症，并过滤掉其他患者。其次，它们通常是很好的预测变量(Futoma 等人，2015)。例如，正如我们将在<a href="d029d858-9c6e-4bf0-b793-87cdc4395e86.xhtml" target="_blank">第 7 章</a>、<em>医疗保健中建立预测模型</em>中看到的，许多慢性疾病大大增加了医疗保健效果不佳的可能性。显然，我们必须利用诊断代码中给我们的信息来优化我们的预测模型。</p>
+
+<p class="mce-root">这里我们将介绍编码变量的两种转换。第一个转换，<strong>宁滨</strong>，将分类变量转换为一系列用于特定诊断的二元变量。第二个转换，<strong>聚合</strong>，将许多二进制装箱变量组合成一个二进制或数字变量。这些转换不仅适用于诊断代码，也适用于程序、药物和实验室代码。以下是这两种转换的示例。</p>
+
+<p class="mce-root">问题集 4a-宁滨对充血性心力衰竭的诊断</p>
+
+<p class="mceNonEditable">这里，我们看到充血性心力衰竭诊断的宁滨变换。首先，我们使用一个<kbd>ALTER TABLE</kbd>语句将新列<kbd>Chf_dx</kbd>初始化为一个整数。<kbd>DEFAULT 0</kbd>语句意味着所有行都被初始化为零。接下来，当且仅当在<kbd>Pri_dx_icd</kbd>列或<kbd>Sec_dx_icd</kbd>列中存在对应于 CHF 的代码时，我们将该列设置为 1:</p>
+
+<p class="mceNonEditable"/>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #4 – binning and aggregating diagnoses</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">Query Set #4 – binning and aggregating diagnoses</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>In our example database, the <kbd>VISIT</kbd> table contains the diagnostic codes for the visit. Although they didn't get their own table in our example, the diagnostic codes are among the most important pieces of information for many analytics problems. For one thing, they allow us to select the observations that are relevant to our model. For example, if we were building a model to predict malignant cancers, we would need the diagnosis codes to tell us which patients have cancer and to filter out the other patients. Second, they often serve as good predictor variables (Futoma et al., 2015). For example, as we will see in <a href="d029d858-9c6e-4bf0-b793-87cdc4395e86.xhtml" target="_blank">Chapter 7</a>, <em>Making Predictive Models in Healthcare</em>, many chronic diseases increase the likelihood of poor healthcare outcomes by a large amount. Clearly, we must leverage the information given to us in the diagnostic codes to optimize our predictive models.</p>
+
+<p>We will introduce two transformations for coded variables here. The first transformation, <strong>binning</strong>, converts the categorical variable to a series of binary variables for specific diagnoses. The second transformation, <strong>aggregating</strong>, groups many of the binary binned variables into a single binary or numerical variable. These transformations apply not only to diagnostic codes, but to the procedure, medication, and laboratory codes as well. The following are examples of both of these transformations.</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #4a – binning diagnoses for CHF</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">Query Set #4a – binning diagnoses for CHF</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>Here, we see the binning transformation for congestive heart failure diagnoses. First, we initialize the new column, <kbd>Chf_dx</kbd>, as an integer using an <kbd>ALTER TABLE</kbd> statement. The <kbd>DEFAULT 0</kbd> statement means that all rows are initialized to be zero. Next, we set the column equal to 1 if and only if there is a code corresponding to CHF in the <kbd>Pri_dx_icd</kbd> column or the <kbd>Sec_dx_icd</kbd> column:</p>
+
+<pre><strong>sqlite&gt; ALTER TABLE MORT_FINAL_2 ADD COLUMN Chf_dx INTEGER DEFAULT 0;</strong><br/><br/><strong>sqlite&gt; UPDATE MORT_FINAL_2 SET Chf_dx = 1 </strong><br/><strong>WHERE Pri_dx_icd = 'I50.9' OR Sec_dx_icd = 'I50.9';</strong></pre>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p class="mce-root">查询集# 4b–其他疾病的宁滨诊断</p>
+
+<p class="mce-root">在这里，我们看到五个患者数据集中的每个诊断代码都有相同类型的转换。对宁滨高血压、心绞痛、糖尿病和肺动脉高压的查询如下:</p>
+
+<p class="mce-root">查询集# 4c–使用 SUM 汇总心脏诊断</p>
+
+<p class="mce-root">虽然宁滨对于区分个体诊断很重要，但在实践中，我们通常希望将相似或接近相同的诊断代码组合在一起作为一个变量。聚合将两个或多个二进制变量组合成一个二进制/数字变量。在这里，我们使用<kbd>+</kbd>操作符聚集数据集中的所有心脏诊断代码(CHF、高血压和心绞痛都是心脏病)。结果是五位患者中每一位的心脏诊断总数的计数:</p>
+
+<p class="mceNonEditable"/>
+
+<p class="mceNonEditable"/>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #4b – binning diagnoses for other diseases</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">Query Set #4b – binning diagnoses for other diseases</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>Here, we see the same type of transformation for every single diagnosis code in our five-patient dataset. The queries for binning hypertension, angina, diabetes, and pulmonary hypertension are as follows:</p>
+
+<pre><strong>sqlite&gt; ALTER TABLE MORT_FINAL_2 ADD COLUMN Htn_dx INTEGER DEFAULT 0;</strong><br/><br/><strong>sqlite&gt; UPDATE MORT_FINAL_2 SET Htn_dx = 1 </strong><br/><strong>WHERE Pri_dx_icd = 'I10' OR Sec_dx_icd = 'I10';</strong><br/><br/><strong>sqlite&gt; ALTER TABLE MORT_FINAL_2 ADD COLUMN Angina_dx INTEGER DEFAULT 0;</strong><br/><br/><strong>sqlite&gt; UPDATE MORT_FINAL_2 SET Angina_dx = 1 </strong><br/><strong>WHERE Pri_dx_icd = 'I20.9' OR Sec_dx_icd = 'I20.9';</strong><br/><br/><strong>sqlite&gt; ALTER TABLE MORT_FINAL_2 ADD COLUMN Diab_dx INTEGER DEFAULT 0;</strong><br/><br/><strong>sqlite&gt; UPDATE MORT_FINAL_2 SET Diab_dx = 1 </strong><br/><strong>WHERE Pri_dx_icd = 'E11.9' OR Sec_dx_icd = 'E11.9';</strong><br/><br/><strong>sqlite&gt; ALTER TABLE MORT_FINAL_2 ADD COLUMN Pulm_htn_dx INTEGER DEFAULT 0;</strong><br/><br/><strong>sqlite&gt; UPDATE MORT_FINAL_2 SET Pulm_htn_dx = 1 </strong><br/><strong>WHERE Pri_dx_icd = 'I27.0' OR Sec_dx_icd = 'I27.0';</strong></pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #4c – aggregating cardiac diagnoses using SUM</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">查询集# 4d–使用计数汇总心脏诊断</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在查询集#4b 和#4c 中，我们分别在列名上使用<kbd>+</kbd>操作符，对三个诊断代码进行分类和聚合。然而，我们可能对宁滨感兴趣，并聚集几十个、几百个、甚至几千个诊断代码。对于大型聚合，查询集合#4b 和#4c 的方法很快变得不切实际。</p>
+
+<pre><strong>sqlite&gt; ALTER TABLE MORT_FINAL_2 ADD COLUMN Num_cardiac_dx INTEGER;</strong><br/><br/><strong>sqlite&gt; UPDATE MORT_FINAL_2 SET Num_cardiac_dx = Chf_dx + Htn_dx + Angina_dx;</strong></pre>
+
+<p class="mce-root">这里，我们使用<kbd>COUNT</kbd>功能和一个补充表来汇总表中列出的诊断代码。我们首先使用一个<kbd>CREATE TABLE</kbd>语句来创建一个<kbd>CARDIAC_DX</kbd>表。这个<kbd>CREATE TABLE</kbd>语句的格式与查询集#1 的格式有点不同。在这个例子中，我们只是通过从现有的表中复制列来创建一个表。在这里，我们从头开始创建表，包括圆括号和圆括号中的列名、变量类型和<kbd>NOT NULL</kbd>语句。如果有多列，它们将在括号内用逗号分隔。</p>
+
+<p class="mce-root">创建表格后，我们使用一个<kbd>INSERT</kbd>语句将三个诊断代码插入其中:<kbd>I50.9</kbd>、<kbd>I10</kbd>和<kbd>I20.9</kbd>。然后，我们向我们的<kbd>MORT_FINAL_2</kbd>表添加一个名为<kbd>Num_cardiac_dx_v2</kbd>的列。</p>
+
+<p class="mce-root">最后一个查询通过添加表中出现在<kbd>Pri_dx_icd</kbd>或<kbd>Sec_dx_icd</kbd>列中的代码数量来更新<kbd>Num_cardiac_dx_v2</kbd>列。它通过在原始的<kbd>UPDATE</kbd>语句中为每一列使用一个<kbd>SELECT-FROM-WHERE</kbd>块来实现。因此，这种类型的查询称为<em>嵌套</em>查询。在每个<kbd>SELECT</kbd>块中，<kbd>COUNT(*)</kbd>语句只是将结果查询的行数作为一个整数返回。例如，在就诊#10001 中，在<kbd>Pri_dx_icd</kbd>列中有一个心脏代码，在<kbd>Sec_dx_icd</kbd>列中也有一个匹配。第一个<kbd>SELECT</kbd>块将返回一个值<kbd>1</kbd>，因为没有<kbd>COUNT</kbd>的查询将返回一个只有一行的表。通过将<kbd>COUNT</kbd>放在<kbd>*</kbd>周围，<kbd>1</kbd>将作为一个整数返回。第二个<kbd>SELECT</kbd>模块也检测到一个匹配，并返回一个值<kbd>1</kbd>。<kbd>+</kbd>操作符使<kbd>2</kbd>成为最终结果。通过比较<kbd>Num_cardiac_dx</kbd>和<kbd>Num_cardiac_dx_2</kbd>列，我们看到结果完全相同。那么，哪种方法更好呢？对于小而简单的聚合，第一种方法更容易，因为只需为每个代码创建一列，然后用+运算符将它们聚合到一个语句中。但是，在实践中，您可能希望经常编辑聚合在一起以创建要素的代码。在这种情况下，第二种方法更容易:</p>
+
+<p class="mceNonEditable">查询集# 5–计算药物</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #4d – aggregating cardiac diagnoses using COUNT</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">现在我们继续药物治疗。让我们添加一个简单地记录每个病人服用的药物数量的特性。在查询集#5(如下)中，我们首先使用一个<kbd>ALTER TABLE</kbd>语句添加了<kbd>Num_meds</kbd>列。然后，我们在一个<kbd>UPDATE</kbd>语句中使用一个<kbd>SELECT-FROM-WHERE</kbd>块来查找每个患者的药物数量。该查询通过计算<kbd>MORT_FINAL_2</kbd>表中每个患者 ID 在<kbd>MEDICATIONS</kbd>表中对应患者 ID 相同的行数来实现。同样，我们使用<kbd>COUNT</kbd>函数来获取行数。我们在这个查询中引入了一个新函数，<kbd>DISTINCT</kbd>。<kbd>DISTINCT</kbd>删除括号中的列中包含重复值的所有行。例如，如果某个病人的<kbd>LISINOPRIL</kbd>被列出两次，那么<kbd>DISTINCT(Rx_name)</kbd>函数调用将确保它只被计数一次:</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>查询集# 6-宁滨异常实验室结果</p>
+
+<p>几篇研究文章发现，实验室值是再入院等临床结果的重要预测指标(Donze 等人，2013)。然而，实验室结果是有问题的，因为它们在大多数患者中是缺失的。不会为每个患者显示任何实验室结果类型；例如，在我们的例子中，并不是每个患者在就诊期间都抽血进行实验室测试。事实上，在我们的数据中出现的三种不同类型的实验室检查中，最常见的检查是 BNP，在六分之四的患者中进行。我们怎么处理另外两个病人？</p>
+
+<p>After creating the table, we insert our three diagnostic codes into it using an <kbd>INSERT</kbd> statement: <kbd>I50.9</kbd>, <kbd>I10</kbd>, and <kbd>I20.9</kbd>. Then we add a column to our <kbd>MORT_FINAL_2</kbd> table called <kbd>Num_cardiac_dx_v2</kbd>.</p>
+
+<p>解决这个问题的一种方法是为异常结果的出现设置一个“标志”。这是在葡萄糖实验室测试的查询集#6 中完成的。在第一个查询使用<kbd>ALTER TABLE</kbd>语句添加了<kbd>Abnml_glucose</kbd>列之后，下一个查询将结果设置为每次患者就诊时特定实验室测试超过值 200 的次数。注意多重<kbd>AND</kbd>条款；它们对于选择正确的患者、日期和感兴趣的实验室检测是必要的。因此，对于此要素，只有结果过多的访问才会具有大于零的值。注意，在测试值之前，我们使用<kbd>CAST()</kbd>函数将值从<kbd>TEXT</kbd>转换为<kbd>FLOAT</kbd>:</p>
+
+<pre><strong>sqlite&gt; CREATE TABLE CARDIAC_DX(</strong><br/><strong> Dx_icd TEXT NOT NULL);</strong><br/><br/><strong>sqlite&gt; INSERT INTO CARDIAC_DX (Dx_icd)</strong><br/><strong>VALUES ('I50.9'),('I10'),('I20.9');</strong><br/><br/><strong>sqlite&gt; ALTER TABLE MORT_FINAL_2 ADD COLUMN Num_cardiac_dx_v2 INTEGER;</strong><br/><br/><strong>sqlite&gt; UPDATE MORT_FINAL_2 SET Num_cardiac_dx_v2 = </strong><br/><strong>(SELECT COUNT(*) </strong><br/><strong>FROM CARDIAC_DX AS C</strong><br/><strong>WHERE MORT_FINAL_2.Pri_dx_icd = C.Dx_icd) +</strong><br/><strong>(SELECT COUNT(*) </strong><br/><strong>FROM CARDIAC_DX AS C</strong><br/><strong>WHERE MORT_FINAL_2.Sec_dx_icd = C.Dx_icd);</strong></pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #5 – counting medications</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">虽然这解决了实验室数据缺失的问题，但这种方法的局限性在于它将缺失结果和正常结果视为相同。在查询集#7 中，我们将学习填充缺失值的基本方法。</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>查询集# 7–输入缺失变量</p>
+
+<pre><strong>sqlite&gt; ALTER TABLE MORT_FINAL_2 ADD COLUMN Num_meds INTEGER;</strong><br/><br/><strong>sqlite&gt; UPDATE MORT_FINAL_2 SET Num_meds = </strong><br/><strong>(SELECT COUNT(DISTINCT(Rx_name)) </strong><br/><strong>FROM MEDICATIONS AS M</strong><br/><strong>WHERE MORT_FINAL_2.Pid = M.Pid);</strong></pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #6 – binning abnormal lab results</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">虽然查询集#6 中提出的方法解决了实验室的缺失数据问题，但是实际实验室值中包含的所有信息都被丢弃了。例如，对于 BNP，只有两个患者没有值，对于体温生命体征，只有一个患者缺失。</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>一些先前的研究已经用这一原理进行了实验，并且在使用它的同时用预测模型获得了良好的结果。在(Donze 等人，2013 年)中，一些出院患者(约 1%)有缺失数据。这个数据是假设在正常范围内填写的。</p>
+
+<p class="mce-root">在 SQL 中，<strong>单次插补</strong>很容易完成。我们在这里证明了这一点。</p>
+
+<p>One way around this is to set up a "flag" for the presence of an abnormal result. This is accomplished in Query Set #6 for the glucose lab test. After the first query adds the <kbd>Abnml_glucose</kbd> column with an <kbd>ALTER TABLE</kbd> statement, the next query sets the result equal to the number of times that specific lab test exceeds a value of 200 for each patient visit. Notice the multiple <kbd>AND</kbd> clauses; they are necessary for selecting the right patient, date, and lab test of interest. So, only visits with an excessive result will have a value greater than zero for this feature. Notice we use the <kbd>CAST()</kbd> function to convert the values from <kbd>TEXT</kbd> to <kbd>FLOAT</kbd> before testing the value:</p>
+
+<pre><strong>sqlite&gt; ALTER TABLE MORT_FINAL_2 ADD COLUMN Abnml_glucose INTEGER;</strong><br/><br/><strong>sqlite&gt; UPDATE MORT_FINAL_2 SET Abnml_glucose = </strong><br/><strong>(SELECT COUNT(*) FROM LABS AS L</strong><br/><strong>WHERE MORT_FINAL_2.Pid = L.Pid</strong><br/><strong>AND MORT_FINAL_2.Visit_date = L.Lab_date</strong><br/><strong>AND L.Lab_name = 'Glucose'</strong><br/><strong>AND CAST(L.Lab_value AS FLOAT) &gt;= 200);</strong></pre>
+
+<p>问题集# 7a–使用正常范围插补来输入缺失的温度值</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #7 – imputing missing variables</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">这里，我们使用一个<kbd>UPDATE</kbd>语句将温度变量设置为<kbd>98.6</kbd>，因为它不存在:</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>问题集# 7b–使用平均值插补来输入缺失的温度值</p>
+
+<p>这里，我们使用<strong>均值插补</strong>代替正常值插补来填充缺失的温度值。因此，来自查询集#7a 的<kbd>98.6</kbd>值被替换为<kbd>SELECT-FROM-WHERE</kbd>块，该块查找温度变量的平均值(在本例中为<kbd>98.4</kbd>),其中没有遗漏该值。<kbd>AVG()</kbd>函数返回一组值的平均值。<kbd>AVG()</kbd>函数和类似函数(<kbd>MIN()</kbd>、<kbd>MAX()</kbd>、<kbd>COUNT()</kbd>、<kbd>SUM()</kbd>等)被称为<strong>聚合函数</strong>，因为它们使用单个值来描述值的聚合:</p>
+
+<p>查询集# 7c–使用均匀分布输入缺失的 BNP 值</p>
+
+<p class="mce-root">虽然在我们的示例中输入单个缺失的温度值并不困难，但输入两个缺失的 BNP 值却更成问题，原因如下:</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #7a – imputing missing temperature values using normal-range imputation</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">丢失 BNP 值的访问比例更高。</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>虽然正常的温度范围只有 98.6，但 BNP 的正常范围却很大，为 100 - 400 pg/mL。在进行正常值估算时，我们如何选择要估算的值？</p>
+
+<pre><strong>sqlite&gt; UPDATE MORT_FINAL_2 SET Temp_f = 98.6</strong><br/><strong>WHERE Temp_f IS NULL;</strong></pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #7b – imputing missing temperature values using mean imputation</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">我们数据集中 BNP 值的平均值是 462.5，这实际上是不正常的。这意味着，如果我们尝试用这个变量进行均值插补，我们将会对所有没有抽血的患者进行异常值插补，这是一种极不可能的情况。</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>虽然这个问题没有完美的答案，但如果我们试图挽救原始 BNP 值(这意味着输入缺失的值)，在这个查询集中，我们从正常范围内的值的均匀分布进行估算:</p>
+
+<pre><strong>sqlite&gt; UPDATE MORT_FINAL_2 SET Temp_f = </strong><br/><strong>(SELECT AVG(Temp_f) </strong><br/><strong>FROM MORT_FINAL_2</strong><br/><strong>WHERE Temp_f IS NOT NULL)</strong><br/><strong>WHERE Temp_f IS NULL;</strong></pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #7c – imputing missing BNP values using a uniform distribution</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">查询集# 8–添加目标变量</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>我们的桌子快用完了。我们已经检查了所有的数据。唯一需要添加的是目标变量。请参见以下内容:</p>
+
+<ul>
+
+<li>查询集 9–可视化 MORT_FINAL_2 表</li>
+
+<li>为了可视化我们的最终结果，我们可以做以下事情:</li>
+
+<li>摘要</li>
+
+</ul>
+
+<p>在本章中，我们学习了如何使用 SQL 设计数据库格式的医疗保健数据。我们下载并安装了 SQLite，并编写了一些 SQL 查询来获取建模所需格式的数据。</p>
+
+<pre><strong>sqlite&gt; ALTER TABLE MORT_FINAL_2 ADD COLUMN Raw_BNP INTEGER;</strong><br/><br/><strong>sqlite&gt; UPDATE MORT_FINAL_2 SET Raw_BNP =</strong><br/><strong>(SELECT CAST(Lab_value as INTEGER)</strong><br/><strong>FROM LABS AS L </strong><br/><strong>WHERE MORT_FINAL_2.Pid = L.Pid </strong><br/><strong>AND MORT_FINAL_2.Visit_date = L.Lab_date </strong><br/><strong>AND L.Lab_name = 'Natriuretic peptide B'); </strong><br/><br/><strong>sqlite&gt; UPDATE MORT_FINAL_2 SET Raw_BNP =<br/>ROUND(ABS(RANDOM()) % (300 - 250) + 250)<br/>WHERE Raw_BNP IS NULL;</strong></pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #8 – adding the target variable</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">接下来，在<a href="12ee77f2-0655-4dc5-abb1-2868d6fcc386.xhtml" target="_blank">第 5 章</a>、<em>计算基础——Python 简介</em>中，我们将通过探索 Python 编程语言继续讨论计算基础。</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>参考资料和进一步阅读</p>
+
+<pre><strong>sqlite&gt; ALTER TABLE MORT_FINAL_2 ADD COLUMN Mortality INTEGER DEFAULT 0;</strong><br/> <br/><strong>sqlite&gt; UPDATE MORT_FINAL_2 SET Mortality =</strong><br/><strong>(SELECT COUNT(*)</strong><br/><strong>FROM MORT AS M</strong><br/><strong>WHERE M.Pid = MORT_FINAL_2.Pid</strong><br/><strong>AND julianday(M.Mortality_date) -</strong><br/><strong>julianday(MORT_FINAL_2.Visit_date) &lt; 180);</strong></pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Query Set #9 – visualizing the MORT_FINAL_2 table</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">Basole RC，Braunstein ML，Kumar V，Park H，Kahng M，Chau DH，Tamersoy A，Hirsh DA，Serban N，BostJ，Lesnick B，Schissel BL，Thompson M (2015)。使用视觉分析法了解急诊科儿科哮喘护理流程的变化。美国医学信息学协会杂志 22(2):318–323，<a xmlns:epub="http://www.idpf.org/2007/ops" href="https://doi.org/10.1093/jamia/ocu016">https://doi.org/10.1093/jamia/ocu016.</a></h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>东兹 J，奥杰斯基 D，威廉 D，施尼珀 JL (2013)。内科患者潜在可避免的 30 天再住院:预测模型的推导和验证。<em>JAMA Intern Med</em>173(8):632-638。</p>
+
+<pre class="mce-root">sqlite&gt; .headers on<br/>sqlite&gt; SELECT * FROM MORT_FINAL_2;<br/>Visit_id|Pid|Attending_md|Visit_date|Pri_dx_icd|Sec_dx_icd|Bdate|Sex|Height_in|Weight_lb|Temp_f|Pulse|Resp_rate|Bp_syst|Bp_diast|SpO2|Age_years|Chf_dx|Htn_dx|Angina_dx|Diab_dx|Pulm_htn_dx|Num_cardiac_dx|Num_cardiac_dx_v2|Num_meds|Abnml_glucose|Raw_BNP|Mortality<br/>10001|1|JOHNSON|2016-01-09|I50.9|I10|1952-01-01|M|70|188.4|98.6|95|18|154|94|97|64.02|1|1|0|0|0|2|2|2|0|350|1<br/>10002|1|JOHNSON|2016-01-17|I50.9|I10|1952-01-01|M|70|188.4|99.1|85|17|157|96|100|64.04|1|1|0|0|0|2|2|2|0|266|1<br/>10003|2|WU|2016-01-15|I20.9|E11.9|1978-02-03|F|63|130.2|98.7|82|16|120|81|100|37.95|0|0|1|1|0|1|1|4|1|100|0<br/>10004|3|JOHNSON|2016-02-01|I10||1985-04-23|F|65|120.0|98.44|100|19|161|100|98|30.78|0|1|0|0|0|1|1|1|0|291|0<br/>10005|4|WU|2016-02-27|I27.0|I50.9|1966-11-15|M|66|211.4|98.2|95|19|143|84|93|49.28|1|0|0|0|1|1|1|3|0|1000|1<br/>10006|5|WU|2016-03-01|I50.9|E11.9|1958-12-30|M|69|150.0|97.6|77|18|130|86|99|57.17|1|0|0|1|0|1|1|3|1|400|0</pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Summary</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">Elmasri R，Navathe S (2010 年)。数据库系统基础，第 6 版。马萨诸塞州波士顿:艾迪森·韦斯利。</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>Futoma J，Morris J，Lucas J (2015)。早期再入院预测模型的比较。生物医学信息学杂志 56: 229-238。</p>
+
+<p>卡斯珀 DL，布朗瓦尔德 E，福奇 AS，豪泽 SL，隆戈 DL，詹姆森 JL (2005 年)，编辑。<em>哈里森的内科学原理，</em> 16e。纽约州纽约市:麦格劳-希尔公司。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>References and further reading</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:d82d2413-de24-468a-ba50-10c711c684f9" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">拉杰科马尔 A、柳文欢 E、陈 K、戴 AM、哈贾杰 N、哈特 M 等人(2018 年)。利用电子健康记录进行可扩展和精确的深度学习。<em> npj 数字医学</em>1:18；doi:10.1038/s41746-018-0029-1。</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>萨尼 N，西蒙 G，阿罗拉 R (2018)。J Gen Intern Med  33: 921。<a xmlns:epub="http://www.idpf.org/2007/ops" href="https://doi.org/10.1007/s11606-018-4316-y">https://doi.org/10.1007/s11606-018-4316-y</a></p>
+
+<p>SQLite 主页。<a href="http://www.sqlite.org/" target="_blank">http://www.sqlite.org/</a>。访问时间为 2017 年 4 月 3 日。</p>
+
+<p>Elmasri R, Navathe S (2010). Fundamentals of Database Systems, 6th Edition. Boston, MA: Addison Wesley.</p>
+
+<p>Futoma J, Morris J, Lucas J (2015). A comparison of models for predicting early hospital readmissions. <em>Journal of Biomedical Informatics </em>56: 229-238.</p>
+
+<p>Kasper DL, Braunwald E, Fauci AS, Hauser SL, Longo DL, Jameson JL (2005), eds. <em>Harrison's Principles of Internal Medicine, </em>16e. New York, NY: McGraw-Hill.</p>
+
+<p>Rajkomar A, Oren E, Chen K, Dai AM, Hajaj N, Hardt M, et al. (2018). Scalable and accurate deep learning with electronic health records. <em>npj Digital Medicine </em>1:18; doi:10.1038/s41746-018-0029-1.</p>
+
+<p>Sahni N, Simon G, Arora R (2018). <em>J Gen Intern Med</em> 33: 921. <a href="https://doi.org/10.1007/s11606-018-4316-y">https://doi.org/10.1007/s11606-018-4316-y</a></p>
+
+<p>SQLite Home Page. <a href="http://www.sqlite.org/" target="_blank">http://www.sqlite.org/</a>. Accessed 04/03/2017.</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html></body></html>

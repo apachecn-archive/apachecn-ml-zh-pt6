@@ -1,0 +1,357 @@
+<html><head/><body>
+
+
+
+
+
+<style type="text/css">body{margin:1em;background-color:transparent!important;}#sbo-rt-content *{text-indent:0pt!important;}#sbo-rt-content .bq{margin-right:1em!important;}#sbo-rt-content *{word-wrap:break-word!important;word-break:break-word!important;}#sbo-rt-content table,#sbo-rt-content pre{overflow-x:unset!important;overflow:unset!important;overflow-y:unset!important;white-space:pre-wrap!important;}</style>
+<div><div><h1 id="_idParaDest-74"><em class="italic"> <a id="_idTextAnchor073"/>第四章</em>:把云延伸到边缘</h1>
+			<p>在本章之前的材料中，所有的开发步骤都是在本地设备上执行的。本地开发对于学习工具和快速原型制作很有用，但并不代表您通常会如何操作生产设备。在本章中，您将把您的中枢设备视为实际部署在现场，并学习如何使用云作为部署引擎来与它进行远程交互。</p>
+			<p>您将学习如何使用<strong class="bold">亚马逊网络服务(AWS)物联网 Greengrass </strong>将云资源(如代码、文件和<strong class="bold">机器学习</strong> ( <strong class="bold"> ML </strong>)模型)同步到边缘，并通过部署更新设备，而不是在设备上创作组件。您将在本章中学习的工具、模式和技能对于您将云扩展到边缘以及练习如何管理边缘 ML 解决方案的目标非常重要。您将把一个新的客户端设备连接到您的集线器设备，并学习如何连接到云解决方案。最后，您将部署您的第一个真正的 ML 模型到边缘。在本章结束时，您将熟悉如何将组件和资源推送到边缘设备，就像处理生产设备一样。</p>
+			<p>在本章中，我们将讨论以下主要话题:</p>
+			<ul>
+				<li>远程创建和部署</li>
+				<li>在云中存储日志</li>
+				<li>同步边缘和云之间的状态</li>
+				<li>部署您的第一个 ML 模型</li>
+			</ul>
+			<h1 id="_idParaDest-75"><a id="_idTextAnchor074"/>技术要求</h1>
+			<p>要完成本章的实际操作步骤，您应该拥有一台 hub 设备，如第 1 章  <em class="italic">【带机器学习的数据驱动边缘简介】</em>的“实际操作先决条件”一节中的硬件和软件要求所定义，并且该设备应该加载有<strong class="bold"> AWS IoT Greengrass </strong>核心软件，如第 2 章  <em class="italic">【边缘工作负载基础】</em>中的步骤所定义。你还需要访问你的<strong class="bold">命令和控制</strong> ( <strong class="bold"> C2 </strong>)系统，通常是你的个人电脑或有网络浏览器的笔记本电脑，以及访问 AWS 管理控制台。</p>
+			<p>为您提供的本章步骤的资源可在 GitHub 存储库中的<code>chapter4</code>文件夹下获得，位于<a href="https://github.com/PacktPublishing/Intelligent-Workloads-at-the-Edge/tree/main/chapter4">https://GitHub . com/packt publishing/Intelligent-Workloads-at-the-Edge/tree/main/chapter 4</a>。</p>
+			<h1 id="_idParaDest-76"><a id="_idTextAnchor075"/>远程创建和部署</h1>
+			<p>到目前为止，您<a id="_idIndexMarker281"/>一直使用物联网 Greengrass <strong class="bold">命令行界面</strong> ( <strong class="bold"> CLI </strong>)直接在中枢设备上与您的物联网 Greengrass 解决方案<a id="_idIndexMarker282"/>进行交互。接下来，您将了解如何通过使用 AWS 云从您的 C2 系统(笔记本电脑或工作站)与您的物联网 Greengrass 设备进行交互。CLI 和本地开发生命周期非常适合学习物联网 Greengrass 的基础知识和组件开发的快速迭代。生产解决方案的最佳实践是不要将 Greengrass CLI 组件部署到您的设备上，也不要在本地安装新组件，因此接下来，您将学习如何<a id="_idIndexMarker283"/>打包您的组件，将它们存储在 AWS 中，并完成到您的中心设备的远程部署。</p>
+			<h2 id="_idParaDest-77"><a id="_idTextAnchor076"/>从云端加载资源</h2>
+			<p>组件<a id="_idIndexMarker284"/>可以包含配方文件定义的任意数量的工件，这些工件必须存储在 Greengrass 设备可以访问它们的地方。工件可以是任何类型的静态资源:二进制数据，如图像或文本，应用程序代码，如 Python 源代码或编译的<strong class="bold"> Java 归档</strong>文件(<strong class="bold"> JARs </strong>)，容器化的<a id="_idIndexMarker285"/>代码，如 Docker 容器，以及您的组件需要一个副本才能工作的任何东西，这里的关键字是<strong class="bold"> static </strong>和<strong class="bold"> copy </strong>。工件是您的设备使用的资源，是部署该组件的每个其他设备使用的副本。它们也不打算在部署后在设备上更改。</p>
+			<p>组件使用的另一种资源是<strong class="bold">动态资源</strong>。动态资源作为特定于设备的配置被加载，或者在运行时被消费。动态资源可能是短暂的，因为它们仅在设备在线或组件运行时存在。动态资源的一些示例是在您的代码中引用<a id="_idIndexMarker287"/>的秘密，例如<strong class="bold">应用程序编程接口</strong> ( <strong class="bold"> API </strong>)密钥、基于<a id="_idIndexMarker288"/>设备的<strong class="bold">标识符</strong> ( <strong class="bold"> ID </strong>)或其他元数据包括的行为设置，以及任何叶设备(位于解决方案中的终端<a id="_idIndexMarker289"/>点的设备，例如<strong class="bold">家庭基础解决方案</strong> ( <strong class="bold"> HBS </strong>)设备监控套件)之间的通信通道</p>
+			<p>在本章的第一个实践部分，您将熟悉一个方法如何将静态资源定义为工件，并使用定制组件执行您的第一次远程部署。本章后面的部分将介绍动态资源的实现。</p>
+			<h2 id="_idParaDest-78"><a id="_idTextAnchor077"/>为远程部署打包您的组件</h2>
+			<p><a id="_idIndexMarker291"/>物联网 Greengrass 上本地和远程部署的主要区别在于组件资源来自哪里。在您的本地开发生命周期中，您在中心设备上创作文件，并指向包含配方和工件文件的文件夹。对于远程部署，您必须使用<strong class="bold">亚马逊简单存储服务</strong> ( <strong class="bold">亚马逊 S3 </strong>)将您的文件存储在 AWS 云中，并且<a id="_idIndexMarker292"/>更新您的食谱以指向 S3 对象位置。在接下来的步骤中，您将更新您的物联网 Greengrass 设备的权限模型，以便能够从 S3 读取对象，使用 AWS CLI 将组件打包到 S3，并为您的中心设备创建新的远程部署。</p>
+			<h3>更新物联网绿草权限</h3>
+			<p>在 hub 设备上对物联网 Greengrass 的初始<a id="_idIndexMarker293"/>设置中，在<strong class="bold"> AWS 身份和访问管理</strong> ( <strong class="bold"> AWS IAM </strong>)服务<a id="_idIndexMarker294"/>中创建了一个新角色，物联网 Greengrass 核心服务使用该角色来获得与任何 AWS 服务进行交互的授权。在 AWS 中，AWS IAM 服务是定义所有用户、组、策略和角色的地方，这些用户、组、策略和角色授予对您的帐户中的资源和 API 的访问权限。</p>
+			<p>我们定义的一个<code>idtgg</code>用户，用于在 AWS 中初始配置您的中枢设备。一个<strong class="bold">策略</strong>记录了<a id="_idIndexMarker297"/>我们附加到身份上的一组允许和拒绝的权限。<strong class="bold">角色</strong>是权限的<a id="_idIndexMarker298"/>外观，授权用户可以采用它来获得那些指定的权限。用户通过以下三种方式之一获得权限。策略可以直接附加到用户或从其所属的组继承而来。策略也可以附加到用户为临时会话承担的角色上，让用户遵循最小特权原则 ( <strong class="bold"> POLP </strong>)执行特定的基于会话的任务。通过<a id="_idIndexMarker300"/>使用角色，我们可以定义用户为完成特定任务而获得的抽象权限集，以遵循限制权限范围的最佳实践。下面是用户(一种类型的安全主体)、角色、策略和通过承担角色授予用户的权限之间关系的简单说明:</p>
+			<div><div><img src="img/B17595_04_01.jpg" alt="Figure 4.1 – An IAM user gets temporary permissions and credentials from a role&#13;&#10;" width="553" height="354"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 4.1–IAM 用户从角色获得临时权限和凭证</p>
+			<p>对于用户、策略和角色来说，现实世界中的一个类比是，当您的朋友不在时，他会临时将他们家的钥匙交给您，以便您可以给他们的植物浇水或喂他们的猫。你可以把这个角色想象成<em class="italic">可以进入我家的人</em>，房子的钥匙就是授权进入他们房子的政策。通过将钥匙托付给你，你的朋友授予你，用户，一个进入他们家的临时角色。当你的任务完成，你的朋友回家时，你放弃钥匙，从而结束你在<a id="_idIndexMarker301"/>角色中的会话。在数字世界中，作为用户，您拥有自己的密钥(如公共证书)来识别您的身份。角色及其策略授予您的密钥访问资源的临时权限，而不是给您唯一的密钥！</p>
+			<p>物联网 Greengrass 的安装过程创建了一个名为<code>GreengrassV2TokenExchangeRole</code>的新角色，并附加了一个名为<code>GreengrassV2TokenExchangeRoleAccess</code>的策略，该策略授予对 API 的访问权限，以便与 AWS 物联网核心服务进行交互，并向 Amazon CloudWatch 写入日志。默认情况下，作为最佳安全实践，此策略不包括对存储在 S3 的对象的访问。作为解决方案开发人员，您有责任描述您的设备应该能够访问哪些 S3 对象，并将该配置作为新策略添加到角色中。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">对于本章的其余部分，对于 macOS 和 Linux 系统，使用 AWS CLI 命令和简单文件系统管理命令(例如创建新目录或文件)的步骤将以 Unix 格式编写。要获得在 AWS CLI 中使用命令的帮助，例如引用本地文件作为输入，请参考位于<a href="https://docs.aws.amazon.com/cli/latest/userguide/">https://docs.aws.amazon.com/cli/latest/userguide/</a>的 AWS CLI 文档。</p>
+			<p>在接下来的步骤中，您将使用 AWS CLI 在 S3 创建一个新的存储桶，这是一个向该 S3 存储桶中的对象授予读取权限的新策略，然后将新策略附加到 IoT Greengrass 设备使用的角色。进行如下操作:</p>
+			<ol>
+				<li>从你的 C2 系统中，打开终端(或者在 Windows 上运行<code>cmd.exe</code> /PowerShell)。</li>
+				<li>通过运行以下命令，使用 AWS CLI 打印出您的 12 位帐户 ID:<code>aws sts get-caller-identity --query 'Account'</code>(输出应该是这样的:<code>012345678912</code>)。</li>
+				<li>在您的帐户中创建一个新的 S3 存储桶。S3 存储桶名称在 AWS 中共享一个全局名称空间。命名存储桶的一个好方法是将您的 AWS 帐户 ID 作为一个唯一的字符串。如果存储桶名称已被占用，您可以在名称中添加唯一的文本(如您的姓名首字母)，直到找到一个未被占用的名称。使用上一步中的<a id="_idIndexMarker302"/>账户 ID，替换 12 位账户 ID 占位符。如果您没有使用默认的<code>us-west-2</code>，请务必更新区域。输出应该是这样的:<code>aws s3 mb s3://012345678912-hbs-components --region us-west-2</code>。</li>
+				<li>从这里开始，我们将把这个桶名称为<code>REPLACEME_HBS_COMPONENTS_BUCKET</code>。当您在文件中看到带有<code>REPLACEME_HBS_COMPONENTS_BUCKET</code>占位符的命令或文本时，您需要将其替换为您的 bucket 的名称，就像这样:<code>012345678912-hbs-components</code>。</li>
+				<li>接下来，您将创建一个本地文件来存储新策略的内容，该策略授予对新存储桶中的对象的读访问权限。您可以在本书的 GitHub 资源库中的<code>chapter4/greengrass_read_s3.json</code>路径找到该文件的模板，并更新<code>REPLACEME_HBS_COMPONENTS_BUCKET</code>占位符。如果您自己创建文件，将其命名为<code>greengrass_read_s3.json</code>并添加以下内容(记住替换占位符！):<pre>{   "Version": "2012-10-17",   "Statement": [     {       "Effect": "Allow",       "Action": [         "s3:GetObject"       ],       "Resource": "arn:aws:s3:::REPLACEME_HBS_COMPONENTS_BUCKET/*"     }   ] }</pre></li>
+				<li>在 IAM 中创建一个新策略，将此文档作为其来源:<code>aws iam create-policy --policy-name GreengrassV2ReadComponentArtifacts --policy-document file://greengrass_read_s3.json</code>。</li>
+				<li>将<a id="_idIndexMarker303"/>策略添加到物联网 Greengrass 使用的 IAM 角色中。用前一个命令输出的<code>arn</code>值替换<code>--policy-arn</code>参数的值，如下所示:<code>aws iam attach-role-policy --role-name GreengrassV2TokenExchangeRole --policy-arn arn:aws:iam::012345678912:policy/ GreengrassV2ReadComponentArtifacts</code>。</li>
+			</ol>
+			<p>现在，你的物联网 Greengrass 设备，如 HBS 中心设备，可以读取存储在你的 S3 桶中的组件文件。让我们再介绍一个安全模型如何在 hub 设备和 AWS 资源之间工作的元素。</p>
+			<p>前面，我们描述了 AWS IAM 中用户、角色和策略之间的关系。您的设备在 AWS IAM 中没有任何用户身份，那么它们如何承担角色呢？答案是 AWS 物联网核心的一个功能，称为<strong class="bold">凭证提供者服务</strong>。您的<a id="_idIndexMarker304"/>设备使用<a id="_idIndexMarker305"/>x . 509 私钥和公共证书在 AWS 物联网核心中提供了身份。凭据提供程序服务是连接的设备提供其注册的公共证书以换取临时 AWS 凭据的一种方式，该临时 AWS 凭据具有通过 IAM 角色授予的权限。</p>
+			<p>下面是一个序列图，显示了 HBS 中心设备获取权限并最终读取 S3 对象的路径:</p>
+			<div><div><img src="img/B17595_04_02.jpg" alt="Figure 4.2 – Sequence diagram to fetch temporary credentials&#13;&#10;" width="571" height="351"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 4.2–获取临时凭证的序列图</p>
+			<p>随着您的<a id="_idIndexMarker306"/> edge 解决方案添加了与更多 AWS 服务交互的功能，您必须使用您刚刚完成的相同过程来添加对这些服务的权限。与 AWS 交互的自定义组件也是如此，因为所有组件都通过设备配置的 IAM 角色获得权限。随着您客户中不同边缘解决方案数量的增长，最佳做法是为每组不同的设备创建不同的 IAM 角色。例如，每个 HBS 中心将拥有相同的解决方案，并可以共享一个定义访问 AWS 权限的通用角色。对于 HBS 使用物联网 Greengrass 的下一个项目，最好为该项目的设备创建一个新角色，而不是为同一个 IAM 角色添加更多权限。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">您可以在 AWS IoT 中为您的设备定义的角色数量有地区配额。截至本文撰写时，配额为 100。这意味着您不想为每个 Greengrass 设备创建一个独特的角色，因为随着您的扩展，您将很快达到最大配额。AWS 上的生产解决方案的最佳实践是每个生产解决方案使用一个 AWS 帐户，例如维护 HBS 的集线器设备群。不同的产品线可以部署在单独的 AWS 帐户中，从而扩大了要使用的角色总数。</p>
+			<p>添加了新的<a id="_idIndexMarker307"/>权限后，您可以进入下一部分，在这里您将打包一个新组件，并将其注册到 IoT Greengrass 的云服务中。</p>
+			<h3>在物联网 Greengrass 中注册组件</h3>
+			<p>为了将组件远程部署到您的中枢设备，您必须首先在物联网 Greengrass 的云服务中注册该组件。您将提供一个配方文件作为 API 的输入，就像您在设备上使用本地 IoT Greengrass CLI 时所做的那样。配方文件将定义组件使用的所有工件<a id="_idIndexMarker309"/>的位置。这些工件必须被上传到一个 S3 存储桶中，比如上一步中创建的那个。当物联网 Greengrass 处理您的配方文件时，它会在您的帐户中注册一个新组件，该组件可以在未来部署到您的任何设备时引用。</p>
+			<p>注册组件的第一步是将您的工件文件添加到 S3 存储桶中。只有这样，您才能知道这些文件在 S3 的地址，从而能够更新一个可以引用它们的配方。在本节中，您将上传一个 ZIP 存档作为工件，替换配方文件中工件的路径，然后使用<a id="_idIndexMarker310"/> AWS <strong class="bold">软件开发工具包</strong> ( <strong class="bold"> SDK </strong>)在您的帐户中注册组件，如下所示:</p>
+			<ol>
+				<li value="1">从图书的 GitHub 存储库中，通过运行以下命令将目录更改为<code>chapter 4</code>:<code>cd chapter4</code>。</li>
+				<li>通过运行以下命令，使用 AWS SDK 上传工件文件:<code>aws s3 cp artifacts/com.hbs.hub.HelloWithConfig/1.0.0/archive.zip s3://REPLACEME_HBS_COMPONENTS_BUCKET/artifacts/com.hbs.hub.HelloWithConfig/1.0.0/archive.zip</code>。</li>
+				<li>编辑<code>recipes/com.hbs.hub.HelloWithConfig-1.0.0.json</code>文件，并将<strong class="bold">统一资源标识符</strong> ( <strong class="bold"> URI </strong>)键的值<a id="_idIndexMarker311"/>替换为您在 S3 的<a id="_idIndexMarker312"/>工件的路径(上一步中的最后一个参数)。填写后，它应该是这样的:<pre>"Artifacts": [   {     "URI": "s3://012345678912-hbs-components/artifacts/com.hbs.hub.HelloWithConfig/1.0.0/archive.zip",     "Unarchive": "ZIP",</pre></li>
+				<li>现在<a id="_idIndexMarker313"/>您的工件在 S3，您的配方文件也更新了，您可以使用 AWS SDK 在物联网 Greengrass 的云服务中注册您的新组件。在回应中将是<code>aws greengrassv2 create-component-version --inline-recipe fileb://recipes/com.hbs.hub.HelloWithConfig-1.0.0.json</code>。</li>
+				<li>前面的命令返回一个状态，如<code>componentState=REQUESTED</code>，表示 IoT Greengrass 正在采取措施注册您的新组件。要检查组件注册的状态，运行以下命令(用上一步输出中的参数替换<code>--arn</code>参数):<code>aws greengrassv2 describe-component --arn arn:aws:greengrass:us-west-2:012345678912:components:com.hbs.hub.HelloWithConfig:versions:1.0.0</code>。</li>
+			</ol>
+			<p>当组件在服务中注册时，您将看到对这个命令的响应，其中的<code>componentState</code>值现在显示为<code>DEPLOYABLE</code>。这意味着<a id="_idIndexMarker315"/>组件现在可以包含在设备的新部署中。在继续部署之前，让我们用下面的命令来看看 IoT Greengrass 现在存储的菜谱文件(用前面步骤中组件的 ARN 替换<code>--arn</code>参数):<code>aws greengrassv2 get-component --arn arn:aws:greengrass:us-west-2: 012345678912:components:com.hbs.hub.HelloWithConfig:versions:1.0.0 --query "recipe" --output text | base64 --decode</code>。您可能会注意到，食谱文件看起来与您发送给 IoT Greengrass 的文件并不完全相同。下面是这个<code>Artifacts</code>物体现在的样子:</p>
+			<pre>"Artifacts":[{"Uri":"s3://012345678912-hbs-components/artifacts/com.hbs.hub.HelloWithConfig/1.0.0/archive.zip","Digest":"wvcSArajPd+Ug3xCdt0P1J74/I7QA2UbuRJeF5ZJ7ks=","Algorithm":"SHA-256","Unarchive":"ZIP","Permission":{"Read":"OWNER","Execute":"OWNER"}}]</pre>
+			<p><a id="_idIndexMarker316"/>的新功能是<code>Digest</code>和<code>Algorithm</code>键。这是物联网绿草的一个安全特性。当您的配方注册为服务中的组件时，物联网 Greengrass 会计算配方引用的每个工件文件的<code>SHA-256</code>哈希。目的是确保任何物联网 Greengrass 设备最终下载的工件在使用前没有被修改。这也意味着在注册组件之后，您不能更改存储在 S3 上的工件文件。更新任何工件都需要您注册组件的新版本，并部署新的组件版本。</p>
+			<p>该组件与前面章节中本地开发的组件之间的另外两个差异是解压缩路径和工件权限的使用。以下是该配方文件中主要差异的快照:</p>
+			<pre>"Lifecycle": {
+  "Run": "cd {artifacts:decompressedPath}/archive &amp;&amp; ./hello.sh"
+},
+"Artifacts": [
+  {
+    "URI": "s3://REPLACEME_HBS_COMPONENTS_BUCKET/artifacts/com.hbs.hub.HelloWithConfig/1.0.0/archive.zip",
+    "Unarchive": "ZIP",
+    "Permission": {
+      "Execute": "OWNER"</pre>
+			<p>在<code>Lifecycle</code>对象中，您可以看到引用<code>artifacts:decompressedPath</code>变量的运行脚本。这个变量指向 Greengrass 自动解归档您的归档工件的目录。文件被解压到与归档同名的子目录<a id="_idIndexMarker317"/>，在本例中为<code>archive/</code>。我们知道我们的<code>hello.sh</code>脚本将引用同一个归档中相邻的<code>config.txt</code>文件。我们必须告诉运行脚本将目录更改为解压缩路径，然后运行脚本，以便在正确的目录上下文中找到<code>config.txt</code>文件。</p>
+			<p>对于您的工件，最佳的<a id="_idIndexMarker318"/>实践是从<code>artifacts</code>目录中使用它们，由 IoT Greengrass 下载或解压缩，并使用组件的工作目录，在 recipe 中作为<code>work:path</code>提供，用于您的组件将数据写入的文件。<code>work</code>目录是任何生命周期脚本的默认上下文，这就是为什么我们在运行脚本工件之前包含了一个<code>change</code>目录命令。</p>
+			<p>另一个新的包含是<code>Permission</code>对象，您可以看到我们将一个<code>Execute</code>属性设置为<code>OWNER</code>值。默认情况下，来自未打包工件的工件和文件对于组件的所有者有一个文件系统权限<code>Read</code>(比如默认的<code>ggc_user</code>)。这意味着如果不改变文件的权限，我们的<code>archive.zip</code>文件中的脚本文件将无法执行。使用任何工件的<code>Permission</code>对象，我们可以将<code>Read</code>和<code>Execute</code>文件系统权限设置为<code>NONE</code>、<code>OWNER</code>或<code>ALL</code>(所有系统用户)。这也和工件为什么写保护有关。工件是由组件或可执行文件消耗的只读资源，在没有修改组件定义的情况下，不应该对其进行更改。</p>
+			<p>在下一节中，您将把新注册的组件部署到您的设备上。</p>
+			<h3>远程部署组件</h3>
+			<p>随着您的<a id="_idIndexMarker319"/>组件现已在物联网 Greengrass 服务中可用，是时候使用 AWS CLI 开始从您的 C2 系统到您的 HBS 中心设备的远程部署了。这种使用物联网 Greengrass 云服务从远程系统进行的部署是将更新部署到设备的标准方式。这可能不总是从您的开发人员笔记本电脑手动执行的步骤，但我们将在第 8 章 、<em class="italic"> DevOps 和 mlop for the Edge</em>中介绍关于生产流水线的更多细节。</p>
+			<p>在本地开发生命周期中，您部署组件的唯一设备是本地设备。通过物联网 Greengrass 的云服务进行部署就是你如何指定多个目标设备。这些类型的部署是您扩展管理任何规模的设备群的能力的方式，这些设备群应该运行相同的组件。部署还将指定部署和成功标准，例如通知设备的频率、设备必须在多长时间内报告部署成功、等待组件发出更新就绪信号的时间，以及部署失败时应采取的措施。</p>
+			<p>在以下步骤中，您将编写一个文件，告知 IoT Greengrass 有关您的部署的详细信息，启动部署，然后验证部署是否成功:</p>
+			<ol>
+				<li value="1">在最初的物联网 Greengrass 核心软件安装中，您将需要<code>hbshubprototypes</code>事物组的 ARN 作为一个参数。以下命令将获取您将在下一步中使用的事物组的 ARN:<code>aws iot describe-thing-group --thing-group-name hbshubprototypes --query "thingGroupArn"</code>。</li>
+				<li>编辑来自 GitHub 存储库的<code>chapter4/deployment-hellowithconfig.json</code>文件，并用上一步输出的东西组 ARN 替换<code>targetArn</code>的值。编辑文件后，它应该看起来像这样:<pre>{   "targetArn": "arn:aws:iot:us-west-2:012345678912:thinggroup/hbshubprototypes",   "components": {     "aws.greengrass.Cli": {       "componentVersion": "2.4.0"     },     "com.hbs.hub.HelloWithConfig": {       "componentVersion": "1.0.0"     }   } }</pre></li>
+				<li>使用以下部署配置开始对包含您的集线器设备的组的新部署:<code>aws greengrassv2 create-deployment --cli-input-json file://deployment-hellowithconfig.json</code>。</li>
+				<li>前面的命令启动部署过程。要检查特定设备上的部署状态，比如您的<code>hbshub001</code>设备，您可以使用下面的命令:<code>aws greengrassv2 list-effective-deployments --core-device-thing-name hbshub001</code>。</li>
+				<li>为了<a id="_idIndexMarker320"/>在您的设备上验证组件是否按预期运行，您可以登录<a id="_idIndexMarker321"/>或使用如下的<code>sudo less /greengrass/v2/logs/com.hbs.hub.HelloWithConfig.log</code>:<pre><strong class="bold">2021-07-27T20:19:07.652Z [INFO] (pool-2-thread-91) com.hbs.hub.HelloWithConfig: shell-runner-start. {scriptName=services.com.hbs.hub.HelloWithConfig.lifecycle.Run, serviceName=com.hbs.hub.HelloWithConfig, currentState=STARTING, command=["./hello.sh"]}</strong> <strong class="bold">2021-07-27T20:19:07.685Z [INFO] (Copier) com.hbs.hub.HelloWithConfig: stdout. Hello from Zimbabwe!. {scriptName=services.com.hbs.hub.HelloWithConfig.lifecycle.Run, serviceName=com.hbs.hub.HelloWithConfig, currentState=RUNNING}</strong> <strong class="bold">2021-07-27T20:19:07.699Z [INFO] (Copier) com.hbs.hub.HelloWithConfig: Run script exited. {exitCode=0, serviceName=com.hbs.hub.HelloWithConfig, currentState=RUNNING}</strong></pre></li>
+			</ol>
+			<p>至此，您已经使用物联网 Greengrass 完成了对您的中枢设备的首次远程部署！整体流程和局部开发没有太大区别。我们需要将工件上传到云服务，比如 S3，更新配方文件以指向这些新的工件位置，并在将组件包含到部署中之前注册组件。部署本身还有几个选项，用于指定目标设备、扩展到设备群的行为以及成功或失败的标准和行为。</p>
+			<p>每个东西<a id="_idIndexMarker322"/>组都有一个 1:1 的映射，一个部署代表该组中每个设备应该使用的最新配置。当您想要部署对一组设备的更改时，您将创建对部署的修订，而不是开始全新的部署。修订版仍然采用类似于我们在本节中使用的部署配置，并期望所有组件和配置的明确定义，这意味着它不是对上一次已知部署的修订。</p>
+			<p>您可以将一个设备包含在多个事物组中，其中每个事物组定义一个独特配置和组件的部署。例如，您可以定义一个应用于所有 HBS 设备的监控组件的事物组，并将其与基于设备类型指定业务逻辑组件的事物组配对，例如我们的智能家居中心。属于多个事物组的设备将接收每个组的部署通知，并合并来自所有组的组件图。以下是我们如何使用事物组来有效管理部署在一系列设备上的组件以构建聚合解决方案的示例:</p>
+			<div><div><img src="img/B17595_04_03.jpg" alt="Figure 4.3 – Example of aggregating components across group deployments&#13;&#10;" width="725" height="491"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 4.3–跨组部署聚合组件的示例</p>
+			<p>如前所述，您的部署配置可以指定是否允许组件有一个选项来通知它们准备好重新启动或更新。让组件以这种方式与部署行为进行交互的价值在于防止组件突然被终止而导致的任何数据丢失或业务流程中断。<a id="_idIndexMarker324"/>组件必须包括使用物联网 Greengrass <code>SubscribeToComponentUpdates</code>功能。</p>
+			<p>然后，组件可以响应组件更新事件，并通过使用<code>DeferComponentUpdate</code>命令在 IPC 上发布消息来请求延期。组件也有类似的操作，通过<code>SubscribeToValidateConfigurationUpdates</code>和各自的<code>SendConfigurationValidityReport</code>特性来验证配置变更请求。您可以从本章末尾的<em class="italic">参考文献</em>部分了解更多关于这些特性的信息。</p>
+			<p>随着您的首次远程部署完成，以及对物联网 Greengrass 的部署<a id="_idIndexMarker325"/>服务如何工作有了更好的了解，让我们通过支持将本地日志发布到云来更轻松地对您的中枢设备及其组件进行远程故障排除。</p>
+			<h1 id="_idParaDest-79"><a id="_idTextAnchor078"/>在云端存储日志</h1>
+			<p>一个<a id="_idIndexMarker326"/>边缘解决方案从云中加载资源，以便引导、配置本地解决方案，并且通常使本地解决方案为运行时做好准备。设备和解决方案的健康状况也应该报告给云，以协助生产操作。默认情况下，您的 HBS 中枢设备会通过云物联网 Greengrass <a id="_idIndexMarker327"/>服务进行检查，以报告连接状态和最近部署的结果。为了从 edge 解决方案中获得更多的遥测信息，比如日志和指标，您需要部署额外的组件。在本节中，您将部署一个托管组件，将组件日志上传到 Amazon CloudWatch，这是一个用于存储和查询日志的服务。</p>
+			<p>将我们的中心设备的日志存储在云中是一种最佳实践，它使我们能够单独对设备进行分类，而不需要与设备进行实时连接，也不需要亲临现场。毕竟，这些设备中的一些可能位于相当偏远的地方，如阿拉斯加苔原，或者只在预定的时间上线，如第一章 、<em class="italic">机器学习数据驱动边缘简介</em>中的<a href="B17595_01_Final_SS_ePub.xhtml#_idTextAnchor013"> <em class="italic">研究独角鲸的潜水器。</em></a></p>
+			<p>将日志存储在云中的另一个好处是，您可以跨一组设备运行查询，以发现关于设备组性能的见解。例如，对 24 小时内每个设备日志的行数进行简单的统计，就可以发现<em class="italic">喋喋不休的</em>设备的异常值，这些异常值表示设备正在处理异常数量的数据或系统资源。以下整个车队的日志活动柱状图表明您的运营团队可能存在潜在的问题，需要进行分类:</p>
+			<div><div><img src="img/B17595_04_04.jpg" alt="Figure 4.4 – Sample histogram showing device outliers based on log activity&#13;&#10;" width="641" height="358"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 4.4–显示基于日志活动的设备异常值的样本直方图</p>
+			<p>由于<a id="_idIndexMarker328"/>存储日志是 edge 解决方案以及更广泛的云应用程序开发中的常见用例，物联网 Greengrass <a id="_idIndexMarker329"/>提供了一个托管组件，使您可以轻松获取组件的日志。这个被管理的组件叫做<code>aws.greengrass.LogManager</code>，由 AWS 创作和维护。托管组件被视为满足物联网架构师的常见要求，但被视为您需要在部署中引入的可选功能。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">在撰写本文时，<code>aws.greengrass.LogManager</code>托管组件的最新版本是<em class="italic"> 2.2.0 </em>。您可能需要根据您开始阅读本书时安装的物联网 Greengrass 核心软件的最新版本更新版本。对于<a href="B17595_02_Final_SS_ePub.xhtml#_idTextAnchor032"> <em class="italic">第二章</em> </a>、<em class="italic">边缘工作负载基础</em>中的步骤，使用了物联网 Greengrass 核心软件版本<em class="italic"> 2.4.0 </em>，兼容<code>LogManager</code> <em class="italic"> 2.2.0 </em>。您可以在本章末尾的<em class="italic">参考</em>部分的<em class="italic"> AWS 提供的组件</em>文档链接中看到最新的依赖信息。</p>
+			<p>在接下来的步骤中，您将修改<code>hbshubprototypes</code>组的部署，以包含<code>aws.greengrass.LogManager</code>托管组件。<code>LogManager</code>组件的配置将指定将日志<a id="_idIndexMarker330"/>文件上传到哪个组件。然后，您将使用 AWS CLI 运行一个简单的查询来验证日志文件是否被存储。进行如下操作:</p>
+			<ol>
+				<li value="1">编辑<code>chapter4/deployment-logmanager.json</code>文件，用您的帐户 ID 替换占位符。这个部署增加了<code>LogManager</code>组件。记住，如果不在部署列表中指定其他组件——比如您在上一节中添加的<code>com.hbs.hub.HelloWithConfig</code>——它们将从设备中删除。我们将删除这个部署的<code>HelloWithConfig</code>,这样当我们重新添加它时，就可以看到日志文件的运行时输出。您需要做的就是更新<code>targetArn</code>属性来替换帐户 ID 占位符并保存文件。</li>
+				<li>创建一个新的部署版本，并传递这个新的部署配置文件，如下所示:<code>aws greengrassv2 create-deployment --cli-input-json file://deployment-logmanager.json</code>。</li>
+				<li>编辑<code>chapter4/deployment-logmanager.json</code>文件，再次添加<code>HelloWithConfig</code>组件。我们这样做是为了重新部署组件，以便将运行时输出再次写入日志，然后上传到云中。将以下粗体行添加到<code>components</code>对象中，并保存文件:<pre>{   "targetArn": "arn:aws:iot:us-west-2:0123456789012:thinggroup/hbshubprototypes",   "components": {     "aws.greengrass.Cli": {       "componentVersion": "2.4.0"     },     <strong class="bold">"com.hbs.hub.HelloWithConfig": {</strong> <strong class="bold">      "componentVersion": "1.0.0"</strong>     },     "aws.greengrass.LogManager": {</pre></li>
+				<li>使用与之前相同的命令创建一个<a id="_idIndexMarker332"/>新的部署修订，如下所示:<code>aws greengrassv2 create-deployment --cli-input-json file://deployment-logmanager.json</code>。</li>
+				<li>一旦<a id="_idIndexMarker333"/>该部署完成，您将在 5 分钟内开始在 CloudWatch 日志中看到日志，因为<code>LogManager</code>的配置将<code>300</code>秒指定为<code>periodicUploadIntervalSec</code>参数。</li>
+				<li>使用以下命令检查带有前缀的新日志组的状态:<code>/aws/greengrass/</code> : <code>aws logs describe-log-groups --log-group-name-prefix "/aws/greengrass/"</code>。</li>
+				<li>当您看到如下响应时，您就知道日志正在被写入 cloud watch:<pre><strong class="bold">{</strong> <strong class="bold">    "logGroups": [</strong> <strong class="bold">        {</strong> <strong class="bold">            "logGroupName": "/aws/greengrass/UserComponent/us-west-2/com.hbs.hub.HelloWithConfig",</strong> <strong class="bold">            "creationTime": 1627593843664,</strong> <strong class="bold">            "metricFilterCount": 0,</strong> <strong class="bold">            "arn": "arn:aws:logs:us-west-2:012345678912:log-group:/aws/greengrass/UserComponent/us-west-2/com.hbs.hub.HelloWithConfig:*",</strong> <strong class="bold">            "storedBytes": 2219</strong> <strong class="bold">        }</strong> <strong class="bold">    ]</strong> <strong class="bold">}</strong></pre></li>
+				<li>您可以查询日志组来查看为该组件存储日志的设备，如下所示:<code>aws logs describe-log-streams --log-group-name /aws/greengrass/UserComponent/us-west-2/com.hbs.hub.HelloWithConfig</code>。</li>
+				<li>如下面的代码片段所示，<a id="_idIndexMarker335"/>响应将显示以<code>/DATE/thing/THING_NAME</code>格式命名的日志流:<pre><strong class="bold">{</strong> <strong class="bold">  "logStreams": [</strong> <strong class="bold">    {</strong> <strong class="bold">      "logStreamName": "/2021/07/29/thing/hbshub001",</strong></pre></li>
+				<li>Plug the log group name into the <code>filter-log-events</code> command to see the logged output of the <code>HelloWithConfig</code> component, as follows: <code>aws logs filter-log-events --log-group-name /aws/greengrass/UserComponent/us-west-2/com.hbs.hub.HelloWithConfig --filter-pattern stdout</code>.<p>输出如下所示:</p><pre><strong class="bold">{</strong>
+<strong class="bold">    "events": [</strong>
+<strong class="bold">        {</strong>
+<strong class="bold">            "logStreamName": "/2021/07/29/thing/hbshub001",</strong>
+<strong class="bold">            "timestamp": 1627579655321,</strong>
+<strong class="bold">            "message": "2021-07-29T17:27:35.321Z [INFO] (Copier) com.hbs.hub.HelloWithConfig: stdout. Hello from Zimbabwe!. {scriptName=services.com.hbs.hub.HelloWithConfig.lifecycle.Run, serviceName=com.hbs.hub.HelloWithConfig, currentState=RUNNING}",</strong>
+<strong class="bold">            "ingestionTime": 1627593843867,</strong>
+<strong class="bold">            "eventId": "362…"</strong>
+<strong class="bold">        </strong><strong class="bold">}</strong>
+<strong class="bold">    ]</strong>
+<strong class="bold">}</strong></pre></li>
+			</ol>
+			<p>从这一系列的说明中，您可以<a id="_idIndexMarker336"/>了解到如何包含<code>LogManager</code>组件，该组件会自动将您组件的日志文件发送到云，以及如何使用<a id="_idIndexMarker337"/> Amazon CloudWatch Logs 服务来查询您的日志。物联网 Greengrass 通过查询日志组，可以轻松地在整个设备群中筛选一个组件的日志文件，或者通过查询代表一个设备组件的日志流，筛选到单个设备中。对于更强大的日志分析工具，您可以探索 Amazon CloudWatch Logs Insights 跨日志组的聚合查询，或者将日志流式传输到索引查询工具<a id="_idIndexMarker338"/>，如<strong class="bold"> Amazon Elasticsearch </strong>。</p>
+			<h2 id="_idParaDest-80"><a id="_idTextAnchor079"/>合并组件配置</h2>
+			<p>现在是一个介绍如何在部署时合并组件配置的好机会，你可以看到我们正在使用<code>logmanager.json</code>进行部署。如果您还记得第 2 章 、<em class="italic">边缘工作负载的基础</em>的<em class="italic">编写您的第一个组件</em>部分中的早期配方创建，配方可以定义一个<code>ComponentConfiguration</code>对象，该对象指定组件将在运行时使用的默认设置。我们用它来定义传递给<code>HelloWorld</code>组件的默认<code>World!</code>文本。这种组件配置也可以在部署到一个或多个设备时定义，以覆盖这些默认值。这在为不同的设备组设置配置时很有用，例如告诉我们所有的原型设备使用详细的调试级别日志记录<a id="_idIndexMarker340"/>，告诉我们的生产设备使用警告级别日志记录以节省成本。下面是这种做法的一个例子:</p>
+			<div><div><img src="img/B17595_04_05.jpg" alt="Figure 4.5 – Overriding configuration for fleets of devices&#13;&#10;" width="745" height="457"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 4.5–设备群的覆盖配置</p>
+			<p>部署可以使用两个属性<code>reset</code>和<code>merge</code>来定义组件配置。属性告诉组件将配置恢复到给定配置键的默认值。属性告诉组件为给定的配置键应用新的配置，而不影响其他配置键的现有值。在同一个配置键上同时使用<code>reset</code>和<code>merge</code>属性将总是首先重置值，然后合并新值。这对于恢复缺省值树，然后合并树中一个节点的更新非常有用。</p>
+			<p>如果您检查<code>deployment-logmanager.json</code>文件，您可以看到我们用来告诉<code>LogManager</code>组件做什么的部署时配置合并。下面是一个漂亮的<code>merge</code>对象版本:</p>
+			<pre>{
+  "logsUploaderConfiguration": {
+    "systemLogsConfiguration": {
+      "uploadToCloudWatch": "true",
+      "minimumLogLevel": "INFO",
+      "diskSpaceLimit": "10",
+      "diskSpaceLimitUnit": "MB",
+      "deleteLogFileAfterCloudUpload": "false"
+    },
+    "componentLogsConfigurationMap": {
+      "com.hbs.hub.HelloWithConfig": {
+        "minimumLogLevel": "INFO",
+        "diskSpaceLimit": "10",
+        "diskSpaceLimitUnit": "KB",
+        "deleteLogFileAfterCloudUpload": "false"
+      }
+    }
+  },
+  "periodicUploadIntervalSec": "300"
+}</pre>
+			<p>部署中没有任何<a id="_idIndexMarker341"/>合并配置集，这里使用的 2.2.0 版本<code>LogManager</code>组件实际上不做任何事情。您必须在部署时对其进行一些配置，以便将日志发送到云中。</p>
+			<p>在前面的示例中，有一个<code>logsUploaderConfiguration</code>配置键，它有两个子节点和一个 interval 属性。<code>systemLogsConfiguration</code>节点告诉<code>LogManager</code>组件上传<code>greengrass.log</code>等亚马逊 CloudWatch 物联网 Greengrass 系统日志。<code>componentLogsConfigurationMap</code>节点告诉<code>LogManager</code>组件如何有选择地上传其他组件的日志。您可以看到，我们正在定义一个<code>com.hbs.hub.HelloWithConfig</code>组件，用于将日志发送到云中。您可以为每个组件在这个列表中添加一个对象来显式捕获日志。这里列出了两个需要考虑的最佳实践:</p>
+			<ul>
+				<li>以编程方式生成您的部署配置，并基于该部署中包含的其他组件构建出<code>LogManager</code>配置。构建过程中检查部署中包含的组件的脚本可以在将节点传递给<code>CreateDeployment</code> API 之前更新<code>LogManager</code> <code>componentLogsConfigurationMap</code>节点。</li>
+				<li>创建一个东西组，比如<code>CommonMonitoringTools</code>，把你所有的绿草设备放进去，设置一个组级部署配置，在<code>systemLogsConfiguration</code>节点捕获系统日志。然后，您的所有设备都将包含此组件和配置，从而导致上传系统日志的默认行为。代表应用程序组件的一个单独的事物组部署将合并<code>componentLogsConfigurationMap</code>节点的<code>LogManager</code>配置，以便指定应用程序组件的日志。这是因为来自两个不同事物组的两个部署可以堆叠在单个设备上，有效地合并了单个组件的配置。<em class="italic">图 4.3 </em>和<em class="italic">图 4.5 </em>一起说明了这个概念。</li>
+			</ul>
+			<p>关于配置的最后一点需要注意的是<a id="_idIndexMarker343"/>管理层正在解决之前漂亮印刷的<code>deployment-logmanager.json</code>之间的差异。在撰写本文时，物联网 Greengrass 部署 API 只接受作为字符串对象的配置，因此必须将配置定义为 JSON，然后在将其发送到部署 API 之前将其作为单个字符串进行转义。这在手工编写部署文件时更不方便，但在以编程方式构建部署时是一个简单的附加步骤。在这种情况下，另一种方法是使用<strong class="bold">YAML Ain not Markup Language</strong>(<strong class="bold">YAML</strong>)格式来定义部署文件，而不是 JSON <a id="_idIndexMarker344"/>，因为 YAML 规范在语法上支持构建多行输入。</p>
+			<p>现在<a id="_idIndexMarker345"/>您有了一个功能正常的托管组件，用于在云中存储您的 hub 日志文件，以便对您的 edge 解决方案进行远程诊断。您知道如何通过合并对配置的新更改来向<code>LogManager</code>组件添加更多组件。通过这一过程，您了解了更多关于物联网 Greengrass 组件配置系统的信息，该系统将在您创建新组件和构建多个组件协同工作的部署时为您服务。在下一节中，您将了解连接到集线器的叶设备如何与云交换消息和同步状态。</p>
+			<h1 id="_idParaDest-81"><a id="_idTextAnchor080"/>同步边缘和云之间的状态</h1>
+			<p>如果<a id="_idIndexMarker346"/>成为真正的产品，HBS 中枢设备将通过网络协议与本地设备连接，并通过云服务代理遥测和命令。在前一章中，我们使用了在我们的中枢设备上运行的组件来与<a id="_idIndexMarker347"/>上的本地硬件接口<strong class="bold"> Raspberry Pi Sense HAT </strong>接口。</p>
+			<p>当集线器设备通过串行接口与硬件通信时，这是有意义的，但当通过网络通信时，这些设备监控套件将不会真正是在集线器设备<a id="_idIndexMarker348"/>上运行的软件组件，而是使用<strong class="bold"> Greengrass IPC </strong>接口来交换消息。相反，他们可以使用网络协议，如<strong class="bold">消息队列遥测传输</strong> ( <strong class="bold"> MQTT </strong>)通过 Wi-Fi 或蓝牙与中枢设备交换消息。</p>
+			<p>在本节中，您将部署新的托管组件，以便通过 MQTT 连接到叶设备，并将叶设备的遥测状态同步到云。</p>
+			<h2 id="_idParaDest-82"><a id="_idTextAnchor081"/>设备阴影介绍</h2>
+			<p>通过<a id="_idIndexMarker350"/>同步状态，我们指的是用最新值保持两个系统更新的最终结果。当使用边缘和云时，我们必须承认并接受边缘解决方案目前可能没有连接到云服务的现实。我们的叶设备和中枢设备可以使用已获取的遥测数据，这些数据还没有报告给云。一旦集线器设备恢复了与云的<a id="_idIndexMarker351"/>连接，就必须有一种机制来协调边缘的当前状态和云的当前状态。</p>
+			<p>例如，如果我们的<a id="_idIndexMarker352"/>中枢设备由于网络中断而与云断开连接，新的遥测数据将被叶设备获取，新的远程命令将从客户移动应用程序的云服务中排队等候。当连接恢复时，需要更新设备状态，以便一切恢复同步。为此，AWS 物联网核心提供了一项名为<strong class="bold">设备影子</strong>的服务，作为设备和云的同步机制。物联网 Greengrass 通过托管组件在边缘提供这种设备影子服务。</p>
+			<p>设备映像是一个 JSON 文档，它总结了报告数据的当前状态和期望状态。通常，这意味着设备负责更新报告的数据，系统中的其他参与者使用期望的状态来指示设备。比方说，我们的集线器设备应该让云知道来自一个设备监控套件的最新温度测量结果。我们还假设客户的移动应用程序可以发送一个命令来重新启动监控工具包，作为一种故障诊断形式。下图说明了从网络中断事件恢复后，这些消息是如何存储在设备映像中并进行协调的:</p>
+			<div><div><img src="img/B17595_04_06.jpg" alt="Figure 4.6 – Flow of shadow messages synchronizing after a network disruption&#13;&#10;" width="751" height="778"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 4.6–网络中断后同步的影子消息流</p>
+			<p>设备阴影<a id="_idIndexMarker353"/>对我们的 edge ML 工作负载也<a id="_idIndexMarker354"/>有用，因为运行推理任务的组件可以订阅阴影服务报告的更改，甚至注册自己的阴影，以便与云和 Greengrass 设备上运行的其他组件交换状态和命令。</p>
+			<p>在第三章 、<em class="italic">构建边缘</em>的<em class="italic">连接您的第一个设备:在边缘检测</em>和<em class="italic">连接您的第二个设备:在边缘启动</em>部分，您实现了 IPC，以便让组件实时交换信息。Shadows 可以通过定义同步状态文档来升级您的 edge 解决方案，这些文档也可以通过 IPC 进行通信，甚至可以与云进行同步。这打开了一些有趣的<a id="_idIndexMarker356"/>用例，进一步让你作为架构师专注于解决业务问题，而不需要为数据交换设计机制。这里有几个例子说明作为边缘组件运行的 ML 工作负载如何从使用阴影中受益:</p>
+			<ul>
+				<li><strong class="bold">报告和缓存应用程序状态</strong>:每当 ML 模型用于处理新数据时，您的 ML 推理组件可以创建一个存储最新推理结果的本地影子。如果模型被训练成在新数据上检测到异常时进行报告，则本地影子可以存储最新的异常分数和置信度评级。这样，设备上的其他组件可以订阅阴影中的变化，并根据 ML 组件的输出改变它们的行为。这可能看起来类似于通过 IPC 发布更新，但这里的关键区别在于，组件可以从影子中获取值，无论它们是否与 ML 组件上次发布异常分数的时间同时运行。从这个意义上说，阴影被用作缓存机制，帮助我们解耦 edge 解决方案。</li>
+				<li><strong class="bold">向组件发送命令</strong>:阴影可用于指示组件新的命令或期望的行为，即使组件当前没有运行。例如，如果一个组件崩溃，或者在一个命令本应发送给它的时候处于某种其他恢复状态，将该命令置于阴影中可以确保它在下一次进入运行状态时被发送给该组件。结合将阴影同步到云 AWS 物联网核心服务，这使得其他应用程序和设备能够以灵活的方式与边缘组件进行交互。</li>
+			</ul>
+			<p>既然我们已经介绍了带阴影的状态同步，那么让我们转到将该功能部署到您的解决方案的实际操作步骤。</p>
+			<h2 id="_idParaDest-83"><a id="_idTextAnchor082"/>为状态同步部署组件的步骤</h2>
+			<p>物联网 Greengrass <a id="_idIndexMarker358"/>通过<a id="_idIndexMarker359"/>几个独立的受管组件提供连接叶设备、存储阴影以及将消息同步到云的功能。那些<a id="_idIndexMarker360"/>组件分别是<a id="_idIndexMarker361"/>、<code>aws.greengrass.clientdevices.mqtt.Moquette</code>、<code>aws.greengrass.ShadowManager</code>、<code>aws.greengrass.clientdevices.mqtt.Bridge</code>。</p>
+			<p>下图说明了该解决方案的架构，以及这些组件如何协同工作来为设备提供状态同步:</p>
+			<div><div><img src="img/B17595_04_07.jpg" alt="Figure 4.7 – Examples of message flows using managed components&#13;&#10;" width="813" height="333"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 4.7–使用托管组件的消息流示例</p>
+			<p>通过遵循本节的后续步骤，您将创建一个新的部署，使所有这三个托管组件能够在您的 C2 系统上启动一个新的独立应用程序，该应用程序通过 MQTT 连接到您的 hub 设备，并观察如何使用这些特性在边缘和云之间同步状态。进行如下操作:</p>
+			<ol>
+				<li value="1">更新您在 AWS IAM 中的 Greengrass 角色，以允许使用 AWS IoT Core 的设备影子 API。这些步骤特定于 AWS IAM，代表了准备 Greengrass 设备以使用新 API 的通用流程。然后，执行以下操作:<ol><li>从<code>chapter4</code>目录中，创建一个新的 IAM 策略，如下所示:<code>aws iam create-policy --policy-name greengrass-use-shadows --policy-document file://greengrass_use_shadows.json --description "Allows Greengrass cores to interact with AWS IoT Core device shadows"</code>。</li><li>从<code>create-policy</code>命令的响应中复制<a id="_idIndexMarker362"/>策略 ARN，并在接下来的<code>attach-role-policy</code>命令中使用。它看起来就像这样，但是用你的账号代替:<code>arn:aws:iam::01234567890:policy/Greengrass-use-shadows</code>。</li><li>将新策略附加到您的 Greengrass IAM 角色，用您在上一步中的参数替换<code>policy-arn</code>，如下所示:<code>aws iam attach-role-policy --role-name GreengrassV2TokenExchangeRole --policy-arn arn:aws:iam::01234567890:policy/Greengrass-use-shadows</code>。</li></ol></li>
+				<li>编辑<code>deployment-syncstate.json</code>文件，为您的账户 ID 更新<code>targetArn</code>属性。保存文件。</li>
+				<li>使用<code>deployment-syncstate.json</code>文件创建一个新的部署。在进入下一步之前，请确认部署已完成并成功。您可以使用<code>list-effective-deployments</code> AWS CLI 命令<a id="_idIndexMarker363"/>在位于<a href="https://console.aws.amazon.com/iot">https://console.aws.amazon.com/iot</a>的 AWS 物联网 Greengrass 管理控制台中验证或检查状态。</li>
+				<li>启动<code>local device</code>客户机，通过 MQTT 连接到您的 hub 设备。从 GitHub 存储库的<code>chapter4/apps</code>目录中，运行下面的命令:<code>./client.sh</code>。</li>
+			</ol>
+			<p><code>apps/client.sh</code>处的脚本使用您的 AWS 凭据在 AWS 物联网核心中注册新设备，下载生成的<code>x.509</code>私钥和证书，并将该设备添加到 Greengrass 核心的关联设备列表<a id="_idIndexMarker364"/>中。然后，它会安装用于 Python 的 AWS 物联网设备 SDK，并启动一个 Python 应用程序，该应用程序会在本地网络上发现您的集线器设备，并连接到它以便通过 MQTT 交换消息。在 hub 设备上运行这个应用程序的目的是演示 Greengrass 如何支持本地设备交换消息。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">如果您的 C2 笔记本电脑与集线器设备不在同一个网络上，您可以在集线器设备上运行客户端应用程序。但是，您需要更新在中心设备上配置的<code>idtgg</code> AWS 用户的权限，因为它还没有必要的权限。返回 IAM 的 AWS 管理控制台，找到名为<code>Provision-IDT-Greengrass</code>的用户组，通过附加一个策略添加一个新的权限，并选择名为<code>AWSIoTFullAccess</code>的策略。然后，您可以使用来自<a href="B17595_02_Final_SS_ePub.xhtml#_idTextAnchor032"> <em class="italic">第 2 章</em> </a>、<em class="italic">边缘工作负载基础</em>的现有凭证在您的中枢设备上运行<code>client.sh</code>应用程序。</p>
+			<p><code>client.sh</code>应用程序将发布关于设备影子通信主题的新消息。题目地址是<code>$aws/things/localdevice/shadow/update</code>。客户端报告随机生成的温度值，就好像它是本地网络上的另一个传感器。你可以通过使用位于<a href="https://console.aws.amazon.com/iot">https://console.aws.amazon.com/iot</a>的 AWS 物联网核心管理<a id="_idIndexMarker365"/>控制台来验证这些消息是否上传到了云端。导航到<code>$aws/things/localdevice/shadow/update/accepted</code>主题查看发布结果。下面是它的一个例子:</p>
+			<div><div><img src="img/B17595_04_08.jpg" alt="Figure 4.8 – Screenshot from AWS IoT Core console of the accepted shadow update&#13;&#10;" width="841" height="886"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 4.8–AWS 物联网核心控制台接受影子更新的屏幕截图</p>
+			<p>您也可以通过这个测试客户端与本地设备应用程序进行交互。您可以向本地设备发送新的所需状态，它会将该命令合并到下一个报告的消息中。使用 MQTT 测试客户机发布一条关于主题为<code>$aws/things/localdevice/shadow/update</code>的消息，消息体为:<code>{"state":{"desired":{"valve":"open"}}}</code>。您应该在您的订阅和<code>client.sh</code>应用程序活动的标准输出中看到，它显示打开的阀门现在处于报告状态，而不是期望的状态。这意味着本地设备通过 Greengrass 接收命令，处理该命令，并相应地更新其报告的状态。</p>
+			<p>您可以通过 MQTT 测试客户端将更多的消息发布到所需的状态，继续进行这方面的试验。一个真实的设备会采取一些行动来响应期望的状态，但是这个应用程序只是将命令从期望的状态复制到报告的状态来模拟处理事件。</p>
+			<p>为了演示 MQTT 桥管理组件的功能，<code>client.py</code>应用程序还在<code>dt/localdevice/heartbeat</code>地址发布了另一个主题的心跳消息。这样做的原因是，当使用影子主题时，影子管理器组件实际上为我们处理所有的状态同步。对于发布的任何其他主题和数据，比如这个心跳行为，我们必须使用 MQTT bridge 组件将消息从边缘传送到云(反之亦然)。使用 MQTT 测试客户端在<code>dt/localdevice/heartbeat</code>上订阅，以查看这些消息到达云中。</p>
+			<p>有趣的尝试是让你的中枢设备暂时离线，重复前面的步骤，但是将阀门的期望状态设置为<code>closed</code>。这将演示如何缓冲影子服务消息，以便在 Greengrass 设备下次重新联机时交付。在您的集线器设备上，断开网络连接(通过拔下以太网电缆或禁用 Wi-Fi)。在 MQTT 测试客户机中，您应该看不到更多到达影子或心跳主题的消息。在 MQTT 测试客户机中发布一条新消息，比如<code>{"state":{"desired":{"valve":"open"}}}</code>，然后恢复网络连接。一旦集线器设备重新建立连接并恢复心跳消息，您将看到本地设备获得新命令。</p>
+			<h2 id="_idParaDest-84"><a id="_idTextAnchor083"/>扩展受管组件</h2>
+			<p><a id="_idIndexMarker368"/>部署的示例使用 AWS 管理的组件通过 MQTT 代理为本地设备建立连接，在边缘和云之间发送和接收消息，并与设备的影子服务同步状态。您可以通过合并进一步的配置更新，为您自己的用例配置这些组件。让我们检查一下在这个部署中使用的配置，然后再回顾几个选项和最佳实践。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">对于本节中讨论的任何配置 JSON，这本书使用的是一种漂亮的打印格式，与您在实际部署文件中看到的不匹配，在实际部署文件中，JSON 是按照 API 要求进行字符串化和转义的。这样做是为了方便和易读。</p>
+			<h3>影子经理</h3>
+			<p>在<code>deployment-syncstate.json</code>文件的<code>aws.greengrass.ShadowManager</code>组件配置中，我们必须明确定义哪些设备阴影<a id="_idIndexMarker369"/>将在边缘和云之间保持同步。我们使用的配置为名为<code>localdevice</code>的设备定义了要同步的阴影，该设备与<code>apps/client.sh</code>应用程序的客户端 ID 相匹配。以下是用于实现这一点的配置:</p>
+			<pre>{
+  "synchronize":{
+    "shadowDocuments":[
+      {
+        "thingName":"localdevice",
+        "classic":true,
+        "namedShadows":[]
+    ]
+  }
+}</pre>
+			<p>一个<strong class="bold">经典影子</strong>是 AWS 物联网核心中任何设备的<a id="_idIndexMarker370"/>根级影子。<strong class="bold">命名阴影</strong>是属于设备的<a id="_idIndexMarker371"/>子阴影，一个设备可以有任意数量的附加子阴影来帮助<strong class="bold">分离关注点</strong> ( <strong class="bold"> SoC </strong>)。在这种情况下，只需使用经典阴影就足够了。</p>
+			<p>对于您希望 Greengrass 解决方案保持同步的每个设备，您将需要配置以在列表<code>shadowDocuments</code>中指定该设备，其中<code>thingName</code>是它用于通过 MQTT 连接的设备的名称(AWS IoT Core 定义了许多资源和 API，将设备表示为每个 IoT 名称的<em class="italic">事物</em>)。</p>
+			<p>你的绿草核心设备本身就是一个在 AWS 物联网核心注册的东西，可以使用经典和命名阴影。这些阴影可用于表示中枢设备本身的状态，或者用于中枢设备上的组件与某个期望的命令协调工作；例如，将期望的状态发送到中枢设备的影子以进入低带宽状态可以被运行在该设备上的任何组件获取以相应地行动。为 Greengrass 核心设备启用影像同步在<code>shadowDocuments</code>属性之外有一个单独的配置。这里有一个例子可以说明这一点:</p>
+			<pre>{
+  "synchronize":{
+    "coreThing":{
+      "classic":true,
+      "namedShadows":[
+        "CoreBandwidthSettings",
+        "CorePowerConsumptionSettings"
+      ]
+    },
+    "shadowDocuments":[ ... ]
+}</pre>
+			<p>本节讲述了您需要了解的关于 AWS 物联网核心中的影子以及如何配置影子管理器组件的内容。接下来，让我们回顾一下 MQTT 桥组件。</p>
+			<h3>MQTT 桥</h3>
+			<p><code>aws.greengrass.clientdevices.mqtt.Bridge</code>组件负责<a id="_idIndexMarker372"/>在 Greengrass 支持的三种消息通道之间转发消息。这里列出了三种消息传递渠道:</p>
+			<ul>
+				<li>组件用于消息传递的本地 IPC 主题</li>
+				<li>由 Moquette MQTT 代理组件支持的本地 MQTT 主题</li>
+				<li>使用 AWS 物联网核心的云 MQTT 主题</li>
+			</ul>
+			<p>配置<a id="_idIndexMarker373"/>MQTT 桥使您能够创建从一个通道上的主题跨越边界到另一个通道上的主题的消息流——例如，将发布在<code>dt/device1/sensors</code> IPC 主题上的消息复制到<code>dt/sensors/all</code> AWS IoT 核心主题以用于云摄取。</p>
+			<p>与影子管理器组件类似，源主题和目标主题的每个映射都必须在组件的配置中明确定义。为了使心跳消息能够从<code>client.sh</code>应用程序到达云，我们在 MQTT 桥中使用了以下配置:</p>
+			<pre>{
+  "mqttTopicMapping": {
+    "ForwardHeartbeatToCloud": {
+      "topic": "dt/localdevice/heartbeat",
+      "source": "LocalMqtt",
+      "target": "IotCore"
+    }
+}</pre>
+			<p>您可以利用 MQTT 通配符并将主题更新为<code>dt/+/heartbeat</code>，而不是为每一个使用心跳模式的设备创建一个映射。最佳实践是为每个预期的设备明确定义一个映射，并避免使用通配符，除非您有这样的用例:设备可能在多个网关设备之间迁移，并且无法具体预测哪些设备可能正在发布。通配符对于简化手动输入的配置和易读性非常有用，但是会引入意外行为的风险。用于 IPC 的<code>Pubsub</code>类型的主题也不支持通配符。</p>
+			<p>这里是另一个<a id="_idIndexMarker374"/>例子，使用 MQTT 桥允许将命令从其他 AWS 物联网核心设备或应用程序直接传送到运行在 Greengrass 核心上的组件。这个例子的想法是我们如何更新所有 ML-powered 组件的设置，以调整在推理活动中使用模型的速率。通过 IPC 订阅主题的组件可以接收更新，而无需完全部署 Greengrass:</p>
+			<pre>{
+  "mqttTopicMapping": {
+    "RemoteUpdateMLComponents": {
+      "topic": "cmd/ml-components/inferenceRate",
+      "source": "IotCore",
+      "target": "Pubsub"
+    }
+}</pre>
+			<p>现在，您已经完成了部署托管组件，以便在边缘和云之间来回移动消息。该功能为本地设备通过集线器设备相互通信、组件与云服务交互以及本地设备、组件和云的任何其他组合交换消息创建了路径。您还了解了 AWS 物联网核心和设备影子服务如何同步基于底层消息传递系统构建的本地设备和组件的状态。这些工具使您能够构建具有任何类型的消息传递需求的 edge ML 解决方案，而无需为您的消息传递需求编写任何代码或管理基础架构。</p>
+			<p>在下一节中，您将使用预构建的模型、推理代码和用于处理推理结果的定制组件的组合来部署您的第一个 ML 模型。</p>
+			<h1 id="_idParaDest-85"><a id="_idTextAnchor084"/>部署你的第一个 ML 模型</h1>
+			<p>现在<a id="_idIndexMarker375"/>您已经熟悉了远程部署和从云中加载资源，是时候将您的第一个 ML 驱动的功能部署到边缘了！毕竟，使用 ML 模型的组件与我们部署的其他组件非常相似。它是托管在云中的依赖项、运行时代码和静态资源的组合。</p>
+			<h2 id="_idParaDest-86"><a id="_idTextAnchor085"/>回顾 ML 用例</h2>
+			<p>在这种情况下，<a id="_idIndexMarker376"/>依赖项是用于使用<code>OpenCV</code>的包和库(用于<strong class="bold">计算机视觉</strong> ( <strong class="bold"> CV </strong>)用例的开源库)和<strong class="bold">深度学习运行时</strong> ( <strong class="bold"> DLR </strong>)，运行时代码是<a id="_idIndexMarker377"/>使用 DLR 的推理代码的预配置样本，静态资源是图像分类和一些样本图像的预配置模型存储。本例中部署的组件都是由 AWS 提供和管理的。</p>
+			<p>您将部署的解决方案模拟了我们 HBS 设备中心的使用案例，该中心执行简单的图像分类，作为我们客户家庭安全故事的一部分。</p>
+			<p>比方说，HBS 客户可以为他们的网络中心购买的附加设备是一个安全摄像头，当有人走近前门时，它会通知客户。相机设备每隔一段时间或与运动传感器配对拍摄照片，并将该图像作为文件存储在集线器设备上。中枢设备然后使用本地 ML 模型对该图像执行推断，以识别是否检测到任何人。如果是，可以在集线器设备上播放音频通知，或者向客户发送文本通知。以下是该解决方案及其组成部分的图示:</p>
+			<div><div><img src="img/B17595_04_09.jpg" alt="Figure 4.9 – Sample architecture for audio notification of subject recognized by the camera&#13;&#10;" width="761" height="400"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 4.9–摄像机识别对象的音频通知架构示例</p>
+			<p>如今，这种安全功能在市场上有很多产品。然而，还不常见的是在边缘执行 ML 推断。这提供了一个关键的差异化机会，因为通过节省向云传输图像的带宽和节省在云中运行 ML 推理的计算成本，总拥有成本下降。即使客户的互联网服务中断，安全解决方案也将保持运行，并且不依赖云服务的可用性。对于处理和通知延迟也有切实的好处，并且因为任何图像数据都保存在本地，所以隐私故事对客户有吸引力。</p>
+			<p>这个用例展示了部署到边缘的 ML 的所有四个关键优势，我们在第 1 章 、<em class="italic">使用机器学习的数据驱动边缘介绍</em>中已经讨论过:延迟、可用性、成本和治理。</p>
+			<h2 id="_idParaDest-87"><a id="_idTextAnchor086"/>部署 ML 工作负载的步骤</h2>
+			<p>由于 AWS 提供的托管组件，这个<a id="_idIndexMarker380"/>部分的步骤非常简单。有三个组件要从 AWS 目录部署，还有一个定制组件用来处理推断结果。由于 Raspberry Pi 和 Sense HAT 的目标原型硬件<a id="_idIndexMarker381"/>不包含任何摄像头接口，我们将依靠托管组件中提供的样本图像来模拟传感器。一个定制组件作为我们的执行器，它<a id="_idIndexMarker382"/>会在<strong class="bold">发光二极管</strong> ( <strong class="bold"> LED </strong>)上显示推断结果。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">如果您没有使用目标 Raspberry Pi 和 Sense HAT 硬件，您必须更改步骤以使用<code>com.hbs.hub.ScrollMessageSimulated</code>组件。或者，您可以使用 AWS 物联网核心管理控制台(在<em class="italic">步骤 5 </em>中介绍)、连接到 AWS 物联网核心的任何其他 MQTT 客户端(订阅在<em class="italic">步骤 5 </em>中标记的主题)查看推理结果，或者查看推理组件日志(在设备上本地或将这些日志添加到<code>LogManager</code>配置中)。</p>
+			<p>以下步骤将 ML 解决方案部署到集线器设备:</p>
+			<ol>
+				<li value="1">更新 Raspberry Pi 来安装 OpenCV 依赖项。我们在这里采取了一种捷径，即手动安装依赖项，而不是增加示例的复杂性(在这些步骤之后会有更多介绍)。其他目标平台应该只需要安装<code>glibc</code>，托管组件将根据需要安装依赖项。打开与您的 Pi 的<code>ssh</code>连接或直接在设备上打开终端程序。运行下面的命令:<code>sudo apt-get install libopenjp2-7 libilmbase23 libopenexr-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libgtk-3-0 libwebp-dev</code>。</li>
+				<li>在您的 AWS 帐户中，从 book repository 的源代码为<code>com.hbs.hub.ScrollMessage</code>组件创建一个新的定制组件。这些与<em class="italic">在物联网 Greengrass </em>部分注册组件中的<em class="italic"> 1-4 步骤</em>相同。将这个组件的<code>archive.zip</code>文件上传到 S3，编辑配方文件指向您在 S3 的工件，然后注册新的定制组件。</li>
+				<li>编辑<code>deployment-ml.json</code>文件以更新<code>targetArn</code>属性，如前几节所述。保存文件。</li>
+				<li>使用<code>deployment-ml.json</code>文件创建一个新部署，如下所示:<code>aws greengrassv2 create-deployment --cli-input-json file://deployment-ml.json</code>。</li>
+				<li>当部署结束时(在 Pi 上安装捆绑的 DLR 依赖项可能需要几个小时)，您应该开始看到新的推理结果出现在您的 Sense HAT LED 矩阵上。对于不使用带有 Sense HAT 的 Raspberry Pi 的读者，您可以使用 AWS 物联网核心管理控制台查看结果。登录<a href="https://console.aws.amazon.com/iot">https://console.aws.amazon.com/iot</a>，导航至<code>ml/dlr/image-classification</code> ML 推理主题。</li>
+			</ol>
+			<p>如果您使用 AWS 物联网核心控制台或 MQTT 客户端来检查推理结果，它们应该如下所示:</p>
+			<div><div><img src="img/B17595_04_10.jpg" alt="Figure 4.10 – Screenshot of the inference results in AWS IoT Core&#13;&#10;" width="1448" height="1058"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 4.10–AWS 物联网核心中推理结果的屏幕截图</p>
+			<p>现在，您已经将第一个 ML 工作负载部署到了边缘！该工作负载将继续以 10 秒的间隔运行，并将处理在中枢设备上的<code>/greengrass/v2/packages/artifacts-unarchived/component-name/image_classification/sample_images/cat.jpeg</code>处找到的文件。对于您自己的测试和用例，有许多方法可以扩展这个例子，如下所示:</p>
+			<ul>
+				<li><code>aws.greengrass.DLRImageClassification</code>组件来指定处理后的图像的来源——例如，您可以用<code>ImageDirectory</code>参数指定一个新目录，用<code>ImageName</code>参数指定一个文件名。然后，您可以创建一个自定义组件，将您自己的图像作为工件包含在内，并通过该路径的文件名旋转它们，以查看分类引擎识别出了什么。</li>
+				<li><code>aws.greengrass.DLRImageClassification</code>指定一个摄像机作为图像分类源的组件。为了在 Raspberry Pi 设备上制作原型，你可以<a id="_idIndexMarker385"/>连接一个<strong class="bold">通用串行总线</strong> ( <strong class="bold"> USB </strong>)网络摄像头或者<strong class="bold"> Raspberry Pi 摄像头模块 v2 </strong>。关于如何设置<a id="_idIndexMarker386"/>组件以使用摄像机的更多细节可在本章末尾的<em class="italic">参考</em>部分找到。</li>
+				<li><strong class="bold">升级一个分类结果类型的事件</strong>:当前工作负载报告指定主题的所有<a id="_idIndexMarker387"/>推理结果。您可以修改订阅这些结果的定制组件，并且只在推理结果中对人进行分类时才更新执行器。或者，您可以在另一个为警报保留的主题上发布消息，并配置 AWS 物联网核心<a id="_idIndexMarker388"/>和<strong class="bold">亚马逊简单通知服务</strong> ( <strong class="bold">亚马逊社交网络</strong>)在检测到人类时向您发送警报。对于这些事件，您可能还希望存储检测到的图像以供将来参考。</li>
+				<li><strong class="bold">部署对象检测工作负载</strong>:这个例子演示了对源图像中的主要对象进行分类的用例。另一个用例是列出在源图像中检测到的所有对象。AWS 还为运行在 DLR 或 TensorFlow 框架上的对象检测工作负载和 CV 用例提供托管组件。</li>
+				<li><strong class="bold">通知新图像可用</strong>:托管组件设计有一个间隔模式，用于根据 ML 模型处理源图像。您可以设计一个变体来订阅本地 IPC 主题，并等待来自另一个组件的通知，即需要进行推理，并且可以在消息中指定文件路径。</li>
+			</ul>
+			<p>正如在 Raspberry Pi 上安装依赖项的步骤中提到的，这些步骤走了捷径，没有反映我们的解决方案设计的最佳实践。比起在设备上手动安装依赖项，更好的方法是使用物联网 Greengrass 来安装那些缺失的依赖项。本节可以带您完成 AWS 受管组件的分叉，以便在安装生命周期步骤中添加更多的依赖项，但是对于本练习的目的来说，这并不是一个有价值的迂回。</p>
+			<p>此外，<code>aws.greengrass.DLRImageClassification</code>托管组件的默认行为将推理结果发布到 AWS 物联网核心上的云主题，而不是 IPC 上的本地主题。对于向云报告所有活动的工作负载，这是理想的行为。然而，考虑到本书中概述的在本地执行数据分析和分离组件的最佳实践，最好在本地 IPC 主题上发布，让另一个组件决定将哪些消息升级到云。</p>
+			<p>这无法通过组件版本 2.1.3 中定义的简单配置更新来实现。同样，为了将云发布替换为本地发布而绕道派生组件对于本练习的目的来说是没有价值的，因此云发布行为保持不变。</p>
+			<p>部署了第一个 ML 驱动的工作负载后，您现在已经了解了 ML 组件是如何作为依赖项、代码和静态资源的组合部署到边缘的。</p>
+			<p>在本节中，您将三个组件部署为一组解耦的依赖项、运行时和模型，另外还有一个定制组件，它作用于 ML 模型的推理结果。总之，您已经具备了扩展这些组件来提供您自己的图像分类和对象检测工作负载的所有基础。接下来，我们来总结一下本章所学的内容。</p>
+			<h1 id="_idParaDest-88"><a id="_idTextAnchor087"/>总结</h1>
+			<p>本章向您介绍了将组件远程部署到 Greengrass 设备的主要区别，如何使用 AWS 提供的托管组件加速解决方案开发，以及如何在原型中枢设备上获得第一个 ML 工作负载。至此，您已经具备了开始编写自己的组件和设计 edge 解决方案所需的所有基础知识。您甚至可以扩展托管 ML 组件，以开始一些基本的 CV 项目。如果您已经将 ML 模型和推理代码作为容器化代码在您的业务中使用，那么您现在可以开始将它们作为定制组件部署到边缘。</p>
+			<p>在下一章<a href="B17595_05_Final_SS_ePub.xhtml#_idTextAnchor090"> <em class="italic">第 5 章</em></a><em class="italic">中，您将了解更多关于数据如何以规定的结构、模型和转换在整个边缘中移动的信息。正确处理边缘数据对于提高 edge ML 解决方案的效率、弹性和安全性非常重要。</em></p>
+			<h1 id="_idParaDest-89"><a id="_idTextAnchor088"/>知识检查</h1>
+			<p>在进入下一章之前，通过回答这些问题来测试你的知识。答案可以在书的结尾找到:</p>
+			<ol>
+				<li value="1">区分 edge 组件的静态和动态资源的例子有哪些？</li>
+				<li>您的组件的工件存储在哪里，以便它们可以被您的配方文件引用？</li>
+				<li>当一个存储在云中的工件被包含在一个注册的定制组件中之后，您能修改它吗？</li>
+				<li>为什么不能写入已经通过部署加载到边缘设备上的工件文件？</li>
+				<li>是非判断:边缘设备可以属于 cloud AWS IoT 核心服务中的多个事物组，每个事物组可以有一个与之关联的活动 Greengrass 部署。</li>
+				<li>您能想出一个边缘设备从多个事物组接收部署的用例吗？</li>
+				<li>是非判断:单个部署可以重置组件的配置，并应用新配置的合并。</li>
+				<li>Which of the following managed components is responsible for deploying a local MQTT broker and connecting leaf devices? <p>MQTT 网桥/Moquette/设备阴影</p></li>
+				<li>Which of the following managed components is responsible for synchronizing the state between the edge and the cloud? <p>MQTT 网桥/Moquette/设备阴影</p></li>
+				<li>Which of the following managed components is responsible for relaying messages between communications channels such as MQTT, IPC, and the cloud? <p>MQTT 网桥/Moquette/设备阴影</p></li>
+				<li>如何设计从本地物联网传感器到运行 ML 推理的应用的数据流，并通过连接的扬声器播放警报声音？想一想不同的可用通信渠道和我们分离服务的最佳实践。试着在纸上画出草图，就像你在向同事提议设计一样。</li>
+			</ol>
+			<h1 id="_idParaDest-90"><a id="_idTextAnchor089"/>引用</h1>
+			<p>有关本章中讨论的概念的更多信息，请查看以下资源:</p>
+			<ul>
+				<li><em class="italic">使用 TensorFlow Lite </em>对来自相机的图像执行样本图像分类推断:<a href="https://docs.aws.amazon.com/greengrass/v2/developerguide/ml-tutorial-image-classification-camera.html">https://docs . AWS . Amazon . com/green grass/v2/developer guide/ml-tutorial-image-classification-camera . html</a></li>
+				<li><em class="italic"> AWS 提供的组件</em>:<a href="https://docs.aws.amazon.com/greengrass/v2/developerguide/public-components.html">https://docs . AWS . Amazon . com/green grass/v2/developer guide/public-components . html</a></li>
+				<li>OpenCV 网站:<a href="https://opencv.org/">https://opencv.org/</a></li>
+				<li><em class="italic"> AWS 物联网设备影子服务</em>:<a href="https://docs.aws.amazon.com/iot/latest/developerguide/iot-device-shadows.html">https://docs . AWS . Amazon . com/IoT/latest/developer guide/IoT-Device-shadows . html</a></li>
+				<li><em class="italic"> DLR:机器学习模型的精简运行时</em>:<a href="https://neo-ai-dlr.readthedocs.io">https://neo-ai-DLR . readthedocs . io</a></li>
+				<li>TensorFlow 网站:<a href="https://www.tensorflow.org/">https://www.tensorflow.org/</a></li>
+			</ul>
+		</div>
+	</div>
+</body></html>

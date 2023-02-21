@@ -1,0 +1,147 @@
+<html><head/><body>
+
+
+
+
+
+
+
+
+
+<title>Chapter 9: Using Google Cloud ML Best Practices</title>
+
+
+
+
+
+
+
+<div><div><h1 class="chapter-number" id="_idParaDest-167"><a id="_idTextAnchor168"/> 9</h1>
+
+<h1 id="_idParaDest-168"><a id="_idTextAnchor169"/>使用谷歌云 ML 最佳实践</h1>
+
+<p>在本章中，我们将讨论在 Google <a id="_idIndexMarker529"/>云中实现<strong class="bold">机器学习</strong> ( <strong class="bold"> ML </strong>)的最佳实践。我们将在 GCP 完成客户培训的 ML 模型开发流程的实施，并提供全程建议。</p>
+
+<p>在本章中，我们将讨论以下主题:</p>
+
+<ul>
+
+<li>ML 环境设置</li>
+
+<li>数据存储和处理</li>
+
+<li>ML 模型训练</li>
+
+<li>ML 模型部署</li>
+
+<li>ML 工作流程编排</li>
+
+<li>ML 模型连续监控</li>
+
+</ul>
+
+<p>本章旨在整合我们在本书中学到的知识，并将其应用到客户培训的 ML 项目中。我们将从设置 ML 环境开始。</p>
+
+<h1 id="_idParaDest-169"><a id="_idTextAnchor170"/> ML 环境设置</h1>
+
+<p>在<a href="B18333_04.xhtml#_idTextAnchor094"> <em class="italic">第 4 章</em> </a>、<em class="italic">开发和部署 ML 模型</em>中，在<em class="italic">准备平台</em>部分，我们学习了<a id="_idIndexMarker530"/>关于云中的 ML 平台。然后，在<a href="B18333_07.xhtml#_idTextAnchor143"> <em class="italic">第七章</em></a><em class="italic">探索谷歌云顶点 AI </em>中，我们介绍了顶点 AI 服务。对于客户培训的模型开发平台，我们<a id="_idIndexMarker531"/>推荐<strong class="bold"> Vertex AI Workbench 用户管理笔记本</strong>。让我们从性能、成本和安全性的前景来看细节。</p>
+
+<p>借助 Vertex AI Workbench 用户管理笔记本电脑，您可以灵活选择<a id="_idIndexMarker532"/>实现<strong class="bold">卓越性能</strong>。您可以使用现有的深度学习虚拟机映像创建一个实例，这些映像预装了最新的 ML 和 data science 库，以及最新的加速器驱动程序。根据您的数据、模型和工作负载，您可以选择合适的虚拟机实例类型来适应您的环境并优化性能，从通用计算(E2、N1、N2 和 N2D)，到内存优化(M1 和 M2)，再到计算优化(C2)，等等。您还可以创建一个基于定制容器的笔记本实例来定制您的 ML 环境。</p>
+
+<p>借助 Vertex AI Workbench 用户管理的笔记本电脑，您可以采用 GCP 最佳实践并降低成本。与任何谷歌云服务一样，把你笔记本电脑的虚拟机实例视为灵活且可任意使用的资源；当您在 VM 实例上训练 ML 模型时，请确保您将所有数据存储在云存储或 BigQuery 中，而不是存储在实例的本地存储中，如持久磁盘，以便您可以在完成 ML 实验或训练时停止或删除实例。在 ML 模型开发过程中，始终监控 VM 实例的性能和<a id="_idIndexMarker534"/>成本，并在利用 Google 托管实例组(MIG)的同时，根据工作负载进行扩展/收缩。</p>
+
+<p><strong class="bold">安全性</strong>始终是<a id="_idIndexMarker535"/>我们需要在云中解决的一个重要领域。一些最佳安全实践如下:</p>
+
+<ul>
+
+<li>对于 Vertex AI Workbench 用户管理笔记本，我们建议为数据科学团队的每个成员创建一个用户管理笔记本实例。如果团队成员参与多个项目，我们建议为该成员使用多个用户管理的笔记本实例，并将每个实例视为一个虚拟工作区。</li>
+
+<li>操作 Vertex AI 需要各种团队之间的协作，确定哪些小组或系统将负责哪些功能是超级重要的。从网络的角度来看，如果可能的话，您应该将用户管理的笔记本配置为使用共享 VPC，以最大限度地减少对笔记本实例的访问。还必须启用限制性防火墙规则来限制对笔记本实例和其他 Vertex AI 资源的访问。</li>
+
+<li>对于数据和模型存储，我们还建议将训练数据和训练模型存储在同一个项目中，以实现可重复性。在拥有多个文件夹和多个项目的 Google 组织中，最佳实践是利用 Google IAM 角色和组。</li>
+
+<li>对于数据保护，我们建议使用谷歌云组织政策和数据丢失防护(DLP)工具来保护个人身份信息(PII)数据。还建议对 Vertex AI 笔记本实例中的<a id="_idIndexMarker536"/>静态和传输中的数据进行数据加密。Vertex AI 支持<strong class="bold">客户管理的加密密钥</strong> ( <strong class="bold"> CMEK </strong>)跨越<a id="_idIndexMarker537"/>它的大部分组件。</li>
+
+</ul>
+
+<p>现在我们已经了解了环境设置，让我们转到数据存储和处理。</p>
+
+<h1 id="_idParaDest-170"><a id="_idTextAnchor171"/> ML 数据存储和处理</h1>
+
+<p>正如我们<a id="_idIndexMarker538"/>在<a href="B18333_04.xhtml#_idTextAnchor094"> <em class="italic">第四章</em> </a>，<em class="italic">开发和部署 ML 模型</em>中讨论的<a id="_idIndexMarker539"/>，存储数据涉及到从各种数据源收集原始数据，并将其存储在一个集中的存储库中。另一方面，数据处理包括数据工程和特征工程。数据工程是将原始数据(源形式的数据)转换为准备好的数据(准备好输入到 ML 任务中的数据集)的过程。然后，特征工程调整准备好的数据，以创建 ML 模型所期望的特征。</p>
+
+<p>对于结构化数据，我们推荐<a id="_idIndexMarker540"/>使用<strong class="bold"> Google Cloud BQ </strong>进行存储和处理。对于非结构化数据、视频、音频和图像数据，我们建议<a id="_idIndexMarker541"/>使用<strong class="bold">Google Cloud</strong>object<a id="_idIndexMarker542"/>storage 来存储<a id="_idIndexMarker543"/>它们，并使用<strong class="bold"> Google Cloud Dataflow </strong>或<strong class="bold"> Dataproc </strong>来处理它们。正如我们所讨论的，<strong class="bold">数据流</strong>是一个托管服务，它使用<strong class="bold"> Apache Beam </strong>编程<a id="_idIndexMarker544"/>模型将非结构化数据转换为二进制格式，并可以提高数据接收性能。Dataproc 是一个由<a id="_idIndexMarker545"/>管理的<strong class="bold"> Apache Spark </strong>和<strong class="bold"> Apache Hadoop </strong>服务，<a id="_idIndexMarker546"/>利用开源数据工具进行批处理、查询、流和 ML。</p>
+
+<p>对于<a id="_idIndexMarker547"/>需要标记数据集的监督 ML，我们建议使用<strong class="bold"> Google Vertex AI 数据标记</strong>服务，尤其是对于非结构化数据。从安全角度考虑，我们推荐使用<strong class="bold"> Google Cloud IAM </strong>到<a id="_idIndexMarker548"/>管理云存储和 BQ 中的数据访问，使用 GCP DLP 管理 PII 等敏感数据，使用 GCP 密钥管理服务(KMS)进行数据加密密钥管理。</p>
+
+<p>对数据进行预处理后，我们建议使用顶点 AI 管理的数据集来创建数据和自定义训练模型之间的链接，并提供描述性统计数据，以将数据分为训练、验证和测试子集。</p>
+
+<p>根据 ML 模型特征，在特征工程中可以使用许多方法。我们建议<a id="_idIndexMarker549"/>使用<strong class="bold"> Vertex AI 特征库</strong>，它可用于从数据湖中创建新特征，安排数据处理和特征工程<a id="_idIndexMarker550"/>作业，将它们摄取到 Vertex 特征库用于<a id="_idIndexMarker551"/>在线或批量服务，并在数据科学团队内共享通用特征。</p>
+
+<h1 id="_idParaDest-171"><a id="_idTextAnchor172"/> ML 模特培训</h1>
+
+<p>ML 模型<a id="_idIndexMarker552"/>培训是 ML 开发中的一个关键阶段，这就是为什么我们推荐使用 GCP 顶点 AI 培训。我们建议使用自动化顶点 AI 训练模型增强器来测试不同的超参数配置，而不是通过大量训练运行来手动调整超参数，并且使用<strong class="bold">Google Vertex AI tensor board</strong>到<a id="_idIndexMarker553"/>来跟踪、共享和比较模型指标，如损失函数，以可视化模型图。这允许您比较参数调整和模型优化的各种实验。</p>
+
+<p>使用 Vertex AI Workbench 用户管理的笔记本，您可以方便地和交互式地开发您的代码，我们建议操作您的代码以获得可再现性和可扩展性，并在<a id="_idIndexMarker554"/> Vertex training 或<strong class="bold"> Vertex AI Pipelines </strong>中运行您的代码。</p>
+
+<p>在模型训练之后，建议<a id="_idIndexMarker555"/>您使用<strong class="bold">顶点可解释 AI </strong>来研究和获得关于特征贡献的见解，并理解您的模型的行为。顶点可解释的人工智能可以帮助你理解你的模型的输出——它告诉你数据中的每个特征对预测结果的贡献有多大。然后，您可以使用这些信息来查看您的模型是否如预期的那样运行，识别您的模型中的偏差(如果有的话)，并获得一些改进您的模型和训练数据的想法。</p>
+
+<h1 id="_idParaDest-172"><a id="_idTextAnchor173"/> ML 模型部署</h1>
+
+<p>ML 模型<a id="_idIndexMarker556"/>部署是指将模型投入生产。一旦 ML 模型被部署到生产中，它就可以被用来预测新的数据。我们建议使用 Vertex AI 控制台或 API 来部署经过训练的 ML 模型。有了 Vertex AI，我们可以用批量预测服务于生产中的模型；我们建议为您的模型指定适当的硬件，并确定如何向模型传递输入。有了 Vertex AI，我们还可以为模型提供在线端点预测；我们建议使用 Vertex AI Feature Store 的在线服务 API，并使用最少两个节点打开自动缩放。</p>
+
+<h1 id="_idParaDest-173"><a id="_idTextAnchor174"/> ML 工作流程编排</h1>
+
+<p>正如我们<a id="_idIndexMarker557"/>在<a href="B18333_07.xhtml#_idTextAnchor143"> <em class="italic">第 7 章</em> </a>、<em class="italic">探索谷歌云顶点人工智能</em>中所讨论的，顶点人工智能管道是一种完全托管的服务，允许您根据需要经常重新训练您的模型，以便您可以适应变化并随着时间的推移保持性能。我们推荐云 ML 工作流程编排的顶点 AI 管道。</p>
+
+<p>如果你正在使用<strong class="bold"> Google TensorFlow 框架</strong>的<a id="_idIndexMarker558"/>，我们推荐<a id="_idIndexMarker559"/>使用<strong class="bold"> TensorFlow Extended </strong>来定义你的管道和每一步的操作，然后在 Vertex AI 的无服务器管道系统上执行。TensorFlow 为 Vertex AI 工作流中的常见步骤提供了预构建的组件，如数据摄取、数据验证和训练。</p>
+
+<p>如果你正在使用其他框架，我们推荐<a id="_idIndexMarker560"/>使用<strong class="bold"> Kubeflow Pipeline </strong>，它非常灵活，允许你使用简单的代码来构造管道。Kubeflow Pipeline 还提供了 Vertex AI AutoML 等谷歌云管道组件。</p>
+
+<h1 id="_idParaDest-174"><a id="_idTextAnchor175"/> ML 模式连续监控</h1>
+
+<p>一旦您已经将您的模型部署到生产中，您需要持续地监控模型性能，以确保它按照预期执行。我们推荐使用 Vertex AI，它提供了两种方法来监控您的 ML <a id="_idIndexMarker562"/>模型:</p>
+
+<ul>
+
+<li><strong class="bold">偏斜检测</strong>，其中<a id="_idIndexMarker563"/>寻找你的模型训练和生产数据之间的扭曲程度。</li>
+
+<li><strong class="bold">漂移检测</strong>，其<a id="_idIndexMarker564"/>在您的生产数据中寻找漂移。当输入和目标的统计属性随时间变化并导致预测变得不太准确时，就会发生漂移。</li>
+
+</ul>
+
+<p>对于偏斜和漂移检测，我们建议通过提供指向用于训练模型的训练数据的指针来设置模型监视作业，然后调整用于发出警报的阈值，以测量数据中出现的偏斜或漂移。</p>
+
+<p>你也可以在顶点可解释人工智能中使用特征属性来检测数据漂移或偏斜，作为模型性能可能下降的早期指标。比如说，你的<a id="_idIndexMarker565"/>模型最初是依靠五个特性在训练和测试数据中进行预测，但是到了投产的时候，就开始依靠完全不同的特性了。</p>
+
+<h1 id="_idParaDest-175"><a id="_idTextAnchor176"/>总结</h1>
+
+<p>在本章中，我们讨论了在 Google Cloud 中实现 ML 的最佳实践，重点是基于您的数据和代码的定制模型。</p>
+
+<p>本章总结了本书的第 3 部分，其中我们讨论了用于从结构化数据中训练 ML 模型的 Google BQ 和 BQML，Google ML 训练框架，如 TensorFlow 和 Keras，Google ML 训练套件 Vertex AI，Google Cloud ML APIs，以及 Google Cloud 中的最佳 ML 实践。</p>
+
+<p>在本书的第四部分，我们将通过了解认证的要求和深入研究一些认证的实践问题来准备谷歌云认证的专业 ML 工程师认证。</p>
+
+<h1 id="_idParaDest-176"><a id="_idTextAnchor177"/>延伸阅读</h1>
+
+<p>要了解本章内容的更多信息，请查看以下资源:</p>
+
+<ul>
+
+<li><a href="https://www.tensorflow.org/tfx">https://www.tensorflow.org/tfx</a></li>
+
+<li><a href="https://www.kubeflow.org/">https://www.kubeflow.org/</a></li>
+
+<li><a href="https://cloud.google.com/architecture/ml-on-gcp-best-practices">https://cloud . Google . com/architecture/ml-on-GCP-best-practices</a></li>
+
+<li><a href="https://cloud.google.com/architecture/mlops-continuous-delivery-and-automation-pipelines-in-machine-learning">https://cloud . Google . com/architecture/mlops-连续交付和自动化-机器学习管道</a></li>
+
+</ul>
+
+</div>
+
+</div>
+
+
+
+</body></html>

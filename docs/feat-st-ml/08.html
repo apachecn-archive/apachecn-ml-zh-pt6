@@ -1,0 +1,422 @@
+<html><head/><body>
+
+
+	
+		<title>B18024_06_ePub</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-96">第 6 章:从模型到生产及其他</h1>
+			<p>在上一章中，我们讨论了与<strong class="bold">盛宴</strong>在线和批量模型的模型训练和预测。在本练习中，我们使用了在<a href="B18024_04_ePub.xhtml#_idTextAnchor065"> <em class="italic">第 4 章</em> </a>、<em class="italic">向 ML 模型添加功能商店</em>的练习中部署到 AWS 云的 Feast 基础设施。在这些练习中，我们研究了 Feast 如何将特征工程从模型训练和模型预测中分离出来。我们还学习了如何在批量和在线预测期间使用离线和在线商店。</p>
+			<p>在本章中，我们将重用特征工程管道和<a href="B18024_04_ePub.xhtml#_idTextAnchor065"> <em class="italic">第四章</em></a><em class="italic">向 ML 模型添加特征库</em>，<a href="B18024_05_ePub.xhtml#_idTextAnchor078"> <em class="italic">第五章</em> </a>，<em class="italic">模型训练和推理</em>中建立的模型，来生产<strong class="bold">机器学习</strong> ( <strong class="bold"> ML </strong>)管道。本章的目标是重用我们在前面章节中构建的所有东西，例如 AWS 上的盛宴基础设施、特征工程、模型训练和模型评分笔记本，以生产 ML 模型。在我们进行练习时，这将为我们提供一个机会来了解如何尽早采用 Feast 不仅可以分离 ML 管道阶段，还可以加速 ML 模型的生产准备。一旦我们将批量和在线 ML 管道生产化，我们将研究 Feast 的采用如何为 ML 生命周期的其他方面带来机遇，如功能监控、自动化模型再训练，以及它如何加速未来 ML 模型的开发。本章将帮助你理解如何生产使用 Feast 的批处理和在线模型，以及如何使用 Feast 进行特征漂移监控和模型再训练。</p>
+			<p>我们将依次讨论以下主题:</p>
+			<ul>
+				<li>为编排设置气流</li>
+				<li>生产批量模型管道</li>
+				<li>生产在线模型管道</li>
+				<li>超越模型生产</li>
+			</ul>
+			<h1 id="_idParaDest-97"><a id="_idTextAnchor097"/>技术要求</h1>
+			<p>为了遵循本章中的代码示例，需要在<a href="B18024_04_ePub.xhtml#_idTextAnchor065"> <em class="italic">第 4 章</em> </a>、<em class="italic">向 ML 模型添加特征库</em>和<a href="B18024_05_ePub.xhtml#_idTextAnchor078"> <em class="italic">第 5 章</em> </a>、<em class="italic">模型训练和推理</em>中创建的资源。您需要熟悉 Docker 和任何笔记本环境，可以是本地设置，如 Jupyter，也可以是在线笔记本环境，如 Google Colab、Kaggle 或 SageMaker。您还需要一个对一些资源有完全访问权限的 AWS 帐户，如 Redshift、S3、Glue、DynamoDB 和 IAM 控制台。您可以创建一个新帐户，并在试用期内免费使用所有服务。您可以在下面的 GitHub 链接中找到书籍和功能库的代码示例:</p>
+			<ul>
+				<li><a href="https://github.com/PacktPublishing/Feature-Store-for-Machine-Learning/tree/main/Chapter06">https://github . com/packt publishing/Feature-Store-for-Machine-Learning/tree/main/chapter 06</a></li>
+				<li><a href="https://github.com/PacktPublishing/Feature-Store-for-Machine-Learning/tree/main/customer_segmentation">https://github . com/packt publishing/Feature-Store-for-Machine-Learning/tree/main/customer _ segmentation</a></li>
+			</ul>
+			<h1 id="_idParaDest-98"><a id="_idTextAnchor098"/>为编排设置气流</h1>
+			<p>为了将在线和批处理模型生产化，我们需要一个工作流程编排工具，它可以为我们按时运行 ML 管道。有很多可用的工具，比如 Apache Airflow、AWS Step Functions 和 SageMaker Pipelines。如果您愿意，也可以将其作为 GitHub 工作流运行。根据您熟悉的工具或您的组织提供的工具，编排可能会有所不同。对于这个<a id="_idIndexMarker367"/>练习，我们将使用亚马逊<strong class="bold">管理的 Apache air flow</strong>(<strong class="bold">MWAA</strong>)工作流。顾名思义，它是由 AWS 提供的 Apache Airflow 管理的服务。让我们在 AWS 中创建一个亚马逊 MWAA 环境。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">亚马逊 MWAA 没有免费试用。您可以在以下网址查看使用定价:<a href="https://aws.amazon.com/managed-workflows-for-apache-airflow/pricing/">https://AWS . Amazon . com/managed-workflows-for-Apache-air flow/pricing/</a>。或者，您可以选择在本地或 EC2 实例上运行 Airflow(EC2 有空闲层资源)。您可以在此处找到在本地或 EC2 上运行气流的设置说明:</p>
+			<p class="callout">气流本地设置:<a href="https://towardsdatascience.com/getting-started-with-airflow-locally-and-remotely-d068df7fcb4">https://towardsdatascience . com/getting-started-with-air flow-local-and-remote-d 068 df 7 fc B4</a></p>
+			<p class="callout">EC2 上的气流:<a href="https://christo-lagali.medium.com/getting-airflow-up-and-running-on-an-ec2-instance-ae4f3a69441">https://christo-laga Li . medium . com/getting-air flow-up-and-running-on-an-EC2-instance-AE 4 F3 a 69441</a></p>
+			<h2 id="_idParaDest-99"><a id="_idTextAnchor099"/>气流元数据的 S3 桶</h2>
+			<p>在我们创建一个环境之前，我们需要一个 S3 桶来存储气流相关性。在 S3 桶中，创建一个名为<code>dags</code>的文件夹。我们将使用这个文件夹来存储所有的气流 Dag。</p>
+			<p>亚马逊 MWAA 提供了多种不同的方式来配置要安装在气流环境中的附加插件和 Python 依赖项。因为我们需要安装一些 Python 依赖项来运行我们的项目，所以我们需要告诉 Airflow 安装这些必需的依赖项。一种方法是使用<code>requirements.txt</code>文件。下面的代码块显示了文件的内容:</p>
+			<pre class="source-code">papermill==2.3.4</pre>
+			<pre class="source-code">boto3==1.21.41</pre>
+			<pre class="source-code">ipython==8.2.0</pre>
+			<pre class="source-code">ipykernel==6.13.0</pre>
+			<pre class="source-code">apache-airflow-providers-papermill==2.2.3</pre>
+			<p>将前面代码块的内容保存在<code>requirements.txt</code>文件中。我们将<a id="_idIndexMarker370"/>使用【https://papermill.readthedocs.io/en/latest/】(<a href="https://papermill.readthedocs.io/en/latest/"/>)来运行 Python 笔记本。您还可以使用 Airflow 中可用的<code>bash</code>或<code>python</code>操作符提取代码并运行 Python 脚本。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">如果您在本地运行 Airflow，请确保库版本与 Airflow 版本兼容。撰写本文时的亚马逊 MWAA 气流版本是 2.2.2。</p>
+			<p>一旦你<a id="_idIndexMarker371"/>创建了<code>requirement.txt</code>文件，将它上传到我们创建的 S3 桶中。我们将在下一节的环境创建中使用它。</p>
+			<h2 id="_idParaDest-100"><a id="_idTextAnchor100"/>用于编排的亚马逊 MWAA 环境</h2>
+			<p>现在<a id="_idIndexMarker372"/>我们已经有了创建亚马逊 MWAA 环境所需的<a id="_idIndexMarker373"/>资源，让我们按照以下步骤来创建环境:</p>
+			<ol>
+				<li>要创建新环境，请登录您的 AWS 帐户，并使用 AWS 控制台中的搜索栏导航到亚马逊 MWAA 控制台。或者，参观 https://us-east-1.console.aws.amazon.com/mwaa/home?region = us-east-1 #环境。将显示以下网页:</li>
+			</ol>
+			<div><div><img src="img/B18024_06_001.jpg" alt="Figure 6.1 – The Amazon MWAA environments console&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.1–亚马逊 MWAA 环境控制台</p>
+			<ol>
+				<li value="2">在<em class="italic">图 6.1 </em>显示的页面上，点击<strong class="bold">创建环境</strong>按钮，将显示<a id="_idIndexMarker375"/>后的<a id="_idIndexMarker374"/>页面:</li>
+			</ol>
+			<div><div><img src="img/B18024_06_002.jpg" alt="Figure 6.2 – Amazon MWAA environment details&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.2–亚马逊 MWAA 环境详情</p>
+			<ol>
+				<li value="3">在<em class="italic">图 6.2 </em>中显示的页面上提供亚马逊 MWAA 环境的名称。向下滚动到亚马逊 S3 部分的<strong class="bold"> DAG 代码；您应该会在屏幕上看到以下参数:</strong></li>
+			</ol>
+			<div><div><img src="img/B18024_06_003.jpg" alt="Figure 6.3 – Amazon MWAA – the DAG code in S3 section&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.3-亚马逊 MWAA-S3 部分的 DAG 代码</p>
+			<ol>
+				<li value="4">在<a id="_idIndexMarker376"/>图 6.3 显示的屏幕上，在文本框中输入 S3 桶或使用我们上传的<code>requirements.txt</code>文件或输入文件的路径。由于我们不需要任何插件来运行项目，我们可以将可选的<strong class="bold">插件文件</strong>字段留空。点击<strong class="bold">下一个</strong>按钮:</li>
+			</ol>
+			<div><div><img src="img/B18024_06_004.jpg" alt="Figure 6.4 – Amazon MWAA advanced settings&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.4-亚马逊 MWAA 高级设置</p>
+			<ol>
+				<li value="5">显示的下一个<a id="_idIndexMarker378"/>页面如图<em class="italic">图 6.4 </em>所示。对于<strong class="bold">虚拟私有云(VPC) </strong>，从下拉列表中选择可用的默认 VPC。这里需要注意的是，所选的 VPC 应该至少有两个私有子网。如果它没有私有子网，当您尝试选择<strong class="bold">子网 1 </strong>和<strong class="bold">子网 2 </strong>时，您会注意到所有选项都是灰色的。如果你遇到这种情况，点击<strong class="bold">创建 MWAA·VPC</strong>。它将带你到云形成控制台；在表格中填写所有参数后，继续操作并点击<strong class="bold">创建堆栈</strong>。它将创建一个可供亚马逊 MWAA 使用的 VPC。创建 VPC 后，返回此窗口并选择新的 VPC 和子网，然后继续。</li>
+				<li>选择 VPC 后，对于<strong class="bold"> Web 服务器访问</strong>，选择<strong class="bold">公共网络</strong>；其他一切都保持默认，一路向下滚动。在<strong class="bold">权限</strong>部分，你会注意到它将为亚马逊 MWAA 创建一个新角色。记下角色名称。稍后我们将不得不为此角色添加权限。之后，点击下一个的<strong class="bold">。</strong></li>
+				<li>在下一页上，查看提供的所有输入，向下滚动，并单击<strong class="bold">创建环境</strong>。创建环境需要几分钟时间。</li>
+				<li>一旦创建了<a id="_idIndexMarker380"/>环境，您应该能够在亚马逊 MWAA 环境页面上看到处于<strong class="bold">可用</strong>状态<a id="_idIndexMarker381"/>的环境。选择我们刚刚创建的环境，并单击<strong class="bold"> Open Airflow UI </strong>链接。将显示一个气流主页，类似于下图:<div> <img src="img/B18024_06_005.jpg" alt="Figure 6.5 – The Airflow UI&#13;&#10;"/> </div></li>
+			</ol>
+			<p class="figure">  </p>
+			<p class="figure-caption">图 6.5–气流用户界面</p>
+			<ol>
+				<li value="9">为了测试一切是否正常，让我们快速创建一个简单的 DAG 并看看它是如何工作的。下面的代码块创建了一个简单的 DAG，带有一个伪操作符和一个 Python 操作符:<pre>from datetime import datetime from airflow import DAG from airflow.operators.dummy_operator import DummyOperator from airflow.operators.python_operator import PythonOperator def print_hello():     return 'Hello world from first Airflow DAG!' dag = DAG('hello_world',            description='Hello World DAG',           schedule_interval='@daily',           start_date=datetime(2017, 3, 20),            catchup=False) start = DummyOperator(task_id="start", dag=dag) hello_operator = PythonOperator(     task_id='hello_task',      python_callable=print_hello,      dag=dag) start &gt;&gt; hello_operator</pre></li>
+				<li>在前面的代码<a id="_idIndexMarker383"/>中定义的 DAG<a id="_idIndexMarker382"/>非常简单；它有两个任务——<code>start</code>和<code>hello_operator</code>。<code>start</code>任务是一个<code>DummyOperator</code>，什么也不做，用于使 DAG 在 UI 上看起来漂亮。<code>hello_operator</code>任务只是调用一个返回消息的函数。在最后一行，我们定义了操作符之间的依赖关系。</li>
+				<li>复制<a id="_idIndexMarker385"/>代码块前面的<a id="_idIndexMarker384"/>，保存为<code>example_dag.py</code>，上传到我们之前创建的 S3<code>dags</code>文件夹。(我的 S3 位置是<code>s3://airflow-for-ml-mar-2022/dags</code>。)一旦上传，它应该会在几秒钟内出现在气流 UI 中。下图显示了带有 DAG 的气流用户界面:</li>
+			</ol>
+			<div><div><img src="img/B18024_06_006.jpg" alt="Figure 6.6 – The Airflow UI with the example DAG&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.6–带有示例 DAG 的气流用户界面</p>
+			<ol>
+				<li value="12">默认情况下，dag 处于禁用状态；因此，当您访问该页面时，您可能不会看到如图<em class="italic">图 6.6 </em>所示的确切页面。通过单击最左侧列中的切换按钮来启用 DAG。启用后，DAG 将首次运行并更新运行结果。您也可以使用<strong class="bold">链接</strong>栏中的图标触发 DAG。点击 UI 中 DAG 栏的<strong class="bold"> hello_world </strong>超链接。您将看到带有不同选项卡的 DAG 详细信息页面。请随意在详细信息页面上体验和查看不同的选项。</li>
+				<li>下图显示了 DAG 的图形视图:</li>
+			</ol>
+			<div><div><img src="img/B18024_06_007.jpg" alt="Figure 6.7 – The graph view of the DAG&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.7–DAG 的图形视图</p>
+			<ol>
+				<li value="14">现在我们已经验证了气流设置正确，让我们添加气流运行 ML 管道所需的权限。</li>
+				<li>如果<a id="_idIndexMarker386"/>您还记得，在<a id="_idIndexMarker387"/>环境创建的最后一步(图<em class="italic">6.4</em>之后的段落)，我们记下了气流环境用于运行 Dag 的角色名称。现在，我们需要向角色添加权限。为此，请使用搜索功能导航至 AWS IAM 角色控制台页面或访问 https://us-east-1.console.aws.amazon.com/iamv2/home?区域=美国东部-1 #/角色。在控制台中，您应该会看到与气流环境相关联的 IAM 角色。选择 IAM 角色；您应该会看到以下页面:</li>
+			</ol>
+			<div><div><img src="img/B18024_06_008.jpg" alt="Figure 6.8 – The Amazon MWAA IAM role&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.8-亚马逊 MWAA IAM 角色</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">如果您没有做笔记，您可以在 AWS 控制台的环境详细信息页面中找到角色名称。</p>
+			<ol>
+				<li value="16">在<em class="italic">图 6.8 </em>中，点击<strong class="bold">上的<a id="_idIndexMarker388"/>添加权限</strong>；从<a id="_idIndexMarker389"/>下拉菜单中，选择<strong class="bold">附加策略</strong>，您将进入以下页面:</li>
+			</ol>
+			<div><div><img src="img/B18024_06_009.jpg" alt="Figure 6.9 – IAM – Attach policies&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.9–IAM–附加策略</p>
+			<ol>
+				<li value="17">On the <a id="_idIndexMarker390"/>web page, search <a id="_idIndexMarker391"/>and select the following policies – <strong class="bold">AmazonS3FullAccess</strong>, <strong class="bold">AWSGlueConsoleFullAccess</strong>, <strong class="bold">AmazonRedshiftFullAccess</strong>, and <strong class="bold">AmazonDynamoDBFullAccess</strong>. Once the policies are selected, scroll down and click on <strong class="bold">Attach policies</strong> to save the role with the new policies. <p class="callout-heading">重要说明</p><p class="callout">无限制地分配对任何资源的完全访问权限从来都不是一个好主意。运行企业应用程序时，建议根据资源限制访问，例如对特定 S3 存储桶和 DynamoDB 表的只读访问。</p><p class="callout">如果您在本地运行 Airflow，可以使用笔记本中的 IAM 用户凭据。</p></li>
+			</ol>
+			<p>现在我们的编排系统已经准备好了，让我们看看如何使用它来生产 ML 管道。</p>
+			<h1 id="_idParaDest-101"><a id="_idTextAnchor101"/>批量模型流水线生产</h1>
+			<p>在<a href="B18024_04_ePub.xhtml#_idTextAnchor065"> <em class="italic">第 4 章</em> </a>，<em class="italic">向 ML 模型添加特征库</em>中，为了模型训练，我们使用了特征工程笔记本摄取的特征。我们还创建了一个模型评分<a id="_idIndexMarker392"/>笔记本，它从 Feast 获取一组客户的特征，并使用训练好的模型为其运行预测。为了便于实验，我们假设原始数据的新鲜度延迟是一天。这意味着功能需要每天重新生成一次，模型需要每天根据这些功能对客户进行一次评分，并将结果存储在 S3 桶中以供消费。为了实现这一点，由于我们早期的组织和阶段分离，我们需要做的就是每天连续运行一次特征工程和模型评分笔记本/Python 脚本。现在我们也有了一个工具来执行这个任务，让我们继续在气流环境中安排这个工作流。</p>
+			<p>下图显示了我们将如何<a id="_idIndexMarker393"/>操作批量模型:</p>
+			<div><div><img src="img/B18024_06_010.jpg" alt="Figure 6.10 – Operationalization of the batch model&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.10–批量模型的操作化</p>
+			<p>正如您在图中所看到的，为了操作工作流，我们将使用 Airflow 来编排特性工程和模型评分笔记本。在我们的例子中，特征工程的原始数据源是存储<code>online-retail.csv</code>的 S3 桶。因为我们已经设计了我们的评分笔记本来从模型回购加载生产模型(在我们的例子中，是 S3 存储桶)并将预测结果存储在 S3 存储桶中，所以我们将重用同一个笔记本。你可能注意到的一件事是，我们不是每次跑步都使用模型训练笔记本；原因是显而易见的——我们希望根据已经过验证、测试并符合测试数据性能标准的模型版本进行预测。</p>
+			<p>在安排这个工作流程之前，我对特征工程笔记本和模型预测笔记本做了一些小的改动。最终的笔记本可以在以下 GitHub 网址找到:<a href="https://github.com/PacktPublishing/Feature-Store-for-Machine-Learning/blob/main/Chapter06/notebooks/(ch6_feature_engineering.ipynb,ch6_model_prediction.ipynb)">https://GitHub . com/packt publishing/Feature-Store-for-Machine-Learning/blob/main/chapter 06/notebooks/(ch6 _ Feature _ engineering . ipynb，ch6 _ model _ prediction . ipynb)</a>。要安排工作流程，请从 GitHub 下载最终的笔记本，并将它们上传到我们之前创建的 S3 桶中，因为在运行期间，气流环境需要访问这些笔记本。我会上传到以下位置:<code>s3://airflow-for-ml-mar-2022/notebooks/</code>。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">AWS 秘密访问密钥和 S3 路径——我已经在两个笔记本中注释掉了 AWS 凭证，因为我们正在向 Amazon MWAA IAM 角色添加权限。如果你在本地气流中运行，请取消注释并添加秘密。此外，必要时更新 S3 的 URL，因为 S3 的 URL 指向我在练习中创建的私有存储桶。</p>
+			<p class="callout">Feature repo——正如我们之前看到的，我们必须克隆 feature repo，以便 Feast library 可以读取元数据。您可以遵循相同的<code>git clone</code>(假设安装了<code>git</code>)方法，或者设置 GitHub 工作流将回购推送到 S3，并将其下载到笔记本中。我已经在笔记本上留下了两个代码块和注释。你可以用任何方便的。</p>
+			<p class="callout">S3 方法—要使用 S3 下载方法，请在您的本地系统中克隆回购，并在 Linux 终端中运行以下命令，将其上传到特定的 S3 位置:</p>
+			<p class="callout"><strong class="bold">导出 AWS _ ACCESS _ KEY _ ID =&lt;AWS _ KEY&gt;T17】</strong></p>
+			<p class="callout"><strong class="bold">导出 AWS _ SECRET _ ACCESS _ KEY =&lt;AWS _ SECRET&gt;T19】</strong></p>
+			<p class="callout"><strong class="bold">AWS _ DEFAULT _ REGION = us-east-1</strong></p>
+			<p class="callout"><strong class="bold"> aws s3 cp 客户 _ 细分 S3://&lt;S3 _ bucket&gt;/客户 _ 细分-递归</strong></p>
+			<p class="callout">成功上传后，您应该能够在 S3 存储桶中看到文件夹内容。</p>
+			<p>既然笔记本已经准备好了，让我们为批量模型管道编写气流 DAG。DAG 将按顺序执行以下任务—<code>start</code>(<code>dummy operator</code>)<code>feature_engineering</code>(<code>Papermill operator</code>)<code>model_prediction</code>(<code>Papermill operator</code>)和<code>end</code> ( <code>dummy operator</code>)。</p>
+			<p>以下代码块包含气流 DAG 的第一部分:</p>
+			<pre class="source-code">from datetime import datetime</pre>
+			<pre class="source-code">from airflow import DAG</pre>
+			<pre class="source-code">from airflow.operators.dummy_operator import DummyOperator</pre>
+			<pre class="source-code">from airflow.providers.papermill.operators.papermill import PapermillOperator</pre>
+			<pre class="source-code">import uuid</pre>
+			<pre class="source-code">dag = DAG('customer_segmentation_batch_model', </pre>
+			<pre class="source-code">          description='Batch model pipeline', </pre>
+			<pre class="source-code">          <strong class="bold">schedule_interval='@daily'</strong>, </pre>
+			<pre class="source-code">          start_date=datetime(2017, 3, 20), catchup=False)</pre>
+			<p>在前面的代码块中，我们定义了 imports 和 DAG 参数，如<code>name</code>、<code>schedule_interval</code>和<code>start_date</code>。时间表显示 DAG 应该每天运行。</p>
+			<p>以下代码块定义了 DAG 的其余部分(第二部分)，其中包含所有任务以及它们之间的依赖关系:</p>
+			<pre class="source-code">start = DummyOperator(task_id="<strong class="bold">start</strong>", dag=dag)</pre>
+			<pre class="source-code">run_id = str(uuid.uuid1())</pre>
+			<pre class="source-code">feature_eng = PapermillOperator(</pre>
+			<pre class="source-code">    task_id="<strong class="bold">feature_engineering</strong>",</pre>
+			<pre class="source-code">    input_nb="s3://airflow-for-ml-mar-2022/notebooks/ch6_feature_engineering.ipynb",</pre>
+			<pre class="source-code">    output_nb=f"s3://airflow-for-ml-mar-2022/notebooks/runs/ch6_feature_engineering_{ run_id }.ipynb",</pre>
+			<pre class="source-code">    dag=dag,</pre>
+			<pre class="source-code">    trigger_rule="all_success"</pre>
+			<pre class="source-code">)</pre>
+			<pre class="source-code">model_prediction = PapermillOperator(</pre>
+			<pre class="source-code">    task_id="<strong class="bold">model_prediction</strong>",</pre>
+			<pre class="source-code">    input_nb="s3://airflow-for-ml-mar-2022/notebooks/ch6_model_prediction.ipynb",</pre>
+			<pre class="source-code">    output_nb=f"s3://airflow-for-ml-mar-2022/notebooks/runs/ch6_model_prediction_{run_id}.ipynb",</pre>
+			<pre class="source-code">    dag=dag,</pre>
+			<pre class="source-code">    trigger_rule="all_success"</pre>
+			<pre class="source-code">)</pre>
+			<pre class="source-code">end = DummyOperator(task_id="<strong class="bold">end</strong>", dag=dag, </pre>
+			<pre class="source-code">                    trigger_rule="all_success")</pre>
+			<pre class="source-code">start &gt;&gt; feature_eng &gt;&gt; model_prediction &gt;&gt; end</pre>
+			<p>正如您在代码块中看到的，有四个步骤将依次执行。使用<code>PapermillOperator</code>运行<code>feature_engineering</code>和<code>model_prediction</code>步骤。这将 S3 笔记本的路径作为输入。我还设置了到另一个 S3 位置的输出路径，这样我们就可以检查每次运行的输出记录。最后一行定义了任务之间的依赖关系。将前面的两个代码块(第一和第二部分)保存为一个 Python 文件，并将其命名为<code>batch-model-pipeline-dag.py</code>。保存文件后，导航到 S3 控制台将文件上传到我们在<em class="italic">图 6.3 </em>中指向<a id="_idIndexMarker397"/>我们的气流环境的<code>dags</code>文件夹中。上传的文件由气流调度程序处理。当您导航到 Airflow UI 时，您应该会在屏幕上看到名为<strong class="bold">customer _ segmentation _ batch _ model</strong>的新 DAG。</p>
+			<p>下图显示了带有 DAG 的气流用户界面:</p>
+			<div><div><img src="img/B18024_06_011.jpg" alt="Figure 6.11 – The batch model DAG on Airflow&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.11–气流上的批次模型 DAG</p>
+			<p>由于我们在创建气流环境的过程中没有启用默认 DAG 选项(可以在亚马逊 MWAA 的气流配置变量中设置)，当 DAG 第一次出现在 UI 上时，它将被禁用。单击最左栏的切换按钮将其启用。启用后，DAG 将首次运行。单击<strong class="bold">customer _ segmentation _ batch _ model</strong>超链接导航到详细信息页面，并随意查看 DAG 的不同可视化和属性。如果您导航到<strong class="bold">图形</strong>选项卡，将显示 DAG，如以下截图所示:</p>
+			<div><div><img src="img/B18024_06_012.jpg" alt="Figure 6.12 – The batch model DAG graph view&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.12–批处理模型 DAG 图形视图</p>
+			<p>在图 6.12 中，您可以看到 DAG 的图形视图。如果在上次运行中有任何失败，它们将<a id="_idIndexMarker398"/>出现在红色轮廓中。您还可以查看每个任务成功执行或失败的日志。由于所有的任务都是绿色的，这意味着一切进展顺利。你也可以在<em class="italic">图 6.11 </em>中看到最后几次运行的结果。Airflow 还为您提供了所有跑步的历史记录。</p>
+			<p>现在任务运行已完成，我们可以查看输出笔记本、新要素集的 S3 存储桶或新预测集的 S3 存储桶。在成功运行之后，这三个都应该可用。这里，我们将只验证预测结果文件夹，但也可以随意验证其他文件夹。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">如果出现任何失败，请验证失败任务的日志(在图形视图中单击失败的任务以查看可用信息)。检查亚马逊 MWAA 的权限、输入/输出的 S3 路径，以及是否所有的需求都安装在亚马逊 MWAA 环境中。</p>
+			<p>以下屏幕截图显示了 S3 时段中的新预测结果:</p>
+			<div><div><img src="img/B18024_06_013.jpg" alt="Figure 6.13 – The prediction results in an S3 bucket&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.13–S3 桶中的预测结果</p>
+			<p>除此之外，你<a id="_idIndexMarker399"/>还可以用气流做各种花哨的事情，比如发送失败的邮件通知，日常运行的 Slack 通知，以及与 PagerDuty 的集成。请随意探索这些选项。下面是一个<a id="_idIndexMarker400"/>air flow 中支持的提供者列表:<a href="https://airflow.apache.org/docs/apache-airflow-providers/packages-ref.html">https://air flow . Apache . org/docs/Apache-air flow-providers/packages-ref . html</a>。</p>
+			<p>现在我们的批处理模型已经在生产中运行了，让我们看看如何使用 Feast 将在线模型生产化。</p>
+			<h1 id="_idParaDest-102"><a id="_idTextAnchor102"/>制作在线模型管道</h1>
+			<p>在<a id="_idIndexMarker401"/>上一章中，对于在线模型，我们构建了 REST 端点来为客户细分提供按需预测服务。尽管在线模型作为 REST 端点托管，但它需要一个支持以下功能的基础设施:</p>
+			<ul>
+				<li>实时提供特色服务(我们为此举办了盛宴)</li>
+				<li>保持功能最新(为此，我们将使用带有气流协调的功能工程笔记本)</li>
+			</ul>
+			<p>在本章中，我们将从我们停止的地方继续，并使用第 4 章<em class="italic">中内置的<a href="B18024_04_ePub.xhtml#_idTextAnchor065"> <em class="italic">功能工程笔记本，将功能商店添加到 ML 模型中，</em>与笔记本结合使用，将离线数据同步到 Feast 中的在线商店。</a></em></p>
+			<p>下图<a id="_idIndexMarker402"/>显示了在线模型管道的操作化<a id="_idIndexMarker403"/>:</p>
+			<div><div><img src="img/B18024_06_014.jpg" alt="Figure 6.14 – The operationalization of the online model&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.14–在线模型的可操作性</p>
+			<p>在<em class="italic">图 6.14 </em>中可以看到，我们将使用气流进行特征工程的编排；这里的数据新鲜度还是一天，可以做更短时长的调度。如果需要，Feast 还可以支持流数据。下面的网址有一个你可以使用的例子:<a href="https://docs.Feast.dev/reference/data-sources/push">https://docs.Feast.dev/reference/data-sources/push</a>。在<a href="B18024_05_ePub.xhtml#_idTextAnchor078"> <em class="italic">第 5 章</em> </a>、<em class="italic">模型训练和推理</em>中开发的其余端点将作为 SageMaker 端点进行 docker 化和部署。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">一旦 Docker 化，Docker 映像就可以用于部署到任何容器化的环境中，比如 Elastic Container Service、Elastic BeanStalk 和 Kubernetes。我们使用 SageMaker，因为它的设置时间更短，并且具有开箱即用的数据捕获和 IAM 认证等优势。</p>
+			<h2 id="_idParaDest-103"><a id="_idTextAnchor103"/>特征工程作业的编排</h2>
+			<p>由于我们<a id="_idIndexMarker404"/>已经有两台笔记本电脑(功能工程和离线同步到在线商店),并且我们熟悉 Airflow，所以让我们先安排功能工程工作流程。还是那句话，在笔记本上，我做了一些小改动。请在使用前验证更改。你可以在这里找到笔记本(<code>ch6_feature_engineering.ipynb</code> a <a href="https://github.com/PacktPublishing/Feature-Store-for-Machine-Learning/tree/main/Chapter06/notebooks">和<code>ch6_sync_offline_online.ipynb</code>):https://github.com/PacktPublishing/Feature-Store-for-Machin</a>电子学习/tree/main/Chapter06/notebooks。就像我们对批量模型所做的那样，下载<a id="_idIndexMarker405"/>笔记本并上传到特定的 S3 位置。我会把它们上传到和以前一样的地方:<code>s3://airflow-for-ml-mar-2022/notebooks/</code>。现在笔记本已经准备好了，让我们为在线模型管道编写气流 DAG。DAG 将按顺序执行以下步骤—<code>start</code>(<code>dummy operator</code>)<code>feature_engineering</code>(<code>Papermill operator</code>)<code>sync_offline_to_online</code>(<code>Papermill operator</code>)和<code>end</code> ( <code>dummy operator</code>)。</p>
+			<p>以下代码块包含气流 DAG 的第一部分:</p>
+			<pre class="source-code">from datetime import datetime</pre>
+			<pre class="source-code">from airflow import DAG</pre>
+			<pre class="source-code">from airflow.operators.dummy_operator import DummyOperator</pre>
+			<pre class="source-code">from airflow.providers.papermill.operators.papermill import PapermillOperator</pre>
+			<pre class="source-code">dag = DAG('customer_segmentation_online_model', </pre>
+			<pre class="source-code">          description='Online model pipeline', </pre>
+			<pre class="source-code">          <strong class="bold">schedule_interval='@daily'</strong>, </pre>
+			<pre class="source-code">          start_date=datetime(2017, 3, 20), catchup=False)</pre>
+			<p>就像批处理模型管道 DAG 的情况一样，它包含 DAG 参数。</p>
+			<p>以下代码块定义了 DAG 的其余部分(第二部分)，其中包含所有任务以及它们之间的依赖关系:</p>
+			<pre class="source-code">start = DummyOperator(task_id="<strong class="bold">start</strong>")</pre>
+			<pre class="source-code">run_time = datetime.now()</pre>
+			<pre class="source-code">feature_eng = PapermillOperator(</pre>
+			<pre class="source-code">    task_id="<strong class="bold">feature_engineering</strong>",</pre>
+			<pre class="source-code">    input_nb="s3://airflow-for-ml-mar-2022/notebooks/ch6_feature_engineering.ipynb",</pre>
+			<pre class="source-code">    output_nb=f"s3://airflow-for-ml-mar-2022/notebooks/runs/ch6_feature_engineering_{run_time}.ipynb",</pre>
+			<pre class="source-code">    trigger_rule="all_success",</pre>
+			<pre class="source-code">    dag=dag</pre>
+			<pre class="source-code">)</pre>
+			<pre class="source-code">sync_offline_to_online = PapermillOperator(</pre>
+			<pre class="source-code">    task_id="<strong class="bold">sync_offline_to_online</strong>",</pre>
+			<pre class="source-code">    input_nb="s3://airflow-for-ml-mar-2022/notebooks/ch6_sync_offline_online.ipynb",</pre>
+			<pre class="source-code">    output_nb=f"s3://airflow-for-ml-mar-2022/notebooks/runs/ch6_sync_offline_online_{run_time}.ipynb",</pre>
+			<pre class="source-code">    trigger_rule="all_success",</pre>
+			<pre class="source-code">    dag=dag</pre>
+			<pre class="source-code">)</pre>
+			<pre class="source-code">end = DummyOperator(task_id="<strong class="bold">end</strong>", trigger_rule="all_success")</pre>
+			<pre class="source-code">start &gt;&gt; feature_eng &gt;&gt; sync_offline_to_online &gt;&gt; end</pre>
+			<p>气流 DAG 的结构<a id="_idIndexMarker406"/>类似于我们之前看的批量模型 DAG；唯一不同的是第三个任务，<code>sync_offline_to_online</code>。这款笔记本将最新功能从离线数据同步到在线数据。将前面的两个代码块(第一和第二部分)保存为一个 Python 文件，并将其命名为<code>online-model-pipeline-dag.py</code>。保存文件后，导航到 S3 控制台将文件上传到<code>dags</code>文件夹，我们在<em class="italic">图 6.3 </em>中将气流环境指向该文件夹。与批处理模型一样，上传的文件由 Airflow 调度程序处理，当您导航到 Airflow UI 时，您应该在屏幕上看到名为<strong class="bold">customer _ segmentation _ online _ model</strong>的新 DAG。</p>
+			<p>下面的<a id="_idIndexMarker407"/>截图显示了带有 DAG 的气流 UI:</p>
+			<div><div><img src="img/B18024_06_015.jpg" alt="Figure 6.15 – The Airflow UI with both the online and batch models&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.15–在线和批量模型的气流用户界面</p>
+			<p>要启用 DAG，请单击最左侧栏中的切换按钮。启用后，DAG 将首次运行。单击<strong class="bold">customer _ segmentation _ online _ model</strong>超链接导航到详细信息页面，随意查看 DAG 的不同可视化和属性。如果您导航到<strong class="bold">图形</strong>选项卡，将显示 DAG，如以下截图所示:</p>
+			<div><div><img src="img/B18024_06_016.jpg" alt="Figure 6.16 – The online model pipeline graph view&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.16–在线模型管道图视图</p>
+			<p>正如您在<em class="italic">图 6.16 </em>中看到的<a id="_idIndexMarker408"/>，在成功运行时，图表将为绿色。正如在批处理模型管道执行期间所讨论的，您可以验证输出笔记本、DynamoDB 表或 S3 桶，以确保一切工作正常，还可以在出现故障时检查日志。</p>
+			<p>现在，在线模型管道的第一部分已经准备好了，让我们将前一章开发的 REST 端点进行 Dockerize，并将其部署为 SageMaker 端点。</p>
+			<h2 id="_idParaDest-104"><a id="_idTextAnchor104"/>将模型部署为 SageMaker 端点</h2>
+			<p>为了<a id="_idIndexMarker409"/>将模型部署到 SageMaker，我们需要首先将我们在<a href="B18024_05_ePub.xhtml#_idTextAnchor078"> <em class="italic">第 5 章</em> </a>、<em class="italic">模型训练和推理</em>中构建的 REST API 进行 dockerize。在此之前，让我们创建一个<strong class="bold">弹性容器注册中心</strong> ( <strong class="bold"> ECR </strong>)，在这里<a id="_idIndexMarker410"/>我们可以保存模型的 Docker 图像并在 SageMaker 端点配置中使用它。</p>
+			<h3>Docker 图像的 ECR</h3>
+			<p>要创建 ECR 资源，请从搜索栏导航至 ECR 控制台或使用以下 URL:<a href="https://us-east-1.console.aws.amazon.com/ecr/repositories?region=us-east-1">https://us-east-1.console.aws.amazon.com/ecr/repositories?地区=美国东部-1 </a>。将显示以下页面:</p>
+			<div><div><img src="img/B18024_06_017.jpg" alt="Figure 6.17 – The ECR home page&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.17–ECR 主页</p>
+			<p>在<em class="italic">图 6.17 </em>显示的<a id="_idIndexMarker412"/>页面上，可以选择<strong class="bold">私有</strong>或者<strong class="bold">公共</strong>存储库选项卡。然后，点击<strong class="bold">创建存储库</strong>按钮:</p>
+			<div><div><img src="img/B18024_06_018.jpg" alt="Figure 6.18 – ECR – Create repository&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.18–ECR–创建存储库</p>
+			<p>我在这里选择了<strong class="bold">私有</strong>；取决于你是选择<strong class="bold">私有</strong>还是<strong class="bold">公共</strong>，选项将会改变，但无论哪种方式，都很简单。填写必填字段，向下滚动所有的<a id="_idIndexMarker413"/>，并点击<strong class="bold">创建存储库</strong>。一旦创建了存储库，进入存储库详细信息页面，您应该会看到类似于图 6.19 所示的页面。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">私有存储库由 IAM 保护，而公共存储库可以被互联网上的任何人访问。公共存储库主要用于与组织外的其他人共享/开源您的工作:</p>
+			<div><div><img src="img/B18024_06_019.jpg" alt=" Figure 6.19 – ECR repository details&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.19–ECR 储存库详情</p>
+			<p>在上一页中，点击<strong class="bold">查看推送命令</strong>，您应该会看到一个弹出窗口，类似于图 6.20 中的<em class="italic">所示:</em></p>
+			<div><div><img src="img/B18024_06_020.jpg" alt="Figure 6.20 – ECR push commands&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.20–ECR 推送命令</p>
+			<p>根据您用于构建 Docker 映像的操作系统，保存必要的命令。我们将使用这些命令来构建 Docker 映像。</p>
+			<h3>建立码头工人形象</h3>
+			<p>如前所述，我们<a id="_idIndexMarker415"/>将在本节中使用前一章构建的 REST 端点。如果您记得没错，我们添加了两个 REST 端点，<code>ping</code>和<code>invocations</code>。这些端点不是随机的，尽管它们可以在任何容器环境中托管。要在 SageMaker 端点中托管 Docker 映像，要求是它应该有<code>ping</code>(这是<code>GET</code>方法)和<code>invocations</code>(这是<code>POST</code>方法)路由。我已经在同一个文件夹结构中添加了几个文件，这对构建 Docker 映像很有用。REST 代码和文件夹结构可从以下网址获得:<a href="https://github.com/PacktPublishing/Feature-Store-for-Machine-Learning/tree/main/online-model-rest-api">https://github . com/packt publishing/Feature-Store-for-Machine-Learning/tree/main/online-model-REST-API</a>。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">附加文件有<code>Dockerfile</code>、<code>requirements.txt</code>和<code>serve</code>。</p>
+			<p>依次将其余代码克隆到本地系统，将特征库复制到项目的<code>root</code>目录<a id="_idIndexMarker416"/>中，导出凭证，然后运行<em class="italic">图 6.20 </em>中的命令。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">您可以使用在<a href="B18024_04_ePub.xhtml#_idTextAnchor065"> <em class="italic">第 4 章</em> </a>、<em class="italic">向 ML 模型添加特征库</em>中创建的相同用户凭证。然而，我们错过了向用户添加 ECR 权限。请导航到 IAM 控制台，并将<strong class="bold">amazonec 2 containerregistrytryfull access</strong>添加到用户。否则，您将得到一个访问错误。</p>
+			<p>以下是命令示例:</p>
+			<pre>cd online-model-rest-api/
+export AWS_ACCESS_KEY_ID=&lt;AWS_KEY&gt;
+export AWS_SECRET_ACCESS_KEY=&lt;AWS_SECRET&gt;
+export AWS_DEFAULT_REGION=us-east-1
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin &lt;account_number&gt;.dkr.ecr.us-east-1.amazonaws.com
+docker build -t customer-segmentation .
+docker tag customer-segmentation:latest &lt;account_number&gt;.dkr.ecr.us-east-1.amazonaws.com/customer-segmentation:latest
+docker push &lt;account_number&gt;.dkr.ecr.us-east-1.amazonaws.com/customer-segmentation:latest</pre>
+			<p>这些命令使用环境中设置的凭据登录到 ECR，构建 Docker 映像，标记 Docker 映像并将其推送到注册表。一旦图像被推送，如果您导航回<em class="italic">图 6.19 </em>中的屏幕，您应该会看到新的图像，如以下截图所示:</p>
+			<div><div><img src="img/B18024_06_021.jpg" alt="Figure 6.21 – ECR with the pushed image&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.21–带有推送图像的 ECR</p>
+			<p>现在<a id="_idIndexMarker417"/>图像准备好了，通过点击<strong class="bold">复制 URI </strong>旁边的图标复制图像<strong class="bold">统一资源标识符(URI) </strong>，如图<em class="italic">图 6.21 </em>所示。接下来让我们将 Docker 映像部署为 SageMaker 端点。</p>
+			<h3>创建 SageMaker 端点</h3>
+			<p>Amazon SageMaker <a id="_idIndexMarker418"/>的目标是为 ML 提供托管基础设施。在本节中，我们将只使用 SageMaker 推理组件。SageMaker 端点用于将模型部署为实时预测的 REST 端点。它支持 Docker 图像模型，也支持一些现成的风格。我们将使用我们在上一节中推入 ECR 的 Docker 映像。SageMaker 端点使用三个构建模块构建，即模型、端点配置和端点。让我们使用这些构建块，然后创建一个端点。</p>
+			<h4>SageMaker 模型</h4>
+			<p><a id="_idIndexMarker419"/>模型用于定义模型参数，如模型的名称、位置和 IAM 角色。要定义模型，使用搜索栏导航到 SageMaker 控制台，并在<strong class="bold">推理</strong>部分中查找<code>Models</code>。或者，参观 https://us-east-1.console.aws.amazon.com/sagemaker/home?区域=美国东部-1 #/车型。将显示以下画面:</p>
+			<div><div><img src="img/B18024_06_022.jpg" alt="Figure 6.22 – The SageMaker Models console&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.22–sage maker 型号控制台</p>
+			<p>在<a id="_idIndexMarker420"/>显示的页面上，点击<strong class="bold">创建模型</strong>导航至下一屏幕。将显示以下页面:</p>
+			<div><div><img src="img/B18024_06_023.jpg" alt="Figure 6.23 – SageMaker – Create model&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.23–sage maker–创建模型</p>
+			<p>如图<em class="italic">图 6.23 </em>所示，输入型号名称，对于 IAM 角色，在下拉菜单中选择<strong class="bold">新建角色</strong>。将出现一个新的弹出窗口，如下面的屏幕截图所示:</p>
+			<div><div><img src="img/B18024_06_024.jpg" alt="Figure 6.24 – The SageMaker model – Create an IAM role&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.24–sage maker 模型–创建一个 IAM 角色</p>
+			<p>在弹出窗口中，出于本练习的目的，将<a id="_idIndexMarker421"/>保留为默认值，并单击<strong class="bold">创建角色</strong>。AWS 将创建一个 IAM 角色，在同一个屏幕上，您应该会在对话框中看到一条消息，其中包含一个指向 IAM 角色的链接。下图显示了显示的消息:</p>
+			<div><div><img src="img/B18024_06_025.jpg" alt="Figure 6.25 – The SageMaker model – the new execution role is created&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.25–sage maker 模型–新的执行角色被创建</p>
+			<p>现在，如果你没记错的话，我们使用 DynamoDB 作为在线商店；当我们按需从 DynamoDB 表中读取数据时，IAM 角色需要访问它们。因此，使用页面上显示的链接在新选项卡中导航到我们刚刚创建的 IAM 角色，添加<strong class="bold">amazondynamodbullaccess</strong>，然后返回到该选项卡。向下滚动到<strong class="bold">容器定义 1 </strong>部分，在这里您会看到以下参数:</p>
+			<div><div><img src="img/B18024_06_026.jpg" alt="Figure 6.26 – The SageMaker model – the Container definition 1 section &#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.26–sage maker 模型–容器定义 1 部分</p>
+			<p>对于推理代码图像参数的<strong class="bold">位置，粘贴我们从屏幕上复制<a id="_idIndexMarker423"/>的图像 URI，如图<em class="italic">图 6.21 </em>所示。将其他选项保留为默认值，并再次滚动到<strong class="bold">网络</strong>部分:</strong></p>
+			<div><div><img src="img/B18024_06_027.jpg" alt="Figure 6.27 – The Sagemaker Model – the Network section&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.27-sage maker 模型-网络部分</p>
+			<p>在这里，选择<strong class="bold"> VPC </strong>到<strong class="bold">默认 vpc </strong>，从列表中选择一到两个子网，选择<a id="_idIndexMarker424"/>默认安全组。向下滚动到底部，点击<strong class="bold">创建模型</strong>。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">为生产部署选择默认安全组从来都不是一个好主意，因为入站规则没有限制。</p>
+			<p>既然模型已经准备好了，接下来让我们创建端点配置。</p>
+			<h4>端点配置</h4>
+			<p>要设置<a id="_idIndexMarker425"/>端点配置，使用搜索栏导航到 SageMaker 控制台，并在<strong class="bold">推理</strong>部分中查找<code>Endpoint Configurations</code>。或者，参观 https://us-east-1.console.aws.amazon.com/sagemaker/home?region = us-east-1 #/endpoint config。将显示以下页面:</p>
+			<div><div><img src="img/B18024_06_028.jpg" alt="Figure 6.28 – The Sagemaker Endpoint configuration console&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.28–sage maker 端点配置控制台</p>
+			<p>在显示的网页上，点击<strong class="bold">创建端点配置</strong>。您将被导航至以下页面:</p>
+			<div><div><img src="img/B18024_06_029.jpg" alt="Figure 6.29 – SageMaker – Create endpoint configuration&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.29–sage maker–创建端点配置</p>
+			<p>在这个<a id="_idIndexMarker426"/>屏幕上，填写<code>customer-segmentation-config</code>。向下滚动到<strong class="bold">数据采集</strong>部分。这用于定义需要捕获的实时推理数据的百分比、位置(S3 位置)以及存储方式(JSON 或 CSV)。您可以选择启用或禁用它。在本练习中，我将其禁用。如果您启用它，它会要求您提供更多信息。在<strong class="bold">数据采集</strong>之后的部分是<strong class="bold">生产变量</strong>。这用于设置多个模型变量，以及模型的 A/B 测试。现在，因为我们只有一个变体，让我们在这里添加它。要添加变型，点击该部分中的<strong class="bold">添加型号</strong>链接；将出现以下弹出窗口:</p>
+			<div><div><img src="img/B18024_06_030.jpg" alt="Figure 6.30 – SageMaker – adding a model to the endpoint config&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.30–sage maker–向端点配置添加模型</p>
+			<p>在弹出菜单中，选择<a id="_idIndexMarker427"/>我们之前创建的模型，向下滚动，并点击<strong class="bold">创建端点配置</strong>。</p>
+			<h4>SageMaker 端点创建</h4>
+			<p>最后一步是使用端点配置来创建一个端点。要创建 SageMaker 端点，使用搜索栏导航到 SageMaker 控制台，并在<strong class="bold">推理</strong>部分中查找<code>Endpoints</code>。或者，参观 https://us-east-1.console.aws.amazon.com/sagemaker/home?区域=美国东部-1 #/端点。将显示以下页面:</p>
+			<div><div><img src="img/B18024_06_031.jpg" alt="Figure 6.31 – The SageMaker Endpoints console&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.31–sage maker 端点控制台</p>
+			<p>在<em class="italic">图 6.31 </em>所示的<a id="_idIndexMarker429"/>页面上，点击<strong class="bold">创建端点</strong>进入以下页面:</p>
+			<div><div><img src="img/B18024_06_032.jpg" alt="Figure 6.31 – SageMaker – creating an endpoint&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 6.31–sage maker–创建端点</p>
+			<p>在<em class="italic">图 6.31 </em>显示的网页上，提供一个端点名称。我给了这个名字<code>customer-segmentation-endpoint</code>。向下滚动到<strong class="bold">端点配置</strong>部分，选择我们之前创建的端点<a id="_idIndexMarker430"/>配置，并点击<strong class="bold">选择端点配置</strong>按钮。一旦选中，点击<strong class="bold">创建端点</strong>。创建一个端点需要几分钟时间。当端点状态更改为<strong class="bold">可用</strong>时，您的模型将为实时流量提供服务。</p>
+			<h4>测试 SageMaker 端点</h4>
+			<p>接下来我们需要知道的是如何消费模型。有不同的方法——您可以使用 SageMaker 库、Amazon SDK 客户端(Python、TypeScript 或任何其他可用的软件)或 SageMaker 端点 URL。所有这些方法都默认为 AWS IAM 身份验证。如果您有特殊的需求，并且想要在没有身份验证的情况下或者使用自定义身份验证的情况下公开模型，那么可以使用 API gateway 和 Lambda authorizer 来实现。出于本练习的目的，我们将使用<code>boto3</code>客户端来调用 API。不管我们如何调用端点，结果应该是相同的。</p>
+			<p>下面的代码块使用<code>boto3</code>客户端调用端点:</p>
+			<pre class="source-code">import json</pre>
+			<pre class="source-code">import boto3</pre>
+			<pre class="source-code">import os</pre>
+			<pre class="source-code">os.environ["AWS_ACCESS_KEY_ID"] = "&lt;aws_key&gt;"</pre>
+			<pre class="source-code">os.environ["AWS_SECRET_ACCESS_KEY"] = "&lt;aws_secret&gt;"</pre>
+			<pre class="source-code">os.environ["AWS_DEFAULT_REGION"] = "us-east-1"</pre>
+			<pre class="source-code">payload = json.dumps({"customer_list":["12747.0", "12841.0"]})</pre>
+			<pre class="source-code">runtime = boto3.client("runtime.sagemaker")</pre>
+			<pre class="source-code">response = runtime.invoke_endpoint(</pre>
+			<pre class="source-code">    EndpointName= "customer-segmentation-endpoint", </pre>
+			<pre class="source-code">    ContentType="application/json", Body=payload</pre>
+			<pre class="source-code">)</pre>
+			<pre class="source-code">response = response["Body"].read()</pre>
+			<pre class="source-code">result = json.loads(response.decode("utf-8"))</pre>
+			<pre class="source-code">print(results)</pre>
+			<p>在前面的<a id="_idIndexMarker432"/>代码块中，我们调用我们创建的端点来为 id 为<code>12747.0</code>和<code>12841.0</code>的两个客户运行预测。端点将在几毫秒内响应给定客户 id 的预测。现在，端点可以与模型消费者共享。</p>
+			<p>既然模型已经进入生产阶段，那么让我们来看看模型进入生产阶段后的几个方面。</p>
+			<h1 id="_idParaDest-105"><a id="_idTextAnchor106"/>超越模式生产</h1>
+			<p>在这一部分，我们将讨论 ML 的<a id="_idIndexMarker433"/>后期制作方面，以及我们如何从采用功能商店中获益。</p>
+			<h2 id="_idParaDest-106"><a id="_idTextAnchor107"/>特征漂移监控和模型再训练</h2>
+			<p>一旦<a id="_idIndexMarker434"/>模型投入生产，下一个经常出现的问题是该模型在生产中的表现如何。可能有不同的指标用于衡量模型的性能–例如，对于推荐模型，性能可以通过<a id="_idIndexMarker435"/>转化率来衡量，即推荐产品的购买频率。同样，预测一个客户的下一步行动，可能用错误率来衡量，等等。做这件事没有通用的方法。但是如果一个模特表现不好，就需要重新培训或者换一个新的。</p>
+			<p>定义模型何时应该被重新训练的另一个方面是特征何时开始偏离它被训练的值。例如，假设客户在初始模型训练期间的平均频率值是 10，但是现在，平均频率值是 25。同样，最低货币价值最初是 100.00 美元，现在是 500.00 美元。这就是<a id="_idIndexMarker436"/>所谓的<strong class="bold">数据漂移</strong>。</p>
+			<p>数据漂移监控测量数据统计分布的变化；在特征监控的情况下，它比较从<em class="italic"> t1 </em>时间到<em class="italic"> t2 </em>时间的特征统计分布的变化。位于以下 URL 的文章讨论了数据漂移监控的不同指标:<a href="https://towardsdatascience.com/automating-data-drift-thresholding-in-machine-learning-systems-524e6259f59f">https://towards data science . com/automating-data-drift-thresholding-in-machine-learning-systems-524 e 6259 f 59 f</a>。</p>
+			<p>使用<a id="_idIndexMarker437"/>特征库，很容易从两个不同的时间点检索训练数据集，即用于<a id="_idIndexMarker438"/>模型训练的数据集和用于模型训练的所有特征的最新特征值。现在，我们需要做的就是按计划运行数据漂移监控，以生成漂移报告。Feast 带来的标准化是，由于数据是使用标准 API 存储和检索的，因此可以针对要素存储中的所有数据集按计划运行通用要素漂移监控。特征漂移报告可以作为模型再训练的指标之一。如果特性漂移影响了模型的性能，可以使用最新的数据集对其进行重新训练，并使用当前的生产模型进行部署和 AB 测试。</p>
+			<h2 id="_idParaDest-107"><a id="_idTextAnchor108"/>模型再现性和预测问题</h2>
+			<p>如果你从<a href="B18024_01_ePub.xhtml#_idTextAnchor014"> <em class="italic">回忆起第一章</em></a><em class="italic">机器学习生命周期的概述</em>，模型再现性是 ML 的常见问题之一。我们需要一种方法来一致地重现模型(或用于模型的训练数据)。在没有<a id="_idIndexMarker440"/>特征库的情况下，如果用于生成特征的基础原始数据发生变化，则不可能再现相同的训练数据集。但是，对于要素存储，正如我们之前所讨论的，要素使用时间戳进行版本化(要素数据帧中的一列是事件时间戳)。因此，我们可以查询历史数据来生成用于模型训练的相同特征集。如果用于训练该模型的算法不是随机的，则该模型也可以被复制。让我们试试这个。</p>
+			<p>由于我们已经在第五章 、<em class="italic">模型训练和推理</em>的<em class="italic">模型训练与特征库</em>部分做了类似的事情，我们将重用相同的代码来运行这个实验。复制并运行所有代码，直到创建实体数据帧，然后用一个旧的时间戳(模型被训练时的时间戳)替换<code>event_timestamp</code>列，如下所示。在这种情况下，模型在<code>2022-03-26 16:24:21</code>被训练，如<a href="B18024_05_ePub.xhtml#_idTextAnchor078"> <em class="italic">的<em class="italic">图 5.1 </em>第五章</em> </a>、<em class="italic">模型训练与推理</em>所示:</p>
+			<pre class="source-code">## replace timestamp to older time stamp.</pre>
+			<pre class="source-code">entity_df["event_timestamp"] = pd.to_datetime("2022-03-26 16:24:21")</pre>
+			<p>一旦你完成替换时间戳，继续运行第五章 、<em class="italic">模型训练和推理</em>的<em class="italic">迪伊模型训练实验</em>部分的代码。您应该能够生成在 Dee 的模型训练中使用的完全相同的数据集(在这种情况下，数据集在<em class="italic">图 5.2 </em>的<a href="B18024_05_ePub.xhtml#_idTextAnchor078"> <em class="italic">第 5 章</em> </a>、<em class="italic">模型训练和推理</em>)。因此，如果模型使用非随机算法，那么模型也可以使用特征集来再现。</p>
+			<p>特性库的另一个优势是调试预测问题。让我们考虑一个场景，其中您有一个面向网站的模型，该模型将交易分类为欺诈或非欺诈。在高峰时段，它将一些交易标记为欺诈，但这些交易是合法的。客户打电话到客服部门投诉，现在轮到数据科学家 Subbu 找出问题所在。如果项目中没有特征存储，要重现该问题，Subbu 必须进入原始数据，尝试生成特征，并查看行为是否仍然保持不变。如果没有，Subbu 将不得不进入应用程序日志，处理它，在事件发生前寻找用户行为，尝试从用户交互的角度再现它，并捕获所有这些试验的特征，希望该问题至少可以再现一次。</p>
+			<p>另一方面，利用项目中使用的特性库，Subbu 将计算出事件发生的大致时间、模型中使用的实体和特性，以及事件发生时生产中运行的模型版本。有了这些信息，Subbu 将连接到特征库，并获取问题发生时大致时间范围内所有实体的模型中使用的所有特征。假设事件发生在今天中午 12:00 到 12:15 之间，功能是流式的，刷新间隔大约为 30 秒。这意味着，平均而言，对于给定的实体，从任何给定的时间开始，在接下来的 30 秒内，功能有可能会发生变化。</p>
+			<p>为了重现该问题，Subbu 将形成一个实体数据帧，其中相同的实体 ID 在一列中重复 30 次，对于事件时间列，时间戳从 12:00pm 到 12:15pm，间隔为 30 秒。有了这个实体数据帧，Subbu 将使用 Feast API 查询历史存储，并对生成的要素运行预测。如果问题重现，Subbu 具有导致该问题的功能集。如果没有，使用实体数据帧，间隔将减少到小于 30 秒，可能减少到 10 秒，以确定特征变化的速度是否快于 30 秒。Subbu 可以继续这样做，直到她找到重现问题的特征集。</p>
+			<h2 id="_idParaDest-108"><a id="_idTextAnchor109"/>下一个模型的开端</h2>
+			<p>现在<a id="_idIndexMarker443"/>模型已经生产出来，数据科学家 Subbu 开始处理下一个问题陈述。让我们假设下一个 ML 模型必须预测<a id="_idIndexMarker444"/>顾客的<strong class="bold">下一个购买日</strong> ( <strong class="bold"> NPD </strong>)。这里的用例可能是，基于 NPD，我们想要为客户开展一项活动。如果客户的购买日在未来很久，我们想提供一个特殊的交易，这样我们可以鼓励购买更快。现在，在进入原始数据集之前，Subbu 可以根据搜索和可发现性如何集成到要素存储中来寻找可用的要素。由于 Feast 从面向服务转向面向 SDK/CLI，因此需要目录工具、包含所有特性库的 GitHub 库、数据网格门户等等。但是，对于 SageMaker 或 Databricks 等功能存储，用户可以连接到功能存储端点(使用 boto3 或 Databricks 工作区的 SageMaker 运行时),并使用 API 或从 UI 浏览可用的功能定义。我以前没有使用过 Tecton 特性库，但是 Tecton 也为它的特性库提供了一个 UI，可以用来浏览可用的特性。如你所见，这是 0.9.X 和 0.20.X 之间的不同版本的 Feast 的弊端之一(0.20 是编写时的版本)。</p>
+			<p>现在，让我们假设 Subbu 有办法定位所有的特性库。现在，她可以连接并浏览它们，找出在 NPD 模型中有用的项目和特性定义。到目前为止，我们只有一个特性存储库，其中包含我们一直在使用的客户 RFM 特性，这些特性在模型中非常有用。要使用这些特性，Subbu 所要做的就是获得对 AWS 资源的读取权限，最新的 RFM 特性每天都可以用于实验，如果模型进入生产，也可以使用这些特性。</p>
+			<p>为了了解特性存储在后续模型开发过程中的益处，我们应该尝试构建 NPD。我将通过最初的几个步骤让您开始使用这个模型。正如我们在第一个模型的开发过程中关注的博客一样，我们将关注同一博客系列的另一部分，可以在<a href="https://towardsdatascience.com/predicting-next-purchase-day-15fae5548027">https://towards data science . com/predicting-next-purchase-day-15 FAE 5548027</a>找到。请通读这篇博客，因为它讨论了这种方法，以及为什么作者认为特定的特性会有用。在这里，我们将跳到特性工程部分。</p>
+			<p>我们将使用博客作者使用的功能集，包括以下内容:</p>
+			<ul>
+				<li>RFM 特征和集群</li>
+				<li>最近三次购买之间的天数</li>
+				<li>采购差异的平均值和标准偏差</li>
+			</ul>
+			<p><a id="_idIndexMarker445"/>第一个特征集已经存在于特征库中；我们不需要为此做任何额外的事情。但是对于另外两个，我们需要从原始数据中进行特征工程。位于<a href="https://github.com/PacktPublishing/Feature-Store-for-Machine-Learning/blob/main/Chapter06/notebooks/ch6_next_purchase_day_feature_engineering.ipynb">https://github . com/packt publishing/Feature-Store-for-Machine-Learning/blob/main/chapter 06/notebooks/ch6 _ next _ purchase _ day _ Feature _ engineering . ipynb</a>的笔记本具有生成前述第二和第三要点中的功能所需的功能工程。我将把这些特性吸收到一个特性库中，并结合使用以前模型中的特性(RFM)来训练一个新模型。当您开发和生产这个模型时，您将会看到特征库的好处，以及它是如何加速模型构建的。</p>
+			<p>接下来，让我们讨论如何在模型处于生产状态时更改特征定义。</p>
+			<h2 id="_idParaDest-109"><a id="_idTextAnchor110"/>生产后特征定义的变化</h2>
+			<p>到目前为止，我们<a id="_idIndexMarker446"/>已经讨论了开发阶段的特性摄取、查询和特性集的变更。然而，我们还没有谈到模型在生产中对特性定义的改变。通常，一旦模型进入生产阶段，改变特征定义是很困难的。这样做的原因是，有可能多个模型正在使用特性定义，对它们的任何更改都会对模型产生级联效应。这也是为什么一些特性库还不支持特性定义更新的原因之一。我们需要一种方法来有效地处理这种变化。</p>
+			<p>这还是一个灰色地带；做这件事没有对错之分。我们可以采用我们在其他软件工程过程中使用的任何机制。一个简单的方法是特性视图的版本控制，类似于我们处理 REST APIs 或 Python 库的方式。每当生产特性集需要变更时，假设它正被其他人使用，一个新版本的特性视图(姑且称之为<code>customer-segemantion-v2</code>)将被创建和使用。然而，在所有模型迁移之前，仍然需要管理先前的版本。如果，由于某种原因，有需要旧版本的模型，并且不能迁移到新版本的特性表/视图，那么它可能必须被管理或者移交给需要它的团队。需要对功能和功能工程作业的所有权进行一些讨论。</p>
+			<p>这就是数据作为产品的<a id="_idIndexMarker447"/>概念非常有意义的地方。这里缺少的是生产者和消费者定义合同和通知变化的框架。数据生产者需要一种发布其数据产品的方式；在这里，数据产品是特征视图。产品的消费者可以订阅数据产品并使用它。在功能集更改期间，生产者可以定义数据产品的新版本，并降低旧版本的价值，以便消费者可以得到有关更改的通知。这只是我对一个解决方案的看法，但是我确信有更好的人可能已经在实施另一个解决方案了。</p>
+			<p>说到这里，让我们总结一下本章所学的内容，然后进入下一章。</p>
+			<h1 id="_idParaDest-110"><a id="_idTextAnchor111"/>总结</h1>
+			<p>在这一章中，我们的目标是使用我们在前面章节中构建的所有东西，并为批处理和在线用例生产 ML 模型。为此，我们创建了一个亚马逊 MWAA 环境，并将其用于批处理模型管道的编排。对于在线模型，我们使用 Airflow 来编排功能工程管道和 SageMaker 推理组件，以部署 Docker 在线模型作为 SageMaker 端点。我们研究了特征存储如何促进 ML 的后期制作方面，例如特征漂移监控、模型再现性、调试预测问题，以及如何在模型生产时更改特征集。我们还研究了数据科学家如何通过使用功能库在新模型上取得领先。到目前为止，我们在所有的练习中都使用了 Feast 在下一章，我们将看看市场上的一些特色商店，以及它们与 Feast 的不同之处，还有一些例子。</p>
+		</div>
+	
+
+</body></html>

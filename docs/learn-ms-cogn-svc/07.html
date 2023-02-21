@@ -1,0 +1,828 @@
+<html><head/><body>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Extending Knowledge Based on Context</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body id="5410O0-747158f676dc47cd8e179786efb4ebe5" class="calibre">
+        
+
+                            
+                    <h1 class="header-title" id="calibre_pb_0">基于上下文扩展知识</h1>
+                
+            
+            
+                
+<p>“通过利用 Azure 机器学习和推荐 API，我们为零售商推出了一种新的个性化商务体验，这种体验可以提高任何渠道的购物者转化率和参与度。”</p>
+<p>Orckestra 首席产品官 Frank Kouretas</p>
+<p class="calibre2">在前一章中，我们介绍了其余的语言 API。在本章中，我们将研究前两个知识 API:实体链接 API 和建议 API。我们将从学习如何链接文本中的实体开始。使用实体链接 API，我们可以根据上下文识别文本中的不同实体。接下来，我们将研究一下建议 API。这非常适合电子商务应用程序，您可以根据不同的标准推荐不同的商品。</p>
+<p class="calibre2">完成本章后，我们将涵盖以下主题:</p>
+<ul class="calibre15">
+<li class="calibre16">基于上下文识别和标识文本中的独立实体</li>
+<li class="calibre16">根据经常一起购买的商品推荐商品</li>
+<li class="calibre16">基于购买了该商品的其他顾客购买了哪些商品来推荐商品</li>
+<li class="calibre16">根据顾客之前的活动推荐商品</li>
+</ul>
+
+
+            
+
+            
+        
+    </body></html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Linking entities based on context</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body id="54VHA0-747158f676dc47cd8e179786efb4ebe5" class="calibre">
+        
+
+                            
+                    <h1 class="header-title" id="calibre_pb_0">基于上下文链接实体</h1>
+                
+            
+            
+                
+<p class="calibre2">使用实体链接 API，我们可以基于上下文链接文本中的实体。这样做意味着我们可以根据给定文本中的用法来区分单词的意思。一个单词，比如<em class="calibre13"> times </em>，可能是指报纸<em class="calibre13">纽约时报</em>。同样的词也可以用在地名中，<kbd class="calibre12">Times Square</kbd>。上下文决定两个实体<em class="calibre13">乘以</em>代表哪一个。API 检测给定文本中的实体，并将所有实体与维基百科条目相关联。</p>
+<p class="calibre2">我们将为我们的智能房屋应用程序添加实体链接功能。现在，我们将只添加一个文本字段输入，但在后面的章节中，我们将看到如何利用它。</p>
+<p class="calibre2">在 Visual Studio 中，将<kbd class="calibre12">Microsoft.ProjectOxford.EntityLinking</kbd> NuGet 包添加到项目中。这包含使用 API 所需的客户端库。</p>
+<p class="calibre2">向<kbd class="calibre12">Model</kbd>文件夹添加一个新文件，即<kbd class="calibre12">EntityLinking.cs</kbd>文件。在类<kbd class="calibre12">EntityLinking</kbd>下面，添加一个名为<kbd class="calibre12">EntityLinkingErrorEventArgs</kbd>的新类。这将允许我们在发生错误时引发事件，并通知调用者。</p>
+<p class="calibre2">让它看起来像下面这样:</p>
+<pre class="calibre23">    public class EntityLinkingErrorEventArgs { 
+        public string ErrorMessage { get; private set; } 
+        public EntityLinkingErrorEventArgs(string errorMessage) { 
+            ErrorMessage = errorMessage; 
+        } 
+    } </pre>
+<p class="calibre2">回到<kbd class="calibre12">EntityLinking</kbd>类，我们定义我们的错误事件，以及链接客户端的实体的私有成员。此外，我们想添加一个助手函数来引发事件，名为<kbd class="calibre12">RaiseOnEntityLinkingError</kbd>。这应该接受先前接受的事件参数:</p>
+<pre class="calibre23">    public event EventHandler&lt;EntityLinkingErrorEventArgs&gt; EntityLinkingError;
+ 
+    private EntityLinkingServiceClient _entityLinkingServiceClient; </pre>
+<p class="calibre2">我们在构造函数中创建了<kbd class="calibre12">EntityLinkingServiceClient</kbd>对象:</p>
+<pre class="calibre23">    public EntityLinking(string apiKey) 
+    { 
+        _entityLinkingServiceClient = new EntityLinkingServiceClient(apiKey, "ROOT_URI"); 
+    } </pre>
+<p class="calibre2">当创建<kbd class="calibre12">EntityLinking</kbd>时，我们将 API 键作为参数传递。这在创建服务客户端时使用。我们还需要指定根 URI，就像我们在前面的一些 API 中看到的那样。</p>
+<p>如果你还没有这样做，你可以在<a href="https://portal.azure.com" target="_blank" class="calibre24">https://portal.azure.com</a>注册实体链接 API。</p>
+<p class="calibre2">我们需要这个类中的一个函数，<kbd class="calibre12">LinkEntities</kbd>。这应该接受两个<kbd class="calibre12">strings</kbd>和一个<kbd class="calibre12">int</kbd>作为参数。它应该具有返回类型<kbd class="calibre12">Task&lt;EntityLink[]&gt;</kbd>并标记为<kbd class="calibre12">async</kbd>:</p>
+<pre class="calibre23">    public async Task&lt;EntityLink[]&gt; LinkEntities(string inputText, string selection = "", int offset = 0) 
+    { 
+        try { 
+            EntityLink[] linkingResponse = await _entityLinkingServiceClient.LinkAsync(inputText, selection, offset); 
+ 
+            return linkingResponse; 
+        } </pre>
+<p class="calibre2"><kbd class="calibre12">_entityLinkingServiceClient</kbd>上的<kbd class="calibre12">LinkAsync</kbd>功能唯一需要的参数是<kbd class="calibre12">inputText</kbd>。这是服务将尝试在其中分隔实体的文本。如果没有指定最后两个参数，服务将查找它能找到的所有实体。</p>
+<p class="calibre2">如果我们在<kbd class="calibre12">selection</kbd>中输入一个单词，服务将链接具有该名称的实体。如果输入这个，还需要加上<kbd class="calibre12">offset</kbd>。这是单词第一个字符的位置，也是它在文本中首次出现的位置。</p>
+<p class="calibre2">确保添加相应的<kbd class="calibre12">catch</kbd>条款。如果捕捉到任何异常，则引发错误事件，将异常消息用作事件参数中的参数。</p>
+<p class="calibre2">接下来我们需要添加一个视图，所以在<kbd class="calibre12">View</kbd>文件夹中创建一个名为<kbd class="calibre12">EntityLinkingView.xaml</kbd>的新文件。</p>
+<p class="calibre2">我们想添加四个<kbd class="calibre12">TextBox</kbd>元素。其中两个应该更大，因为它们是输入文本和结果文本。两个应该更小，因为它们将用于实体选择和偏移输入。此外，我们将需要一个<kbd class="calibre12">Button</kbd>元素来链接实体。</p>
+<p class="calibre2">视图就位后，我们可以添加一个视图模型。将<kbd class="calibre12">EntityLinkingViewModel.cs</kbd>添加到<kbd class="calibre12">ViewModel</kbd>文件夹中。我们需要添加一个类型为<kbd class="calibre12">EntityLinking</kbd>的私有成员。我们还需要添加与我们的视图相对应的属性。添加三个<kbd class="calibre12">string</kbd>属性，分别对应于输入文本、结果文本和实体选择。为我们的偏移添加一个<kbd class="calibre12">int</kbd>属性。最后，但同样重要的是，我们需要为我们的<kbd class="calibre12">Button</kbd>设置一个<kbd class="calibre12">ICommand</kbd>属性:</p>
+<pre class="calibre23">    public EntityLinkingViewModel() 
+    { 
+        LinkEntitiesCommand = new DelegateCommand(LinkEntities, CanLinkEntities); 
+ 
+        _entityLinking = new EntityLinking("API_KEY_HERE"); 
+        _entityLinking.EntityLinkingError += OnEntityLinkingError;
+    } </pre>
+<p class="calibre2">构造函数将<kbd class="calibre12">ICommand</kbd>属性创建为一个<kbd class="calibre12">DelegateCommand</kbd>对象。<kbd class="calibre12">CanLinkEntities</kbd>如果我们输入了文本，应该返回 true，否则返回 false。</p>
+<p class="calibre2">接下来，构造函数创建我们的<kbd class="calibre12">EntityLinking</kbd>对象，指定 API 键。我们还订阅了错误事件。<kbd class="calibre12">OnEntityLinkingError</kbd>如果 API 调用失败，应在 UI 中输出错误消息。</p>
+<p class="calibre2"><kbd class="calibre12">LinkEntities</kbd>函数将负责调用 API 并输出结果:</p>
+<pre class="calibre23">    private async void LinkEntities(object obj) 
+    { 
+        EntityLink[] linkedEntities = await _entityLinking.LinkEntities (InputText, Selection, Offset); 
+ 
+        if(linkedEntities == null || linkedEntities.Length == 0) { 
+            ResultText = "No linked entities found"; 
+            return; 
+        } </pre>
+<p class="calibre2">我们在<kbd class="calibre12">_entityLinking</kbd>上称<kbd class="calibre12">LinkEntities</kbd>。如前所述，参数为<kbd class="calibre12">InputText</kbd>、实体<kbd class="calibre12">Selection</kbd>和<kbd class="calibre12">Offset</kbd>。成功的结果将返回一个类型为<kbd class="calibre12">EntityLink</kbd>的数组。这个数组中的每一项都将包含名称、Wikipedia ID 和这个实体被正确识别的概率。</p>
+<p class="calibre2">它还将包含一个匹配数组。在这个数组中，每一项都包含一个给定的文本，其中有给定的实体。它还将包含一个条目数组，每个条目表示文本中的一个位置，由第一个字符的位置标识。</p>
+<p class="calibre2">知道了这一点，我们可以格式化并打印出结果:</p>
+<pre class="calibre23">    StringBuilder sb = new StringBuilder(); 
+ 
+    sb.AppendFormat("Entities found: {0}nn", linkedEntities.Length); 
+ 
+    foreach (EntityLink entity in linkedEntities) 
+    { 
+        sb.AppendFormat("Entity '{0}'ntScore {1}ntWikipedia ID '{2}'ntMatches in text: {3}nn", entity.Name, entity.Score, entity.WikipediaID, entity.Matches.Count); 
+ 
+        foreach (var match in entity.Matches) 
+        { 
+            sb.AppendFormat("Text match: '{0}'n", match.Text); 
+ 
+            sb.Append("Found at position: "); 
+            foreach (var entry in match.Entries) 
+            { 
+                sb.AppendFormat("{0}t", entry.Offset); 
+            } 
+ 
+            sb.Append("nn"); 
+        } 
+    } 
+ 
+    ResultText = sb.ToString(); </pre>
+<p class="calibre2">确保代码能够编译，并运行它。测试运行可能会产生以下结果:</p>
+<div><img class="image-border" src="img/00080.jpeg"/></div>
+<p class="calibre2">在此测试运行中，没有指定给定的实体选择；我们可以识别文本中的所有实体。</p>
+<p class="calibre2">在这种情况下，如果我们将<kbd class="calibre12">Webb</kbd>指定为一个实体，我们将得到以下结果:</p>
+<div><img class="image-border" src="img/00081.jpeg"/></div>
+
+
+            
+
+            
+        
+    </body></html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Providing personalized recommendations</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body id="55U1S0-747158f676dc47cd8e179786efb4ebe5" class="calibre">
+        
+
+                            
+                    <h1 class="header-title" id="calibre_pb_0">提供个性化推荐</h1>
+                
+            
+            
+                
+<p class="calibre2">如果你经营一个电子商务网站，一个很好的功能就是推荐。使用推荐 API，您可以很容易地添加它。利用<strong class="calibre1">微软 Azure 机器学习</strong>，可以训练 API 来识别应该推荐的项目。</p>
+<p class="calibre2">有三种常见的建议方案:</p>
+<ul class="calibre15">
+<li class="calibre16"><strong class="calibre1">(FBT)</strong>:FBT 是推荐经常与其他物品一起购买的物品的场景。一个例子是，如果你买了一个鼠标；然后 API 会推荐一个键盘。</li>
+<li class="calibre16"><strong class="calibre1">项目到项目推荐(I2I) </strong> : I2I 是某些项目经常在其他项目之后被观看的场景。通常，这将以<em class="calibre13">的形式出现，访问过这个项目的人也访问过这个其他项目</em>。</li>
+<li class="calibre16"><strong class="calibre1">顾客对商品的推荐(U2I) </strong> : U2I 是利用顾客之前的行为来推荐商品的场景。如果你是卖电影的，你可以根据客户之前的电影选择推荐其他电影。</li>
+</ul>
+<p class="calibre2">使用建议 API 的一般步骤如下:</p>
+<ol class="calibre18">
+<li value="1" class="calibre16">创建一个模型。</li>
+<li value="2" class="calibre16">导入目录数据(电子商务站点中的项目)。</li>
+<li value="3" class="calibre16">导入使用数据。</li>
+<li value="4" class="calibre16">建立推荐模型。</li>
+<li value="5" class="calibre16">消费推荐。</li>
+</ol>
+<p class="calibre2">虽然您可以通过编程完成所有任务，但微软已经为前四个步骤创建了一个 web 界面。在撰写本文时，这仍处于测试阶段；然而，它确实起了作用。</p>
+<p>如果你还没有这样做，在<a href="https://portal.azure.com" target="_blank" class="calibre24">https://portal.azure.com</a>注册一个 API 密钥。</p>
+
+
+            
+
+            
+        
+    </body></html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Creating a model</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body id="56SIE0-747158f676dc47cd8e179786efb4ebe5" class="calibre">
+        
+
+                            
+                    <h1 class="header-title" id="calibre_pb_0">创建模型</h1>
+                
+            
+            
+                
+<p class="calibre2">要开始创建模型，请前往<a href="https://recommendations-portal.azurewebsites.net/" target="_blank" class="calibre4">https://recommendations-portal.azurewebsites.net/</a>。使用创建的 API 密钥登录:</p>
+<div><img class="image-border23" src="img/00082.jpeg"/></div>
+<p class="calibre2">我们需要添加一个项目。一个项目将作为一个推荐方案。</p>
+<p class="calibre2">我们首先为 FBT 场景添加一个项目:</p>
+<div><img class="image-border24" src="img/00083.jpeg"/></div>
+
+
+            
+
+            
+        
+    </body></html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Importing catalog data</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body id="57R300-747158f676dc47cd8e179786efb4ebe5" class="calibre">
+        
+
+                            
+                    <h1 class="header-title" id="calibre_pb_0">导入目录数据</h1>
+                
+            
+            
+                
+<p class="calibre2">创建项目后，我们可以添加目录数据。这是您通常从数据库添加项目的地方。需要以文件格式上传，有特定的格式。</p>
+<p class="calibre2">下表描述了目录中每个项目所需的数据:</p>
+<table class="msotablegrid">
+<tbody class="calibre6">
+<tr class="calibre7">
+<td class="calibre8"><strong class="calibre1">名称</strong></td>
+<td class="calibre8"><strong class="calibre1">描述</strong></td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">项目 ID</td>
+<td class="calibre8">给定项目的唯一标识符</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">物品的名称</td>
+<td class="calibre8">项目的名称</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">项目类别</td>
+<td class="calibre8">项目的类别，如硬件、软件、图书类型等</td>
+</tr>
+</tbody>
+</table>
+<p class="calibre2"> </p>
+<p class="calibre2">此外，还有一些可选的数据字段。下表对这些进行了描述:</p>
+<table class="msotablegrid">
+<tbody class="calibre6">
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><strong class="calibre1">名称</strong></p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><strong class="calibre1">描述</strong></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2">描述</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">项目的描述</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2">特征表</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">逗号分隔的功能列表，可以增强推荐</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="calibre2"> </p>
+<p class="calibre2">包含所有数据的文件可能包含如下内容:</p>
+<pre class="calibre23">C9F00168, Kiruna Flip Cover, Accessories, Description of item, compatibility = lumia, hardware type = mobile</pre>
+<p class="calibre2">添加特性通常更好，因为这可以改进推荐。任何新项目，很少使用，是不可能被推荐的，如果没有功能存在。</p>
+<p class="calibre2">特征应该是明确的。这意味着一个特性可以是一个价格范围。价格本身并不是一个好的特征。</p>
+<p class="calibre2">每个项目最多可以添加 20 个功能。当一个包含物品特征的目录上传后，你需要建立一个等级。这将对每个特性进行分级，其中等级越高的特性通常使用起来越好。</p>
+<p class="calibre2">本章的代码示例包含一个样本目录。我们将在下面的例子中使用它。或者，你可以从微软下载一些数据，地址是 http://aka.ms/RecoSampleData。我们想使用来自<kbd class="calibre12">MsStoreData.zip</kbd>的数据。</p>
+<p class="calibre2">下载文件后，我们可以将目录上传到我们的项目:</p>
+<div><img class="image-border25" src="img/00084.jpeg"/></div>
+<p class="calibre2">单击浏览文件字段。浏览到您下载的示例文件并选择<kbd class="calibre12">catalog.csv</kbd>文件。这将上传目录并对其进行处理。正如您在前面的屏幕截图中看到的，它将通过显示目录上传状态来告诉您目录何时上传和处理。</p>
+<p>目录中的最大项目数是 100，000。任何给定的目录文件都不能大于 200 MB。如果您的文件较大，并且您还有更多项目，您可以上传多个文件。</p>
+
+
+            
+
+            
+        
+    </body></html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Importing usage data</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body id="58PJI0-747158f676dc47cd8e179786efb4ebe5" class="calibre">
+        
+
+                            
+                    <h1 class="header-title" id="calibre_pb_0">导入使用数据</h1>
+                
+            
+            
+                
+<p class="calibre2">我们需要做的下一步是导入使用数据。这是一份描述你的客户过去所有交易的文件。该文件包含带有事务的行，其中每个事务是带有数据的逗号分隔的行。</p>
+<p class="calibre2">所需数据如下:</p>
+<table class="msotablegrid">
+<tbody class="calibre6">
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><strong class="calibre1">名称</strong></p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><strong class="calibre1">描述</strong></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2">用户标识</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">每个客户的唯一标识符</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2">项目 ID</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">项目的唯一标识符，与目录相关</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2">时间</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">交易的时间</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="calibre2"> </p>
+<p class="calibre2">此外，还可能有一个名为<strong class="calibre1">事件</strong>的字段。这描述了交易的类型。允许的值有<kbd class="calibre12">Click</kbd>、<kbd class="calibre12">RecommendationClick</kbd>、<kbd class="calibre12">AddShopCart</kbd>、<kbd class="calibre12">RemoveShopCart</kbd>和<kbd class="calibre12">Purchase</kbd>。</p>
+<p class="calibre2">给定目录中的上述示例，使用文件中的一行可能如下所示:</p>
+<pre class="calibre23">    00030000D16C4237, C9F00168, 2015/08/04 T 11:02:37, Purchase</pre>
+<p class="calibre2">使用文件的最大文件大小为 200 MB。</p>
+<p class="calibre2">推荐的质量依赖于使用数据的数量。通常，每个项目应该有大约 20 个注册的交易。这意味着，如果您在目录中有 100 个项目，您应该在使用文件中设定 2000 个交易。</p>
+<p class="calibre2">请注意，API 当前接受的最大事务数是 500 万。如果在此之上添加新的事务，最早的数据将被删除。</p>
+<p class="calibre2">同样，你可以在<a href="http://aka.ms/RecoSampleData" target="_blank" class="calibre4">http://aka.ms/RecoSampleData</a>找到一个示例使用文件。在我们的项目中，我们需要在步骤 2:添加使用文件中点击浏览文件字段。找到名为<kbd class="calibre12">usage1.csv</kbd>的文件并上传。一旦文件被上传和处理，它将出现在上传的文件下，如前面的截图所示。</p>
+
+
+            
+
+            
+        
+    </body></html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Building a model</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body id="59O440-747158f676dc47cd8e179786efb4ebe5" class="calibre">
+        
+
+                            
+                    <h1 class="header-title" id="calibre_pb_0">建立模型</h1>
+                
+            
+            
+                
+<p class="calibre2">有了目录和使用数据之后，就该创建一个构建了。通过单击 NEW BUILD 按钮来完成，如前面的屏幕截图所示。这将导致以下对话框:</p>
+<div><img class="image-border26" src="img/00085.jpeg"/></div>
+<p class="calibre2">确保选择“FBT”作为构建类型。添加合适的描述，但注意描述不能超过 512 个字符。</p>
+<p class="calibre2">FBT 建筑公司是一个保守的推荐者。这意味着它计算两个或三个产品一起购买(同时发生)的次数。然后根据相似度函数对结果进行排序。</p>
+<p class="calibre2">您可以输入的高级参数可以是默认值。下表描述了每个参数:</p>
+<table class="msotablegrid">
+<tbody class="calibre6">
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><strong class="calibre1">参数</strong></p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><strong class="calibre1">描述</strong></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2">FBT 支持阈值</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">一个介于 3 - 50 之间的数字，用于描述模型的保守程度。这是建模时要考虑的项目的共现次数。</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2">FBT 最大项目集大小</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">一个数字(2 或 3 ),用于限制频繁集中的项目数。</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2">FBT 最低分</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">描述频繁集在推荐中必须返回的最低分数的数字。</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2">FBT 相似函数</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">定义用于推荐的相似性函数。可以是 Lift(有利于意外收获)、Co-occurrence(有利于可预测性)或 Jaccard(两者结合)。</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2">启用建模洞察力</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">定义是否应打开离线评估。如果为真，则使用数据的子集将不会用于训练，而是保留用于测试。</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="calibre2"> </p>
+<p class="calibre2">设置好参数后，您需要单击 BUILD 按钮，如前面的屏幕截图所示。这将开始构建和训练模型的过程。请注意，此过程可能需要几分钟到几个小时，具体取决于您的使用数据的大小。</p>
+<p class="calibre2">该过程完成后，状态将更新为如下所示:</p>
+<div><img class="image-border27" src="img/00086.jpeg"/></div>
+<p class="calibre2">点击“分数”按钮，您将进入一个页面，在这里您可以测试 API:</p>
+<div><img class="image-border" src="img/00087.jpeg"/></div>
+<p class="calibre2">通过在顶部窗口中选择不同的项目，您将获得该项目的推荐。在将数据付诸行动之前，这是验证数据的好方法。</p>
+<p class="calibre2">有了 FBT 模型后，我们想再添加一个。因此我们可以使用 I2I 和 U2I 建议。</p>
+<p class="calibre2">使用与 FBT 模型相同的数据，经历我们刚刚经历过的相同过程。选择“建议”作为构建类型。这将向您显示以下屏幕:</p>
+<div><img class="image-border28" src="img/00088.jpeg"/></div>
+<p class="calibre2">作为构建类型的建议适用于 I2I 和 U2I 场景。第一个将预测客户可能感兴趣的商品，给定单个或多个商品作为输入。后者将基于给定用户的历史给出可能感兴趣的项目的推荐。</p>
+<p class="calibre2">高级参数可以保留为默认值，下表对每个参数进行了描述:</p>
+<table class="msotablegrid">
+<tbody class="calibre6">
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><strong class="calibre1">参数</strong></p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><strong class="calibre1">描述</strong></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2">模型迭代次数</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">10 - 50 之间的数字，决定模型的迭代次数。数值越大，推荐准确度越高，但计算时间会越长。</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2">模型维数</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">10 - 40 之间的数字，描述模型将尝试在数据中查找的要素数量。较大的数字将允许对产生的建议进行更好的微调，但可能会阻止模型找到项目之间的相关性。</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2">项目截止下限</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">0 - 30 之间的一个数字，用于定义每个项目在模型中必须考虑的最小使用次数。</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2">项目截止上限</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">0 - 30 之间的一个数字，用于定义每个项目在模型中必须考虑的最大使用次数。</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2">用户截止下限</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">0 - 10 之间的一个数字，定义用户必须执行的最小事务数，才能在模型中被考虑。</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2">用户截止上限</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">0 - 10 之间的一个数字，定义用户必须执行的最大事务数，才能在模型中被考虑。</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2">启用建模洞察力</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">定义是否应打开离线评估。如果为真，则使用数据的子集将不会用于训练，而是保留用于测试。</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2">启用 U2I</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">设定为 true 以启用 U2I 建议。</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="calibre2"> </p>
+<p class="calibre2">设置好所有参数后，单击 BUILD 按钮来构建和训练模型。考虑到与 FBT 模型相同的数据量，这应该需要更长的时间来执行。这也将受到定义的模型迭代次数的影响。</p>
+<p class="calibre2">一旦该过程完成，您将再次有可能通过点击分数按钮来测试您的模型。</p>
+<p class="calibre2">对于每个模型，您可以创建多个构件。默认情况下，最后创建的版本将被标记为活动版本。这将在获得推荐时使用。</p>
+
+
+            
+
+            
+        
+    </body></html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Consuming recommendations</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body id="5AMKM0-747158f676dc47cd8e179786efb4ebe5" class="calibre">
+        
+
+                            
+                    <h1 class="header-title" id="calibre_pb_0">消费推荐</h1>
+                
+            
+            
+                
+<p class="calibre2">为了使用我们刚刚创建的推荐模型，我们将创建一个新的示例应用程序。使用我们之前创建的 MVVM 模板来创建它。</p>
+<p class="calibre2">在撰写本文时，还没有推荐 API 的客户机包。这意味着我们需要依赖 web 请求，正如我们在第六章、<em xmlns:epub="http://www.idpf.org/2007/ops" class="calibre13">理解文本</em>中看到的。为了加快开发时间，从第 6 章<em xmlns:epub="http://www.idpf.org/2007/ops" class="calibre13">理解文本</em>中的<a xmlns:epub="http://www.idpf.org/2007/ops" href="" target="_blank" class="calibre4">示例代码中复制<kbd xmlns:epub="http://www.idpf.org/2007/ops" class="calibre12">WebRequest.cs</kbd>文件。将该文件粘贴到<kbd xmlns:epub="http://www.idpf.org/2007/ops" class="calibre12">Model</kbd>文件夹中，并确保更新名称空间。</a></p>
+<p>记得添加对<kbd class="calibre41">System.Web</kbd>和<kbd class="calibre41">System.Runtime.Serialization</kbd>的引用。</p>
+<p class="calibre2">由于不需要太多的用户界面，我们将在<kbd class="calibre12">MainView.xaml</kbd>文件中添加所有内容。我们将需要两个<kbd class="calibre12">ComboBox</kbd>元素。这些将列出我们的推荐型号和目录项目。我们还需要一个<kbd class="calibre12">Button</kbd>元素来获取建议，一个<kbd class="calibre12">TextBox</kbd>元素来显示结果建议。</p>
+<p class="calibre2">对应的 ViewModel<kbd class="calibre12">MainViewModel.cs</kbd>将需要属性来对应 UI 元素。添加类型为<kbd class="calibre12">RecommendationModel</kbd>的<kbd class="calibre12">ObservableCollection</kbd>，它将保存我们的模型。我们一会儿会看看类型。我们需要一个类型为<kbd class="calibre12">RecommendationModel</kbd>的属性，保存所选择的模型。添加一个类型为<kbd class="calibre12">Product</kbd>的<kbd class="calibre12">ObservableCollection</kbd>属性，以及一个对应于可用和选定属性的<kbd class="calibre12">Product</kbd>属性。我们还需要一个用于结果的<kbd class="calibre12">string</kbd>属性和一个用于按钮的<kbd class="calibre12">ICommand</kbd>属性。</p>
+<p class="calibre2">添加一个私有成员，类型为<kbd class="calibre12">WebRequest</kbd>，这样我们就可以调用 API。</p>
+<p class="calibre2">在<kbd class="calibre12">Model</kbd>文件夹中添加一个名为<kbd class="calibre12">Product</kbd>的新文件。为了使用我们目录中的商品，我们将把目录文件加载到应用程序中，为每个商品创建一个<kbd class="calibre12">Product</kbd>。让<kbd class="calibre12">Product</kbd>看起来如下:</p>
+<pre class="calibre23">    public class Product { 
+        public string Id { get; set; } 
+        public string Name { get; set; } 
+        public string Category { get; set; } 
+ 
+        public Product(string id, string name, string category) { 
+            Id = id; 
+            Name = name; 
+            Category = category; 
+        } 
+    } </pre>
+<p class="calibre2">我们需要物品的<kbd class="calibre12">Id</kbd>、<kbd class="calibre12">Name</kbd>和<kbd class="calibre12">Category</kbd>。</p>
+<p class="calibre2">构造函数应该创建一个<kbd class="calibre12">WebRequest</kbd>对象:</p>
+<pre class="calibre23">    public MainViewModel() 
+    { 
+        _webRequest = new WebRequest ("https://westus.api.cognitive.microsoft.com/recommendations/v4.0/models/", "API_KEY_HERE"); 
+        RecommendCommand = new DelegateCommand(RecommendBook, CanRecommendBook); 
+ 
+        Initialize(); 
+    } </pre>
+<p class="calibre2">当我们创建<kbd class="calibre12">WebRequest</kbd>对象时，我们指定推荐端点和我们的 API 键。<kbd class="calibre12">RecommendCommand</kbd>是<kbd class="calibre12">ICommand</kbd>的对象，作为<kbd class="calibre12">DelegateCommand</kbd>。我们需要指定要执行的操作，以及允许我们执行命令的条件。如果我们已经选择了一个推荐模型和一个产品，我们应该被允许执行这个命令。</p>
+<p class="calibre2">初始化将确保我们获取我们的推荐模型和产品:</p>
+<pre class="calibre23">    private async void Initialize() { 
+        await GetModels(); 
+        GetProducts(); 
+    } </pre>
+<p class="calibre2"><kbd class="calibre12">GetModels</kbd>方法将调用 API。</p>
+<pre class="calibre23">    private async Task GetModels() 
+    { 
+        RecommandationModels models = await _webRequest.MakeRequest &lt;object, RecommandationModels&gt;(HttpMethod.Get, string.Empty); </pre>
+<p class="calibre2">这个调用是一个<kbd class="calibre12">GET</kbd>请求，所以我们在<kbd class="calibre12">MakeRequest</kbd>中指定它。我们不需要添加任何查询字符串或请求体，所以我们将这些参数留空。一个成功的调用应该产生一个 JSON 响应，我们将它反序列化为一个<kbd class="calibre12">RecommendationModels</kbd>对象。这是一个数据契约，所以在名为<kbd class="calibre12">Contracts</kbd>的文件夹中添加一个名为<kbd class="calibre12">Models.cs</kbd>的文件。</p>
+<p class="calibre2">成功的结果将产生以下输出:</p>
+<pre class="calibre23">    { 
+        "models": [ 
+        { 
+            "id": "string", 
+            "name": "string", 
+            "description": "string", 
+            "createdDateTime": "string", 
+            "activeBuildId": 0, 
+            "catalogDisplayName": "string" 
+        }] 
+    } </pre>
+<p class="calibre2">我们有一个<kbd class="calibre12">models</kbd>数组。这个数组中的每个项目都有一个<kbd class="calibre12">id</kbd>、一个<kbd class="calibre12">name</kbd>、一个<kbd class="calibre12">description</kbd>、<kbd class="calibre12">createdDateTime</kbd>、<kbd class="calibre12">activeBuildId</kbd>和<kbd class="calibre12">catalogDisplayName</kbd>。确保类<kbd class="calibre12">RecommendationModels</kbd>包含这些数据。</p>
+<p class="calibre2">如果呼叫成功，我们将型号添加到可用型号的<kbd class="calibre12">ObservableCollection</kbd>:</p>
+<pre class="calibre23">        foreach (RecommandationModel model in models.models) { 
+            AvailableModels.Add(model); 
+        }          
+        SelectedModel = AvailableModels.FirstOrDefault(); 
+    } </pre>
+<p class="calibre2">添加完所有项目后，我们将<kbd class="calibre12">SelectedModel</kbd>设置为第一个可用选项。</p>
+<p class="calibre2">要从我们的目录中添加商品，我们需要从目录文件中读取。在随书提供的示例代码中，这个文件被添加到项目中，并被复制到输出目录中。<kbd class="calibre12">GetProducts</kbd>方法将如下所示:</p>
+<pre class="calibre23">    private void GetProducts() { 
+        try { 
+            var reader = new StreamReader (File.OpenRead("catalog.csv")); 
+ 
+            while(!reader.EndOfStream) { 
+                string line = reader.ReadLine(); 
+                var productInfo = line.Split(','); 
+ 
+                AvailableProducts.Add(new Product(productInfo[0], productInfo[1], productInfo[2])); 
+            } 
+ 
+            SelectedProduct = AvailableProducts.FirstOrDefault(); 
+        } 
+        catch(Exception ex) { 
+            Debug.WriteLine(ex.Message); 
+        } 
+    } </pre>
+<p class="calibre2">这是一个基本的文件操作，从目录中读取每一行。对于每个项目，我们获得所需的信息，为每个项目创建一个<kbd class="calibre12">Product</kbd>。然后将其添加到<kbd class="calibre12">ObservableCollection</kbd>属性中的<kbd class="calibre12">AvailableProducts</kbd>中，并且<kbd class="calibre12">SelectedProduct</kbd>是第一个可用的。</p>
+<p class="calibre2">现在我们有了我们的推荐模型和产品，我们可以执行推荐了:</p>
+<pre class="calibre23">    private async void RecommendProduct(object obj) 
+    { 
+        var queryString = HttpUtility.ParseQueryString(string.Empty); 
+             
+        queryString["itemIds"] = SelectedProduct.Id; 
+        queryString["numberOfResults"] = "10"; 
+        queryString["minimalScore"] = "0"; 
+        // queryString["includeMetadata"] = ""; 
+        // queryString["buildId"] = ""; 
+ 
+        Recommendations recommendations = await _webRequest.MakeRequest &lt;object, Recommendations&gt;(HttpMethod.Get, $"{SelectedModel.id}/recommend/item? {queryString.ToString()}"); </pre>
+<p class="calibre2">获取建议的调用是一个<kbd class="calibre12">GET</kbd>请求。我们从创建一个<kbd class="calibre12">queryString</kbd>开始。这就需要我们加上<kbd class="calibre12">itemIds</kbd>、<kbd class="calibre12">numberOfResults</kbd>、<kbd class="calibre12">minimalScore</kbd>。</p>
+<p class="calibre2"><kbd class="calibre12">itemIds</kbd>参数可以是所选产品的 ID。<kbd class="calibre12">numberOfResults</kbd>参数取决于您希望返回多少推荐。只有在这是 FBT 推荐的情况下，<kbd class="calibre12">minimalScore</kbd>参数才会被接受。</p>
+<p class="calibre2">我们可以选择添加<kbd class="calibre12">includedMetadata</kbd>和<kbd class="calibre12">buildId</kbd>作为参数。第一个是为将来使用而创建的，因此在编写时不会影响任何东西。<kbd class="calibre12">buildId</kbd>是给定构建的编号，以防您想要使用一个不同于活动构建的构建。</p>
+<p class="calibre2">我们在<kbd class="calibre12">_webRequest</kbd>对象上调用<kbd class="calibre12">MakeRequest</kbd>方法。这是一个<kbd class="calibre12">GET</kbd>请求，我们需要在查询字符串中指定<kbd class="calibre12">SelectedModel</kbd>的 ID。我们还需要在查询字符串中添加一些内容，这样我们就到达了正确的端点。成功的响应将产生 JSON 输出，如下所示:</p>
+<pre class="calibre23">    { 
+        "recommendedItems": [ { 
+            "items": [ { 
+                "id": "string", 
+                "name": "string", 
+                "metadata": "string" 
+            }], 
+            "rating": 0.0, 
+            "reasoning": [ 
+                "string" ] 
+        }] 
+    } </pre>
+<p class="calibre2">结果由一个数组<kbd class="calibre12">recommendedItems</kbd>组成。每一项都会有一个<kbd class="calibre12">rating</kbd>，一个<kbd class="calibre12">reasoning</kbd>的字符串数组，一个<kbd class="calibre12">items</kbd>的数组。评级给出了客户想要给定商品的可能性的指示。每个<kbd class="calibre12">reasoning</kbd>为我们提供了建议的文本表示。在<kbd class="calibre12">items</kbd>数组中的每一个条目都对应于我们目录中的一个条目，包含<kbd class="calibre12">id</kbd>、<kbd class="calibre12">name</kbd>和<kbd class="calibre12">metadata</kbd>。</p>
+<p class="calibre2">这个结果应该被反序列化成一个类型为<kbd class="calibre12">Recommandations</kbd>的数据契约，所以一定要把它添加到<kbd class="calibre12">Contracts</kbd>文件夹中。</p>
+<p class="calibre2">对于 FBT 和 I2I 建议，我们可以使用相同的<kbd class="calibre12">GET</kbd>请求。不同之处在于查询字符串中的<kbd class="calibre12">itemIds</kbd>参数。对于 FBT 的建议，这只能是一个单项。对于 I2I，它可以是几个项目的逗号分隔列表。</p>
+<p class="calibre2">当我们成功调用时，我们希望在 UI 中显示:</p>
+<pre class="calibre23">        if(recommendations.recommendedItems.Length == 0) { 
+            Recommendations = "No recommendations found"; 
+            return; 
+        } 
+ 
+        StringBuilder sb = new StringBuilder(); 
+        sb.Append("Recommended items:nn"); </pre>
+<p class="calibre2">首先，我们查看是否有任何建议。如果我们没有，我们就不会前进。如果我们有任何条目，我们创建一个<kbd class="calibre12">StringBuilder</kbd>来格式化我们的输出:</p>
+<pre class="calibre23">        foreach(Recommendeditem recommendedItem in recommendations.recommendedItems)  { 
+            sb.AppendFormat("Score: {0}n", recommendedItem.rating); 
+ 
+            foreach(string reason in recommendedItem.reasoning) { 
+                sb.AppendFormat("Reason: {0}n", reason); 
+            } 
+ 
+            foreach(Item item in recommendedItem.items)  { 
+                sb.AppendFormat("Item ID: {0}nItem Name: {1}n", item.id, item.name); 
+            } 
+ 
+            sb.Append("n"); 
+        } 
+        Recommendations = sb.ToString(); 
+    } </pre>
+<p class="calibre2">我们循环所有的<kbd class="calibre12">recommendedItems</kbd>。我们输出<kbd class="calibre12">rating</kbd>，以及每个项目的每个<kbd class="calibre12">reasoning</kbd>(通常，每个项目只能得到一个原因)。继续，我们循环所有的<kbd class="calibre12">items</kbd>，并输出<kbd class="calibre12">id</kbd>和<kbd class="calibre12">name</kbd>。这将在 UI 中打印出来。</p>
+<p class="calibre2">成功的测试运行可能会产生以下结果:</p>
+<div><img class="image-border" src="img/00089.jpeg"/></div>
+<p class="calibre2">有一些特殊情况需要注意:</p>
+<ul class="calibre15">
+<li class="calibre16">如果项目列表包含目录中不存在的单个项目，则返回空结果</li>
+<li class="calibre16">如果项目列表包含一些不在目录中的项目，这些项目将从查询中删除</li>
+<li class="calibre16">如果项目列表只包含冷项目(没有与之关联的使用数据的项目)，则返回最受欢迎的推荐</li>
+<li class="calibre16">如果项目列表包含一些冷项目，则为其他项目返回建议</li>
+</ul>
+
+
+            
+
+            
+        
+    </body></html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Recommending items based on prior activities</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body id="5BL580-747158f676dc47cd8e179786efb4ebe5" class="calibre">
+        
+
+                            
+                    <h1 class="header-title" id="calibre_pb_0">根据之前的活动推荐商品</h1>
+                
+            
+            
+                
+<p class="calibre2">为了根据用户活动进行推荐，我们需要一个用户列表。因为这对于创建一个示例来说太麻烦了，所以我们将只看做这个建议需要什么。</p>
+<p class="calibre2">这种用法的端点有点不同，因为它是另一个<kbd class="calibre12">GET</kbd>调用。在代码中，它将如下所示:</p>
+<pre class="calibre23">    $"{SelectedModel.id}/recommend/user?{queryString.ToString()}" </pre>
+<p class="calibre2">查询字符串中的参数如下:</p>
+<table class="msotablegrid">
+<tbody class="calibre6">
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><strong class="calibre1">参数</strong></p>
+</td>
+<td class="calibre8">
+<p class="calibre2"><strong class="calibre1">描述</strong></p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">userId</kbd>(必需)</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">给定用户的唯一标识符。</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">numberOfResults</kbd>(必需)</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">返回的建议数。</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">itemsIds</kbd>(可选)</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">选定项目的列表或单个 id。</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">includeMetadata</kbd>(可选)</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">如果为真，则包括项目的元数据。</p>
+</td>
+</tr>
+<tr class="calibre7">
+<td class="calibre8">
+<p class="calibre2"><kbd class="calibre12">buildId</kbd>(可选)</p>
+</td>
+<td class="calibre8">
+<p class="calibre2">标识我们要使用的版本的编号。如果没有指定，则使用活动版本。</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="calibre2"> </p>
+<p class="calibre2">成功的调用将产生与其他推荐模型相同的 JSON 输出。当然，推荐项目将基于用户过去的活动。</p>
+<p class="calibre2">注意，为了能够使用它，U2I 必须在创建模型构建时设置为 true。</p>
+
+
+            
+
+            
+        
+    </body></html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Summary</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body id="5CJLQ0-747158f676dc47cd8e179786efb4ebe5" class="calibre">
+        
+
+                            
+                    <h1 class="header-title" id="calibre_pb_0">摘要</h1>
+                
+            
+            
+                
+<p class="calibre2">在本章中，我们已经第一次看了知识 API。我们从使用实体链接 API 链接实体开始。这样做可以让我们根据上下文识别实体，并链接文本中相同类型的所有实体。接下来，我们深入研究了推荐 API。我们学习了如何使用现有的目录和使用数据建立推荐模型。使用这些模型，我们学习了如何在一个简单的示例应用程序中利用它们。</p>
+<p class="calibre2">在下一章，我们将继续知识 API。我们将学习如何构建自然语言查询和评估查询表达式。此外，我们将学习如何在自然语言查询中添加自动完成功能。</p>
+
+
+            
+
+            
+        
+    </body></html>
+</body></html>

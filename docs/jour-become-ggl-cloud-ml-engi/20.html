@@ -1,0 +1,881 @@
+<html><head/><body>
+
+
+
+
+
+
+
+
+
+<title>Appendix 5: Practicing with Google Cloud ML API</title>
+
+
+
+
+
+
+
+<div><div><h1 class="chapter-number" id="_idParaDest-232"><a id="_idTextAnchor233"/>附录五</h1>
+
+<h1 id="_idParaDest-233"><a id="_idTextAnchor234"/>使用 Google Cloud ML API 练习</h1>
+
+<p>在<a href="B18333_08.xhtml#_idTextAnchor159"> <em class="italic">第八章</em> </a>，<em class="italic">发现 Google Cloud ML API </em>中，我们探索了 Google Cloud ML API，这是 Google 提供的 API 接口，基于预先训练好的模型。Google Cloud ML API 包括以下 API，所有这些 API 都将作为本附录中的主题:</p>
+
+<ul>
+
+<li>谷歌云视觉 API</li>
+
+<li>谷歌云 NLP API</li>
+
+<li>谷歌云语音转文本 API</li>
+
+<li>谷歌云文本到语音转换 API</li>
+
+<li>谷歌云翻译 API</li>
+
+<li>Google Cloud Dialogflow API</li>
+
+</ul>
+
+<p>在本附录中，我们将提供每个 API 的实现示例。让我们开始吧。</p>
+
+<h1 id="_idParaDest-234"><a id="_idTextAnchor235"/>谷歌云视觉 API</h1>
+
+<p>在本附录中，我们<a id="_idIndexMarker805"/>将向您展示如何通过 Google Cloud Shell 和 Python SDK 使用 Vision API。</p>
+
+<p>在开始使用 Vision API 之前，我们需要从 Google 控制台启用 Vision API。从控制台的左侧菜单，导航至<code>Vision API</code>。点击<strong class="bold">视觉 API </strong>后，会提示您启用 API。在我们的例子中，API 已经启用，如下所示:</p>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US"> </p>
+
+<div><div><img alt="" height="323" src="img/B18333_15_1.jpg" width="858"/>
+
+</div>
+
+</div>
+
+<p>我们将从通过 Google Cloud Shell 使用 Vision API 开始。在 Google 控制台的右上角，单击云壳图标，如下所示:</p>
+
+<div><div><img alt="" height="481" src="img/B18333_15_2.jpg" width="1142"/>
+
+</div>
+
+</div>
+
+<p>点击<a id="_idIndexMarker806"/>云 Shell 图标后，Shell 终端会出现在控制台的底部，如下图所示:</p>
+
+<div><div><img alt="" height="207" src="img/B18333_15_3.jpg" width="1178"/>
+
+</div>
+
+</div>
+
+<p>现在，让我们看一些例子来展示 Vision API 在 Google Cloud Shell 中是如何工作的:</p>
+
+<ul>
+
+<li><strong class="bold">例 1 </strong>是一棵树的图像:</li>
+
+</ul>
+
+<div><div><img alt="" height="578" src="img/B18333_15_4.jpg" width="772"/>
+
+</div>
+
+</div>
+
+<p>要将文件<a id="_idIndexMarker807"/>上传到 Google Cloud Shell，请点击下图中高亮显示的三个圆点图标，然后点击<strong class="bold">上传</strong>:</p>
+
+<div><div><img alt="" height="407" src="img/B18333_15_5.jpg" width="376"/>
+
+</div>
+
+</div>
+
+<p>在出现的页面上，将提示您上传文件或文件夹。导航到您的浏览器并选择您想要上传的图像——在我们的例子中是<code>tree.jpeg</code>。在 Google Cloud Shell 中运行以下命令:</p>
+
+<pre>gcloud ml vision detect-objects tree.jpeg </pre>
+
+<div><div><img alt="" height="833" src="img/B18333_15_6.jpg" width="1100"/>
+
+</div>
+
+</div>
+
+<p>在前面的截图中，我们可以看到<em class="italic"> X </em>和<em class="italic"> Y </em>的值。这些表示<a id="_idIndexMarker808"/>对象的角，该对象被检测为具有 78%置信度的花。</p>
+
+<ul>
+
+<li><strong class="bold">示例 2 </strong>是谷歌标志的图像:</li>
+
+</ul>
+
+<div><div><img alt="" height="208" src="img/B18333_15_7.jpg" width="208"/>
+
+</div>
+
+</div>
+
+<p>现在，我们将尝试 Vision API 中的另一个选项，并检测一个徽标。上传 Google 徽标的图像，并在 Google Cloud Shell 中键入以下命令:</p>
+
+<pre>gcloud ml vision detect-logos glogo.jpeg</pre>
+
+<div><div><img alt="" height="538" src="img/B18333_15_8.jpg" width="850"/>
+
+</div>
+
+</div>
+
+<p>您也可以尝试使用其他选项，例如检测<em class="italic">同一</em>图像上的文本。它将显示<a id="_idIndexMarker809"/>结果，例如每个字符和每个字符在图像上的位置:</p>
+
+<pre>gcloud ml vision detect-text glogo.jpeg</pre>
+
+<div><div><img alt="" height="353" src="img/B18333_15_9.jpg" width="758"/>
+
+</div>
+
+</div>
+
+<p>请注意，前面的屏幕截图只显示了部分结果，因为输出很长。</p>
+
+<p>现在，让我们与 Python SDK 和 Vision API 进行交互:</p>
+
+<ol>
+
+<li>首先，你必须安装 Python 的 Google Cloud Vision API。在 Google Cloud Shell 中使用以下命令:<pre>pip3 install - -upgrade google-cloud-vision</pre></li>
+
+<li>接下来，我们将需要一些 Python 代码。下面是一个简单的 Python 脚本，它检测图像中的 Google 徽标:<pre>import io   import os # import the Google client library from google.cloud import vision # instantiates a client client = vision.ImageAnnotatorClient() # provide the name of the image file to annotate file_name = os.path.abspath('glogo.jpeg') # load the image into memoryview with io.open(file_name, 'rb') as image_file:      content = image_file.read() image = vision.Image(content = content) # Performs label detection on the image file response = client.logo_detection(image=image) logos = response.logo_annotations for logo in logos:      print(logo.description + " : " + str(logo.score))</pre></li>
+
+</ol>
+
+<p>在这里，我们已经导入了<a id="_idIndexMarker810"/>所有必需的库，然后定义了一个图像名称(与我们之前使用的徽标图像相同)，使用 Vision API 检测徽标，并打印结果和分数。</p>
+
+<p>现在，我们需要将 Python 脚本上传到云壳。上传 Python 脚本后，我们可以执行它，如下所示:</p>
+
+<pre class="source-code">python3 main.py
+
+<strong class="bold">Google: 0.979978402153015 </strong></pre>
+
+<p>结果<a id="_idIndexMarker811"/>表示 logo 为<strong class="bold"> Google </strong>，得分为 0.98，表示其置信度约为 98%。</p>
+
+<h1 id="_idParaDest-235"><a id="_idTextAnchor236"/>谷歌云 NLP API</h1>
+
+<p>谷歌云 NLP API 使用<a id="_idIndexMarker812"/>模型来分析文本。有几种方法可以使用 NLP API。在这里，我们将向您展示如何通过 Google Cloud Shell 和 Python SDK 使用 NLP API。</p>
+
+<p>在使用 NLP API 之前，您需要启用它。只需从控制台<em class="italic">的左侧菜单中导航到自然语言 API，或者在页面顶部的搜索栏中键入<code>Natural Language API</code>。登陆 NLP API 网页后，会要求你<strong class="bold">启用 API </strong>(如果你已经这样做了，可以跳过这个)。</em></p>
+
+<p>现在，让我们开始使用 Google Cloud Shell 的 NLP API。单击云壳图标将其激活，并键入以下命令:</p>
+
+<pre class="source-code">gcloud ml language classify-text --content =
+
+'If Roe is overturne, legislatures in 26 states have pending laws indicating that they intent to ban abortions, according to the Guttmacher Institure, a research organization that supports abortion rights. That could leave many women in need of abortion services hunders or thousands of miles away from access to procedure - unaffordable for many.
+
+Corporate America is increasingly being drawn from the political sidelines on the abortion issue in response to pressure from inverstors, customer and employees. Companies are also struggling to attract and retain talent and worry about the impact these states anti-abortion laws could have on their workers.'</pre>
+
+<p>作为输出，您将看到基于所提供文本的分类结果:</p>
+
+<div><div><img alt="" height="491" src="img/B18333_15_10.jpg" width="1413"/>
+
+</div>
+
+</div>
+
+<p>前面的输出显示，它以 98%的置信度成功识别了<code>People &amp; Society / Social Issues &amp; Advocacy</code>中的文本，以 89%的置信度成功识别了<code>Sensitive Subjects</code>中的文本。</p>
+
+<p>让我们试试另一个选择——那就是<code>analyze-sentiment</code>。在这里，我们可以提供一些文本来分析<a id="_idIndexMarker813"/>情绪。在这个例子中，我们将使用 Google Maps 中的餐馆评论:</p>
+
+<div><div><img alt="" height="455" src="img/B18333_15_11.jpg" width="1039"/>
+
+</div>
+
+</div>
+
+<p>在 Google Cloud Shell 中输入以下命令:</p>
+
+<pre class="source-code">gcloud ml language analyze-sentiment - - content =
+
+"From the minute I walked into the door, the family atmosphere hit me like a wave. The people that manage this place of the highest quality and the food matches it. I had a stromboli which I usually avoid because they turn out gummy and nasty. This place was a complete opposite. The bite of fresh garlic in the crust. The salty nuttiness of the mozzarella, the quality of the pepperoni and thin sliced sausage. Everything deserves the chefs kiss. This restaurant is an hour and half away from my home Greensville but well worth it several time over. I will definitely be back."</pre>
+
+<p>将显示分析。以下截图显示了部分结果:</p>
+
+<div><div><img alt="" height="440" src="img/B18333_15_12.jpg" width="990"/>
+
+</div>
+
+</div>
+
+<p>您可以滚动<a id="_idIndexMarker814"/>浏览结果以查看其详细信息。我们需要理解两个主要概念:量级(情感的整体强度——即积极或消极)和分数(文本的整体情感倾向)。</p>
+
+<p>现在，让我们用 Python SDK 来研究 NLP API。还有一些其他可用的 SDK，如 Java、PHP、Go 等:</p>
+
+<div><div><img alt="" height="155" src="img/B18333_15_13.jpg" width="786"/>
+
+</div>
+
+</div>
+
+<p>首先，我们需要安装 SDK。键入以下命令:</p>
+
+<pre class="source-code">pip install google-cloud-language</pre>
+
+<p>您需要有凭据才能与 Google Cloud 交互。因此，创建一个服务帐户，生成并上传密钥，然后激活它。我们将在这里跳过这一步。</p>
+
+<p>接下来，我们将需要一些 Python 代码。以下是一个简单的 Python 脚本，用于分析给定文本中的情感:</p>
+
+<pre class="source-code"># Import ghe Google Cloud client library
+
+from google.com import language_v1
+
+#set a client variable
+
+client = language_v1.LanguageServiceClient()
+
+# The text to analyze
+
+text = "We heard great review and thought we finally found a Authentic Classy Italiant Restaurant... WRONG!"
+
+document = language_v1.Document(content=text, type_ = language_v1.Document.Type.PLAIN_TEXT)
+
+#Detects the sentiment of the text
+
+sentiment = client.analyze_sentiment(request={'document':document}).document_sentiment
+
+print("Text: {}".format(text))
+
+print("Sentiment:{}".format(sentiment.score, sentiment.magnitude))</pre>
+
+<p>将脚本保存在本地计算机上，并上传到 Google Cloud Shell，文件名为<code>analyze_sentiment.py</code>。当所有文件上传完毕后，您可以运行<code>.py</code>文件来执行脚本并开始分析过程:</p>
+
+<pre class="source-code">python3 analyze_sentiment.py</pre>
+
+<p>使用<code>analyze-sentiment</code>方法，我们可以检索情绪和大小的值。我们会让<a id="_idIndexMarker815"/>你执行它并得到结果。</p>
+
+<p>NLP API 也可以用来与其他 API 集成，比如<strong class="bold">语音转文本</strong> ( <strong class="bold"> STT </strong> ) API。通过使用 STT API，我们可以将声音/语音文件转换成文本，并应用 NLP API 以及各种方法来分析文本的情感/实体/语法。</p>
+
+<h1 id="_idParaDest-236"><a id="_idTextAnchor237"/>谷歌云语音转文本 API</h1>
+
+<p>Google Cloud 语音转文本 API 用于将音频转换为文本。该服务基于深度<a id="_idIndexMarker817"/>学习技术，支持 120 种语言和变体。该服务可用于转录音频文件，并支持声控界面。云语音转文本会自动检测所讲的语言。</p>
+
+<p>首先，我们需要启用语音转文本 API。从左侧菜单中，向下滚动并点击页面顶部搜索栏中的<code>speech to text</code>。</p>
+
+<p>您将被带到一个页面，要求您启用 API。如果您之前启用了它，您将看到以下页面:</p>
+
+<div><div><img alt="" height="281" src="img/B18333_15_14.jpg" width="944"/>
+
+</div>
+
+</div>
+
+<p>因为我们将使用<code>curl</code>向语音到文本 API 发送一个请求，我们将需要生成一个 API 键来传递我们的请求 URL。</p>
+
+<p>创建一个名为<code>request.json</code>的请求文件:</p>
+
+<div><div><img alt="" height="277" src="img/B18333_15_15.jpg" width="1017"/>
+
+</div>
+
+</div>
+
+<p>然后，运行以下命令(注意，我们跳过了密钥创建步骤):</p>
+
+<pre class="source-code">curl -s -X POST -H "Content-Type: application/json" -- data-binay @request.json \ "http://speech.googleapis.com/v1/speech:recognize?key=${API_KEY} &gt; result.json</pre>
+
+<p>前面的命令调用语音到文本 API，从<code>request.json</code>文件获取所有变量，使用我们生成的密钥，并将所有结果发送/保存到<code>result.json</code>文件。要查看<code>result.json</code>文件，键入以下命令:</p>
+
+<pre class="source-code">cat result.json</pre>
+
+<div><div><img alt="" height="313" src="img/B18333_15_16.jpg" width="956"/>
+
+</div>
+
+</div>
+
+<p>前面的<a id="_idIndexMarker818"/>截图显示了给定音频文件的转换文本、置信度(98%)、处理时间和文本语言。</p>
+
+<p>语音到文本也支持不同的语言。查看<a href="https://cloud.google.com/speech-to-text/docs/languages">https://cloud.google.com/speech-to-text/docs/languages</a>了解更多关于支持语言的细节。</p>
+
+<h1 id="_idParaDest-237"><a id="_idTextAnchor238"/>谷歌云文本到语音转换 API</h1>
+
+<p>谷歌云<a id="_idIndexMarker820"/>文本到语音 API 将自然语言文本映射到类似人类的语音。第一步是启用文本到语音转换 API:</p>
+
+<div><div><img alt="" height="316" src="img/B18333_15_17.jpg" width="805"/>
+
+</div>
+
+</div>
+
+<p>通过单击外壳图标转到云外壳。在进入 API 之前，检查支持的<a id="_idIndexMarker821"/>声音和语言列表。您可以使用以下命令通过 Google Cloud Shell 检查可用的语言和语音:</p>
+
+<pre class="source-code">curl -H "Authorization: Bearer "$(gcloud auth application-default print-access-token) \
+
+     -H "Content-Type: application/json; charset=utf-8" \
+
+     "https://texttospeech.googleapis.com/v1/voices"</pre>
+
+<p>前面的命令将列出<em class="italic">所有可能的语言和声音，以及它们相应的代码。下面的截图只显示了列表的一小部分:</em></p>
+
+<div><div><img alt="" height="676" src="img/B18333_15_18.jpg" width="765"/>
+
+</div>
+
+</div>
+
+<p>接下来，我们需要创建一个名为<code>synthesize-text.json</code>的 JSON 文件，在这里我们将指定语言和语音代码，并提供一些我们想要转换成音频的完整文本:</p>
+
+<pre class="source-code">{
+
+     'input':{
+
+     'text':'This is a demo documentation for the Cloud Text-to-Speech API. In this demo documentation we are using the United States English language. The code of the language is: "en-US-Standard-A". Thank you.'
+
+     },
+
+     'voice':{
+
+     'languageCode':'en-us',
+
+     'name':'en-US-Standard-A',
+
+     'ssmlGender':'MALE'
+
+     },
+
+     'audioConfig':{
+
+     'audioEncoding':'MP3'
+
+     }
+
+}</pre>
+
+<p>使用下面的<a id="_idIndexMarker822"/>代码通过<code>curl</code>命令调用文本到语音转换 API:</p>
+
+<pre class="source-code">curl -H "Authorization: Bearer "$(gcloud auth application-default print-access-token) \
+
+  -H "Content-Type: application/json; charset=utf-8" \
+
+  -d @synthesize-text.json "https://texttospeech.googleapis.com/v1/text:synthesize" \
+
+  &gt; synthesize-text.txt</pre>
+
+<p>运行前面的命令后，结果将被保存到一个名为<code>synthesize-text.txt</code>的文件中。</p>
+
+<p>打开<code>synthesize-text.txt</code>文件。您会注意到，文本到语音 API 以 base64 编码的文本提供音频输出，并被分配给<code>audioContent</code>字段，如下所示:</p>
+
+<pre class="source-code">{
+
+  "audioContent": "//NExAASGoHwABhGudEACdzqFXfRE4EY3AACkD/zX4ADf/6J/[...]"
+
+}</pre>
+
+<p>现在，创建<a id="_idIndexMarker823"/>一个名为<code>tts_decode.py</code>的 Python 文件:</p>
+
+<pre class="source-code">import argparse
+
+from base64 import decodebytes
+
+import json
+
+"""
+
+Usage:
+
+     python tts_decode.py --input "synthesize-text.txt" \
+
+     --output "synthesize-text-audio.mp3"
+
+"""
+
+def decode_tts_output(input_file, output_file):
+
+     """ Decode output from Cloud Text-to-Speech.
+
+     input_file: the response from Cloud Text-to-Speech
+
+     output_file: the name of the audio file to create
+
+     """
+
+     with open(input_file) as input:
+
+     response = json.load(input)
+
+     audio_data = response['audioContent']
+
+     with open(output_file, "wb") as new_file:
+
+     new_file.write(decodebytes(audio_data.encode('utf-8')))
+
+if __name__ == '__main__':
+
+     parser = argparse.ArgumentParser(
+
+     description="Decode output from Cloud Text-to-Speech",
+
+     formatter_class=argparse.RawDescriptionHelpFormatter)
+
+     parser.add_argument('--input',
+
+                     help='The response from the Text-to-Speech API.',
+
+                     required=True)
+
+    parser.add_argument('--output',
+
+                     help='The name of the audio file to create',
+
+                     required=True)
+
+     args = parser.parse_args()
+
+     decode_tts_output(args.input, args.output)</pre>
+
+<p>最后，从云 Shell 运行下面的<a id="_idIndexMarker824"/>命令:</p>
+
+<pre class="source-code">python tts_decode.py --input "synthesize-text.txt" --output "synthesize-text-audio.mp3"</pre>
+
+<p>现在，我们的 MP3 文件准备好了。</p>
+
+<h1 id="_idParaDest-238"><a id="_idTextAnchor239"/>谷歌云翻译 API</h1>
+
+<p>谷歌的云翻译 API 允许你翻译超过 100 种语言的文本。有两种方法可以使用翻译 API。从谷歌云控制台的主菜单中，点击<code>Translation API</code>进入搜索栏(位于页面顶部):</p>
+
+<div><div><img alt="" height="1416" src="img/B18333_15_19.jpg" width="794"/>
+
+</div>
+
+</div>
+
+<p>点击仪表板上的<a id="_idIndexMarker826"/>后，系统会提示您选择三个选项之一:</p>
+
+<ul>
+
+<li><strong class="bold">自动翻译</strong></li>
+
+<li><strong class="bold">云翻译 API </strong></li>
+
+<li><strong class="bold">翻译中心</strong></li>
+
+</ul>
+
+<p>由于我们将使用<code>curl</code>向翻译 API 发送一个请求，我们将需要生成一个 API 键来传递我们的请求 URL。</p>
+
+<p>首先，让我们定义我们的文本。键入<code>TEXT=</code>并键入任何句子。记住单词之间的空格应该<em class="italic">而不是</em>留白；相反，在每个空格中，键入<code>%20</code>。在我们的示例中，我们将键入<code>This is a demo documentation</code>，如下所示:</p>
+
+<pre class="source-code">TEXT = "This%20is%20a%20demo%20documentation"</pre>
+
+<p>现在我们已经定义了我们的<code>TEXT</code>变量，键入下面的命令，该命令用红色下划线标出:</p>
+
+<pre class="source-code">curl "https://translation.googleapis.com/language/translate/v2?target=ru&amp;key=${API_KEY}&amp;q=${TEXT}"</pre>
+
+<p>这是对 API 的一个<code>curl</code>调用<a id="_idIndexMarker827"/>，其中我们指定了一个<a id="_idIndexMarker828"/>目标语言(在我们的例子中，它是<code>ru</code>，代表俄语)。检查<a href="https://cloud.google.com/translate/docs/languages">https://cloud.google.com/translate/docs/languages</a>查看所有支持的语言和 ISO-639-1 代码。</p>
+
+<p>运行提供的命令后，您将看到以下输出:</p>
+
+<div><div><img alt="" height="450" src="img/B18333_15_20.jpg" width="1485"/>
+
+</div>
+
+</div>
+
+<p>谷歌云翻译 API 还有一个功能，可以检测一种语言，并将其翻译成任何 T42 支持的语言。</p>
+
+<p>在本例中，我们将提供两种不同语言的不同文本，如下所示:</p>
+
+<pre class="source-code">TEXT_ONE = "Merhaba%20Dostlar"
+
+TEXT_TWO = "привет%20друзья"</pre>
+
+<p>我们需要键入<code>%20</code>，而不是在单词之间使用空格。</p>
+
+<p>定义<code>TEXT_ONE</code>和<code>TEXT_TWO</code>后，运行以下命令调用翻译 API 来检测语言:</p>
+
+<pre class="source-code">Curl "https://translation.googleapis.com/language/translate/v2/detect?key=${API_KEY}&amp;q=$"TEXT_TWO}"</pre>
+
+<p>这将返回检测到的置信度在 0 到 1 之间的语言(其中 0 代表 0%，1 代表 100%):</p>
+
+<div><div><img alt="" height="692" src="img/B18333_15_21.jpg" width="626"/>
+
+</div>
+
+</div>
+
+<p>如我们所见，<code>TEXT_ONE</code>的<a id="_idIndexMarker829"/>语言是土耳其语(<code>tr</code>)，置信度为 100%，而<code>TEXT_TWO</code>的语言是俄语(<code>ru</code>)，置信度也为 100%。</p>
+
+<h1 id="_idParaDest-239"><a id="_idTextAnchor240"/>谷歌云 Dialogflow API</h1>
+
+<p>dialog flow API<a id="_idIndexMarker830"/>用于聊天机器人，<strong class="bold">交互式语音响应</strong> ( <strong class="bold"> IVR </strong>)，以及<a id="_idIndexMarker831"/>其他基于对话的人类语音交互。首先，我们需要启用 Dialogflow API:</p>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US"> </p>
+
+<div><div><img alt="" height="403" src="img/B18333_15_22.jpg" width="640"/>
+
+</div>
+
+</div>
+
+<p>要开始使用<a id="_idIndexMarker832"/>平台，请打开一个新标签，在浏览器中键入<a href="https://dialogflow.cloud.google.com/#/logindialogflow.cloud.google.com">https://dialog flow . cloud . Google . com/#/logindialogflow . cloud . Google . com</a>。您可能会被要求使用您的 Google 帐户登录。</p>
+
+<p>您将被带到<a id="_idIndexMarker833"/>dialog flow 平台。这是 Dialogflow ES(基本)版本。这里，我们将主要使用它的<strong class="bold">用户界面</strong> ( <strong class="bold"> UI </strong>)。有一个部分你可以输入脚本(比如 Google 函数)，这将在演示文档中介绍。</p>
+
+<p>现在，让我们熟悉一下 Dialogflow UI。以下屏幕截图显示了您首次启动 Dialogflow 平台时将看到的页面:</p>
+
+<div><div><img alt="" height="698" src="img/B18333_15_23.jpg" width="1082"/>
+
+</div>
+
+</div>
+
+<p>在 Dialogflow 中，你<a id="_idIndexMarker835"/>可以有多个代理。如果您之前已经创建了代理，您可以通过单击下面屏幕截图中显示的向下箭头来检查它们:</p>
+
+<div><div><img alt="" height="489" src="img/B18333_15_24.jpg" width="498"/>
+
+</div>
+
+</div>
+
+<p>在这里，您可以查看所有已创建代理的列表和/或创建新代理。要创建新代理，向下滚动到底部并点击<strong class="bold">创建新代理</strong>，如下所示:</p>
+
+<div><div><img alt="" height="133" src="img/B18333_15_25.jpg" width="292"/>
+
+</div>
+
+</div>
+
+<p>您将被带到以下页面:</p>
+
+<div><div><img alt="" height="487" src="img/B18333_15_26.jpg" width="912"/>
+
+</div>
+
+</div>
+
+<p>在我们的例子中，我们<a id="_idIndexMarker836"/>将命名我们的新代理<code>Test-Chatbot</code>，并保持其他设置不变。现在，点击<strong class="bold">创建</strong>:</p>
+
+<div><div><img alt="" height="567" src="img/B18333_15_27.jpg" width="804"/>
+
+</div>
+
+</div>
+
+<p>一旦您的代理<a id="_idIndexMarker837"/>被创建，您将在左侧看到<strong class="bold">意图</strong>:</p>
+
+<div><div><img alt="" height="850" src="img/B18333_15_28.jpg" width="457"/>
+
+</div>
+
+</div>
+
+<p>这个选项帮助你理解用户的意图。然后，我们有<strong class="bold">实体</strong>，它允许你从用户那里抓取有用的信息。例如，当有人说“我想要一个素食披萨”，聊天机器人可以理解他们想要一个素食披萨，而不是普通的披萨。</p>
+
+<p>在撰写本文时，<strong class="bold">知识</strong>是一个测试版功能。您可以使用此功能在 Dialogflow 中创建知识库。</p>
+
+<p><strong class="bold"> Fulfillment </strong>是<a id="_idIndexMarker838"/>您可以将 Dialogflow 与其他系统(如您的客户管理系统)集成的地方。下面的屏幕截图显示了一个由 Google 函数支持的示例脚本:</p>
+
+<div><div><img alt="" height="776" src="img/B18333_15_29.jpg" width="963"/>
+
+</div>
+
+</div>
+
+<p>现在，让我们学习如何在 Dialogflow 中使用意图。意图是用户想要执行的动作或用户提出的问题。例如，假设他们想订一份比萨饼、预约或想了解更多关于贵公司的信息。在 Dialogflow 中，我们可以创建一个能够理解用户意图并自动回复的代理。</p>
+
+<p>当您创建<a id="_idIndexMarker840"/>一个新代理时(正如我们在这里所做的)，Dialogflow <a id="_idIndexMarker841"/>默认创建两个意图:</p>
+
+<ul>
+
+<li><strong class="bold">默认欢迎意向</strong></li>
+
+<li><strong class="bold">默认回退意图</strong></li>
+
+</ul>
+
+<p>这些可以在下面的截图中看到:</p>
+
+<div><div><img alt="" height="452" src="img/B18333_15_30.jpg" width="1189"/>
+
+</div>
+
+</div>
+
+<p>让我们看看<strong class="bold">默认欢迎意图</strong>里面的<a id="_idIndexMarker842"/>是什么。为此，点击<strong class="bold">默认欢迎意图</strong>上的<a id="_idIndexMarker843"/>。这个目的是为了理解问候，如你好，嗨，和其他:</p>
+
+<div><div><img alt="" height="645" src="img/B18333_15_31.jpg" width="562"/>
+
+</div>
+
+</div>
+
+<p>每个意图包括两个主要部分:</p>
+
+<ul>
+
+<li>培训阶段</li>
+
+<li>响应阶段</li>
+
+</ul>
+
+<p>训练阶段帮助<a id="_idIndexMarker844"/> Dialogflow 理解用户的意图，而<a id="_idIndexMarker845"/>响应阶段涉及 Dialogflow 理解问候。如果是这样，它会用一些文本进行响应，这些文本将在<strong class="bold">响应</strong>部分提供:</p>
+
+<div><div><img alt="" height="874" src="img/B18333_15_32.jpg" width="853"/>
+
+</div>
+
+</div>
+
+<p>Dialogflow 提供的另一个默认意图是<strong class="bold">默认回退意图</strong>。这里，当 Dialogflow 不理解用户时，它将使用在<strong class="bold">默认回退意图</strong>中作为文本响应提供的一段文本进行响应:</p>
+
+<div><div><img alt="" height="851" src="img/B18333_15_33.jpg" width="566"/>
+
+</div>
+
+</div>
+
+<p>现在，让我们深入<a id="_idIndexMarker846"/>创建一个意图(如前所述，我们将构建<a id="_idIndexMarker847"/>一个聊天机器人，用户将在其中订购披萨)。</p>
+
+<p>要创建一个新意图，点击<strong class="bold">创建意图</strong>，如下图所示:</p>
+
+<div><div><img alt="" height="348" src="img/B18333_15_34.jpg" width="897"/>
+
+</div>
+
+</div>
+
+<p>我们将第一个意图命名为<code>opening_times</code>，如下所示:</p>
+
+<div><div><img alt="" height="367" src="img/B18333_15_35.jpg" width="863"/>
+
+</div>
+
+</div>
+
+<p>点击<strong class="bold">添加训练短语</strong>。在这里，我们将提供用户如何表达其意图的示例:</p>
+
+<div><div><img alt="" height="263" src="img/B18333_15_36.jpg" width="887"/>
+
+</div>
+
+</div>
+
+<p>让我们添加几个<a id="_idIndexMarker848"/>训练短语，如下面截图中的<a id="_idIndexMarker849"/>所示:</p>
+
+<div><div><img alt="" height="415" src="img/B18333_15_37.jpg" width="755"/>
+
+</div>
+
+</div>
+
+<p>接下来，我们需要添加一些响应。点击<strong class="bold">添加响应</strong>，如下图所示:</p>
+
+<div><div><img alt="" height="411" src="img/B18333_15_38.jpg" width="1274"/>
+
+</div>
+
+</div>
+
+<p>我们将在此仅添加一个回答，但请记住，您可以针对特定意图添加多个回答:</p>
+
+<div><div><img alt="" height="472" src="img/B18333_15_39.jpg" width="870"/>
+
+</div>
+
+</div>
+
+<p>当你完成训练短语和回答后，保存它们；他们将自动开始培训代理。Dialogflow 需要训练代理回答问题。这将花费<a id="_idIndexMarker850"/>几秒钟(或者几分钟，如果你有一个长的输入)；训练完成后会通知你。</p>
+
+<p>现在，让我们试试我们训练有素的特工。在页面的右侧，您会看到一个小区域，您可以在这里尝试您的培训代理。</p>
+
+<p>让我们为我们的代理打一个问题。让我们问问他们今天是否营业，看看我们会得到什么样的回应:</p>
+
+<div><div><img alt="" height="1352" src="img/B18333_15_40.jpg" width="652"/>
+
+</div>
+
+</div>
+
+<p>在这个代理中，我们可以创建多个意图。Dialogflow 将理解使用哪些意图，并响应用户的问题。</p>
+
+<p>现在，让我们为订购比萨饼创建一个新的意图<a id="_idIndexMarker852"/>。从<a id="_idIndexMarker853"/>左侧菜单中点击<strong class="bold">意图</strong>，并点击<strong class="bold">创建意图</strong>。下面的屏幕截图显示了一些您可以使用的表达式:</p>
+
+<div><div><img alt="" height="515" src="img/B18333_15_41.jpg" width="853"/>
+
+</div>
+
+</div>
+
+<p>现在，对该问题提供一个答案(如果您愿意，可以添加更多答案):</p>
+
+<div><div><img alt="" height="584" src="img/B18333_15_42.jpg" width="1290"/>
+
+</div>
+
+</div>
+
+<p>保存<a id="_idIndexMarker854"/>您的意图后，您的代理将<a id="_idIndexMarker855"/>接受重新培训。让我们测试一下我们的代理:</p>
+
+<div><div><img alt="" height="474" src="img/B18333_15_43.jpg" width="628"/>
+
+</div>
+
+</div>
+
+<p>请注意，用户的短语与训练阶段不同，但 Dialogflow 仍然理解其意图并给出正确的响应。</p>
+
+<p>如果用户需要提供更多的细节，比如比萨饼的不同浇头，那么 Dialogflow <a id="_idIndexMarker856"/>将需要使用尚未创建的实体。因此，我们需要创建一个实体。</p>
+
+<p>从左侧菜单中，点击<strong class="bold">实体</strong>，然后点击<strong class="bold">创建实体</strong>，如下图所示:</p>
+
+<div><div><img alt="" height="406" src="img/B18333_15_44.jpg" width="1185"/>
+
+</div>
+
+</div>
+
+<p>我们将使用<code>topping</code>作为实体的名称。检查<code>topping</code>:</p>
+
+<div><div><img alt="" height="871" src="img/B18333_15_45.jpg" width="1199"/>
+
+</div>
+
+</div>
+
+<p>点击<strong class="bold">保存</strong>。</p>
+
+<p>让我们回到<a id="_idIndexMarker857"/>我们点披萨的意图，用一些点披萨的细节创建一个新的训练短语，比如“我想点奶酪披萨。”</p>
+
+<p>以下是订购比萨饼的一些附加表达:</p>
+
+<div><div><img alt="" height="661" src="img/B18333_15_46.jpg" width="995"/>
+
+</div>
+
+</div>
+
+<p>注意，当我们键入<code>two</code>时，它会自动检测实体:</p>
+
+<div><div><img alt="" height="394" src="img/B18333_15_47.jpg" width="1111"/>
+
+</div>
+
+</div>
+
+<p><code>@sys.number</code>是 Dialogflow 中的内置实体<a id="_idIndexMarker858"/>，它捕获/识别对话框中的<a id="_idIndexMarker859"/>数字。还有其他内置实体可以识别电子邮件、地址、电话号码和其他细节。查看<a href="https://cloud.google.com/dialogflow/es/docs/reference/system-entities">https://cloud . Google . com/dialog flow/es/docs/reference/system-entities</a>了解更多内置实体。以下是一些例子:</p>
+
+<div><div><img alt="" height="411" src="img/B18333_15_48.jpg" width="894"/>
+
+</div>
+
+</div>
+
+<p>在我们的例子中，我们正在构建实体，所以我们需要将一些单词映射到一个实体。这将让我们看到句子的哪个部分与哪个实体相关。只需从我们在<strong class="bold"> Intents </strong>部分使用的表达式中选择一个单词或短语，并将其分配给已创建的实体，如下所示:</p>
+
+<div><div><img alt="" height="407" src="img/B18333_15_49.jpg" width="1123"/>
+
+</div>
+
+</div>
+
+<p>选择<a id="_idIndexMarker861"/>实体后，您可以从训练表达式中选择其他单词或短语，并将其映射到该实体:</p>
+
+<div><div><img alt="" height="729" src="img/B18333_15_50.jpg" width="967"/>
+
+</div>
+
+</div>
+
+<p>在这个例子中，我们有两个不同的实体——<code>@sys.number</code>和<code>@topping</code>:</p>
+
+<div><div><img alt="" height="547" src="img/B18333_15_51.jpg" width="1195"/>
+
+</div>
+
+</div>
+
+<p>我们还可以<a id="_idIndexMarker862"/>用更动态的答案来改变或修改回应:</p>
+
+<div><div><img alt="" height="358" src="img/B18333_15_52.jpg" width="973"/>
+
+</div>
+
+</div>
+
+<p>点击<strong class="bold">保存</strong>按钮训练代理并测试/试用聊天机器人:</p>
+
+<div><div><img alt="" height="483" src="img/B18333_15_53.jpg" width="626"/>
+
+</div>
+
+</div>
+
+<p>如果用户提供关于比萨饼配料的信息，我们需要加强额外的<a id="_idIndexMarker863"/>问题来收集特定的信息。在<strong class="bold">必填</strong>部分点击<strong class="bold">套料</strong>旁边的复选框，点击<strong class="bold">定义提示</strong>，如下图所示:</p>
+
+<div><div><img alt="" height="463" src="img/B18333_15_54.jpg" width="992"/>
+
+</div>
+
+</div>
+
+<p>添加用户将被询问的问题，如下所示:</p>
+
+<div><div><img alt="" height="368" src="img/B18333_15_55.jpg" width="850"/>
+
+</div>
+
+</div>
+
+<p>点击<strong class="bold">关闭</strong>并保存代理。请注意，您也可以添加更多提示。现在，让我们测试代理，它对浇头一无所知:</p>
+
+<div><div><img alt="" height="295" src="img/B18333_15_56.jpg" width="633"/>
+
+</div>
+
+</div>
+
+<p>这样，我们就有了一个具有基本功能的非常简单的聊天机器人。但在现实生活中，我们会不断询问用户是否有任何其他问题<em class="italic">或</em>他们是否想在当前订单中添加一些其他项目。在我们的例子中，我们有一个聊天机器人，用户可以在这里订购比萨饼。除了询问比萨饼及其配料，我们还可以问他们<a id="_idIndexMarker865"/>是否想再吃一个比萨饼<em class="italic">或者</em>是否想加点饮料。这个特征被称为<strong class="bold">后续意图</strong>。要启用此功能，点击<strong class="bold">订单 _ 披萨</strong>意向旁边的<strong class="bold">添加跟进意向</strong>，如下所示:</p>
+
+<div><div><img alt="" height="422" src="img/B18333_15_57.jpg" width="960"/>
+
+</div>
+
+</div>
+
+<p>因此，如果用户<a id="_idIndexMarker866"/>想要继续添加另一个披萨，他们可以简单地回答<strong class="bold"> YES </strong>。点击<strong class="bold">是</strong>添加跟进意向:</p>
+
+<div><div><img alt="" height="154" src="img/B18333_15_58.jpg" width="506"/>
+
+</div>
+
+</div>
+
+<p>点击<strong class="bold">订单 _ 披萨-是</strong>部分；您将被带到一个页面，在那里您可以修改该部分的内容。</p>
+
+<p>在我们的例子中，我们将更改 intent 的名称，保持所有训练短语不变(它们在我们的例子中已经足够好了)，并添加一个声明为<code>Great! What topping do you want on your pizza?</code>的响应。然后，点击<strong class="bold">保存</strong>:</p>
+
+<div><div><img alt="" height="1330" src="img/B18333_15_59.jpg" width="771"/>
+
+</div>
+
+</div>
+
+<p>但是如果用户对这个后续问题回答<strong class="bold">否</strong>(要不要再加点披萨？)?在这种情况下，我们想问他们是否要在他们的订单中添加一种饮料。正如我们之前对<a id="_idIndexMarker867"/>所做的那样，从跟进意图中，选择<strong class="bold">否</strong>，点击子意图并更改其标题(可选)，保留所有培训短语不变，并键入答案，如以下截图所示:</p>
+
+<div><div><img alt="" height="1098" src="img/B18333_15_60.jpg" width="690"/>
+
+</div>
+
+</div>
+
+<p>保存<a id="_idIndexMarker868"/>代理后，可以尝试和 bot 聊天。您可以根据您设计的对话架构不断添加跟进问题或新意图。</p>
+
+<h1 id="_idParaDest-240"><a id="_idTextAnchor241"/>总结</h1>
+
+<p>在本附录中，我们提供了如何使用各种 Google Cloud ML APIs 的示例，包括 Vision API、NLP API、语音到文本 API、文本到语音 API、翻译 API 和 Dialogflow API。</p>
+
+</div>
+
+</div>
+
+
+
+</body></html>

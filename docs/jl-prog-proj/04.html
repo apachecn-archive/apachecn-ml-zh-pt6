@@ -1,0 +1,2293 @@
+<html><head/><body>
+
+  
+    <title>Building the Wiki Game Web Crawler</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">构建维基游戏网络爬虫</h1>
+                
+            
+            
+                
+<p class="calibre2">哇，<a href="3184f173-ae3d-47f9-b7e9-f677947499f2.xhtml" class="calibre9">第三章</a>，<em class="calibre16">设置维基游戏</em>，真是太棒了！为我们的维基百科游戏打下基础让我们真正学到了一门绝技。在快速复习了 web 和 web 页面是如何工作的之后，我们更深入地研究了语言的关键部分，研究了字典数据结构及其相应的数据类型、条件表达式、函数、异常处理，甚至非常方便的管道操作符(<kbd class="calibre12">|&gt;</kbd>)。在这个过程中，我们构建了一个简短的脚本，使用两个强大的第三方包<kbd class="calibre12">HTTP</kbd>和<kbd class="calibre12">Gumbo</kbd>，从维基百科请求一个网页，将其解析为 HTML DOM，并从页面中提取所有内部链接。我们的脚本是一个适当的 Julia 项目的一部分，该项目使用<kbd class="calibre12">Pkg</kbd>来有效地管理依赖关系。</p>
+<p class="calibre2">在这一章中，我们将继续开发我们的游戏，实现完整的工作流程和游戏性。即使你不是一个经验丰富的开发人员，也很容易想象，即使是这样一个简单的游戏，最终也会有多个逻辑部分。我们也许可以为维基百科页面爬虫设计一个模块，为游戏本身设计一个模块，为 UI 设计一个模块(我们将在下一章中创建的 web 应用程序)。将一个问题分解成更小的部分总是会带来更简单的解决方案。而且，在编写代码时尤其如此——拥有小的、专门的功能，按职责分组，使软件更容易推理、开发、扩展和维护。在这一章中，我们将学习 Julia 的代码结构，我们将讨论该语言的几个关键元素:类型系统、构造函数、方法和多重分派。</p>
+<p class="calibre2">在本章中，我们将讨论以下主题:</p>
+<ul class="calibre10">
+<li class="calibre11"><em class="calibre55">六度百科</em>，游戏玩法</li>
+<li class="calibre11">使用模块组织我们的代码并从多个文件加载代码(所谓的<strong class="calibre1"> mixin 行为</strong></li>
+<li class="calibre11">类型和类型系统，它们是 Julia 的灵活性和性能的关键</li>
+</ul>
+<ul class="calibre10">
+<li class="calibre11">构造函数，允许我们创建新类型实例的特殊函数</li>
+<li class="calibre11">方法和多重分派，这是语言中最重要的一些方面</li>
+<li class="calibre11">与关系数据库(特别是 MySQL)交互</li>
+</ul>
+<p class="calibre2">我希望你已经准备好开始工作了。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Technical requirements</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">技术要求</h1>
+                
+            
+            
+                
+<p class="calibre2">Julia 包生态系统正在不断发展，每天都有新的包版本发布。大多数时候这是好消息，因为新版本带来了新特性和错误修复。然而，由于许多软件包仍处于测试阶段(版本 0.x ),任何新版本都可能引入突破性的变化。因此，书中介绍的代码可能会停止工作。为了确保您的代码将产生与书中描述的相同的结果，建议使用相同的包版本。以下是本章中使用的外部软件包及其具体版本:</p>
+<pre class="calibre17">Cascadia@v0.4.0<br class="title-page-name"/>Gumbo@v0.5.1<br class="title-page-name"/>HTTP@v0.7.1<br class="title-page-name"/>IJulia@v1.14.1<br class="title-page-name"/>JSON@v0.20.0<br class="title-page-name"/>MySQL@v0.7.0</pre>
+<p class="calibre2">为了安装软件包的特定版本，您需要运行:</p>
+<pre class="calibre17"><strong class="calibre1">pkg&gt; add PackageName@vX.Y.Z</strong> <br class="title-page-name"/><br class="title-page-name"/></pre>
+<p class="calibre2">例如:</p>
+<pre class="calibre17"><strong class="calibre1">pkg&gt; add IJulia@v1.14.1</strong></pre>
+<p class="calibre2">或者，你可以通过下载本章提供的 Project.toml 文件并使用<kbd class="calibre12">pkg&gt;</kbd>实例化来安装所有使用的包，如下所示:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; download("https://raw.githubusercontent.com/PacktPublishing/Julia-Programming-Projects/master/Chapter04/Project.toml", "Project.toml")</strong><br class="title-page-name"/><strong class="calibre1">pkg&gt; activate . </strong><br class="title-page-name"/><strong class="calibre1">pkg&gt; instantiate</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Six Degrees of Wikipedia, the gameplay</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">维基百科的六度游戏</h1>
+                
+            
+            
+                
+<p class="calibre2">正如我们在前一章所看到的，维基百科游戏<strong class="calibre4">六度游戏</strong>是对<em class="calibre16">六度分离</em>理论概念的一种发挥，即所有生物(以及世界上几乎所有的东西)彼此之间的距离不超过六步。例如，一个朋友的朋友的朋友链最多可以通过六个步骤连接两个人。</p>
+<p class="calibre2">对于我们自己的游戏，玩家的目标是链接任意两个给定的维基百科文章，通过六个或更少的其他维基百科页面。为了确保这个问题有一个解决方案(T21 的六度分离理论还没有被证明)，以及从我们的开始文章到结束文章确实有一条路径，我们将预抓取完整的路径。也就是说，我们将从一个随机的维基百科页面开始，这将是我们的起点，我们将通过许多页面链接到我们的目的地，即最终文章。选择下一个链接页面的算法是最简单的——我们只需选择任意一个内部链接。</p>
+<p class="calibre2">为了让事情变得更有趣，我们还将提供一个难度设置——容易、中等或困难。这将影响起始页和结束页之间的距离。对于一个简单的游戏，他们将是两页之外，中等，四个，硬，六个。当然，这种逻辑并不超级严谨。是的，直觉上，我们可以说，相距较远的两篇文章，关联度会更小，更难链接。但是，也有可能玩家会找到一条更短的路径。不过，我们不担心这个。</p>
+<p class="calibre2">如果玩家在最大数量的步骤中找不到解决方案，游戏还将允许他们返回。</p>
+<p class="calibre2">最后，如果玩家放弃了，我们将添加一个选项来显示解决方案——从开始的文章到目的地的路径。</p>
+<p class="calibre2">这听起来很令人兴奋——让我们写一些代码吧！</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Some additional requirements</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">一些附加要求</h1>
+                
+            
+            
+                
+<p class="calibre2">为了完成本章，您需要以下内容:</p>
+<ul class="calibre10">
+<li class="calibre11">一个工作的朱莉娅装置</li>
+<li class="calibre11">互联网连接</li>
+<li class="calibre11">文本编辑器</li>
+</ul>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Organizing our code</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">组织我们的代码</h1>
+                
+            
+            
+                
+<p class="calibre2">到目前为止，我们大部分时间都在 REPL 编码。最近，在前一章中，我们已经开始更多地依赖 IDE 来创建简短的 Julia 文件。</p>
+<p class="calibre2">但是，随着我们技能的增长和我们开发越来越多的雄心勃勃的项目，我们项目的复杂性也会增加。反过来，这将导致更多的代码行、更多的逻辑和更多的文件——以及维护和理解所有这些的更多困难。正如著名的编码公理所说，代码被读的次数比它被写的次数多得多——所以我们需要相应地计划。</p>
+<p class="calibre2">当涉及到代码组织时，每种语言都有自己的哲学和工具集。在 Julia 中，我们有文件、模块和包。接下来我们将了解所有这些。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Using modules to tame our code</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">使用模块驯服我们的代码</h1>
+                
+            
+            
+                
+<p class="calibre2">模块将相关的函数、变量和其他定义组合在一起。但是，它们不仅仅是组织单位——它们是可以理解为可变工作空间的语言结构。它们允许我们定义变量和函数，而不用担心名称冲突。Julia 的<kbd class="calibre12">Module</kbd>是该语言的基石之一——一个关键的结构和逻辑实体，有助于使代码更容易开发、理解和维护。我们将围绕模块来设计我们的游戏，从而很好地利用模块。</p>
+<p class="calibre2">使用<kbd class="calibre12">module &lt;&lt;name&gt;&gt;...end</kbd>构造定义一个模块:</p>
+<pre class="calibre17">module MyModule 
+# code here 
+<strong class="calibre1">end</strong></pre>
+<p class="calibre2">让我们开始一个新的 REPL 会议，看看几个例子。</p>
+<p class="calibre2">假设我们想要编写一个函数来检索一个随机的维基百科页面——这是我们游戏的特性之一。我们可以称这个函数为<kbd class="calibre12">rand</kbd>。</p>
+<p class="calibre2">正如你可能会怀疑的那样，创造随机的东西是一项非常普通的任务，所以我们不是第一个想到它的人。你可以自己去看。在 REPL 试试这个:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; rand 
+rand (generic function with 56 methods) </strong></pre>
+<p class="calibre2">原来，已经定义了 56 个<kbd class="calibre12">rand</kbd>方法。</p>
+<p class="calibre2">这将使我们难以添加自己的变体:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; function rand() 
+           # code here 
+       end 
+error in method definition: function Base.rand must be explicitly imported to be extended</strong> </pre>
+<p class="calibre2">我们尝试定义一个新的<kbd class="calibre12">rand</kbd>方法时出现了一个错误，因为它已经被定义和加载了。</p>
+<p class="calibre2">在选择函数名时，很容易看到这会导致一个噩梦般的场景。如果所有已定义的名字都在同一个工作空间中，我们会陷入无尽的名字冲突，因为我们已经用完了函数和变量的相关名字。</p>
+<p class="calibre2">Julia 的模块允许我们定义独立的工作空间，提供了一个将我们的变量和函数与其他人的分开的封装级别。通过使用模块，可以消除名称冲突。</p>
+<p class="calibre2">模块在<kbd class="calibre12">module...end</kbd>语言结构中定义。试试这个例子(在 REPL)，我们在一个名为<kbd class="calibre12">MyModule</kbd>的模块中定义了我们的<kbd class="calibre12">rand</kbd>函数:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; module MyModule 
+ 
+      function rand() 
+           println("I'll get a random Wikipedia page") 
+      end 
+ 
+      end 
+Main.MyModule</strong> 
+MyModule—and within it, a function called <kbd class="calibre12">rand</kbd>. Here, <kbd class="calibre12">MyModule</kbd> effectively encapsulates the <kbd class="calibre12">rand</kbd> function, which no longer clashes with Julia's <kbd class="calibre12">Base.rand</kbd>.</pre>
+<p class="calibre2">正如您可以从它的全名中看到的，我们新创建的模块<kbd class="calibre12">Main.MyModule</kbd>实际上是添加在另一个名为<kbd class="calibre12">Main</kbd>的现有模块中。这个模块<kbd class="calibre12">Main</kbd>是默认模块，在这个模块中对 REPL 上执行的代码进行评估。</p>
+<p class="calibre2">为了访问我们新定义的函数，我们需要在<kbd class="calibre12">MyModule</kbd>中引用它，通过<em class="calibre16">在</em>中打点:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; MyModule.rand() 
+I'll get a random wikipedia page</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Defining modules</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">定义模块</h1>
+                
+            
+            
+                
+<p class="calibre2">由于模块被设计用于更大的代码库，它们不是 REPL 友好的。因为一旦它们被定义，我们就不能用额外的定义来扩展它们，我们被迫重新输入和重新定义整个模块，最好使用一个成熟的编辑器。</p>
+<p class="calibre2">让我们创建一个新文件夹来存放我们的代码。在其中，我们想要创建一个名为<kbd class="calibre12">modules/</kbd>的新文件夹。然后，在<kbd class="calibre12">modules/</kbd>文件夹中，添加三个文件— <kbd class="calibre12">Letters.jl</kbd>、<kbd class="calibre12">Numbers.jl</kbd>和<kbd class="calibre12">module_name.jl</kbd>。</p>
+<p>按照惯例，包含 Julia 代码的文件使用<kbd class="calibre24">.jl</kbd>文件扩展名。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Productive REPL sessions with Julia</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">与 Julia 进行富有成效的 REPL 会议</h1>
+                
+            
+            
+                
+<p class="calibre2">为什么不利用 Julia 的文件处理能力来建立这种文件结构呢？让我们来看看如何做到这一点，因为它将在我们的日常工作中派上用场。</p>
+<p class="calibre2">记住，您可以在行首的 REPL 中键入<kbd class="calibre12">;</kbd>来触发 shell 模式。您的光标将从<kbd class="calibre12">julia&gt;</kbd>变为<kbd class="calibre12">shell&gt;</kbd>，以确认上下文的变化。在 IJulia/Jupyter 中，为了在 shell 模式下执行，必须在单元格中的代码前加上前缀<kbd class="calibre12">;</kbd>。</p>
+<p class="calibre2">现在，我们可以执行以下操作:</p>
+<pre class="calibre17"><strong class="calibre1">shell&gt; mkdir modules # create a new dir called "modules" 
+shell&gt; cd modules # switch to the "modules" directory </strong></pre>
+<p class="calibre2">不要忘记，Julia 的 shell 模式调用命令就像它们直接运行到操作系统终端一样——因此调用的二进制文件必须存在于该平台上。所有主流操作系统都支持<kbd class="calibre12">mkdir</kbd>和<kbd class="calibre12">cd</kbd>，所以我们在这里是安全的。但是，当涉及到创建文件时，我们就没那么幸运了——<kbd class="calibre12">touch</kbd>命令在 Windows 上不可用。不过没问题——在这种情况下，我们需要做的就是调用同名的 Julia 函数。这将以与平台无关的方式以编程方式创建文件:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; for f in ["Letters.jl", "Numbers.jl", "module_name.jl"] 
+           touch(f) 
+       end</strong> </pre>
+<p class="calibre2">如果您想确保文件已经创建，请使用<kbd class="calibre12">readdir</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; readdir() 
+3-element Array{String,1}: 
+ "Letters.jl" 
+ "Numbers.jl" 
+ "module_name.jl"</strong> </pre>
+<p>请确保根据大小写准确命名文件。</p>
+<pre>Letters.jl in whatever default editor you have configured:</pre>
+<pre class="calibre17"><strong class="calibre1">julia&gt; edit("Letters.jl") </strong> </pre>
+<p class="calibre2">如果缺省编辑器不是您最喜欢的 Julia IDE，您可以通过设置<kbd class="calibre12">JULIA_EDITOR</kbd>、<kbd class="calibre12">VISUAL</kbd>或<kbd class="calibre12">EDITOR</kbd>环境变量之一指向您选择的编辑器来更改它。例如，在我的 Mac 上，我可以使用以下命令来询问 Atom 编辑器的路径:</p>
+<pre class="calibre17"><strong class="calibre1">shell&gt; which atom 
+/usr/local/bin/atom</strong> </pre>
+<p class="calibre2">然后，我可以如下设置<kbd class="calibre12">JULIA_EDITOR</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; ENV["JULIA_EDITOR"] = "/usr/local/bin/atom"</strong> </pre>
+<p class="calibre2">这三个变量的用途略有不同，但在这种情况下，设置其中任何一个都会产生相同的效果——更改当前 Julia 会话的默认编辑器。但是请记住，它们有不同的<em class="calibre16">权重</em>，其中<kbd class="calibre12">JULIA_EDITOR</kbd>优先于<kbd class="calibre12">VISUAL</kbd>，而<kbd class="calibre12">VISUAL</kbd>优先于<kbd class="calibre12">EDITOR</kbd>。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Setting up our modules</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">设置我们的模块</h1>
+                
+            
+            
+                
+<p class="calibre2">让我们从编辑<kbd class="calibre12">Letters.jl</kbd>开始，让它看起来像这样:</p>
+<pre class="calibre17">module Letters 
+ 
+using Random 
+ 
+export randstring 
+ 
+const MY_NAME = "Letters" 
+ 
+function rand() 
+  Random.rand('A':'Z') 
+end 
+ 
+function randstring() 
+  [rand() for _ in 1:10] |&gt; join 
+end 
+ 
+include("module_name.jl") 
+ 
+end </pre>
+<p class="calibre2">这里，我们定义了一个名为<kbd class="calibre12">Letters</kbd>的模块。在其中，我们添加了一个<kbd class="calibre12">rand</kbd>函数，它使用 Julia 的<kbd class="calibre12">Random.rand</kbd>以一个<kbd class="calibre12">Char</kbd>的形式返回一个在<kbd class="calibre12">A</kbd>和<kbd class="calibre12">Z</kbd>之间的随机字母。接下来，我们添加了一个名为<kbd class="calibre12">Letters.randstring</kbd>的函数，它返回一个<kbd class="calibre12">10</kbd>随机字符的<kbd class="calibre12">String</kbd>。这个字符串是使用一个<kbd class="calibre12">Char[]</kbd>数组理解生成的(<kbd class="calibre12">_</kbd>变量名在 Julia 中是完全合法的，按照惯例，它指定一个其值没有被使用的变量),这个数组理解通过管道传递到<kbd class="calibre12">join</kbd>函数以返回字符串结果。</p>
+<p>请注意，这是一种过于复杂的生成随机字符串的方式，因为 Julia 提供了<kbd class="calibre24">Random.randstring</kbd>函数。但是，在这一点上，利用每一个机会练习编写代码是很重要的，我只是不想浪费使用 Julia 的理解语法和管道操作符的机会。熟能生巧！</p>
+<p class="calibre2">将我们的注意力转向第一行代码，我们声明我们将成为<kbd class="calibre12">using Random</kbd>——我们指示编译器通过<kbd class="calibre12">export randstring</kbd>将<kbd class="calibre12">randstring</kbd>公开。最后，我们还声明了一个名为<kbd class="calibre12">MY_NAME</kbd>的常量，它指向<kbd class="calibre12">Letters</kbd>字符串(这是模块本身的名称)。</p>
+<p class="calibre2">模块的最后一行<kbd class="calibre12">include("module_name.jl")</kbd>，将<kbd class="calibre12">module_name.jl</kbd>的内容加载到<kbd class="calibre12">Letters</kbd>中。<kbd class="calibre12">include</kbd>函数通常用于交互式加载源代码，或者将文件合并到被分割成多个源文件的包中——我们很快就会看到这是如何工作的。</p>
+<p class="calibre2">接下来，我们来编辑一下<kbd class="calibre12">Number.jl</kbd>。它将有一个类似的<kbd class="calibre12">rand</kbd>函数，在<kbd class="calibre12">1</kbd>和<kbd class="calibre12">1_000</kbd>之间返回一个随机的<kbd class="calibre12">Integer</kbd>。它导出<kbd class="calibre12">halfrand</kbd>，一个从<kbd class="calibre12">rand</kbd>获得一个值并除以<kbd class="calibre12">2</kbd>的函数。我们将除法的结果传递给<kbd class="calibre12">floor</kbd>函数，该函数会将其转换为最接近的小于或等于的值。而且，就像<kbd class="calibre12">Letters</kbd>一样，还包括<kbd class="calibre12">module_name.jl</kbd>:</p>
+<pre class="calibre17">module Numbers 
+ 
+using Random<br class="title-page-name"/><br class="title-page-name"/>export halfrand<br class="title-page-name"/><br class="title-page-name"/>const MY_NAME = "Numbers"<br class="title-page-name"/> 
+function rand() 
+  Random.rand(1:1_000) 
+end<br class="title-page-name"/>function halfrand() 
+  floor(rand() / 2) 
+end<br class="title-page-name"/><br class="title-page-name"/>include("module_name.jl")<br class="title-page-name"/>end </pre>
+<p class="calibre2">因此，对于这两个模块，我们定义了一个<kbd class="calibre12">MY_NAME</kbd>常量。我们将通过编辑<kbd class="calibre12">module_name.jl</kbd>文件来引用它，使它看起来像这样:</p>
+<pre class="calibre17">function myname() 
+  MY_NAME 
+end </pre>
+<p class="calibre2">代码返回常量的相应值，这取决于我们包含<kbd class="calibre12">module_name.jl</kbd>文件的实际模块。这说明了 Julia 的 mixin 行为，其中包含的代码就像是直接写入包含文件一样。接下来我们将看到这是如何工作的。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Referencing modules</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">引用模块</h1>
+                
+            
+            
+                
+<p class="calibre2">尽管我们现在才正式讨论模块，但我们一直都在使用它们。我们多次使用的<kbd class="calibre12">using</kbd>语句将模块名作为其参数。这是一个关键的语言构造，它告诉编译器将模块的定义带入当前范围。引用其他模块中定义的函数、变量和类型是 Julia 编程的一个常规部分——例如，访问第三方包提供的功能，围绕着通过<kbd class="calibre12">using</kbd>将其主模块纳入范围。但是，<kbd class="calibre12">using</kbd>并不是朱莉娅武器库中唯一的工具。我们还有一些命令可以使用，比如<kbd class="calibre12">import</kbd>、<kbd class="calibre12">include</kbd>和<kbd class="calibre12">export</kbd>。</p>
+<p class="calibre2">指令允许我们引用其他模块导出的函数、变量、类型等等。这告诉 Julia 使模块的导出定义在当前工作区中可用。如果定义是由模块的作者导出的，我们可以调用它们，而不必在它们前面加上模块名(在函数名前面加上模块名代表完全限定名)。但是，要小心，因为这是一把双刃剑——如果两个使用的模块导出同名的函数，这些函数仍然必须使用完全限定名来访问——否则 Julia 将抛出一个异常，因为它不知道我们引用的是哪个函数。</p>
+<p class="calibre2">至于<kbd class="calibre12">import</kbd>，有点类似，因为它也将另一个模块中的定义纳入范围。但是，它在两个重要方面有所不同。首先，调用<kbd class="calibre12">import MyModule</kbd>仍然需要用模块名作为定义的前缀，从而避免潜在的名称冲突。第二，如果我们想用新方法扩展其他模块中定义的函数，我们<em class="calibre16">有</em>来使用<kbd class="calibre12">import</kbd>。</p>
+<p class="calibre2">另一方面，<kbd class="calibre12">include</kbd>在概念上是不同的。它用于在当前上下文中评估文件的内容(即，在当前模块的<em class="calibre16">全局</em>范围中)。正如我们已经看到的，这是一种通过提供类似 mixin 的行为来重用代码的方法。</p>
+<p class="calibre2">事实上，包含的文件是在模块的全局范围内进行评估的，这是非常重要的一点。这意味着，即使我们在函数体中包含了一个文件，文件的内容也不会在函数的范围内进行计算，而是在模块的范围内进行计算。为了看到这一点，让我们在<kbd class="calibre12">modules/</kbd>文件夹中创建一个名为<kbd class="calibre12">testinclude.jl</kbd>的文件。编辑<kbd class="calibre12">testinclude.jl</kbd>并添加这行代码:</p>
+<pre class="calibre17">somevar = 10</pre>
+<p class="calibre2">现在，如果你在 REPL 或伊州运行下面的代码，你就会明白我的意思了:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; function testinclude() 
+             include("testinclude.jl") 
+             println(somevar) 
+       end 
+ 
+julia&gt; testinclude() 
+10</strong> </pre>
+<p class="calibre2">显然，一切都很顺利。包含了<kbd class="calibre12">testinclude.jl</kbd>文件并定义了<kbd class="calibre12">somevar</kbd>变量。然而，<kbd class="calibre12">somevar</kbd>不是在<kbd class="calibre12">testinclude</kbd>函数中创建的，而是作为一个全局变量在<kbd class="calibre12">Main</kbd>模块中创建的。我们可以很容易地看到这一点，因为我们可以直接访问<kbd class="calibre12">somevar</kbd>变量:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; somevar 
+10</strong> </pre>
+<p class="calibre2">请记住这种行为，因为它会在全局范围内暴露变量，从而导致难以理解的错误。</p>
+<p class="calibre2">最后，<kbd class="calibre12">export</kbd>被模块的作者用来公开定义，很像一个公共接口。正如我们已经看到的，导出的函数和变量由模块的用户通过<kbd class="calibre12">using</kbd>带入范围。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Setting up the LOAD_PATH</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">设置加载路径</h1>
+                
+            
+            
+                
+<p class="calibre2">让我们看一些例子来说明使用模块时的作用域规则。请打开一个新的朱莉娅·REPL。</p>
+<p class="calibre2">在前面的章节中，我们已经多次看到了<kbd class="calibre12">using</kbd>语句，现在我们理解了它的作用——将另一个模块及其定义(变量、函数、类型)带入作用域。让我们用新创建的模块来尝试一下:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; using Letters 
+ERROR: ArgumentError: Package Letters not found in current path: 
+- Run `Pkg.add("Letters")` to install the Letters package.</strong> </pre>
+<p class="calibre2">哎哟，例外！Julia 告诉我们它不知道在哪里可以找到<kbd class="calibre12">Letters</kbd>模块，并建议我们使用<kbd class="calibre12">Pkg.add("Letters")</kbd>来安装它。但是，因为<kbd class="calibre12">Pkg.add</kbd>只适用于注册的包，而且我们还没有将我们的模块发布到 Julia 的注册表中，所以这没有用。原来我们只需要告诉朱莉娅在哪里可以找到我们的代码。</p>
+<p class="calibre2">当被要求通过<kbd class="calibre12">using</kbd>将模块引入范围时，Julia 检查一系列路径来查找相应的文件。这些查找路径存储在名为<kbd class="calibre12">LOAD_PATH</kbd>的<kbd class="calibre12">Vector</kbd>中，我们可以通过使用<kbd class="calibre12">push!</kbd>函数将<kbd class="calibre12">modules/</kbd>文件夹附加到这个集合中:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; push!(LOAD_PATH, "modules/") 
+4-element Array{String,1}: 
+ "@" 
+ "@v#.#" 
+ "@stdlib" 
+ "modules/"</strong> </pre>
+<p class="calibre2">您的输出可能会有所不同，但重要的是在调用了<kbd class="calibre12">push!</kbd>之后，<kbd class="calibre12">LOAD_PATH</kbd>集合现在有了一个额外的元素来指示到<kbd class="calibre12">modules/</kbd>文件夹的路径。</p>
+<p class="calibre2">为了让 Julia 将一个模块的名称与其对应的文件匹配，<em class="calibre16">该文件必须具有与模块</em>完全相同的名称，加上扩展名<kbd class="calibre12">.jl</kbd>。一个文件可以包含多个模块，但是 Julia 不能通过文件名自动找到多余的模块。</p>
+<p class="calibre2">关于模块本身的命名，约定是使用 CamelCase。因此，我们将在一个<kbd class="calibre12">Letters.jl</kbd>文件中定义一个名为<kbd class="calibre12">Letters</kbd>的模块，或者在一个名为<kbd class="calibre12">WebSockets.jl</kbd>的文件中定义一个<kbd class="calibre12">WebSockets</kbd>模块。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Loading modules with using</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">使用加载模块</h1>
+                
+            
+            
+                
+<p class="calibre2">既然我们已经将文件夹添加到了<kbd class="calibre12">LOAD_PATH</kbd>，我们就可以使用我们的模块了:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; using Letters</strong> </pre>
+<p class="calibre2">此时，发生了两件事:</p>
+<ul class="calibre10">
+<li class="calibre11">所有导出的定义现在都可以在 REPL 中直接调用，在我们的例子中是<kbd class="calibre12">randstring</kbd></li>
+<li class="calibre11">未导出的定义可通过<em class="calibre55">点入</em> <kbd class="calibre12">Letters</kbd>来访问——例如<kbd class="calibre12">Letters.rand()</kbd></li>
+</ul>
+<p class="calibre2">让我们来试试:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; randstring() # has been exported and is directly accessible 
+"TCNXFLUOUU" 
+</strong><br class="title-page-name"/><strong class="calibre1">julia&gt; myname() # has not been exported so it's not available in the REPLERROR: UndefVarError: myname not defined</strong><br class="title-page-name"/><strong class="calibre1"> 
+julia&gt; Letters.myname() # but we can access it under the Letters namespace 
+"Letters"</strong><br class="title-page-name"/><strong class="calibre1"> 
+julia&gt; Letters.rand() # does not conflict with Base.rand 
+'L': ASCII/Unicode U+004c (category Lu: Letter, uppercase) </strong> </pre>
+<p class="calibre2">我们可以看到一个模块用<kbd class="calibre12">names</kbd>函数输出了什么:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; names(Letters) 
+2-element Array{Symbol,1}: 
+ :Letters 
+ :randstring</strong> </pre>
+<p class="calibre2">如果我们想要得到一个模块的所有定义，无论是否导出，<kbd class="calibre12">names</kbd>需要第二个参数，<kbd class="calibre12">all</kbd>，一个<kbd class="calibre12">Boolean</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; names(Letters, all = true) 
+11-element Array{Symbol,1}: 
+ # output truncated 
+ :Letters 
+ :MY_NAME 
+ :eval 
+ :myname 
+ :rand 
+ :randstring </strong></pre>
+<p class="calibre2">我们可以很容易地识别出我们定义的变量和函数。</p>
+<p class="calibre2">例如，我们可以看到，<kbd class="calibre12">myname</kbd>没有被直接引入范围，因为它没有在<kbd class="calibre12">Letters</kbd>中导出。但是，事实证明，如果我们明确地告诉 Julia 使用该函数，我们仍然可以获得类似导出的行为:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; using Letters: myname</strong><br class="title-page-name"/><strong class="calibre1">julia&gt; myname() # we no longer need to "dot into" Letters.myname() 
+"Letters"</strong> </pre>
+<p class="calibre2">如果我们想将来自同一个模块的多个定义直接引入作用域，我们可以传递一个逗号分隔的名称列表:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; using Letters: myname, MY_NAME</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Loading modules with import</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">使用导入加载模块</h1>
+                
+            
+            
+                
+<p class="calibre2">现在，让我们使用<kbd class="calibre12">Numbers</kbd>来看看<kbd class="calibre12">import</kbd>函数的效果:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; import Numbers</strong><br class="title-page-name"/><strong class="calibre1">julia&gt; names(Numbers) 
+2-element Array{Symbol,1}: 
+ :Numbers 
+ :halfrand</strong><br class="title-page-name"/><strong class="calibre1">julia&gt; halfrand() 
+ERROR: UndefVarError: halfrand not defined</strong> </pre>
+<p class="calibre2">这里我们可以看到，与<kbd class="calibre12">using</kbd>不同，<kbd class="calibre12">import</kbd>函数<em class="calibre16">没有将导出的定义纳入</em>的范围。</p>
+<p class="calibre2">但是，显式导入定义本身会将它直接引入范围，而不管它是否被导出:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; import Numbers.halfrand, Numbers.MY_NAME</strong> </pre>
+<p class="calibre2">此代码片段相当于以下内容:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; import Numbers: halfrand, MY_NAME 
+ 
+julia&gt; halfrand() 
+271.0</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Loading modules with include</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">使用 include 加载模块</h1>
+                
+            
+            
+                
+<p class="calibre2">在开发独立应用程序时，操作<kbd class="calibre12">LOAD_PATH</kbd>非常有用，就像我们现在正在开发的这个。但是，这种方法不适用于包开发人员。对于这种情况——以及由于某种原因无法使用<kbd class="calibre12">LOAD_PATH</kbd>的所有情况——加载模块的常见方式是包含它们的文件。</p>
+<p class="calibre2">例如，我们可以在 REPL 中包含我们的<kbd class="calibre12">Letters</kbd>模块，如下所示(开始新的 REPL 会话):</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; include("modules/Letters.jl") 
+Main.Letters</strong> </pre>
+<p class="calibre2">这将在当前范围内读取并评估<kbd class="calibre12">modules/Letters.jl</kbd>文件的内容。因此，它将在我们当前的模块<kbd class="calibre12">Main</kbd>中定义<kbd class="calibre12">Letters</kbd>模块。但是，这还不够——此时，<kbd class="calibre12">Letters</kbd>中没有一个定义被导出:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; randstring() 
+ERROR: UndefVarError: randstring not defined</strong> </pre>
+<p class="calibre2">我们需要将它们纳入范围:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; using Letters 
+ERROR: ArgumentError: Package Letters not found in current path: 
+- Run `Pkg.add("Letters")` to install the Letters package.</strong></pre>
+<p class="calibre2">又来了！刚刚发生了什么？当将<kbd class="calibre12">include</kbd>用于模块时，这是一个重要的区别。<kbd class="calibre12">Letters</kbd>模块，就像我们刚才说的，包含在当前模块<kbd class="calibre12">Main</kbd>中，所以我们需要相应地引用它:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; using Main.Letters 
+ 
+julia&gt; randstring() 
+"QUPCDZKSAH"</strong> </pre>
+<p class="calibre2">我们也可以通过使用相对的<em class="calibre16">路径</em>来引用这种嵌套的模块层次结构。例如，<kbd class="calibre12">.</kbd>点代表<em class="calibre16">当前模块</em>。因此，前面的<kbd class="calibre12">Main.Letters</kbd>嵌套可以表示为<kbd class="calibre12">.Letters</kbd>——这完全是一回事:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; using .Letters</strong> </pre>
+<p class="calibre2">类似地，我们可以用两个点<kbd class="calibre12">..</kbd>来引用父模块，用三个点来引用父模块的父模块，依此类推。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Nesting modules</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">嵌套模块</h1>
+                
+            
+            
+                
+<p class="calibre2">正如我们刚刚看到的，有时，我们程序的逻辑会规定一个模块必须是另一个模块的一部分，有效地嵌套它们。这是在开发我们自己的包时的偏好。组织一个包的最好方法是公开一个顶层模块，并在其中包含所有其他定义(函数、变量和其他模块)(以封装功能)。一个例子应该有助于澄清事情。</p>
+<p class="calibre2">让我们做一个更改—在<kbd class="calibre12">Letters.jl</kbd>文件中，在<kbd class="calibre12">include("module_name.jl")</kbd>行下面，继续添加另一行— <kbd class="calibre12">include("Numbers.jl")</kbd>。</p>
+<p class="calibre2">随着这一改变，<kbd class="calibre12">Numbers</kbd>模块将被有效地定义在<kbd class="calibre12">Letters</kbd>模块中。为了访问嵌套模块的功能，我们根据需要将<em class="calibre16">点进</em>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; using .Letters 
+ 
+julia&gt; Letters.Numbers.halfrand() 
+432.5</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Setting up our game's architecture</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">设置我们游戏的架构</h1>
+                
+            
+            
+                
+<p class="calibre2">让我们为我们的游戏创建一个家——创建一个名为<kbd class="calibre12">sixdegrees/</kbd>的新文件夹。我们将使用它来组织我们的游戏文件。每个文件将包含一个模块，每个模块将封装相关的功能。我们将利用 Julia 的自动加载特性，这意味着每个模块的文件名将与模块名相同，加上<kbd class="calibre12">.jl</kbd>扩展名。</p>
+<p class="calibre2">然而，一旦我们进入<kbd class="calibre12">sixdegrees/</kbd>文件夹，我们需要做的第一件事是通过<kbd class="calibre12">Pkg</kbd>初始化我们的项目——这样我们就可以使用 Julia 的依赖管理特性:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; mkdir("sixdegrees") 
+"sixdegrees" 
+ 
+julia&gt; cd("sixdegrees/") 
+ 
+julia&gt; ] # go into pkg mode 
+ 
+(v1.0) pkg&gt; activate . 
+ 
+(sixdegrees) pkg&gt;</strong> </pre>
+<p class="calibre2">我们将使用<kbd class="calibre12">HTTP</kbd>和<kbd class="calibre12">Gumbo</kbd>包，所以添加它们是个好主意，现在我们正在处理依赖关系:</p>
+<pre class="calibre17"><strong class="calibre1">(sixdegrees) pkg&gt; add HTTP Gumbo</strong> </pre>
+<p class="calibre2">我们需要的下一件事是维基百科相关代码的容器——一个封装了请求文章和提取内部 URL 的功能的模块。我们已经在<a href="3184f173-ae3d-47f9-b7e9-f677947499f2.xhtml" class="calibre9">第 3 章</a>、<em class="calibre16">设置维基游戏</em>中编写的<kbd class="calibre12">webcrawler.jl</kbd>文件中有了代码的第一次迭代。现在，我们需要做的就是创建一个<kbd class="calibre12">Wikipedia</kbd>模块，并用<kbd class="calibre12">webcrawler.jl</kbd>的内容填充它。</p>
+<p class="calibre2">在<kbd class="calibre12">sixdegrees</kbd>文件夹中，创建一个名为<kbd class="calibre12">Wikipedia.jl</kbd>的新文件。使用以下代码进行设置:</p>
+<pre class="calibre17">module Wikipedia<br class="title-page-name"/>using HTTP, Gumbo 
+ 
+const RANDOM_PAGE_URL = "https://en.m.wikipedia.org/wiki/Special:Random" 
+ 
+export fetchrandom, fetchpage, articlelinks 
+ 
+function fetchpage(url) 
+  response = HTTP.get(url) 
+  if response.status == 200 &amp;&amp; length(response.body) &gt; 0 
+    String(response.body) 
+  else 
+    "" 
+  end 
+end 
+ 
+function extractlinks(elem, links = String[]) 
+  if  isa(elem, HTMLElement) &amp;&amp; tag(elem) == :a &amp;&amp; in("href", collect(keys(attrs(elem)))) 
+        url = getattr(elem, "href") 
+        startswith(url, "/wiki/") &amp;&amp; ! occursin(":", url) &amp;&amp; push!(links, url) 
+  end <br class="title-page-name"/>  for child in children(elem) 
+    extractlinks(child, links) 
+  end <br class="title-page-name"/>  unique(links) 
+end 
+ 
+<strong class="calibre1">function fetchrandom() 
+  fetchpage(RANDOM_PAGE_URL) 
+end 
+ 
+function articlelinks(content) 
+  if ! isempty(content) 
+    dom = Gumbo.parsehtml(content) 
+ 
+    links = extractlinks(dom.root) 
+  end 
+end</strong>
+ 
+end</pre>
+<p class="calibre2">前面的代码应该看起来很熟悉，因为它与<kbd class="calibre12">webcrawler.jl</kbd>共享了很多逻辑。但是，有一些重要的变化。</p>
+<p class="calibre2">首先，我们把所有东西都包装成一个<kbd class="calibre12">module</kbd>声明。</p>
+<p>请注意一个非常重要的约定:在 Julia 中，我们不在模块内缩进代码，因为这会导致整个文件缩进，这会影响可读性。</p>
+<p class="calibre2">在第三行，我们曾经链接到 Julia 的 Wikipedia 条目，现在我们定义了一个<kbd class="calibre12">String</kbd>常量<kbd class="calibre12">RANDOM_PAGE_URL</kbd>，它指向一个特殊的 Wikipedia URL，该 URL 返回一篇随机文章。此外，我们切换到维基百科网站的移动版本，如<kbd class="calibre12">en.m.</kbd>子域名所示。使用手机页面会让我们的生活更轻松，因为它们更简单，标记更少。</p>
+<p class="calibre2">在<kbd class="calibre12">fetchpage</kbd>函数中，我们不再寻找<kbd class="calibre12">Content-Length</kbd>头，而是检查<kbd class="calibre12">response.body</kbd>属性的<kbd class="calibre12">length</kbd>。我们这样做是因为请求特殊的随机维基百科页面会执行重定向，在这个过程中，<kbd class="calibre12">Content-Length</kbd>头会被丢弃。</p>
+<p class="calibre2">我们还替换了文件底部的一些逻辑。我们现在定义了另外两个函数:<kbd class="calibre12">fetchrandom</kbd>和<kbd class="calibre12">articlelinks</kbd>，而不是自动获取 Julia 的 Wikipedia 页面并将内部链接列表转储到屏幕上。这些函数将是<kbd class="calibre12">Wikipedia</kbd>模块的公共接口，它们是使用<kbd class="calibre12">export</kbd>语句公开的。<kbd class="calibre12">fetchrandom</kbd>函数确实如其名——它调用<kbd class="calibre12">fetchpage</kbd>函数并传入<kbd class="calibre12">RANDOM_PAGE_URL</kbd>常量，有效地获取一个随机的维基百科页面。<kbd class="calibre12">articlelinks</kbd>返回代表链接文章的字符串数组。</p>
+<p class="calibre2">最后，我们删除了<kbd class="calibre12">LINKS</kbd>常量——应该避免使用全局变量。<kbd class="calibre12">extractlinks</kbd>函数已经被相应地重构，现在接受第二个参数<kbd class="calibre12">links</kbd>，一个<kbd class="calibre12">String</kbd>的<kbd class="calibre12">Vector</kbd>，用于在递归期间维护状态。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Checking our code</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">检查我们的代码</h1>
+                
+            
+            
+                
+<p class="calibre2">让我们确保，在这个重构之后，我们的代码仍然像预期的那样工作。Julia 自带单元测试功能，我们将在<a href="8391f749-e95c-4ff9-ba40-d71c91b1d7fd.xhtml" class="calibre9">第 11 章</a>、<em class="calibre16">创建 Julia 包</em>中讨论这些。现在，我们将使用传统的方法，手动运行代码并检查输出。</p>
+<p class="calibre2">我们将在<kbd class="calibre12">sixdegrees/</kbd>文件夹中添加一个名为<kbd class="calibre12">six_degrees.jl</kbd>的新文件。看它的名字，你可以猜到它将是一个普通的 Julia 文件，而不是一个模块。我们将使用它来编排游戏的加载:</p>
+<pre class="calibre17">using Pkg 
+pkg"activate ." 
+ 
+include("Wikipedia.jl") 
+using .Wikipedia 
+ 
+fetchrandom() |&gt; articlelinks |&gt; display </pre>
+<p class="calibre2">代码简单明了——我们使用<kbd class="calibre12">Pkg</kbd>来激活当前项目。然后，我们将<kbd class="calibre12">Wikipedia.jl</kbd>文件包含在当前模块中，然后我们要求编译器将<kbd class="calibre12">Wikipedia</kbd>模块纳入范围。最后，我们使用前面讨论的<kbd class="calibre12">fetchrandom</kbd>和<kbd class="calibre12">articlelinks</kbd>从一个随机的维基百科页面中检索文章 URL 列表并显示它。</p>
+<p class="calibre2">是时候运行我们的代码了！在 REPL 中，确保将<kbd class="calibre12">cd</kbd>放入<kbd class="calibre12">sixdegrees</kbd>文件夹并执行:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; include("six_degrees.jl") 
+21-element Array{String,1}: 
+ "/wiki/Main_Page" 
+ "/wiki/Arena" 
+ "/wiki/Saskatoon,_Saskatchewan" 
+ "/wiki/South_Saskatchewan_River" 
+ "/wiki/New_York_Rangers" 
+# ... output omitted ... #</strong>
+Array{String,1} with entries that start with <kbd class="calibre12">/wiki/</kbd>.</pre>
+<p class="CDPAlignLeft1">或者，您可以在 Visual Studio 代码和 Atom 中使用运行代码或运行文件选项。下面是运行<kbd class="calibre12">six_degrees.jl</kbd>文件的 Atom:</p>
+<p class="CDPAlignCenter"><img src="img/254968f3-69ff-4ecc-abec-45273a13f10c.png" class="calibre56"/></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Building our Wikipedia crawler - take two</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">构建我们的维基百科爬虫——第二次</h1>
+                
+            
+            
+                
+<p class="calibre2">我们的代码按预期运行，被重构并整齐地打包到一个模块中。然而，在继续之前，我希望我们再重构一件事。我不是特别喜欢我们的<kbd class="calibre12">extractlinks</kbd>功能。</p>
+<p class="calibre2">首先，它天真地迭代了所有的 HTML 元素。例如，假设我们还想要提取页面的标题——每当我们想要处理不是链接的内容时，我们就必须再次迭代整个文档。这将是资源饥渴和运行缓慢。</p>
+<p class="calibre2">其次，我们正在重新发明轮子。在<a href="3184f173-ae3d-47f9-b7e9-f677947499f2.xhtml" class="calibre9">第三章</a>、<em class="calibre16">设置维基游戏</em>中，我们说过 CSS 选择器是 DOM 解析的<em class="calibre16">通用语</em>。我们将从使用 CSS 选择器的简洁语法和专业库提供的底层优化中受益匪浅。</p>
+<p class="calibre2">幸运的是，我们不需要为这种功能寻找太多。Julia 的<kbd class="calibre12">Pkg</kbd>系统提供了对<kbd class="calibre12">Cascadia</kbd>的访问，这是一个本地 CSS 选择器库。而且，它的伟大之处在于它与<kbd class="calibre12">Gumbo</kbd>携手合作。</p>
+<p class="calibre2">为了使用 Cascadia，我们需要将它添加到我们项目的依赖列表中:</p>
+<pre class="calibre17"><strong class="calibre1">(sixdegrees) pkg&gt; add Cascadia</strong></pre>
+<p class="calibre2">接下来，告诉 Julia 我们将使用它——修改<kbd class="calibre12">Wikipedia.jl</kbd>,使第三行如下所示:</p>
+<pre class="calibre17">using HTTP, Gumbo<strong class="calibre1">, Cascadia</strong></pre>
+<p class="calibre2">在<kbd class="calibre12">Cascadia</kbd>的帮助下，我们现在可以重构<kbd class="calibre12">extractlinks</kbd>函数，如下所示:</p>
+<pre class="calibre17">function extractlinks(elem) 
+  map(<strong class="calibre1">eachmatch</strong>(<strong class="calibre1">Selector</strong>("a[href^='/wiki/']:not(a[href*=':'])"), elem)) <strong class="calibre1">do e</strong> 
+    e.attributes["href"] 
+  end |&gt; unique 
+end </pre>
+<p class="calibre2">让我们仔细看看这里发生的一切。首先突出的是<kbd class="calibre12">Selector</kbd>函数。这是由<kbd class="calibre12">Cascadia</kbd>提供的，它构造了一个新的 CSS 选择器对象。作为唯一参数传递给它的字符串是一个 CSS 选择器，它读取所有具有一个属性的<kbd class="calibre12">href</kbd>元素，该属性的值以<kbd class="calibre12">'/wiki/'</kbd>开始，并且不包含列(<kbd class="calibre12">:</kbd>)。</p>
+<p class="calibre2"><kbd class="calibre12">Cascadia</kbd>也导出了<kbd class="calibre12">eachmatch</kbd>方法。更准确地说，它<em class="calibre16">扩展了</em>现有的<kbd class="calibre12">Base.eachmatch</kbd>方法，我们之前已经在正则表达式中见过。这提供了一个熟悉的接口——我们将在本章后面的<em class="calibre16">方法</em>部分看到如何扩展方法。<kbd class="calibre12">Cascadia.eachmatch</kbd>函数返回一个与选择器匹配的<kbd class="calibre12">Vector</kbd>元素。</p>
+<p class="calibre2">一旦我们检索到匹配元素的集合，我们就把它传递给<kbd class="calibre12">map</kbd>函数。<kbd class="calibre12">map</kbd>函数是函数编程工具箱中最常用的工具之一。它将一个函数<kbd class="calibre12">f</kbd>和一个集合<kbd class="calibre12">c</kbd>作为其参数，并通过将<kbd class="calibre12">f</kbd>应用于每个元素来转换集合<kbd class="calibre12">c</kbd>，返回修改后的集合作为结果。其定义如下:</p>
+<pre class="calibre17">map(f, c...) -&gt; collection  
+map function, it's true. But it is, in fact, the exact same function invocation, except with a more readable syntax, provided by Julia's <kbd class="calibre12">blocks</kbd>.</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Using blocks</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">使用块</h1>
+                
+            
+            
+                
+<p class="calibre2">因为，在 Julia 中，函数是一级语言结构，它们可以像任何其他类型的变量一样被引用和操作。它们可以作为参数传递给其他函数，也可以作为其他函数调用的结果返回。以另一个函数作为自变量或返回另一个函数作为结果的函数称为<strong class="calibre4">高阶函数</strong>。</p>
+<p class="calibre2">让我们看一个使用<kbd class="calibre12">map</kbd>的简单例子。我们将采用<kbd class="calibre12">Int</kbd>中的<kbd class="calibre12">Vector</kbd>，并且我们将对其集合中的每个元素应用一个使值翻倍的函数。您可以在新的 REPL 会议(或随附的 IJulia 笔记本)中继续学习:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; double(x) = x*2 
+double (generic function with 1 method) </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; map(double, [1, 2, 3, 5, 8, 13]) 
+6-element Array{Int64,1}: 
+  2 
+  4 
+  6 
+ 10 
+ 16 
+ 26</strong> 
+double function as the argument of the higher-order function <kbd class="calibre12">map</kbd>. As a result, we got back the <kbd class="calibre12">Vector</kbd>, which was passed as the second argument, but with all the elements doubled.</pre>
+<p class="calibre2">这些都很好，但是定义一个函数只是为了将它作为另一个函数的一次性参数是不方便的，而且有点浪费。正因如此，包括 Julia 在内的支持功能特性的编程语言通常都支持<em class="calibre16">匿名函数</em>。匿名函数，或称<em class="calibre16">λ</em>，是一个不绑定到标识符的函数定义。</p>
+<p class="calibre2">我们可以重写前面的<kbd class="calibre12">map</kbd>调用来使用匿名函数，它是通过使用箭头<kbd class="calibre12">-&gt;</kbd>语法当场定义的:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; map(x -&gt; x*2, [1, 2, 3, 5, 8, 13]) 
+6-element Array{Int64,1}: 
+  2 
+  4 
+  6 
+ 10 
+ 16 
+ 26</strong></pre>
+<p class="calibre2">在定义<kbd class="calibre12">x -&gt; x*2</kbd>中，箭头左边的<kbd class="calibre12">x</kbd>代表传入函数的参数，而<kbd class="calibre12">x*2</kbd>代表函数体。</p>
+<p class="calibre2">太好了！我们不用单独定义<kbd class="calibre12">double</kbd>就达到了相同的最终结果。但是，如果我们需要使用更复杂的函数呢？例如，请注意以下内容:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; map(x -&gt; 
+           if x % 2 == 0 
+                  x * 2 
+           elseif x % 3 == 0 
+                  x * 3 
+           elseif x % 5 == 0 
+                  x * 5 
+           else 
+                  x 
+           end,  
+      [1, 2, 3, 5, 8, 13])</strong> </pre>
+<p class="calibre2">这很难理解！因为 Julia 允许我们缩进代码，所以我们可以增强这个例子的可读性，使它更容易理解，但是结果仍然不太好。</p>
+<p class="calibre2">因为这些情况经常发生，所以 Julia 提供了用于定义匿名函数的块语法。所有将另一个函数作为其第一个<em class="calibre16">参数的函数都可以与块语法一起使用。对这种调用的支持已经嵌入到语言中，所以您不需要做任何事情——只要函数是第一个位置参数，您的函数也会支持它。为了使用它，我们在调用高阶函数时跳过传递第一个参数——相反，在参数列表的末尾，在参数元组之外，我们添加了一个<kbd class="calibre12">do...end</kbd>块。在这个块中，我们定义了我们的 lambda。</em></p>
+<p class="calibre2">因此，我们可以将前面的示例重写如下:</p>
+<pre class="calibre17">map([1, 2, 3, 5, 8, 13]) do x 
+       if x % 2 == 0 
+              x * 2 
+       elseif x % 3 == 0 
+              x * 3 
+       elseif x % 5 == 0 
+              x * 5 
+        else 
+              x 
+        end 
+ end </pre>
+<p class="calibre2">可读性强多了！</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Implementing the gameplay</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">实现游戏性</h1>
+                
+            
+            
+                
+<p class="calibre2">我们的维基百科解析器现在非常健壮，添加了<kbd class="calibre12">Cascadia</kbd>大大简化了代码。是时候考虑实际的游戏玩法了。</p>
+<p class="calibre2">最重要的是，游戏的核心是创造谜语——要求玩家找到一条从初始文章到结束文章的路径。我们之前决定，为了确保两篇文章之间的路径确实存在，我们将对所有页面进行预抓取，从第一页到最后一页。为了从一个页面导航到下一个页面，我们将简单地随机选取一个内部 URL。</p>
+<p class="calibre2">我们还提到了包括难度设置。我们将使用常识性的假设，即开始文章和结束文章之间的链接越多，它们的主题就越不相关；因而，更难确定它们之间的路径，从而导致更具挑战性的水平。</p>
+<p class="calibre2">好了，该编码了！首先，在<kbd class="calibre12">sixdegrees/</kbd>文件夹中创建一个新文件。将其命名为<kbd class="calibre12">Gameplay.jl</kbd>，复制并粘贴以下内容:</p>
+<pre class="calibre17">module Gameplay 
+ 
+using ..Wikipedia 
+ 
+export newgame 
+ 
+const DIFFICULTY_EASY = 2 
+const DIFFICULTY_MEDIUM = 4 
+const DIFFICULTY_HARD = 6 
+ 
+function newgame(difficulty = DIFFICULTY_HARD) 
+  articles = [] 
+ 
+  for i in 1:difficulty 
+    article = if i == 1 
+      fetchrandom() 
+    else 
+      rand(articles[i-1][:links]) |&gt; Wikipedia.fetchpage 
+    end 
+ 
+article_data = Dict(:content =&gt; article, 
+  :links =&gt; articlelinks(article)) 
+    push!(articles, article_data) 
+  end 
+ 
+  articles 
+end 
+ 
+end </pre>
+<p class="calibre2"><kbd class="calibre12">Gamplay.jl</kbd>定义了新的<kbd class="calibre12">module</kbd>并将<kbd class="calibre12">Wikipedia</kbd>纳入范围。在这里，您可以看到我们如何通过使用<kbd class="calibre12">..</kbd>在父作用域中引用<kbd class="calibre12">Wikipedia</kbd>模块。然后定义三个常量，将难度设置映射到分离度(名为<kbd class="calibre12">DIFFICULTY_EASY</kbd>、<kbd class="calibre12">DIFFICULTY_MEDIUM</kbd>和<kbd class="calibre12">DIFFICULTY_HARD</kbd>)。</p>
+<p class="calibre2">然后定义一个函数<kbd class="calibre12">newgame</kbd>，它接受一个难度参数，默认设置为 hard。在函数体中，我们循环的次数等于难度值。在每次迭代中，我们检查当前的分离程度——如果是第一篇文章，我们调用<kbd class="calibre12">fetchrandom</kbd>开始爬行过程。如果不是第一篇文章，我们从之前抓取的文章的链接列表中随机选取一个链接(<kbd class="calibre12">rand(articles[i-1][:links])</kbd>)。然后我们将这个 URL 传递给<kbd class="calibre12">fetchpage</kbd>。当讨论条件语句时，我们了解到在 Julia <kbd class="calibre12">if/else</kbd>中，语句返回最后一次求值的表达式的值。我们可以看到它在这里得到了很好的利用，评估的结果存储在<kbd class="calibre12">article</kbd>变量中。</p>
+<p class="calibre2">一旦我们获取了文章，我们就将其内容和链接存储在一个名为<kbd class="calibre12">article_data</kbd>的<kbd class="calibre12">Dict</kbd>中。并且，<kbd class="calibre12">article_data</kbd>被依次添加到<kbd class="calibre12">articles</kbd>数组中。在它的最后一行，<kbd class="calibre12">newgame</kbd>函数返回包含所有步骤的<kbd class="calibre12">articles</kbd>向量，从第一步到最后一步。这个函数也是导出的。</p>
+<p class="calibre2">这并不难！但是，有一个小故障。如果您现在尝试运行代码，它将会失败。原因是文章链接是<em class="calibre16">相对</em>的。这意味着它们不是完全合格的 URLs 他们看起来像<kbd class="calibre12">/wiki/Some_Article_Title</kbd>。当<kbd class="calibre12">HTTP.jl</kbd>发出请求时，它需要包含完整的链接、协议和域名。不过不用担心，这在<kbd class="calibre12">Wikipedia.jl</kbd>中很容易修复。请将您的编辑器切换到<kbd class="calibre12">Wikipedia</kbd>模块，并将<kbd class="calibre12">const RANDOM_PAGE_URL</kbd>行替换为以下三行:</p>
+<pre class="calibre17">const PROTOCOL = "https://" 
+const DOMAIN_NAME = "en.m.wikipedia.org" 
+const RANDOM_PAGE_URL = PROTOCOL * DOMAIN_NAME * "/wiki/Special:Random" </pre>
+<p class="calibre2">我们将随机页面 URL 分成几个部分——协议、域名和相对路径的其余部分。</p>
+<p class="calibre2">在获取文章时，我们将使用类似的方法将相对 URL 转换为绝对 URL。为此，更改<kbd class="calibre12">fetchpage</kbd>的主体，并将其添加为第一行代码:</p>
+<pre class="calibre17">url = startswith(url, "/") <strong class="calibre1">?</strong> PROTOCOL * DOMAIN_NAME * url <strong class="calibre1">:</strong> url </pre>
+<p class="calibre2">在这里，我们检查<kbd class="calibre12">url</kbd>参数——如果它以<kbd class="calibre12">"/"</kbd>开头，这意味着它是一个相对 URL，因此我们需要将其转换为绝对 URL。正如你所看到的，我们使用了三元运算符。</p>
+<p class="calibre2">我们的代码现在应该工作得很好，但是在我们的游戏中散布这个<kbd class="calibre12">PROTOCOL * DOMAIN_NAME * url</kbd>有点代码味道。让我们把它抽象成一个函数:</p>
+<pre class="calibre17">function buildurl(article_url) 
+    PROTOCOL * DOMAIN_NAME * article_url 
+end </pre>
+<p>在编程术语中,<em class="calibre55">代码味道</em>指的是违反基本设计原则并对质量产生负面影响的实践。这不是一个<em class="calibre55">错误</em> <em class="calibre55">本身</em>，而是表明设计中的弱点，可能会增加将来出现错误或故障的风险。</p>
+<p class="calibre2"><kbd class="calibre12">Wikipedia.jl</kbd>文件现在应该看起来像这样:</p>
+<pre class="calibre17">module Wikipedia 
+ 
+using HTTP, Gumbo, Cascadia 
+ 
+const PROTOCOL = "https://" 
+const DOMAIN_NAME = "en.m.wikipedia.org" 
+const RANDOM_PAGE_URL = PROTOCOL * DOMAIN_NAME * "/wiki/Special:Random" 
+ 
+export fetchrandom, fetchpage, articlelinks 
+ 
+function fetchpage(url) 
+  url = startswith(url, "/") ? buildurl(url) : url 
+  response = HTTP.get(url) 
+ 
+  if response.status == 200 &amp;&amp; length(response.body) &gt; 0 
+    String(response.body) 
+  else  
+    "" 
+  end 
+end 
+ 
+function extractlinks(elem) 
+  map(eachmatch(Selector("a[href^='/wiki/']:not(a[href*=':'])"), elem)) do e 
+    e.attributes["href"] 
+  end |&gt; unique 
+end 
+ 
+function fetchrandom() 
+  fetchpage(RANDOM_PAGE_URL) 
+end 
+ 
+function articlelinks(content) 
+  if ! isempty(content) 
+    dom = Gumbo.parsehtml(content) 
+   
+    links = extractlinks(dom.root) 
+  end 
+end 
+ 
+function buildurl(article_url) 
+  PROTOCOL * DOMAIN_NAME * article_url 
+end 
+ 
+end </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Finishing touches</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">收尾</h1>
+                
+            
+            
+                
+<p class="calibre2">我们的游戏发展得很好。只剩下几块了。考虑到我们游戏的 UI，我们想要显示游戏的进程，指出玩家已经浏览的文章。为此，我们需要文章的标题。如果我们还可以包括一个图像，这将使我们的游戏更漂亮。</p>
+<p class="calibre2">幸运的是，我们现在使用 CSS 选择器，所以提取缺失的数据应该是小菜一碟。我们需要做的就是将以下内容添加到<kbd class="calibre12">Wikipedia</kbd>模块中:</p>
+<pre class="calibre17"><strong class="calibre1">import Cascadia: matchFirst</strong> 
+ 
+function extracttitle(elem) 
+  matchFirst(Selector("<strong class="calibre1">#section_0</strong>"), elem) |&gt; <strong class="calibre1">nodeText</strong> 
+end 
+ 
+function extractimage(elem) 
+  e = matchFirst(Selector("<strong class="calibre1">.content a.image img</strong>"), elem) 
+  isa(e, Void) ? "" : e.attributes["src"] 
+end </pre>
+<p class="calibre2"><kbd class="calibre12">extracttitle</kbd>和<kbd class="calibre12">extractimage</kbd>函数将从我们的文章页面中检索相应的内容。在这两种情况下，因为我们只想分别选择一个元素，即主页面标题和第一张图片，所以我们使用<kbd class="calibre12">Cascadia.matchFirst</kbd>。<kbd class="calibre12">matchFirst</kbd>功能没有被<kbd class="calibre12">Cascadia</kbd>公开——但是因为它非常有用，我们<kbd class="calibre12">import</kbd>了它。</p>
+<p class="calibre2"><kbd class="calibre12">#section_0</kbd>选择器标识主页面标题，一个<kbd class="calibre12">&lt;h1&gt;</kbd>元素。而且，因为我们需要提取其<kbd class="calibre12">&lt;h1&gt;...&lt;/h1&gt;</kbd>标签之间的文本，所以我们调用由<kbd class="calibre12">Cascadia</kbd>提供的<kbd class="calibre12">nodeText</kbd>方法。</p>
+<p class="calibre2">你可以在下面的截图中看到，在 Safari 的 inspector 中显示了一个维基百科页面的主标题，如何识别所需的 HTML 元素，以及如何通过检查页面的源代码和相应的 DOM 元素来挑选它们的 CSS 选择器。HTML 属性<kbd class="calibre12">id="section_0"</kbd>对应于<kbd class="calibre12">#section_0</kbd> CSS 选择器:</p>
+<p class="CDPAlignCenter"><img src="img/09501ef3-c816-45fb-9fdf-7210a0538eec.png" class="calibre57"/></p>
+<p class="calibre2">至于<kbd class="calibre12">extractimage</kbd>，我们寻找主文章图像，由<kbd class="calibre12">".content a.image img"</kbd>选择器表示。因为不是所有的页面都有它，我们检查是否确实得到了一个有效的元素。如果页面没有图像，我们将得到一个名为<kbd class="calibre12">nothing</kbd>的<kbd class="calibre12">Nothing,</kbd>实例。这是一个重要的构造——<kbd class="calibre12">nothing</kbd>是<kbd class="calibre12">Nothing</kbd>的单例实例，表示没有对象，对应于其他语言中的<kbd class="calibre12">NULL</kbd>。如果我们得到了一个<kbd class="calibre12">img</kbd>元素，我们提取它的<kbd class="calibre12">src</kbd>属性的值，这是图像的 URL。</p>
+<p class="calibre2">这是另一个维基百科截图，我在其中标记了我们的目标图像元素。这面旗帜是维基百科<strong class="calibre4">澳洲</strong>页面上的第一张图片——完全匹配:</p>
+<p class="CDPAlignCenter"><img src="img/3db08f0a-dabc-4811-ab68-93785a2cea72.png" class="calibre58"/></p>
+<p class="calibre2">接下来，我们可以扩展<kbd class="calibre12">Gameplay.newgame</kbd>函数，以处理新的函数和值。但是现在，这感觉不太对——太多的<kbd class="calibre12">Wikipedia</kbd>逻辑会泄漏到<kbd class="calibre12">Gameplay</kbd>模块中，耦合它们；危险的反模式。取而代之，让我们把数据的提取和文章的设置，<kbd class="calibre12">Dict</kbd>，全部由<kbd class="calibre12">Wikipedia</kbd>负责，完全封装逻辑。使<kbd class="calibre12">Gameplay.newgame</kbd>函数看起来如下面的代码所示:</p>
+<pre class="calibre17">function newgame(difficulty = DIFFICULTY_HARD) 
+  articles = [] 
+   
+  for i in 1:difficulty  
+    article = if i == 1 
+                fetchrandom() 
+              else  
+                rand(articles[i-1][:links]) |&gt; Wikipedia.fetchpage 
+              end 
+    push!(articles, articleinfo(article)) 
+  end 
+ 
+  articles 
+end </pre>
+<p class="calibre2">然后，更新<kbd class="calibre12">Wikipedia</kbd>模块，如下所示:</p>
+<pre class="calibre17">module Wikipedia 
+ 
+using HTTP, Gumbo, Cascadia 
+import Cascadia: matchFirst 
+ 
+const PROTOCOL = "https://" 
+const DOMAIN_NAME = "en.m.wikipedia.org" 
+const RANDOM_PAGE_URL = PROTOCOL * DOMAIN_NAME * "/wiki/Special:Random" 
+ 
+export fetchrandom, fetchpage, articleinfo 
+ 
+function fetchpage(url) 
+  url = startswith(url, "/") ? buildurl(url) : url 
+ 
+  response = HTTP.get(url) 
+ 
+  if response.status == 200 &amp;&amp; length(response.body) &gt; 0 
+    String(response.body) 
+  else  
+    "" 
+  end 
+end 
+ 
+function extractlinks(elem) 
+  map(eachmatch(Selector("a[href^='/wiki/']:not(a[href*=':'])"), elem)) do e 
+    e.attributes["href"] 
+  end |&gt; unique 
+end 
+ 
+function extracttitle(elem) 
+  matchFirst(Selector("#section_0"), elem) |&gt; nodeText 
+end 
+ 
+function extractimage(elem) 
+  e = matchFirst(Selector(".content a.image img"), elem) 
+  isa(e, Nothing) ? "" : e.attributes["src"] 
+end 
+ 
+function fetchrandom() 
+  fetchpage(RANDOM_PAGE_URL) 
+end 
+ 
+<strong class="calibre1">function articledom(content) 
+  if ! isempty(content) 
+    return Gumbo.parsehtml(content) 
+  end 
+ 
+  error("Article content can not be parsed into DOM") 
+end</strong> 
+ 
+<strong class="calibre1">function articleinfo(content) 
+  dom = articledom(content) 
+ 
+  Dict( :content =&gt; content,  
+        :links =&gt; extractlinks(dom.root),  
+        :title =&gt; extracttitle(dom.root),  
+        :image =&gt; extractimage(dom.root) 
+  ) 
+end</strong> 
+ 
+function buildurl(article_url) 
+  PROTOCOL * DOMAIN_NAME * article_url 
+end 
+ 
+end </pre>
+<p class="calibre2">该文件有一些重要的变化。我们已经删除了<kbd class="calibre12">articlelinks</kbd>功能，并添加了<kbd class="calibre12">articleinfo</kbd>和<kbd class="calibre12">articledom</kbd>。新的<kbd class="calibre12">articledom</kbd>函数使用<kbd class="calibre12">Gumbo</kbd>解析 HTML 并生成 DOM，非常重要的是，它只被解析一次。我们不希望每次提取一种类型的元素时都将 HTML 解析成 DOM，如果我们保留前面的<kbd class="calibre12">articlelinks</kbd>函数就会出现这种情况。至于<kbd class="calibre12">articleinfo</kbd>，它负责创建一篇文章<kbd class="calibre12">Dict</kbd>，其中包含所有相关信息——内容、链接、标题和图片。</p>
+<p class="calibre2">我们可以通过修改<kbd class="calibre12">six_degrees.jl</kbd>文件来测试我们的代码，如下所示:</p>
+<pre class="calibre17">using Pkg 
+pkg"activate ." 
+ 
+include("Wikipedia.jl") 
+include("Gameplay.jl") 
+ 
+using .Wikipedia, .Gameplay 
+ 
+for article in newgame(<strong class="calibre1">Gameplay.DIFFICULTY_EASY</strong>) 
+  println(article[:title]) 
+end </pre>
+<p class="calibre2">我们开始一个新游戏，它包含两篇文章(<kbd class="calibre12">Gameplay.DIFFICULTY_EASY</kbd>)，我们显示每篇文章的标题。我们可以通过<kbd class="calibre12">julia&gt; include("six_degrees.jl")</kbd>在 REPL 会话中运行它，或者简单地在 Visual Studio 代码或 Atom 中运行该文件来查看它的运行情况。这是在 REPL:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; include("six_degrees.jl") 
+Miracle Bell 
+Indie pop </strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>One more thing</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">还有一点</h1>
+                
+            
+            
+                
+<p class="calibre2">我们的测试运行表明，我们的难度设置有一个小故障。我们应该在起点之后抓取一定数量的文章<em class="calibre16">。我们的第一篇文章不算数。这个超级好修。在<kbd class="calibre12">Gameplay.newgame</kbd>中，我们需要用<kbd class="calibre12">for i in 1:difficulty+1</kbd>代替<kbd class="calibre12">for i in 1:difficulty</kbd>(注意末尾的<kbd class="calibre12">+1</kbd>)。现在，如果我们再试一次，它会像预期的那样工作:</em></p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; include("six_degrees.jl") 
+John O'Brien (Australian politician) 
+Harlaxton, Queensland 
+Ballard, Queensland</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Learning about Julia's type system</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">了解 Julia 的类型系统</h1>
+                
+            
+            
+                
+<p class="calibre2">我们的游戏非常棒，但是有一点我们可以改进——将我们的文章信息存储为一个<kbd class="calibre12">Dict</kbd>。朱莉娅的字典非常灵活和强大，但它们并不是在所有情况下都适用。<kbd class="calibre12">Dict</kbd>是一种通用的数据结构，针对搜索、删除和插入操作进行了优化。这里不需要这些——我们的文章有固定的结构，包含一旦创建就不会改变的数据。这是对象和面向对象编程的完美用例。看来是时候学习一下类型了。</p>
+<p class="calibre2">Julia 的类型系统是语言的面包和黄油——它无处不在，定义了语言的语法，是 Julia 的性能和灵活性背后的驱动力。Julia 的类型系统是动态的，这意味着直到运行时，当程序操作的实际值可用时，才知道什么是类型。然而，通过使用类型注释，我们可以从静态类型的优点中获益——表明某些值是特定的类型。这可以极大地提高代码的性能，同时增强可读性并简化调试。</p>
+<p class="calibre2">谈论朱莉娅而不谈类型是不可能的。果然，到目前为止我们已经看到了许多原始类型— <kbd class="calibre12">Integer</kbd>、<kbd class="calibre12">Float64</kbd>、<kbd class="calibre12">Boolean</kbd>、<kbd class="calibre12">Char</kbd>等等。在学习各种数据结构时，我们也接触了类型，比如<kbd class="calibre12">Array</kbd>、<kbd class="calibre12">Dict,</kbd>或 tuple。这些都是语言中内置的，但事实证明，Julia 让我们创建自己的语言变得非常容易。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Defining our own types</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">定义我们自己的类型</h1>
+                
+            
+            
+                
+<p class="calibre2">Julia 支持两种类型——基本类型和复合类型。原始类型是一种具体类型，其数据由普通的旧位组成。复合类型是命名字段的集合，其实例可被视为单个值。在许多语言中，复合类型是唯一一种用户可定义的类型，但是 Julia 也允许我们声明自己的基本类型，而不是只提供一组固定的内置类型。</p>
+<p>我们不会在这里谈论定义基本类型，但是你可以在 https://docs.julialang.org/en/v1/manual/types/的官方文档中读到更多关于它们的内容。</p>
+<p class="calibre2">为了表示我们的文章，我们最好使用不可变的复合类型。一旦我们的文章对象被创建，它的数据不会改变。不可变的复合类型由关键字<kbd class="calibre12">struct</kbd>引入，后跟一组字段名:</p>
+<pre class="calibre17">struct Article 
+    content <br class="title-page-name"/>    links <br class="title-page-name"/>    title <br class="title-page-name"/>    image 
+end </pre>
+<p class="calibre2">因为我们没有为字段提供类型信息——也就是说，我们没有告诉 Julia 我们希望每个字段是什么类型——它们将默认为 any，允许保存任何类型的值。但是，因为我们已经知道我们想要存储什么数据，我们将从约束每个字段的类型中受益匪浅。<kbd class="calibre12">::</kbd>操作符可用于给表达式和变量附加类型注释。可以理解为<em class="calibre16">是</em>的一个实例。因此，我们将<kbd class="calibre12">Article</kbd>类型定义如下:</p>
+<pre class="calibre17">struct Article 
+    content::String 
+    links::Vector{String} 
+    title::String 
+    image::String 
+end </pre>
+<p class="calibre2">所有字段都是<kbd class="calibre12">String</kbd>类型，除了<kbd class="calibre12">links</kbd>，它是<kbd class="calibre12">String</kbd>的一维<kbd class="calibre12">Array</kbd>，也称为<kbd class="calibre12">Vector{String}</kbd>。</p>
+<p class="calibre2">类型注释可以提供重要的性能优势，同时还消除了一整类与类型相关的错误。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Constructing types</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">构造类型</h1>
+                
+            
+            
+                
+<p class="calibre2">通过像函数一样应用<kbd class="calibre12">Article</kbd>类型名来创建<kbd class="calibre12">Article</kbd>类型的新对象。参数是其字段的值:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; julia = Article( 
+           "Julia is a high-level dynamic programming language", 
+           ["/wiki/Jeff_Bezanson", "/wiki/Stefan_Karpinski",  
+            "/wiki/Viral_B._Shah", "/wiki/Alan_Edelman"], 
+           "Julia (programming language)", 
+           "/220px-Julia_prog_language.svg.png" 
+       ) 
+Article("Julia is a high-level dynamic programming language", ["/wiki/Jeff_Bezanson", "/wiki/Stefan_Karpinski", "/wiki/Viral_B._Shah", "/wiki/Alan_Edelman"], "Julia (programming language)", "/220px-Julia_prog_language.svg.png")</strong> </pre>
+<p class="calibre2">可以使用标准的<em class="calibre16">点符号</em>访问新创建对象的字段:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; julia.title 
+"Julia (programming language)"</strong> </pre>
+<p class="calibre2">因为我们声明我们的类型是不可变的，所以值是只读的，所以它们不能被改变:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; julia.title = "The best programming language, period" 
+ERROR: type Article is immutable</strong> </pre>
+<p class="calibre2">我们的<kbd class="calibre12">Article</kbd>类型定义不允许我们改变<kbd class="calibre12">julia.title</kbd>属性。但是，根据 Julia 的官方文档，不变性不应该被忽略，因为它确实具有相当大的优势:</p>
+<ul class="calibre10">
+<li class="calibre11">可以更有效率。一些结构可以有效地打包到数组中，在某些情况下，编译器可以完全避免分配不可变对象。</li>
+<li class="calibre11">不可能违反由类型的构造函数提供的不变量。</li>
+<li class="calibre11">使用不可变对象的代码更容易推理。</li>
+</ul>
+<p class="calibre2">但是，这不是故事的全部。不可变对象可以具有引用可变对象的字段，例如指向<kbd class="calibre12">Array{String, 1}</kbd>的<kbd class="calibre12">links</kbd>。这个数组仍然是可变的:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; push!(julia.links, "/wiki/Multiple_dispatch") 
+5-element Array{String,1}: 
+ "/wiki/Jeff_Bezanson" 
+ "/wiki/Stefan_Karpinski" 
+ "/wiki/Viral_B._Shah" 
+ "/wiki/Alan_Edelman" 
+ "/wiki/Multiple_dispatch"</strong> </pre>
+<p class="calibre2">我们可以看到，通过多推送一个指向底层集合的 URL 来改变<kbd class="calibre12">links</kbd>属性并没有错误。如果一个属性指向一个可变类型，只要它的类型保持不变，该类型就可以发生变异:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; julia.links = [1, 2, 3] 
+MethodError: Cannot `convert` an object of type Int64 to an object of type String</strong> </pre>
+<p class="calibre2">我们不允许更改<kbd class="calibre12">links</kbd>字段的类型——Julia 试图适应并将我们提供的值从<kbd class="calibre12">Int</kbd>转换为<kbd class="calibre12">String</kbd>,但是失败了。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Mutable composite types</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">可变复合类型</h1>
+                
+            
+            
+                
+<p class="calibre2">构造可变的复合类型也是可能的(也同样容易)。我们唯一需要做的就是使用<kbd class="calibre12">mutable struct</kbd>语句，而不仅仅是<kbd class="calibre12">struct</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; mutable struct Player 
+           username::String 
+           score::Int 
+       end</strong> </pre>
+<p class="calibre2">我们的<kbd class="calibre12">Player</kbd>对象应该是可变的，因为我们需要在每次游戏后更新<kbd class="calibre12">score</kbd>属性:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; me = Player("adrian", 0) 
+Player("adrian", 0) 
+ 
+julia&gt; me.score += 10 
+10 
+ 
+julia&gt; me 
+Player("adrian", 10)</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Type hierarchy and inheritance</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">类型层次结构和继承</h1>
+                
+            
+            
+                
+<p class="calibre2">像所有实现 OOP 特性的编程语言一样，Julia 允许开发人员定义丰富且富有表现力的类型层次结构。然而，与大多数 OOP 语言不同，有一个非常重要的区别— <em class="calibre16">在 Julia </em>中，只有层次结构中的最终(上层)类型可以被实例化。它的所有父节点只是类型图中的节点，我们不能创建它们的实例。它们是<em class="calibre16">抽象类型</em>，使用<kbd class="calibre12">abstract</kbd>类型关键字定义:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; abstract type Person end</strong> </pre>
+<p class="calibre2">我们可以使用<kbd class="calibre12">&lt;:</kbd>操作符来表示一个类型是现有<em class="calibre16">父</em>的子类型:</p>
+<pre class="calibre17">julia&gt; abstract type Mammal end 
+julia&gt; abstract type Person &lt;: Mammal end 
+julia&gt; mutable struct Player &lt;: Person 
+           username::String 
+           score::Int 
+       end </pre>
+<p class="calibre2">或者，在另一个例子中，这是 Julia 的数字类型层次结构:</p>
+<pre class="calibre17">abstract type Number end 
+abstract type Real     &lt;: Number end 
+abstract type AbstractFloat &lt;: Real end 
+abstract type Integer  &lt;: Real end 
+abstract type Signed   &lt;: Integer end 
+abstract type Unsigned &lt;: Integer end </pre>
+<p class="calibre2">超类型不能被实例化的事实看起来有局限性，但是它们有一个非常强大的角色。我们可以定义将超类型作为参数的函数，实际上接受它的所有子类型:</p>
+<pre class="calibre17">julia&gt; struct User &lt;: Person 
+           username::String 
+           password::String 
+       end 
+ 
+julia&gt; sam = User("sam", "password") 
+User("sam", "password") 
+ 
+julia&gt; function getusername(p::Person) 
+           p.username 
+      end 
+ 
+julia&gt; getusername(me) 
+"adrian" 
+ 
+julia&gt; getusername(sam) 
+"sam" 
+ 
+julia&gt; getusername(julia) 
+ERROR: MethodError: no method matching getusername(::Article) 
+Closest candidates are: 
+  getusername(::Person) at REPL[25]:2 </pre>
+<p class="calibre2">在这里，我们可以看到如何定义一个<kbd class="calibre12">getusername</kbd>函数，它接受一个(抽象)类型的参数<kbd class="calibre12">Person</kbd>。由于<kbd class="calibre12">User</kbd>和<kbd class="calibre12">Player</kbd>都是<kbd class="calibre12">Person</kbd>的子类型，它们的实例作为参数被接受。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Type unions</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">类型联合</h1>
+                
+            
+            
+                
+<p class="calibre2">有时，我们可能希望允许一个函数接受一组不一定属于同一类型层次结构的类型。当然，我们可以允许函数接受任何类型，但是根据用例，可能需要将参数严格限制在定义明确的类型子集内。对于这种情况，Julia 提供了<em class="calibre16">型接头</em>。</p>
+<p class="calibre2">类型联合是一种特殊的抽象类型，它包括其任何参数类型的所有实例作为对象，使用特殊的<kbd class="calibre12">Union</kbd>函数构造:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; GameEntity = Union{Person,Article} 
+Union{Article, Person}</strong> </pre>
+<p class="calibre2">在这里，我们定义了一个新的类型 union，<kbd class="calibre12">GameEntity</kbd>，它包括两种类型——<kbd class="calibre12">Person</kbd>和<kbd class="calibre12">Article</kbd>。现在，我们可以定义知道如何处理<kbd class="calibre12">GameEntities</kbd>的函数:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; function entityname(e::GameEntity) 
+           isa(e, Person) ? e.username : e.title 
+       end 
+entityname (generic function with 1 method) 
+ 
+julia&gt; entityname(julia) 
+"Julia (programming language)" 
+ 
+julia&gt; entityname(me) 
+"adrian"</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Using article types</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">使用文章类型</h1>
+                
+            
+            
+                
+<p class="calibre2">我们可以重构我们的代码来消除通用的<kbd class="calibre12">Dict</kbd>数据结构，并用专门的<kbd class="calibre12">Article</kbd>复合类型来表示我们的文章。</p>
+<p class="calibre2">让我们在<kbd class="calibre12">sixdegrees/</kbd>工作文件夹中创建一个新文件，并将其命名为<kbd class="calibre12">Articles.jl</kbd>。通过输入相应的<kbd class="calibre12">module</kbd>声明来编辑文件。然后，添加我们类型的定义并<kbd class="calibre12">export</kbd>它:</p>
+<pre class="calibre17">module Articles 
+ 
+export Article 
+ 
+struct Article 
+  content::String 
+  links::Vector{String} 
+  title::String 
+  image::String 
+end 
+ 
+end </pre>
+<p class="calibre2">我们本可以将<kbd class="calibre12">Article</kbd>类型定义添加到<kbd class="calibre12">Wikipedia.jl</kbd>文件中，但是这很可能会增加，最好将它们分开。</p>
+<p class="calibre2">另一件要注意的事情是，<kbd class="calibre12">module</kbd>和<kbd class="calibre12">type</kbd>都是加载在相同范围内的 Julia 实体。出于这个原因，我们不能同时使用<kbd class="calibre12">Article</kbd>和<kbd class="calibre12">type</kbd>这两个名字——我们会以名字冲突而告终。然而，复数名称<kbd class="calibre12">Articles</kbd>是模块的一个好名字，因为它将封装处理<em class="calibre16">文章</em>的逻辑，而<kbd class="calibre12">Article</kbd>类型表示一个<em class="calibre16">文章</em>实体——因此是单数形式。</p>
+<p class="calibre2">然而，由于概念上一个<kbd class="calibre12">Article</kbd>对象引用了一个维基百科页面，它应该是<kbd class="calibre12">Wikipedia</kbd>名称空间的一部分。这很简单，我们只需要将它包含到<kbd class="calibre12">Wikipedia</kbd>模块中。在<kbd class="calibre12">import Cascadia: matchFirst</kbd>行后添加以下内容:</p>
+<pre class="calibre17">include("Articles.jl") 
+using .Articles </pre>
+<p class="calibre2">我们包含了<kbd class="calibre12">Articles</kbd>模块文件并将其纳入范围。</p>
+<p class="calibre2">接下来，在同一个<kbd class="calibre12">Wikipedia.jl</kbd>文件中，我们需要修改<kbd class="calibre12">articleinfo</kbd>函数。请确保内容如下:</p>
+<pre class="calibre17">function articleinfo(content) 
+  dom = articledom(content) 
+  Article(content,  
+          extractlinks(dom.root),  
+          extracttitle(dom.root),  
+          extractimage(dom.root)) 
+end </pre>
+<p class="calibre2">我们现在实例化了一个<kbd class="calibre12">Article</kbd>的实例，而不是创建一个通用的<kbd class="calibre12">Dict</kbd>对象。</p>
+<p class="calibre2">我们还需要对<kbd class="calibre12">Gameplay.jl</kbd>做一些修改，以使用<kbd class="calibre12">Article</kbd>类型代替<kbd class="calibre12">Dict</kbd>。它现在应该是这样的:</p>
+<pre class="calibre17">module Gameplay 
+ 
+using ..Wikipedia, ..Wikipedia.Articles 
+ 
+export newgame 
+ 
+const DIFFICULTY_EASY = 2 
+const DIFFICULTY_MEDIUM = 4 
+const DIFFICULTY_HARD = 6 
+ 
+function newgame(difficulty = DIFFICULTY_HARD) 
+  articles = Article[] 
+   
+  for i in 1:difficulty+1 
+    article = if i == 1 
+                fetchrandom() 
+              else  
+                rand(articles[i-1].links) |&gt; fetchpage 
+              end 
+    push!(articles, articleinfo(article)) 
+  end 
+ 
+  articles 
+end 
+ 
+end </pre>
+<p class="calibre2">请注意，在第三行，我们将<kbd class="calibre12">Wikipedia.Articles</kbd>纳入范围。然后，在<kbd class="calibre12">newgame</kbd>函数中，我们将<kbd class="calibre12">articles</kbd>数组初始化为<kbd class="calibre12">Vector{Article}</kbd>类型。然后，我们更新<kbd class="calibre12">for</kbd>循环中的代码来处理<kbd class="calibre12">Article</kbd>对象— <kbd class="calibre12">rand(articles[i-1].links)</kbd>。</p>
+<p class="calibre2">最后一个变化在<kbd class="calibre12">six_degrees.jl</kbd>。由于<kbd class="calibre12">newgame</kbd>现在返回一个<kbd class="calibre12">Article</kbd>对象的向量，而不是一个<kbd class="calibre12">Dict</kbd>，我们通过访问<kbd class="calibre12">title</kbd>字段来打印标题:</p>
+<pre class="calibre17">using Pkg 
+pkg"activate ." 
+ 
+include("Wikipedia.jl") 
+include("Gameplay.jl") 
+ 
+using .Wikipedia, .Gameplay 
+ 
+articles = newgame(Gameplay.DIFFICULTY_EASY) 
+ 
+for article in articles 
+  println(article.title) 
+end </pre>
+<p class="calibre2">新的测试运行应该确认所有的工作都如预期的那样(你的输出将会不同，因为，记住，我们是随机抽取的文章):</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; include("six_degrees.jl") 
+Sonpur Bazari 
+Bengali language 
+Diacritic</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Inner constructors</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">内部构造函数</h1>
+                
+            
+            
+                
+<p class="calibre2">外部构造函数(我们调用<kbd class="calibre12">type</kbd>作为一个函数)是一个默认的构造函数，我们以正确的顺序为所有的字段提供值——并得到相应类型的一个实例。但是，如果我们想提供额外的构造函数，可能会强加某些约束，执行验证，或者只是更加用户友好呢？为此，Julia 提供了<em class="calibre16">内部构造函数</em>。我为它们找到了一个很好的用例。</p>
+<p class="calibre2">我不太喜欢我们的<kbd class="calibre12">Article</kbd>构造函数——它需要太多的参数，这些参数需要以正确的顺序传递。很难记住如何实例化它。我们之前已经了解了关键字参数——如果能提供一个接受关键字参数的替代构造函数，那就太棒了。我们需要内部构造函数。</p>
+<p class="calibre2">内部构造函数与外部构造函数非常相似，但有两个主要区别:</p>
+<ul class="calibre10">
+<li class="calibre11">它们是在类型声明的块内声明的，而不是像普通方法那样在块外声明。</li>
+<li class="calibre11">他们可以访问一个名为<kbd class="calibre12">new</kbd>的特殊本地函数，该函数可以创建相同类型的对象。</li>
+</ul>
+<p class="calibre2">另一方面，外部构造函数有一个明显的限制(根据设计)——我们可以创建任意多的构造函数，但是它们只能通过调用现有的内部构造函数来实例化对象(它们没有访问<kbd class="calibre12">new</kbd>函数的权限)。这样，如果我们定义实现一些业务逻辑约束的内部构造函数，<em class="calibre16"> Julia 保证外部构造函数不能绕过它们</em>。</p>
+<p class="calibre2">我们带有关键字参数的内部构造函数如下所示:</p>
+<pre class="calibre17">Article(; content = "", links = String[], title = "", image = "") = new(content, links, title, image) </pre>
+<p class="calibre2">注意<kbd class="calibre12">;</kbd>的使用，它将空的位置参数列表与关键字参数列表分开。</p>
+<p class="calibre2">这个构造函数允许我们使用关键字参数实例化<kbd class="calibre12">Article</kbd>对象，我们可以以任何顺序提供关键字参数:</p>
+<pre class="calibre17"><strong class="calibre1">julia = Article( 
+          title = "Julia (programming language)", 
+          content = "Julia is a high-level dynamic programming language", 
+          links = ["/wiki/Jeff_Bezanson", "/wiki/Stefan_Karpinski",  
+                  "/wiki/Viral_B._Shah", "/wiki/Alan_Edelman"], 
+          image = "/220px-Julia_prog_language.svg.png" 
+        )</strong> </pre>
+<p class="calibre2">然而，有一个小问题。当我们不提供任何内部构造函数时，Julia 会提供默认的构造函数。但是，如果定义了任何内部构造函数，就不再提供默认的构造函数方法了——假设我们已经为自己提供了所有必需的内部构造函数。在这种情况下，如果我们想获得带有位置参数的默认构造函数，我们还必须自己将其定义为内部构造函数:</p>
+<pre class="calibre17">Article(content, links, title, image) = new(content, links, title, image) </pre>
+<p class="calibre2"><kbd class="calibre12">Articles.jl</kbd>文件的最终版本应该如下所示，带有两个内部构造函数:</p>
+<pre class="calibre17">module Articles 
+ 
+export Article 
+ 
+struct Article 
+  content::String 
+  links::Vector{String} 
+  title::String 
+  image::String 
+ 
+  <strong class="calibre1">Article(; content = "", links = String[], title = "", image = "") = new(content, links, title, image) 
+  Article(content, links, title, image) = new(content, links, title, image) 
+</strong>end 
+ 
+end </pre>
+<p>值得指出的是，在这种情况下，我们的关键字构造函数同样可以作为外部构造函数添加，并在<kbd class="calibre24">struct...end</kbd>主体之外定义。您使用哪种构造函数是一个架构决策，必须根据具体情况来决定，要考虑内部和外部构造函数之间的差异。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Methods</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">方法</h1>
+                
+            
+            
+                
+<p class="calibre2">如果你来自 OOP 背景，你可能已经注意到了我们讨论类型的一个非常有趣的方面。与其他语言不同，Julia 中的对象不定义行为。也就是说，Julia 的类型只定义字段(属性)而不封装函数。</p>
+<p class="calibre2">原因是朱丽亚实现了<em class="calibre16">多重分派</em> <em class="calibre16">、</em>语言的一个显著特征。</p>
+<p class="calibre2">官方文档中对多次派遣的解释如下:</p>
+<p>当一个函数被应用时，选择执行哪个方法被称为分派。Julia 允许调度进程根据给定的参数数量和所有函数参数的类型来选择调用哪个函数的方法。这不同于传统的面向对象语言，在传统的面向对象语言中，调度只基于第一个参数[ <kbd class="calibre24">...</kbd> ]。使用函数的所有参数来选择应该调用哪个方法，而不仅仅是第一个方法，这就是所谓的多重分派。多重分派对数学代码特别有用，在数学代码中，人为地认为<em class="calibre55">的操作属于</em>一个参数而不是其他参数是没有意义的。</p>
+<p class="calibre2">Julia 允许我们定义函数，为参数类型的特定组合提供特定的行为。函数的一种可能行为的定义被称为<strong class="calibre4">方法</strong>。方法定义的签名可以被注释以指示参数的类型，以及它们的数量，并且可以提供不止一个方法定义。举个例子会有帮助。</p>
+<p class="calibre2">假设我们有先前定义的<kbd class="calibre12">Player</kbd>类型，如下所示:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; mutable struct Player 
+           username::String 
+           score::Int 
+       end</strong> </pre>
+<p class="calibre2">而在这里，我们看到了相应的<kbd class="calibre12">getscore</kbd>功能:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; function getscore(p) 
+           p.score 
+       end 
+getscore (generic function with 1 method)</strong> </pre>
+<p class="calibre2">到目前为止，一切顺利。但是，随着我们的游戏取得令人难以置信的成功，我们最终可能会增加一个应用商店来提供应用内购买。这将导致我们也定义一个<kbd class="calibre12">Customer</kbd>类型，它可能有一个同名的<kbd class="calibre12">credit_score</kbd>字段，存储他们的信用评分:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; mutable struct Customer 
+           name::String 
+           total_purchase_value::Float64 
+           credit_score::Float64 
+       end</strong> </pre>
+<p class="calibre2">当然，我们需要一个相应的<kbd class="calibre12">getscore</kbd>函数:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; function getscore(c) 
+           c.credit_score 
+      end 
+getscore (generic function with 1 method)</strong> </pre>
+<p class="calibre2">朱莉娅怎么知道该用哪个函数呢？不会的。因为两个函数都被定义为接受任何类型的参数，所以最后定义的函数会覆盖前一个函数。我们需要将两个<kbd class="calibre12">getscore</kbd>声明专门化为它们的参数类型:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; function getscore(p::Player) 
+           p.score 
+       end 
+getscore (generic function with 1 method) </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; function getscore(c::Customer) 
+           c.credit_score 
+       end 
+getscore (generic function with 2 methods)</strong> </pre>
+<p class="calibre2">如果仔细观察每个函数声明的输出，您会发现一些有趣的东西。在<kbd class="calibre12">getscore(p::Player)</kbd>定义之后，说的是<kbd class="calibre12">getscore (generic function with 1 method)</kbd>。但是，定义了<kbd class="calibre12">getscore(c::Customer)</kbd>之后，显示的是<kbd class="calibre12">getscore (generic function with 2 methods)</kbd>。所以现在，我们为<kbd class="calibre12">getscore</kbd>函数定义了两个方法，每个方法都专注于它的参数类型。</p>
+<p class="calibre2">但是，如果我们添加以下内容呢？</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; function getscore(t::Union{Player,Customer}) 
+           isa(t, Player) ? t.score : t.credit_score 
+       end 
+getscore</strong> (<strong class="calibre1">generic function with 3 methods</strong>) </pre>
+<p class="calibre2">或者，注意我们可能添加的以下内容:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; function getscore(s) 
+            if in(:score, fieldnames(typeof(s))) 
+            s.score 
+       elseif in(:credit_score, fieldnames(typeof(s))) 
+            s.credit_score 
+       else 
+            error("$(typeof(s)) does not have a score property") 
+       end 
+end</strong> 
+<strong class="calibre1">getscore</strong> (<strong class="calibre1">generic function with 4 methods</strong>) </pre>
+<p class="calibre2">你能猜出用<kbd class="calibre12">Player</kbd>、<kbd class="calibre12">Customer</kbd>和<kbd class="calibre12">Article</kbd>对象调用<kbd class="calibre12">getscore</kbd>时会用到哪些方法吗？我给你一个提示:当一个函数应用于一组特定的参数时，会调用适用于这些参数的最具体的方法。</p>
+<p class="calibre2">如果我们想知道一组给定的参数调用了哪个方法，我们可以使用<kbd class="calibre12">@which</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; me = Player("adrian", 10) 
+Player("adrian", 10) </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; @which getscore(me) 
+getscore(p::Player) in Main at REPL[58]:2</strong></pre>
+<p class="calibre2">对于<kbd class="calibre12">Customer</kbd>类型也是如此:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; sam = Customer("Sam", 72.95, 100) 
+Customer("Sam", 72.95, 100.0) </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; @which getscore(sam) 
+getscore(c::Customer) in Main at REPL[59]:2</strong> </pre>
+<p class="calibre2">我们可以看到最专门化的方法是如何被调用的— <kbd class="calibre12">getscore(t::Union{Player,Customer})</kbd>，它更通用，实际上从未被使用过。</p>
+<p class="calibre2">但是，下面呢？</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; @which getscore(julia) 
+getscore(s) in Main at REPL[61]:2</strong> </pre>
+<p class="calibre2">传递一个<kbd class="calibre12">Article</kbd>类型将调用<kbd class="calibre12">getscore</kbd>的最后一个定义，这个定义接受<kbd class="calibre12">Any</kbd>类型的参数:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; getscore(julia) 
+ERROR: Article does not have a score property</strong> </pre>
+<p class="calibre2">由于<kbd class="calibre12">Article</kbd>类型没有<kbd class="calibre12">score</kbd>或<kbd class="calibre12">credit_score</kbd>属性，我们定义的<kbd class="calibre12">ErrorException</kbd>被抛出。</p>
+<p class="calibre2">要找出为一个函数定义了什么方法，使用<kbd class="calibre12">methods()</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; methods(getscore) 
+# 4 methods for generic function "get_score": 
+getscore(c::Customer) in Main at REPL[59]:2 
+getscore(p::Player) in Main at REPL[58]:2 
+getscore(t::Union{Customer, Player}) in Main at REPL[60]:2 
+getscore(s) in Main at REPL[61]:2</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Working with relational databases</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">使用关系数据库</h1>
+                
+            
+            
+                
+<p class="calibre2">我们的网络爬虫非常高效——使用 CSS 选择器非常有效。但是，就像现在这样，如果我们在不同的游戏会话中结束了相同的维基百科文章，我们将不得不多次获取它、解析它并提取它的内容。这是一个耗时且耗费资源的操作——更重要的是，如果我们只是在第一次获取文章信息时存储它，我们就可以很容易地消除这个操作。</p>
+<p class="calibre2">我们可以使用 Julia 的序列化特性，我们已经看到了，但是由于我们正在构建一个相当复杂的游戏，我们将受益于添加一个数据库后端。除了存储文章的数据，我们还可以保存关于玩家、分数、偏好等等的信息。</p>
+<p class="calibre2">我们已经看到了如何与 MongoDB 交互。不过，在这种情况下，关系数据库是更好的选择，因为我们将处理一系列相关的实体:文章、游戏(引用文章)、玩家(引用游戏)等等。</p>
+<p class="calibre2">Julia 的包生态系统为与关系数据库交互提供了广泛的选择，从通用 ODBC 和 JDBC 库到主要后端的专用包——MySQL/Maria db、SQLite 和 Postgres，仅举几例。对于我们的游戏，我们将使用 MySQL。如果您的系统上还没有安装 MySQL，请按照 https://dev.mysql.com/downloads/mysql/的说明进行操作。或者，如果你使用 Docker，你可以从 https://hub.docker.com/r/library/mysql/获得官方的 MySQL Docker 图片。</p>
+<p class="calibre2">在 Julia 这边，为了增加对 MySQL 的支持，<kbd class="calibre12">(sixdegrees) pkg&gt;add MySQL</kbd>是我们所需要的。在添加 MySQL 之前，确保您在<kbd class="calibre12">sixdegrees/</kbd>项目中。您可以通过查看<kbd class="calibre12">pkg&gt;</kbd>光标的前缀来确认这一点；应该是这样的:<kbd class="calibre12">(sixdegrees) pkg&gt;</kbd>。如果不是这样，只需执行<kbd class="calibre12">pkg&gt; activate .</kbd>，同时确保您在<kbd class="calibre12">sixdegrees/</kbd>文件夹中。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Adding MySQL support</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">添加 MySQL 支持</h1>
+                
+            
+            
+                
+<p class="calibre2">当使用 SQL 数据库时，一个好的做法是抽象出与数据库相关的逻辑，并避免将所有代码库与 SQL 字符串和特定于数据库的命令混为一谈。它将使我们的代码更加可预测和可管理，并且如果我们需要改变或升级数据库系统，它将提供一个安全的抽象层次。我非常喜欢使用 ORM 系统，但是在这种情况下，作为一个学习设备，我们将自己添加这个功能。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Connecting to the database</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">连接到数据库</h1>
+                
+            
+            
+                
+<p class="calibre2">首先，让我们指示我们的应用程序连接到我们的 MySQL 数据库和从它断开连接。让我们通过在相应的文件中添加一个新的<kbd class="calibre12">Database</kbd>模块来扩展我们的游戏:</p>
+<pre class="calibre17">module Database 
+ 
+using MySQL 
+ 
+const HOST = "localhost" 
+const USER = "root" 
+const PASS = "" 
+const DB = "six_degrees" 
+ 
+const CONN = MySQL.connect(HOST, USER, PASS, db = DB) 
+ 
+export CONN 
+ 
+<strong class="calibre1">disconnect() = MySQL.disconnect(CONN)</strong> 
+ 
+<strong class="calibre1">atexit(disconnect)</strong> 
+ 
+end 
+HOST, <kbd class="calibre12">USER</kbd>, and <kbd class="calibre12">PASS</kbd> constants with your correct MySQL connection info. Also, please don't forget to create a new, empty database called <kbd class="calibre12">six_degrees</kbd>—otherwise the connection will fail. I suggest using <kbd class="calibre12">utf8</kbd> for the encoding and <kbd class="calibre12">utf8_general_ci</kbd> for the collation, in order to accommodate all the possible characters we might get from Wikipedia.</pre>
+<p class="calibre2">调用<kbd class="calibre12">MySQL.connect</kbd>返回一个连接对象。我们需要它来与数据库交互，所以我们将通过<kbd class="calibre12">CONN</kbd>常量来引用它:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; Main.Database.CONN 
+MySQL Connection 
+------------ 
+Host: localhost 
+Port: 3306 
+User: root 
+DB:   six_degrees</strong> </pre>
+<p class="calibre2">因为我们代码的各个部分将访问这个连接对象，以便对数据库执行查询，所以我们<kbd class="calibre12">export</kbd>它。同样重要的是，我们需要建立一些清理机制，以便在完成后自动断开与数据库的连接。我们已经定义了一个可以手动调用的<kbd class="calibre12">disconnect</kbd>函数。但是，如果我们确保自动调用清理功能，会更安全。Julia 提供了一个<kbd class="calibre12">atexit</kbd>函数，它注册了一个在进程退出时调用的零参数函数<kbd class="calibre12">f</kbd>。按照<strong class="calibre4">后进先出</strong> ( <strong class="calibre4">后进先出</strong>)的顺序调用<kbd class="calibre12">atexit</kbd>挂钩。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Setting up our Article module</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">设置我们的文章模块</h1>
+                
+            
+            
+                
+<p class="calibre2">下一步是向<kbd class="calibre12">Article</kbd>模块添加一些函数，以支持数据库持久性和检索功能。因为它需要访问我们的 DB 连接对象，所以让它访问<kbd class="calibre12">Database</kbd>模块。我们还想使用<kbd class="calibre12">MySQL</kbd>函数。所以，在<kbd class="calibre12">export Article</kbd>行下面，加上<kbd class="calibre12">using..Database, MySQL</kbd>。</p>
+<p class="calibre2">接下来，我们将添加一个<kbd class="calibre12">createtable</kbd>方法。这将是一个一次性的功能，将创建相应的数据库表。我们使用这个而不是仅仅在 MySQL 客户端输入<kbd class="calibre12">CREATE TABLE</kbd>查询，以便有一个一致的和可重复的方式来(重新)创建表。总的来说，我更喜欢使用成熟的数据库迁移库，但是现在，最好保持简单(你可以在 https://en.wikipedia.org/wiki/Schema_migration<a href="https://en.wikipedia.org/wiki/Schema_migration" class="calibre9">阅读模式迁移)。</a></p>
+<p class="calibre2">事不宜迟，下面是我们的函数:</p>
+<pre class="calibre17">function createtable() 
+  sql = """ 
+    CREATE TABLE `articles` ( 
+      `title` varchar(1000), 
+      `content` text, 
+      `links` text, 
+      `image` varchar(500), 
+      `url` varchar(500), 
+      UNIQUE KEY `url` (`url`) 
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 
+  """ 
+ 
+  MySQL.execute!(CONN, sql) 
+end </pre>
+<p class="calibre2">这里，我们定义了一个<kbd class="calibre12">sql</kbd>变量，它以<kbd class="calibre12">String</kbd>的形式引用 MySQL <kbd class="calibre12">CREATE TABLE</kbd>查询。该表将有四列，对应于我们的<kbd class="calibre12">Article</kbd>类型的四个字段。然后，还有第五列<kbd class="calibre12">url</kbd>，它将存储文章的维基百科 URL。我们将通过 URL 来识别文章——因此，我们在<kbd class="calibre12">url</kbd>列添加了一个唯一的索引。</p>
+<p class="calibre2">在函数的最后，我们将查询字符串传递给<kbd class="calibre12">MySQL.execute!</kbd>以针对 DB 连接运行。请将<kbd class="calibre12">createtable</kbd>定义附加到<kbd class="calibre12">Articles</kbd>模块的末尾(模块内，结束<kbd class="calibre12">end</kbd>上方)。</p>
+<p class="calibre2">现在，让我们看看它是如何工作的。在<kbd class="calibre12">sixdegrees/</kbd>文件夹中打开一个新的 REPL 会话，并运行以下命令:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; using Pkg 
+julia&gt; pkg"activate ." 
+julia&gt; include("Database.jl") 
+julia&gt; include("Articles.jl") 
+julia&gt; using .Articles 
+julia&gt; Articles.createtable()</strong> </pre>
+<p class="calibre2">好了，我们的桌子准备好了！</p>
+<p class="calibre2">工作流程应该非常清晰——我们确保加载项目的依赖项，我们包含了<kbd class="calibre12">Database.jl</kbd>和<kbd class="calibre12">Articles.jl</kbd>文件，我们将<kbd class="calibre12">Articles</kbd>纳入范围，然后调用它的<kbd class="calibre12">createtable</kbd>方法。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Adding the persistence and retrieval methods</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">添加持久性和检索方法</h1>
+                
+            
+            
+                
+<p class="calibre2">我们说过，当获取并解析一篇文章时，我们希望将它的数据存储在数据库中。因此，在获取文章之前，我们首先要检查我们的数据库。如果文章是以前持久化的，我们将检索它。如果没有，我们将执行原始的获取和解析工作流。我们使用<kbd class="calibre12">url</kbd>属性来惟一地标识文章。</p>
+<p class="calibre2">让我们从添加用于持久化 article 对象的<kbd class="calibre12">Articles.save(a::Article)</kbd>方法开始:</p>
+<pre class="calibre17">function save(a::Article) 
+  sql = "INSERT IGNORE INTO articles (title, content, links, image, url) VALUES (?, ?, ?, ?, ?)" 
+  stmt = MySQL.Stmt(CONN, sql) 
+  result = MySQL.execute!(stmt, [a.title, a.content, JSON.json(a.links), a.image, a.url]) 
+end </pre>
+<p class="calibre2">这里，我们使用<kbd class="calibre12">MySQL.Stmt</kbd>创建一个 MySQL 预准备语句。查询本身非常简单，使用 MySQL 的<kbd class="calibre12">INSERT IGNORE</kbd>语句，确保只有在没有相同<kbd class="calibre12">url</kbd>的文章时，才执行<kbd class="calibre12">INSERT</kbd>操作。如果已经存在具有相同<kbd class="calibre12">url</kbd>的文章，则查询被忽略。</p>
+<p class="calibre2">准备好的语句接受一个特殊格式的查询字符串，其中的实际值被替换为占位符，用问号— <kbd class="calibre12">?</kbd>表示。然后，我们可以通过将准备好的语句传递给<kbd class="calibre12">MySQL.execute!</kbd>来执行它，同时传递的还有一个相应值的数组。除了<kbd class="calibre12">links</kbd>之外，这些值直接从<kbd class="calibre12">article</kbd>对象传递。由于这代表了一个更复杂的数据结构，一个<kbd class="calibre12">Vector{String}</kbd>，我们将首先使用<kbd class="calibre12">JSON</kbd>将其序列化，并作为字符串存储在 MySQL 中。要访问<kbd class="calibre12">JSON</kbd>包中的函数，我们必须将它添加到我们的项目中，所以请在 REPL 中执行<kbd class="calibre12">(sixdegrees) pkg&gt; add JSON</kbd>。</p>
+<p class="calibre2">预处理语句提供了一种安全的执行查询的方法，因为值会自动转义，从而消除了 MySQL 注入攻击的一个常见来源。在我们的例子中，MySQL 注入不太令人担心，因为我们不接受用户生成的输入。但是，这种方法仍然是有价值的，可以避免由不正确的转义导致的插入错误。</p>
+<p class="calibre2">接下来，我们需要一个检索方法。我们就叫它<kbd class="calibre12">find</kbd>。作为它唯一的属性，它将以<kbd class="calibre12">String</kbd>的形式获取一个文章 URL。它将返回一个<kbd class="calibre12">Article</kbd>对象的<kbd class="calibre12">Array</kbd>。按照惯例，如果没有找到相应的文章，数组将为空:</p>
+<pre class="calibre17">function find(url) <strong class="calibre1">:: Vector{Article}</strong> 
+  articles = Article[] 
+ 
+  result = MySQL.query(CONN, "SELECT * FROM `articles` WHERE url = '$url'") 
+ 
+  isempty(result.url) &amp;&amp; return articles 
+ 
+  for i in eachindex(result.url) 
+    push!(articles, Article(result.content[i], JSON.parse(result.links[i]), result.title[i], 
+                            result.image[i], result.url[i])) 
+  end 
+ 
+  articles 
+end </pre>
+<p class="calibre2">在这个函数的声明中，我们可以看到另一个 Julia 特性:返回值类型。在常规函数声明<kbd class="calibre12">function find(url)</kbd>之后，我们追加了<kbd class="calibre12">:: Vector{Article}</kbd>。这将<kbd class="calibre12">find</kbd>的返回值约束为一个数组<kbd class="calibre12">Article</kbd>。如果我们的函数不返回，就会抛出一个错误。</p>
+<p class="calibre2">剩下的代码虽然非常紧凑，但功能却非常多。首先，我们创建<kbd class="calibre12">articles</kbd>，一个<kbd class="calibre12">Article</kbd>对象的向量，它将是我们函数的返回值。然后，我们通过<kbd class="calibre12">MySQL.query</kbd>方法对 MySQL 数据库执行一个<kbd class="calibre12">SELECT</kbd>查询，试图找到匹配<kbd class="calibre12">url</kbd>的行。查询的结果存储在<kbd class="calibre12">result</kbd>变量中，该变量是一个<kbd class="calibre12">NamedTuple</kbd>(<kbd class="calibre12">result</kbd><kbd class="calibre12">NamedTuple</kbd>中的每个字段引用一个与同名数据库列对应的值数组)。接下来，我们查看我们的查询<kbd class="calibre12">result</kbd>,看看我们是否得到了什么——我们选择对<kbd class="calibre12">result.url</kbd>字段进行采样——如果它是空的，这意味着我们的查询没有找到任何东西，我们可以退出函数，返回一个空的<kbd class="calibre12">articles</kbd>向量。</p>
+<p class="calibre2">另一方面，如果<kbd class="calibre12">result.url</kbd>包含条目，这意味着我们的查询带来了至少一行；因此，我们使用<kbd class="calibre12">eachindex</kbd>迭代<kbd class="calibre12">result.url</kbd>数组，对于每次迭代，我们都用相应的值构造一个<kbd class="calibre12">Article</kbd>对象。最后，在循环结束时，我们将这个新的<kbd class="calibre12">Article</kbd>对象放到返回的<kbd class="calibre12">articles</kbd>向量中。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Putting it all together</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">把所有的放在一起</h1>
+                
+            
+            
+                
+<p class="calibre2">我们需要做的最后一件事是更新剩余的代码，以处理我们到目前为止所做的更改。</p>
+<p class="calibre2">首先，我们需要更新<kbd class="calibre12">Article</kbd>类型来添加额外的<kbd class="calibre12">url</kbd>字段。我们需要它出现在字段列表和两个构造函数中。下面是<kbd class="calibre12">Articles.jl</kbd>的最终版本:</p>
+<pre class="calibre17">module Articles 
+ 
+export Article, save, find 
+ 
+using ...Database, MySQL, JSON 
+ 
+struct Article 
+  content::String 
+  links::Vector{String} 
+  title::String 
+  image::String 
+  url::String 
+ 
+  Article(; content = "", links = String[], title = "", image = "", url = "") = <br class="title-page-name"/>        new(content, links, title, image, url) 
+  Article(content, links, title, image, url) = new(content, links, title, image, url) 
+end 
+ 
+function find(url) :: Vector{Article} 
+  articles = Article[] 
+   
+  result = MySQL.query(CONN, "SELECT * FROM `articles` WHERE url = '$url'") 
+ 
+  isempty(result.url) &amp;&amp; return articles 
+ 
+  for i in eachindex(result.url) 
+    push!(articles, Article(result.content[i], JSON.parse(result.links[i]), result.title[i], 
+                            result.image[i], result.url[i])) 
+  end 
+ 
+  articles 
+end 
+ 
+function save(a::Article) 
+  sql = "INSERT IGNORE INTO articles (title, content, links, image, url) VALUES (?, ?, ?, ?, ?)" 
+  stmt = MySQL.Stmt(CONN, sql) 
+  result = MySQL.execute!(stmt, [ a.title, a.content, JSON.json(a.links), a.image, a.url]) 
+end 
+ 
+function createtable() 
+  sql = """ 
+    CREATE TABLE `articles` ( 
+      `title` varchar(1000), 
+      `content` text, 
+      `links` text, 
+      `image` varchar(500), 
+      `url` varchar(500), 
+      UNIQUE KEY `url` (`url`) 
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 
+  """ 
+ 
+  MySQL.execute!(CONN, sql) 
+end 
+ 
+end  </pre>
+<p class="calibre2">我们还需要对<kbd class="calibre12">Wikipedia.jl</kbd>做一些重要的修改。首先，我们将从<kbd class="calibre12">Wikipedia.articleinfo</kbd>中移除<kbd class="calibre12">Article</kbd>实例化，因为创建<kbd class="calibre12">Article</kbd>对象现在也应该考虑数据库持久性和检索。相反，我们将返回一个表示文章数据的元组:</p>
+<pre class="calibre17">function articleinfo(content) 
+  dom = articledom(content) 
+  (content, extractlinks(dom.root), extracttitle(dom.root), extractimage(dom.root)) 
+end </pre>
+<p class="calibre2">我们现在可以添加一个新函数<kbd class="calibre12">persistedarticle</kbd>，它将接受文章内容和文章 URL 作为参数。它将实例化一个新的<kbd class="calibre12">Article</kbd>对象，将其保存到数据库，并返回它。在某种程度上，<kbd class="calibre12">persistedarticle</kbd>可以被认为是一个数据库支持的构造函数，因此得名:</p>
+<pre class="calibre17">function persistedarticle(article_content, url) 
+  article = Article(articleinfo(article_content)<strong class="calibre1">...</strong>, url) 
+  save(article) 
+ 
+  article 
+end </pre>
+<p class="calibre2">在这里，您可以看到<em class="calibre16"> splat </em>操作符<kbd class="calibre12">...</kbd>的运行——它将<kbd class="calibre12">articleinfo</kbd>结果<kbd class="calibre12">Tuple</kbd>分解成相应的元素，这样它们就可以作为单独的参数传递给<kbd class="calibre12">Article</kbd>构造函数。</p>
+<p class="calibre2">此外，我们还得处理一个小问题。当我们开始一个新游戏并调用<kbd class="calibre12">/wiki/Special:Random</kbd> URL 时，维基百科会自动重定向到一篇随机文章。当我们获取页面时，我们得到了重定向页面的内容——但是我们没有它的 URL。</p>
+<p class="calibre2">所以，我们需要做两件事。首先，我们需要检查我们的请求是否被重定向，如果是，就获取重定向 URL。为此，我们可以检查<kbd class="calibre12">response</kbd>对象的<kbd class="calibre12">request.parent</kbd>字段。在重定向的情况下，<kbd class="calibre12">response.request.parent</kbd>对象将被设置，并将呈现一个<kbd class="calibre12">headers</kbd>集合。该系列将包括一个<kbd class="calibre12">"Location"</kbd>项目——这正是我们所追求的。</p>
+<p class="calibre2">其次，我们还需要将 URL 与页面的 HTML 内容一起返回。这很简单——我们将返回一个元组。</p>
+<p class="calibre2">下面是更新后的<kbd class="calibre12">fetchpage</kbd>功能:</p>
+<pre class="calibre17">function fetchpage(url) 
+  url = startswith(url, "/") ? buildurl(url) : url 
+  response = HTTP.get(url) 
+  content = if response.status == 200 &amp;&amp; length(response.body) &gt; 0 
+              String(response.body) 
+            else 
+              "" 
+            end 
+  relative_url = collect(eachmatch(r"/wiki/(.*)$",  
+(response.request.parent == nothing ? url : Dict(response.request.parent.headers)["Location"])))[1].match 
+ 
+  content, relative_url 
+end </pre>
+<p class="calibre2">注意，我们还使用<kbd class="calibre12">eachmatch</kbd>从绝对 URL 中提取出相对 URL 对应的部分。</p>
+<p class="calibre2">以下是整个<kbd class="calibre12">Wikipedia.jl</kbd>文件:</p>
+<pre class="calibre17">module Wikipedia 
+using HTTP, Gumbo, Cascadia 
+import Cascadia: matchFirst 
+ 
+include("Articles.jl") 
+using .Articles 
+ 
+const PROTOCOL = "https://" 
+const DOMAIN_NAME = "en.m.wikipedia.org" 
+const RANDOM_PAGE_URL = PROTOCOL * DOMAIN_NAME * "/wiki/Special:Random" 
+ 
+export fetchrandom, fetchpage, articleinfo, persistedarticle 
+ 
+function fetchpage(url) 
+  url = startswith(url, "/") ? buildurl(url) : url 
+  response = HTTP.get(url) 
+  content = if response.status == 200 &amp;&amp; length(response.body) &gt; 0 
+              String(response.body) 
+            else 
+              "" 
+            end 
+  relative_url = collect(eachmatch(r"/wiki/(.*)$", (response.request.parent == nothing ? url : Dict(response.request.parent.headers)["Location"])))[1].match 
+ 
+  content, relative_url 
+end 
+ 
+function extractlinks(elem) 
+  map(eachmatch(Selector("a[href^='/wiki/']:not(a[href*=':'])"), elem)) do e 
+    e.attributes["href"] 
+  end |&gt; unique 
+end 
+ 
+function extracttitle(elem) 
+  matchFirst(Selector("#section_0"), elem) |&gt; nodeText 
+end 
+ 
+function extractimage(elem) 
+  e = matchFirst(Selector(".content a.image img"), elem) 
+  isa(e, Nothing) ? "" : e.attributes["src"] 
+end 
+ 
+function fetchrandom() 
+  fetchpage(RANDOM_PAGE_URL) 
+end 
+ 
+function articledom(content) 
+  if ! isempty(content) 
+    return Gumbo.parsehtml(content) 
+  end 
+ 
+  error("Article content can not be parsed into DOM") 
+end 
+ 
+function articleinfo(content) 
+  dom = articledom(content) 
+  (content, extractlinks(dom.root), extracttitle(dom.root), extractimage(dom.root)) 
+end 
+ 
+function persistedarticle(article_content, url) 
+  article = Article(articleinfo(article_content)..., url) 
+  save(article) 
+ 
+  article 
+end 
+ 
+function buildurl(article_url) 
+  PROTOCOL * DOMAIN_NAME * article_url 
+end 
+ 
+end 
+ </pre>
+<p class="calibre2">现在，我们来关注一下<kbd class="calibre12">Gameplay.jl</kbd>。我们需要更新<kbd class="calibre12">newgame</kbd>函数，以利用来自<kbd class="calibre12">Wikipedia</kbd>模块的新可用方法:</p>
+<pre class="calibre17">module Gameplay 
+ 
+using ..Wikipedia, ..Wikipedia.Articles 
+ 
+export newgame 
+ 
+const DIFFICULTY_EASY = 2 
+const DIFFICULTY_MEDIUM = 4 
+const DIFFICULTY_HARD = 6 
+ 
+function newgame(difficulty = DIFFICULTY_HARD) 
+  articles = Article[] 
+ 
+  for i in 1:difficulty+1 
+    article = if i == 1 
+                article = persistedarticle(fetchrandom()...) 
+              else 
+                url = rand(articles[i-1].links) 
+                existing_articles = Articles.find(url) 
+ 
+                article = isempty(existing_articles) ? persistedarticle(fetchpage(url)...) : existing_articles[1] 
+              end 
+ 
+    push!(articles, article) 
+  end 
+ 
+  articles 
+end 
+ 
+end </pre>
+<p class="calibre2">如果是第一篇文章，我们获取一个随机页面并持久化它的数据。否则，我们从先前抓取的页面中随机选取一个 URL，并检查相应的文章是否已经存在。如果没有，我们获取页面，确保它也保存在数据库中。</p>
+<p class="calibre2">最后，我们进入应用程序的入口点<kbd class="calibre12">six_degrees.jl</kbd>文件需要看起来像这样:</p>
+<pre class="calibre17">using Pkg 
+pkg"activate ." 
+ 
+include("Database.jl") 
+include("Wikipedia.jl") 
+include("Gameplay.jl") 
+ 
+using .Wikipedia, .Gameplay 
+ 
+articles = newgame(Gameplay.DIFFICULTY_EASY) 
+ 
+for article in articles 
+  println(article.title) 
+end </pre>
+<p class="calibre2">最终试运行应确认一切正常:</p>
+<pre class="calibre17"><strong class="calibre1">$ julia six_degrees.jl                                                                                                                                                               
+Hillary Maritim 
+Athletics at the 2000 Summer Olympics - Men's 400 metres hurdles 
+Zahr-el-Din El-Najem</strong> </pre>
+<p class="calibre2">在终端中运行带有<kbd class="calibre12">julia</kbd>二进制文件的<kbd class="calibre12">six_degrees.jl</kbd>文件将输出三个维基百科文章标题。我们可以检查数据库以确认数据已经保存:</p>
+<p class="CDPAlignCenter"><img src="img/468c724e-157a-4188-a63d-d722a5197c3e.png" class="calibre59"/></p>
+<p class="calibre2">三个先前被爬取的页面的数据已经被安全地持久化。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Summary</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">摘要</h1>
+                
+            
+            
+                
+<p class="calibre2">恭喜你，这是一次不平凡的旅程！我们已经学习了三个关键的 Julia 概念——模块、类型及其构造函数和方法。我们已经应用了所有这些知识来开发我们的<em class="calibre16">六度维基百科</em>游戏的后端，在这个过程中，我们看到了如何与 MySQL 数据库进行交互，持久化和检索我们的<kbd class="calibre12">Article</kbd>对象。</p>
+<p class="calibre2">在下一章结束时，我们将有机会享受我们辛勤工作的成果:在我们为我们的<em class="calibre16">六度维基百科</em>后端添加了一个 web UI 之后，我们将通过玩几轮来放松一下。让我们看看你是否能打破我的最好成绩！</p>
+
+
+            
+
+            
+        
+    
+
+
+</body></html>

@@ -1,0 +1,391 @@
+<html><head/><body>
+
+
+
+
+
+<style type="text/css">body{margin:1em;background-color:transparent!important;}#sbo-rt-content *{text-indent:0pt!important;}#sbo-rt-content .bq{margin-right:1em!important;}</style>
+<div><div><h1 id="_idParaDest-148">第 8 章:使用你的算法和代码</h1>
+			<p>在前一章中，您学习了如何使用内置框架训练和部署模型，例如<strong class="bold"> scikit-learn </strong>和<strong class="bold"> TensorFlow </strong>。由于<strong class="bold">脚本模式</strong>，这些框架使得使用你自己的代码变得容易，而不需要管理任何训练或推理容器。</p>
+			<p>在某些情况下，您的业务或技术环境可能会使使用这些容器变得困难甚至不可能。也许你需要完全控制容器是如何建造的。也许你想实现你自己的预测逻辑。也许您正在使用 SageMaker 本身不支持的框架或语言。</p>
+			<p>在这一章中，你将学习如何根据你自己的需要定制训练和推理容器。您还将学习如何直接使用 SageMaker SDK 或命令行开源工具来训练和部署您自己的定制代码。</p>
+			<p>我们将在本章中讨论以下主题:</p>
+			<ul>
+				<li>理解 SageMaker 如何调用您的代码</li>
+				<li>定制内置框架容器</li>
+				<li>使用 SageMaker 培训工具包构建定制培训容器</li>
+				<li>用 Python 和 R 构建完全定制的容器用于训练和推理</li>
+				<li>在 MLflow 上使用您的自定义 Python 代码进行培训和部署</li>
+				<li>为 SageMaker 加工制造完全定制的容器</li>
+			</ul>
+			<h1 id="_idParaDest-149"><a id="_idTextAnchor148"/>技术要求</h1>
+			<p>您将需要一个 AWS 帐户来运行本章中包含的示例。如果您还没有，请将浏览器指向<a href="https://aws.amazon.com/getting-started/">https://aws.amazon.com/getting-started/</a>来创建它。您还应该熟悉 AWS 免费层(<a href="https://aws.amazon.com/free/">https://aws.amazon.com/free/</a>)，它允许您在一定的使用限制内免费使用许多 AWS 服务。</p>
+			<p>您需要为您的帐户(<a href="https://aws.amazon.com/cli/">https://aws.amazon.com/cli/</a>)安装和配置 AWS <strong class="bold">命令行界面</strong> ( <strong class="bold"> CLI </strong>)。</p>
+			<p>您将需要一个工作的 Python 3.x 环境。安装 Anaconda 发行版(<a href="https://www.anaconda.com/">https://www.anaconda.com/</a>)不是强制性的，但是强烈建议安装，因为它包含了我们需要的许多项目(Jupyter、<code>pandas</code>、<code>numpy</code>等等)。</p>
+			<p>你将需要一个工作的 Docker 安装。你可以在 https://docs.docker.com 找到安装说明和文档。</p>
+			<p>本书中包含的代码示例可从 GitHub 上的<a href="https://github.com/PacktPublishing/Learn-Amazon-SageMaker-second-edition">https://GitHub . com/packt publishing/Learn-Amazon-sage maker-second-edition</a>获得。你需要安装一个 Git 客户端来访问它们(<a href="https://git-scm.com/">https://git-scm.com/</a>)。</p>
+			<h1 id="_idParaDest-150"><a id="_idTextAnchor149"/>了解 SageMaker 如何调用您的代码</h1>
+			<p>当我们使用内置算法和框架工作时，我们没有太注意 SageMaker 实际上是如何调用训练和部署代码的。毕竟，这就是“内置”的含义:从架子上拿起你需要的东西，开始工作。</p>
+			<p>当然，如果我们想使用自己的定制代码和容器，事情就不同了。我们需要理解它们是如何与 SageMaker 接口的，这样我们才能完全正确地实现它们。</p>
+			<p>在这一节中，我们将详细讨论这个接口。让我们从文件布局开始。</p>
+			<h3>了解 SageMaker 容器内部的文件布局</h3>
+			<p>为了让我们的生活更简单，SageMaker 估计器自动复制超参数，并在训练容器中输入数据。同样，它们自动地将训练好的模型(和任何检查点)从容器复制到 S3。在部署时，他们做相反的操作，将模型从 S3 复制到容器中。</p>
+			<p>可以想象，这需要一个文件布局约定:</p>
+			<ul>
+				<li>超参数作为 JSON 字典存储在<code>/opt/ml/input/config/hyperparameters.json</code>中。</li>
+				<li>输入通道存储在<code>/opt/ml/input/data/CHANNEL_NAME</code>中。我们在前面的<a id="_idIndexMarker809"/>章节中看到，通道名称与传递给<code>fit()</code> API 的名称相匹配。</li>
+				<li>模型应<a id="_idIndexMarker810"/>保存并从<code>/opt/ml/model</code>加载。</li>
+			</ul>
+			<p>因此，我们需要在自定义代码中使用这些路径。现在，让我们看看如何调用培训和部署代码。</p>
+			<h3>了解定制培训的选项</h3>
+			<p>在<a href="B17705_07_Final_JM_ePub.xhtml#_idTextAnchor130"> <em class="italic">第 7 章</em> </a>，<em class="italic">使用内置框架扩展机器学习服务</em>中，我们研究了脚本模式以及 SageMaker 如何使用它来调用我们的训练脚本。这个特性<a id="_idIndexMarker811"/>是由框架容器<a id="_idIndexMarker812"/>中的额外 Python 代码实现的，即 SageMaker 培训工具包(<a href="https://github.com/aws/sagemaker-training-toolkit">https://github.com/aws/sagemaker-training-toolkit</a>)。</p>
+			<p>简而言之，这个培训工具包复制了入口点脚本、它的<a id="_idIndexMarker813"/>超参数以及它在容器中的依赖关系。它还从容器内部的输入通道复制数据。然后，它调用入口点脚本。好奇的人可以在<code>src/sagemaker_training/entry_point.py</code>阅读代码。</p>
+			<p>在定制培训代码时，您有以下选择:</p>
+			<ul>
+				<li>自定义现有的框架容器，只添加额外的依赖项和代码。脚本模式和框架评估器将可用。</li>
+				<li>仅基于 SageMaker 培训工具包构建一个定制容器。脚本模式和通用的<code>Estimator</code>模块将是可用的，但是你必须安装所有其他的东西。</li>
+				<li>构建一个完全自定义的容器。如果你想从一个空白页开始，或者不想在你的容器中有任何额外的代码，这是一个不错的选择。你将使用通用的<code>Estimator</code>模块进行训练，脚本模式将不可用。您的训练代码将被直接调用(稍后将详细介绍)。</li>
+			</ul>
+			<h3>了解自定义部署的选项</h3>
+			<p>框架<a id="_idIndexMarker814"/>容器包括用于部署的额外 Python 代码。以下是最流行的框架的存储库:</p>
+			<ul>
+				<li><strong class="bold">tensor flow</strong>:<a href="https://github.com/aws/sagemaker-tensorflow-serving-container">https://github . com/AWS/sagemaker-tensor flow-serving-container</a>。型号<a id="_idIndexMarker815"/>配<strong class="bold"> TensorFlow 配</strong>(<a href="https://www.tensorflow.org/tfx/guide/serving">https://www.tensorflow.org/tfx/guide/serving</a>)。</li>
+				<li><strong class="bold">py torch</strong>:<a href="https://github.com/aws/sagemaker-pytorch-inference-toolkit">https://github.com/aws/sagemaker-pytorch-inference-toolkit</a>。型号<a id="_idIndexMarker816"/>为<a id="_idIndexMarker817"/>配<strong class="bold">火炬服务器</strong>(<a href="https://pytorch.org/serve">https://pytorch.org/serve</a>)。</li>
+				<li><strong class="bold">阿帕奇 MXNet</strong>:<a href="https://github.com/aws/sagemaker-mxnet-inference-toolkit">https://github.com/aws/sagemaker-mxnet-inference-toolkit</a>。模型<a id="_idIndexMarker818"/>由<strong class="bold">多模型服务器</strong>(【https://github.com/awslabs/multi-model-server】)提供<a id="_idIndexMarker819"/>，集成<a id="_idIndexMarker820"/>到<strong class="bold">萨格马克推理工具包</strong>(<a href="https://github.com/aws/sagemaker-inference-toolkit">https://github.com/aws/sagemaker-inference-toolkit</a>)。</li>
+				<li><strong class="bold">Scikit-learn</strong>:<a href="https://github.com/aws/sagemaker-scikit-learn-container">https://github.com/aws/sagemaker-scikit-learn-container</a>。模型由多模型服务器<a id="_idIndexMarker821"/>提供。</li>
+				<li><strong class="bold">XG boost</strong>:<a href="https://github.com/aws/sagemaker-xgboost-container">https://github.com/aws/sagemaker-xgboost-container</a>。模型由多模型服务器提供<a id="_idIndexMarker822"/>。</li>
+			</ul>
+			<p>就像训练一样，你有三个选择:</p>
+			<ul>
+				<li>自定义现有的框架容器。模型将使用现有的推理逻辑。</li>
+				<li>仅基于 SageMaker 推理工具包构建一个定制容器。模型将由多模型服务器提供服务。</li>
+				<li>构建一个完全自定义的容器，去掉任何推理逻辑，实现自己的推理逻辑。</li>
+			</ul>
+			<p>您是使用一个容器进行培训和部署，还是使用两个不同的容器，这取决于您。许多不同的因素参与进来:谁构建容器，谁运行它们，等等。只有您自己才能决定最适合您的特定设置的选项。</p>
+			<p>现在，让我们运行一些示例！</p>
+			<h1 id="_idParaDest-151"><a id="_idTextAnchor150"/>定制现有的框架容器</h1>
+			<p>当然，我们可以<a id="_idIndexMarker824"/>简单地编写一个引用<a id="_idIndexMarker825"/>深度学习容器图像之一的 docker file(<a href="https://github.com/aws/deep-learning-containers/blob/master/available_images.md">https://github . com/AWS/Deep-Learning-Containers/blob/master/available _ images . MD</a>)并添加我们自己的命令。请参见以下示例:</p>
+			<pre>FROM 763104351884.dkr.ecr.us-east-1.amazonaws.com/tensorflow-training:2.4.1-cpu-py37-ubuntu18.04
+. . .</pre>
+			<p>相反，让我们在本地机器上定制和重建<strong class="bold"> PyTorch </strong>训练和推理容器。这个过程类似于其他框架。</p>
+			<p class="callout-heading">构建环境</p>
+			<p class="callout">Docker 需要安装并运行<a id="_idIndexMarker826"/>。为了避免<a id="_idIndexMarker827"/>在提取基础图像时减速，我建议你创建一个<code>docker login</code>或<strong class="bold"> Docker 桌面</strong>。</p>
+			<p class="callout">为了避免奇怪的依赖性问题(我看着你，macOS)，我也建议你在一个<code>m5.large</code>上构建映像应该足够了)，但是请确保提供比默认 8 GB 更多的存储空间<a id="_idIndexMarker829"/>。我推荐 64 GB。您还需要确保实例的<strong class="bold"> IAM </strong>角色允许您推和拉 EC2 图像。如果您不确定如何创建和连接 EC2 实例，本教程将帮助您入门:<a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EC2_GetStarted.html">https://docs . AWS . Amazon . com/AWS EC2/latest/user guide/EC2 _ get started . html</a>。</p>
+			<h2 id="_idParaDest-152">在 EC2 上设置您的构建环境</h2>
+			<p>我们将从以下步骤开始:</p>
+			<ol>
+				<li>一旦您的<a id="_idIndexMarker830"/> EC2 实例启动，我们就用<code>ssh</code>连接它。我们首先安装 Docker 并将<code>ec2-user</code>添加到<code>docker</code>组。这将<a id="_idIndexMarker831"/>允许我们作为非根用户运行 Docker 命令:<pre><strong class="bold">$ sudo yum -y install docker</strong> <strong class="bold">$ sudo usermod -a -G docker ec2-user</strong></pre></li>
+				<li>为了应用此权限更改，我们注销并重新登录。</li>
+				<li>我们确保<code>docker</code>正在运行，并登录到 Docker Hub: <pre><strong class="bold">$ service docker start</strong> <strong class="bold">$ docker login</strong></pre></li>
+				<li>我们安装<code>git</code>，Python 3，和<code>pip</code> : <pre><strong class="bold">$ sudo yum -y install git python3-devel python3-pip</strong></pre></li>
+			</ol>
+			<p>我们的 EC2 实例现在已经准备好了，我们可以继续构建容器了。</p>
+			<h2 id="_idParaDest-153"><a id="_idTextAnchor152"/>构建训练和推理容器</h2>
+			<p>这可以通过以下步骤完成<a id="_idIndexMarker832"/>:</p>
+			<ol>
+				<li value="1">我们克隆了<code>deep-learning-containers</code>存储库，它集中了 TensorFlow、PyTorch、Apache MXNet 和 Hugging Face 的所有训练和<a id="_idIndexMarker833"/>推理代码，并为<a id="_idIndexMarker834"/>添加了方便的脚本来构建它们的容器:<pre><strong class="bold">$ git clone </strong>https://github.com/aws/deep-learning-containers.git <strong class="bold">$ cd deep-learning-containers</strong></pre></li>
+				<li>我们为我们的帐户 ID、我们正在运行的区域以及我们将在 Amazon ECR 中创建的新存储库的名称设置了<a id="_idIndexMarker835"/>环境变量:<pre><strong class="bold">$ export ACCOUNT_ID=123456789012</strong> <strong class="bold">$ export REGION=eu-west-1</strong> <strong class="bold">$ export REPOSITORY_NAME=my-pt-dlc</strong></pre></li>
+				<li>我们在 Amazon ECR 中创建<a id="_idIndexMarker836"/>存储库，然后登录。详情请参考文档(<a href="https://docs.aws.amazon.com/ecr/index.html">https://docs.aws.amazon.com/ecr/index.html</a>):<pre><strong class="bold">$ aws ecr create-repository </strong> <strong class="bold">--repository-name $REPOSITORY_NAME --region $REGION</strong> <strong class="bold">$ aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com</strong></pre></li>
+				<li>我们创建一个虚拟环境，并安装 Python 需求:<pre><strong class="bold">$ python3 -m venv dlc</strong> <strong class="bold">$ source dlc/bin/activate</strong> <strong class="bold">$ pip install -r src/requirements.txt</strong></pre></li>
+				<li>这里，我们想要在 CPU 和 GPU 上为 PyTorch 1.8 构建训练和推理容器。我们可以在<code>pytorch/training/docker/1.8/py3/</code>中找到相应的 Docker 文件，并根据我们的需求进行定制。例如，我们可以将深度图形库固定到版本 0.6.1: <pre>&amp;&amp; conda install -c dglteam -y dgl==0.6.1 \</pre></li>
+				<li>一旦我们<a id="_idIndexMarker837"/>编辑了 Docker 文件，我们就来看看最新 PyTorch 版本(<code>pytorch/buildspec.yml</code>)的构建<a id="_idIndexMarker838"/>配置文件。我们决定定制图像标签，以确保每张图像都清晰可辨:<pre>BuildCPUPTTrainPy3DockerImage:     tag: !join [ *VERSION, "-", *DEVICE_TYPE, "-", *TAG_PYTHON_VERSION, "-", *OS_VERSION, <strong class="bold">"-training"</strong> ] BuildGPUPTTrainPy3DockerImage:     tag: !join [ *VERSION, "-", *DEVICE_TYPE, "-", *TAG_PYTHON_VERSION, "-", *CUDA_VERSION, "-", *OS_VERSION, <strong class="bold">"-training"</strong> ] BuildCPUPTInferencePy3DockerImage:     tag: !join [ *VERSION, "-", *DEVICE_TYPE, "-", *TAG_PYTHON_VERSION, "-", *OS_VERSION, <strong class="bold">"-inference"</strong> ] BuildGPUPTInferencePy3DockerImage:     tag: !join [ *VERSION, "-", *DEVICE_TYPE, "-", *TAG_PYTHON_VERSION, "-", *CUDA_VERSION, "-", *OS_VERSION, <strong class="bold">"-inference"</strong>]</pre></li>
+				<li>最后，我们运行安装脚本并启动构建过程:<pre><strong class="bold">$ bash src/setup.sh pytorch</strong> <strong class="bold">$ python src/main.py --buildspec pytorch/buildspec.yml --framework pytorch --device_types cpu,gpu --image_types training,inference</strong></pre></li>
+				<li>过了一会儿，所有四个图像都构建好了(加上一个示例图像)，我们可以在本地 Docker 中看到它们:<pre><strong class="bold">$ docker images</strong> <strong class="bold">123456789012.dkr.ecr.eu-west-1.amazonaws.com/my-pt-dlc   1.8.1-gpu-py36-cu111-ubuntu18.04-example-2021-05-28-10-14-15     </strong> <strong class="bold">123456789012.dkr.ecr.eu-west-1.amazonaws.com/my-pt-dlc   1.8.1-gpu-py36-cu111-ubuntu18.04-training-2021-05-28-10-14-15    </strong> <strong class="bold">123456789012.dkr.ecr.eu-west-1.amazonaws.com/my-pt-dlc   1.8.1-gpu-py36-cu111-ubuntu18.04-inference-2021-05-28-10-14-15</strong> <strong class="bold">123456789012.dkr.ecr.eu-west-1.amazonaws.com/my-pt-dlc   1.8.1-cpu-py36-ubuntu18.04-inference-2021-05-28-10-14-15         </strong> <strong class="bold">123456789012.dkr.ecr.eu-west-1.amazonaws.com/my-pt-dlc   1.8.1-cpu-py36-ubuntu18.04-training-2021-05-28-10-14-15          </strong></pre></li>
+				<li>We can <a id="_idIndexMarker839"/>also see them in our ECR repository, as <a id="_idIndexMarker840"/>shown in the following screenshot:<div><img src="img/B17705_08_1.jpg" alt="Figure 8.1 – Viewing images in ECR&#13;&#10;" width="966" height="584"/></div><p class="figure-caption">图 8.1–在 ECR 中查看图像</p></li>
+				<li>SageMaker SDK 现在提供了<a id="_idIndexMarker841"/>图像。让我们用新的 CPU 映像来训练吧。我们所要做的就是在<code>PyTorch</code>估计器的<code>image_uri</code>参数中传递它的名字。请注意，我们可以删除<code>py_version</code>和<code>framework_version</code> : <pre>Estimator = PyTorch(     image_uri='123456789012.dkr.ecr.eu-west-1.amazonaws.com/my-pt-dlc:1.8.1-cpu-py36-ubuntu18.04-training-2021-05-28-10-14-15',     role=sagemaker.get_execution_role(),     entry_point='karate_club_sagemaker.py',     hyperparameters={'node_count': 34, 'epochs': 30},     instance_count=1,     instance_type='ml.m5.large')</pre></li>
+			</ol>
+			<p>正如你所看到的，定制深度学习容器非常容易。现在，让我们更深入一层，只使用培训工具包。</p>
+			<h1 id="_idParaDest-154"><a id="_idTextAnchor153"/>使用 SageMaker 培训工具包和 scikit-learn</h1>
+			<p>在本例中，我们将使用 SageMaker 培训工具包构建一个定制的 Python 容器。我们将使用脚本模式和<code>SKLearn</code>估计器，在波士顿<a id="_idIndexMarker844"/>住房数据集上用它来训练一个 scikit-learn <a id="_idIndexMarker843"/>模型。</p>
+			<p>我们需要三个构件:</p>
+			<ul>
+				<li>训练脚本。由于脚本模式将可用，我们可以使用与 scikit-learn 示例中完全相同的代码，该示例来自<a href="B17705_07_Final_JM_ePub.xhtml#_idTextAnchor130"> <em class="italic">第 7 章</em> </a>、<em class="italic">使用内置框架扩展机器学习服务</em>。</li>
+				<li>我们需要一个 Docker 文件和 Docker 命令来构建我们的自定义容器。</li>
+				<li>我们还需要配置一个<code>SKLearn</code>评估器来使用我们的定制容器。</li>
+			</ul>
+			<p>让我们来保护容器:</p>
+			<ol>
+				<li value="1">一个 Dockerfile 文件可能会变得非常复杂。这里不需要那个！我们从 Docker Hub(<a href="https://hub.docker.com/_/python">https://hub.docker.com/_/python</a>)上的官方 Python 3.7 镜像开始。我们安装 scikit-learn、<code>numpy</code>、<code>pandas</code>、<code>joblib</code>和 SageMaker 培训工具包:<pre>FROM python:3.7 RUN pip3 install --no-cache scikit-learn numpy pandas joblib sagemaker-training</pre></li>
+				<li>We build the image with the <code>docker build</code> command, tagging it as <code>sklearn-customer:sklearn</code>: <pre><strong class="bold">$ docker build -t sklearn-custom:sklearn -f Dockerfile .</strong></pre><p>一旦构建了图像，我们就可以找到它的标识符:</p><pre><strong class="bold">$ docker images</strong>
+<strong class="bold">REPOSITORY          TAG         IMAGE ID   </strong>
+<strong class="bold">sklearn-custom      sklearn     bf412a511471         </strong></pre></li>
+				<li>使用 AWS CLI，我们<a id="_idIndexMarker847"/>在 Amazon ECR 中创建一个存储库来托管这个映像，然后我们登录到存储库:<pre><strong class="bold">$ aws ecr create-repository --repository-name sklearn-custom --region eu-west-1</strong> <strong class="bold">$ aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 123456789012.dkr.ecr.eu-west-1.amazonaws.com/sklearn-custom:latest</strong></pre></li>
+				<li>使用图像标识符，我们用存储库标识符标记图像:<pre><strong class="bold">$ docker tag bf412a511471 123456789012.dkr.ecr.eu-west-1.amazonaws.com/sklearn-custom:sklearn</strong></pre></li>
+				<li>We push <a id="_idIndexMarker848"/>the image to the repository:<pre><strong class="bold">$ docker push 123456789012.dkr.ecr.eu-west-1.amazonaws.com/sklearn-custom:sklearn</strong></pre><p>图像<a id="_idIndexMarker849"/>现在可以用 SageMaker 估算器进行训练了。</p></li>
+				<li>我们定义了一个<code>SKLearn</code>估计器，将<code>image_uri</code>参数设置为我们刚刚创建的<a id="_idIndexMarker850"/>容器的名称:<pre>sk = SKLearn(     role=sagemaker.get_execution_role(),     entry_point='sklearn-boston-housing.py',     image_name='123456789012.dkr.ecr.eu-west-1.amazonaws.com/sklearn-custom:sklearn',     instance_count=1,     instance_type='ml.m5.large',     output_path=output,     hyperparameters={          'normalize': True,          'test-size': 0.1     } )</pre></li>
+				<li>我们设置培训<a id="_idIndexMarker851"/>频道的位置，并照常启动<a id="_idIndexMarker852"/>培训。在训练日志中，我们看到我们的代码确实是用脚本模式调用的:<pre><strong class="bold">/usr/local/bin/python -m sklearn-boston-housing </strong> <strong class="bold">--normalize True --test-size 0.1</strong></pre></li>
+			</ol>
+			<p>如您所见，定制培训容器很容易。多亏了 SageMaker 培训工具包，您可以像使用内置框架容器一样工作。我们在这里使用了 scikit-learn，您可以对所有其他框架进行同样的操作。</p>
+			<p>然而，我们不能使用这个容器进行部署，因为它不包含任何模型服务代码。我们应该添加定制代码来启动 web 应用程序，这正是我们在下一个示例中要做的。</p>
+			<h1 id="_idParaDest-155"><a id="_idTextAnchor154"/>为 scikit-learn 构建完全定制的容器</h1>
+			<p>在这个例子中，我们将<a id="_idIndexMarker853"/>构建一个完全定制的<a id="_idIndexMarker854"/>容器，不需要任何 AWS 代码。我们将使用它在波士顿住房数据集上训练一个 scikit-learn 模型，使用一个通用的<code>Estimator</code>模块。使用同一个容器，我们将借助 Flask web 应用程序来部署模型。</p>
+			<p>我们将以一种合乎逻辑的方式进行，首先处理培训，然后更新代码来处理部署。</p>
+			<h2 id="_idParaDest-156"><a id="_idTextAnchor155"/>使用完全定制的容器进行培训</h2>
+			<p>既然不能再依赖脚本模式，训练代码<a id="_idIndexMarker855"/>需要修改。这就是它看起来的样子，你很容易就能明白这里发生了什么:</p>
+			<pre>#!/usr/bin/env python
+import pandas as pd
+import joblib, os, json
+if __name__ == '__main__':
+    config_dir = '/opt/ml/input/config'
+    training_dir = '/opt/ml/input/data/training'
+    model_dir = '/opt/ml/model'
+    with open(os.path.join(config_dir, 
+    'hyperparameters.json')) as f:
+        hp = json.load(f)
+        normalize = hp['normalize']
+        test_size = float(hp['test-size'])
+        random_state = int(hp['random-state'])
+    filename = os.path.join(training_dir, 'housing.csv')
+    data = pd.read_csv(filename)
+    # Train model
+    . . . 
+    joblib.dump(regr, 
+                os.path.join(model_dir, 'model.joblib'))</pre>
+			<p>使用 SageMaker 容器的标准文件布局，我们从它们的 JSON 文件中读取超参数。然后，我们加载数据集，训练模型，并将其保存在正确的位置。</p>
+			<p>还有另一个非常重要的区别，我们必须深入到 Docker 来解释它。SageMaker 将以<code>docker run &lt;IMAGE_ID&gt; train</code>的身份运行训练容器，将<code>train</code>参数传递给容器的入口点。</p>
+			<p>如果你的容器有一个预定义的入口点，那么<code>train</code>参数将被传递给它，比如说<code>/usr/bin/python train</code>。如果您的容器没有预定义的入口点，<code>train</code>是将要运行的实际命令。</p>
+			<p>为了避免恼人的问题，我建议您的培训代码勾选以下方框:</p>
+			<ul>
+				<li>命名为<code>train</code>—没有扩展名，只有<code>train</code>。</li>
+				<li>使其可执行。</li>
+				<li>确保它在<code>PATH</code>值内。</li>
+				<li>脚本的第一行应该定义解释器的路径，例如<code>#!/usr/bin/env python</code>。</li>
+			</ul>
+			<p>这应该<a id="_idIndexMarker857"/>保证你的训练代码被正确调用，不管你的容器是否有预定义的入口点。</p>
+			<p>我们将在 docker 文件中处理这个问题，从一个正式的 Python 映像开始。请注意，我们不再安装 SageMaker 培训工具包:</p>
+			<pre>FROM python:3.7
+RUN pip3 install --no-cache scikit-learn numpy pandas joblib
+COPY sklearn-boston-housing-generic.py /usr/bin/train
+RUN chmod 755 /usr/bin/train</pre>
+			<p>脚本的名称是正确的。是可执行的，<code>/usr/bin</code>在<code>PATH</code>里。</p>
+			<p>我们应该都准备好了—让我们创建我们的自定义容器，并使用它启动一个培训任务:</p>
+			<ol>
+				<li value="1">我们构建并推送图像，使用不同的标签:<pre><strong class="bold">$ docker build -t sklearn-custom:estimator -f Dockerfile-generic .</strong> <strong class="bold">$ docker tag &lt;IMAGE_ID&gt; 123456789012.dkr.ecr.eu-west-1.amazonaws.com/sklearn-custom:estimator</strong> <strong class="bold">$ docker push 123456789012.dkr.ecr.eu-west-1.amazonaws.com/sklearn-custom:estimator</strong></pre></li>
+				<li>我们更新我们的笔记本代码以使用通用的<code>Estimator</code>模块:<pre>from sagemaker.estimator import Estimator sk = Estimator(     role=sagemaker.get_execution_role(),     image_name='123456789012.dkr.ecr.eu-west-1.amazonaws.com/sklearn-custom:estimator',     instance_count=1,     instance_type='ml.m5.large',     output_path=output,     hyperparameters={          'normalize': True,          'test-size': 0.1,          'random-state': 123     } )</pre></li>
+				<li>我们照常训练。</li>
+			</ol>
+			<p>现在让我们添加代码来部署这个模型。</p>
+			<h2 id="_idParaDest-157"><a id="_idTextAnchor156"/>部署完全定制的容器</h2>
+			<p>Flask 是一个非常流行的 Python web 框架(<a href="https://palletsprojects.com/p/flask">https://palletsprojects.com/p/flask</a>)。这很简单，也有很好的记录。我们将使用它来构建一个托管在我们的容器中的简单预测 API。</p>
+			<p>就像我们的训练代码一样，SageMaker 要求将部署脚本复制到容器中。图像将作为<code>docker run &lt;IMAGE_ID&gt; serve</code>运行。</p>
+			<p>HTTP 请求将被发送到端口<code>8080</code>。容器必须为健康检查提供一个<code>/ping</code> URL，为预测<a id="_idIndexMarker861"/>请求提供一个<code>/invocations</code> URL。我们将使用 CSV 作为输入格式。</p>
+			<p>因此，您的部署代码需要勾选以下方框:</p>
+			<ul>
+				<li>命名为<code>serve</code>——没有扩展名，只有<code>serve</code>。</li>
+				<li>使其可执行。</li>
+				<li>确保在<code>PATH</code>档。</li>
+				<li>确保容器露出端口<code>8080</code>。</li>
+				<li>提供处理<code>/ping</code>和<code>/invocations</code>URL 的代码。</li>
+			</ul>
+			<p>这是更新后的 Dockerfile 文件。我们安装 Flask，复制部署代码，并打开端口<code>8080</code>:</p>
+			<pre>FROM python:3.7
+RUN pip3 install --no-cache scikit-learn numpy pandas joblib
+RUN pip3 install --no-cache flask
+COPY sklearn-boston-housing-generic.py /usr/bin/train
+COPY sklearn-boston-housing-serve.py /usr/bin/serve
+RUN chmod 755 /usr/bin/train /usr/bin/serve
+EXPOSE 8080</pre>
+			<p>这就是我们如何用 Flask 实现一个简单的预测服务:</p>
+			<ol>
+				<li value="1">我们导入<a id="_idIndexMarker862"/>所需的模块。我们从<code>/opt/ml/model</code>加载模型并初始化 Flask 应用程序:<pre>#!/usr/bin/env python import joblib, os import pandas as pd from io import StringIO import flask from flask import Flask, Response model_dir = '/opt/ml/model' model = joblib.load(os.path.join(model_dir,                      'model.joblib')) app = Flask(__name__)</pre></li>
+				<li>我们实现了用于健康检查的<code>/ping</code> URL，只需返回 HTTP 代码 200 (OK): <pre>@app.route("/ping", methods=["GET"]) def ping():     return Response(response="\n", status=200)</pre></li>
+				<li>我们实现了<code>/invocations</code> URL。如果内容类型不是<code>text/csv</code>，我们返回 HTTP 代码 415(不支持的媒体类型)。如果是，我们解码请求<a id="_idIndexMarker863"/>主体并将其存储在类似文件的内存缓冲区中。然后，我们读取 CSV 样本，预测它们，并发送结果:<pre>@app.route("/invocations", methods=["POST"]) def predict():     if flask.request.content_type == 'text/csv':         data = flask.request.data.decode('utf-8')         s = StringIO(data)         data = pd.read_csv(s, header=None)         response = model.predict(data)         response = str(response)     else:         return flask.Response(             response='CSV data only',              status=415, mimetype='text/plain')     return Response(response=response, status=200)</pre></li>
+				<li>At startup, the script launches the Flask app on port <code>8080</code>:<pre>if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)</pre><p>这并不太难，即使你还不熟悉 Flask。</p></li>
+				<li>我们重建并推送图像，然后用相同的估计器再次训练。这里不需要改变。</li>
+				<li>We deploy the model:<pre>sk_predictor = sk.deploy(instance_type='ml.t2.medium',
+                         initial_instance_count=1)</pre><p class="callout-heading">催单</p><p class="callout">如果您在这里看到一些奇怪的行为(端点没有部署，神秘的错误消息，等等)，Docker 可能被骗了。应该可以解决大多数问题。清洁<code>/tmp</code>中的<code>tmp*</code>脚也有帮助。</p></li>
+				<li>We prepare <a id="_idIndexMarker864"/>a couple of test samples, set the content type to <code>text/csv</code>, and invoke the prediction API:<pre>test_samples = ['0.00632, 18.00, 2.310, 0, 0.5380, 6.5750, 65.20, 4.0900, 1,296.0, 15.30, 396.90, 4.98',             
+'0.02731, 0.00, 7.070, 0, 0.4690, 6.4210, 78.90, 4.9671, 2,242.0, 17.80, 396.90, 9.14']
+sk_predictor.serializer =
+    sagemaker.serializers.CSVSerializer()
+response = sk_predictor.predict(test_samples)
+print(response)</pre><p>您应该会看到类似这样的内容。已成功调用 API:</p><pre><strong class="bold">b'[[29.801388899699845], [24.990809475886078]]'</strong></pre></li>
+				<li>完成后，我们删除端点:<pre>sk_predictor.delete_endpoint()</pre></li>
+			</ol>
+			<p>在下一个例子中，我们将使用 R 环境来训练和部署一个模型。这将为我们提供一个走出 Python 世界的机会。正如你将看到的，事情并没有真正不同。</p>
+			<h1 id="_idParaDest-158"><a id="_idTextAnchor157"/>为 R 构建完全定制的容器</h1>
+			<p>r 是数据探索和<a id="_idIndexMarker865"/>分析的流行语言。在本例中，我们将构建一个自定义的<a id="_idIndexMarker866"/>容器来训练和部署波士顿<a id="_idIndexMarker867"/>住房数据集上的线性回归模型。</p>
+			<p>整个过程类似于为 Python 构建一个自定义容器。我们将使用<code>plumber</code>(<a href="https://www.rplumber.io">https://www . RP lumber . io</a>)，而不是<a id="_idIndexMarker868"/>使用 Flask 来构建我们的预测 API。</p>
+			<h2 id="_idParaDest-159"><a id="_idTextAnchor158"/>用 R 和水管工编码</h2>
+			<p>如果你对 r 不熟悉，不要担心。这是一个非常简单的例子，我相信你能够理解:</p>
+			<ol>
+				<li value="1">We write a function to train our model. It loads the hyperparameters and the dataset from the conventional paths. It normalizes the dataset if we requested it:<pre># train_function.R
+library("rjson")
+train &lt;- function() {
+    hp &lt;- fromJSON(file = 
+          '/opt/ml/input/config/hyperparameters.json')
+    normalize &lt;- hp$normalize
+    data &lt;- read.csv(file = 
+            '/opt/ml/input/data/training/housing.csv', 
+            header=T)
+    if (normalize) {
+        data &lt;- as.data.frame(scale(data))
+    }</pre><p>它训练一个线性<a id="_idIndexMarker871"/>回归模型，将所有特征纳入<a id="_idIndexMarker872"/>账户，以预测中值房价(列<code>medv</code>)。最后，它将模型保存在正确的位置:</p><pre>    model = lm(medv~., data)
+    saveRDS(model, '/opt/ml/model/model.rds')
+}</pre></li>
+				<li>我们编写一个函数来服务于预测。使用<code>plumber</code>注释，我们定义了一个用于健康检查的<code>/ping</code> URL 和一个用于预测的<code>/invocations</code>URL:<pre># serve_function.R #' @get /ping function() {   return('') } #' @post /invocations function(req) {     model &lt;- readRDS('/opt/ml/model/model.rds')     conn &lt;- textConnection(gsub('\\\\n', '\n',                             req$postBody))     data &lt;- read.csv(conn)     close(conn)     medv &lt;- predict(model, data)     return(medv) }</pre></li>
+				<li>将这两部分放在一起，我们编写一个主函数，作为我们脚本的入口点。SageMaker 将传递一个<code>train</code>或<code>serve</code>命令行参数，我们将在代码中调用相应的<a id="_idIndexMarker874"/>函数:<pre>library('plumber') source('train_function.R') serve &lt;- function() {     app &lt;- plumb('serve_function.R')     app$run(host='0.0.0.0', port=8080)} args &lt;- commandArgs() if (any(grepl('train', args))) {     train() } if (any(grepl('serve', args))) {     serve() }</pre></li>
+			</ol>
+			<p>这是我们需要的所有 R 代码。现在，让我们来照看一下集装箱。</p>
+			<h2 id="_idParaDest-160"><a id="_idTextAnchor159"/>构建自定义容器</h2>
+			<p>我们需要构建一个自定义容器来存储 R 运行时，以及我们的脚本。Dockerfile 文件如下所示:</p>
+			<ol>
+				<li value="1">我们从 Docker Hub 中的一个官方 R 映像开始，添加我们需要的<a id="_idIndexMarker876"/>依赖项(这些是我在机器上需要的；您的里程可能有所不同):<pre>FROM r-base:latest WORKDIR /opt/ml/ RUN apt-get update RUN apt-get install -y libcurl4-openssl-dev libsodium-dev RUN R -e "install.packages(c('rjson', 'plumber')) "</pre></li>
+				<li>然后，我们将代码复制到容器中，并将 main 函数定义为它的显式入口点:<pre>COPY main.R train_function.R serve_function.R /opt/ml/ ENTRYPOINT ["/usr/bin/Rscript", "/opt/ml/main.R", "--no-save"]</pre></li>
+				<li>我们在 ECR 中创建了一个新的存储库<a id="_idIndexMarker877"/>。然后，我们构建图像(这可能需要一段时间，包括编译步骤)并推它:<pre><strong class="bold">$ aws ecr create-repository --repository-name r-custom --region eu-west-1</strong> <strong class="bold">$ aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 123456789012.dkr.ecr.eu-west-1.amazonaws.com/r-custom:latest</strong> <strong class="bold">$ docker build -t r-custom:latest -f Dockerfile .</strong> <strong class="bold">$ docker tag &lt;IMAGE_ID&gt; 123456789012.dkr.ecr.eu-west-1.amazonaws.com/r-custom:latest</strong> <strong class="bold">$ docker push 123456789012.dkr.ecr.eu-west-1.amazonaws.com/r-custom:latest</strong></pre></li>
+			</ol>
+			<p>我们都准备好了，让我们开始训练和部署。</p>
+			<h2 id="_idParaDest-161"><a id="_idTextAnchor160"/>在 SageMaker 上培训和部署定制容器</h2>
+			<p>跳到 Jupyter 笔记本，我们使用<a id="_idIndexMarker878"/> SageMaker SDK <a id="_idIndexMarker879"/>来训练<a id="_idIndexMarker880"/>并部署我们的容器:</p>
+			<ol>
+				<li value="1">我们用自定义容器<pre>r_estimator = Estimator(     role = sagemaker.get_execution_role(),     image_uri='123456789012.dkr.ecr.eu-west-1.amazonaws.com/r-custom:latest',     instance_count=1,     instance_type='ml.m5.large',     output_path=output,     hyperparameters={'normalize': False} ) r_estimator.fit({'training':training})</pre>配置了一个<code>Estimator</code>模块<a id="_idIndexMarker881"/></li>
+				<li>一旦训练工作完成，我们照常部署模型:<pre>r_predictor = r_estimator.deploy(     initial_instance_count=1,      instance_type='ml.t2.medium')</pre></li>
+				<li>Finally, we read the full dataset (why not?) and send it to the endpoint:<pre>import pandas as pd
+data = pd.read_csv('housing.csv')
+data.drop(['medv'], axis=1, inplace=True)
+data = data.to_csv(index=False)
+r_predictor.serializer = 
+    sagemaker.serializers.CSVSerializer()
+response = r_predictor.predict(data)
+print(response)</pre><p><a id="_idIndexMarker882"/>输出应该是这样的:</p><pre><strong class="bold">b'[30.0337,25.0568,30.6082,28.6772,27.9288. . .</strong></pre></li>
+				<li>完成后，我们删除端点:<pre>r_predictor.delete_endpoint()</pre></li>
+			</ol>
+			<p>无论您使用的是 Python、R 还是其他语言，构建和部署您自己的定制容器都相当容易。尽管如此，你仍然需要构建你自己的<a id="_idIndexMarker883"/>小网络应用程序，这是你可能既不知道如何做<a id="_idIndexMarker885"/>也不喜欢做的事情。如果我们有一个工具来处理所有那些讨厌的容器和 web 东西，那不是很好吗？</p>
+			<p>其实有一个:<strong class="bold"> MLflow </strong>。</p>
+			<h1 id="_idParaDest-162"><a id="_idTextAnchor161"/>在 MLflow 上使用您自己的代码进行培训和部署</h1>
+			<p>MLflow 是一个用于机器学习的<a id="_idIndexMarker886"/>开源<a id="_idIndexMarker887"/>平台<a id="_idIndexMarker888"/>(<a href="https://mlflow.org">https://mlflow.org</a>)。它是由数据布里克斯(<a href="https://databricks.com">https://databricks.com</a>)发起的，他也给我们带来了<strong class="bold">火花</strong>。MLflow 有很多<a id="_idIndexMarker889"/>特性，包括在 SageMaker 上<a id="_idIndexMarker890"/>部署 Python 训练的模型的能力。</p>
+			<p>本节不是一个 MLflow 教程。你可以在 https://www.mlflow.org/docs/latest/index.html 找到文档和例子。</p>
+			<h2 id="_idParaDest-163"><a id="_idTextAnchor162"/>安装 MLflow</h2>
+			<p>在我们的本地机器上，让我们为 MLflow 设置一个虚拟环境，并安装<a id="_idIndexMarker892"/>所需的库。以下示例使用 MLflow 1.17 进行了测试:</p>
+			<ol>
+				<li value="1">我们首先初始化一个名为<code>mlflow-example</code>的新虚拟环境。然后，我们激活它:<pre><strong class="bold">$ virtualenv mlflow-example</strong> <strong class="bold">$ source mlflow-example/bin/activate</strong></pre></li>
+				<li>我们安装 MLflow 和我们的培训脚本所需的库:<pre><strong class="bold">$ pip install mlflow gunicorn pandas sklearn xgboost boto3</strong></pre></li>
+				<li>最后，我们下载了在第 7 章 、<em class="italic">使用内置框架扩展机器学习服务</em> : <pre><strong class="bold">$ wget -N https://sagemaker-sample-data-us-west-2.s3-us-west-2.amazonaws.com/autopilot/direct_marketing/bank-additional.zip</strong> <strong class="bold">$ unzip -o bank-additional.zip</strong></pre>中已经与 XGBoost 一起使用的直销数据集</li>
+			</ol>
+			<p>设置完成。让我们训练模型。</p>
+			<h2 id="_idParaDest-164"><a id="_idTextAnchor163"/>用 MLflow 训练模型</h2>
+			<p>训练脚本为这次运行设置 MLflow 实验，以便我们可以记录元数据(超参数、指标等)。然后，它加载数据集，训练 XGBoost 分类器，并记录模型:</p>
+			<pre># train-xgboost.py
+import mlflow.xgboost
+import xgboost as xgb
+from load_dataset import load_dataset
+if __name__ == '__main__':
+    mlflow.set_experiment('dm-xgboost')
+    with mlflow.start_run(run_name='dm-xgboost-basic') 
+    as run:
+        x_train, x_test, y_train, y_test = load_dataset(
+            'bank-additional/bank-additional-full.csv')
+        cls = xgb.XGBClassifier(
+                  objective='binary:logistic', 
+                  eval_metric='auc')
+        cls.fit(x_train, y_train)
+        auc = cls.score(x_test, y_test)
+        mlflow.log_metric('auc', auc)
+        mlflow.xgboost.log_model(cls, 'dm-xgboost-model')
+        mlflow.end_run()</pre>
+			<p><code>load_dataset()</code>函数顾名思义会记录几个参数:</p>
+			<pre># load_dataset.py
+import mlflow
+import pandas as pd
+from sklearn.model_selection import train_test_split
+def load_dataset(path, test_size=0.2, random_state=123):
+    data = pd.read_csv(path)
+    data = pd.get_dummies(data)
+    data = data.drop(['y_no'], axis=1)
+    x = data.drop(['y_yes'], axis=1)
+    y = data['y_yes']
+    mlflow.log_param("dataset_path", path)
+    mlflow.log_param("dataset_shape", data.shape)
+    mlflow.log_param("test_size", test_size)
+    mlflow.log_param("random_state", random_state)
+    mlflow.log_param("one_hot_encoding", True)
+    return train_test_split(x, y, test_size=test_size, 
+                            random_state=random_state)</pre>
+			<p>让我们训练模型<a id="_idIndexMarker895"/>并在 MLflow web 应用程序中可视化其结果:</p>
+			<ol>
+				<li value="1">在我们刚刚在本地机器上创建的虚拟环境中，我们像任何 Python 程序一样运行训练脚本:<pre><strong class="bold">$ python train-xgboost.py</strong> <strong class="bold">INFO: 'dm-xgboost' does not exist. Creating a new experiment</strong> <strong class="bold">AUC  0.91442097596504</strong></pre></li>
+				<li>我们启动 MLflow web 应用程序:<pre><strong class="bold">$ mlflow ui &amp;</strong></pre></li>
+				<li>将浏览器指向<a href="http://localhost:5000"> http://localhost:5000 </a>，我们会看到关于我们运行的信息，如下面的截图所示:</li>
+			</ol>
+			<p> </p>
+			<div><div><img src="img/B17705_08_2.jpg" alt="Figure 8.2 – Viewing our job in MLflow&#13;&#10;" width="1349" height="153"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 8.2–在 MLflow 中查看我们的工作</p>
+			<p>培训很成功。在 SageMaker 上部署模型之前，我们必须构建一个 SageMaker 容器。事实证明，这是最简单的事情。</p>
+			<h2 id="_idParaDest-165"><a id="_idTextAnchor164"/>使用 MLflow 构建 SageMaker 容器</h2>
+			<p>它只需要在我们的本地机器上执行一个命令:</p>
+			<pre><strong class="bold">$ mlflow sagemaker build-and-push-container</strong></pre>
+			<p>MLflow 将自动构建一个与 SageMaker 兼容的 Docker 容器，包含所有需要的依赖项。然后，它在 Amazon ECR 中创建一个名为<code>mlflow-pyfunc</code>的<a id="_idIndexMarker896"/>存储库，并将图像推送给它。显然，这需要正确设置您的 AWS 凭证<a id="_idIndexMarker897"/>。MLflow 将使用 AWS CLI 配置的默认区域。</p>
+			<p>该命令完成后，您应该会在 ECR 中看到图像，如下面的屏幕截图所示:</p>
+			<div><div><img src="img/B17705_08_3.jpg" alt="Figure 8.3 – Viewing our container in ECR&#13;&#10;" width="1170" height="512"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 8.3–在 ECR 中查看我们的容器</p>
+			<p>我们的容器现在可以部署了。</p>
+			<h3>使用 MLflow 在本地部署模型</h3>
+			<p>我们将使用以下步骤部署我们的模型:</p>
+			<ol>
+				<li value="1">We can deploy <a id="_idIndexMarker898"/>our model locally with a single command, passing its run identifier (visible in the MLflow URL for the run) and the HTTP <a id="_idIndexMarker899"/>port to use. This fires up a local web application based on <code>gunicorn</code>:<pre><strong class="bold">$ mlflow sagemaker run-local -p 8888 -m runs:/d08ab8383ee84f72a92164d3ca548693/dm-xgboost-model</strong></pre><p>您应该会看到类似这样的内容:</p><pre><strong class="bold">[2021-05-26 20:21:23 +0000] [370] [INFO] Starting gunicorn 20.1.0</strong>
+<strong class="bold">[2021-05-26 20:21:23 +0000] [370] [INFO] Listening at: http://127.0.0.1:8000 (370)</strong>
+<strong class="bold">[2021-05-26 20:21:23 +0000] [370] [INFO] Using worker: gevent</strong>
+<strong class="bold">[2021-05-26 20:21:23 +0000] [381] [INFO] Booting worker with pid: 381 </strong></pre></li>
+				<li>我们的预测代码非常简单。我们从数据集中加载 CSV 样本，将它们转换成 JSON 格式，并使用<code>requests</code>库将它们发送到端点，这是一个流行的 Python 库，用于 HTTP(<a href="https://requests.readthedocs.io">https://requests . readthedocs . io</a>):<pre># predict-xgboost-local.py  import json import requests from load_dataset import load_dataset port = 8888 if __name__ == '__main__':     x_train, x_test, y_train, y_test = load_dataset(         'bank-additional/bank-additional-full.csv')     input_data = x_test[:10].to_json(orient='split')     endpoint = 'http://localhost:{}/invocations'                .format(port)     headers = {'Content-type': 'application/json;                  format=pandas-split'}     prediction = requests.post(         endpoint,          json=json.loads(input_data),         headers=headers)     print(prediction.text)</pre></li>
+				<li>在另一个 shell 中运行这个<a id="_idIndexMarker900"/>代码会调用本地<a id="_idIndexMarker901"/>模型并打印出预测:<pre><strong class="bold">$ source mlflow-example/bin/activate</strong> <strong class="bold">$ python predict-xgboost-local.py</strong> <strong class="bold">[0.00046298891538754106, 0.10499032586812973, . . . </strong></pre></li>
+				<li>完成后，我们用<em class="italic"> Ctrl </em> + <em class="italic"> C </em>终止本地服务器。</li>
+			</ol>
+			<p>既然我们确信我们的模型可以在本地工作，我们可以在 SageMaker 上部署它。</p>
+			<h3>使用 MLflow 在 SageMaker 上部署模型</h3>
+			<p>这又是一句俏皮话:</p>
+			<ol>
+				<li value="1">我们需要传递应用程序名称、模型路径和 SageMaker 角色的名称<a id="_idIndexMarker902"/>。您可以<a id="_idIndexMarker903"/>使用您在之前章节中使用过的相同角色:<pre><strong class="bold">$ mlflow sagemaker deploy \</strong> <strong class="bold">--region-name eu-west-1 \</strong> <strong class="bold">-t ml.t2.medium \</strong> <strong class="bold">-a mlflow-xgb-demo \</strong> <strong class="bold">-m runs:/d08ab8383ee84f72a92164d3ca548693/dm-xgboost-model \</strong> <strong class="bold">-e arn:aws:iam::123456789012:role/Sagemaker-fullaccess</strong></pre></li>
+				<li>After a <a id="_idIndexMarker904"/>few minutes, the endpoint is in service. We invoke it with <a id="_idIndexMarker905"/>the following code. It loads the test dataset and sends the first 10 samples in JSON format to the endpoint named after our application:<pre># predict-xgboost.py 
+import boto3
+from load_dataset import load_dataset
+app_name = 'mlflow-xgb-demo'
+region = 'eu-west-1'
+if __name__ == '__main__':
+    sm = boto3.client('sagemaker', region_name=region)
+    smrt = boto3.client('runtime.sagemaker', 
+                        region_name=region)
+    endpoint = sm.describe_endpoint(
+              EndpointName=app_name)
+    print("Status: ", endpoint['EndpointStatus'])
+    x_train, x_test, y_train, y_test = load_dataset(
+        'bank-additional/bank-additional-full.csv')
+    input_data = x_test[:10].to_json(orient="split")
+    prediction = smrt.invoke_endpoint(
+        EndpointName=app_name,
+        Body=input_data,
+        ContentType='application/json;
+                     format=pandas-split')
+    prediction = prediction['Body']
+                 .read().decode("ascii")
+    print(prediction)</pre><p>等一下！我们没有使用 SageMaker SDK。这是怎么回事？</p><p>在本例中，我们正在处理一个现有的端点，而不是我们通过拟合估计器和部署预测器创建的端点<a id="_idIndexMarker906"/>。</p><p>我们仍然可以使用 SageMaker SDK 重建一个预测器，正如我们将在<a href="B17705_11_Final_JM_ePub.xhtml#_idTextAnchor237"> <em class="italic">第 11 章</em> </a>，<em class="italic">部署机器学习模型</em>中看到的。相反，我们使用我们的老朋友<code>boto3</code>，Python 的 AWS SDK。我们首先调用<code>describe_endpoint()</code> API 来检查端点是否在服务中。然后，我们使用<code>invoke_endpoint()</code> API 来…调用端点！目前，我们不需要知道更多。</p><p>我们在本地机器上运行预测代码，它产生以下输出:</p><pre><strong class="bold">$ python3 predict-xgboost.py</strong>
+<strong class="bold">Status:  InService</strong>
+<strong class="bold">[0.00046298891538754106, 0.10499032586812973, 0.016391035169363022, . . .</strong></pre></li>
+				<li>完成后，我们使用 MLflow CLI 删除端点。这将清理所有为部署创建的<a id="_idIndexMarker907"/>资源:<pre><strong class="bold">$ mlflow sagemaker delete -a mlflow-xgb-demo –region-name eu-west-1</strong></pre></li>
+			</ol>
+			<p>MLflow 的开发体验非常简单。它还有许多你可能想探索的其他特性。</p>
+			<p>到目前为止，我们已经运行了用于训练和预测的<a id="_idIndexMarker910"/>示例。SageMaker 的另一个领域是让我们使用定制容器，<strong class="bold"> SageMaker 处理</strong>，我们在<a href="B17705_02_Final_JM_ePub.xhtml#_idTextAnchor030"> <em class="italic">第 2 章</em> </a>、<em class="italic">处理数据准备技术</em>中学习过。为了结束本章，让我们为 SageMaker 处理构建一个定制的 Python 容器。</p>
+			<h1 id="_idParaDest-166"><a id="_idTextAnchor165"/>为 SageMaker 处理构建完全定制的容器</h1>
+			<p>我们将重用来自第六章<a href="B17705_06_Final_JM_ePub.xhtml#_idTextAnchor108"><em class="italic"/></a><em class="italic">的新闻标题示例，训练自然处理模型</em>:</p>
+			<ol>
+				<li value="1">我们从基于最小 Python 图像的 Dockerfile 文件<a id="_idIndexMarker912"/>开始<a id="_idIndexMarker911"/>。我们安装依赖项，添加我们的处理脚本，并将其定义为我们的入口点:<pre>FROM python:3.7-slim RUN pip3 install --no-cache gensim nltk sagemaker RUN python3 -m nltk.downloader stopwords wordnet ADD preprocessing-lda-ntm.py / ENTRYPOINT ["python3", "/preprocessing-lda-ntm.py"]</pre></li>
+				<li>我们构建图像并将其标记为<code>sm-processing-custom:latest</code> : <pre><code>python:3.7</code> instead of <code>python:3.7-slim</code>. This makes it faster to push and download.</pre></li>
+				<li>使用 AWS CLI，我们在 Amazon ECR 中创建一个存储库来托管这个映像，并登录到存储库:<pre><strong class="bold">$ aws ecr create-repository --repository-name sm-processing-custom --region eu-west-1</strong> <strong class="bold">$ aws ecr get-login-password | docker login --username AWS --password-stdin 123456789012.dkr.ecr.eu-west-1.amazonaws.com/sm-processing-custom:latest</strong></pre></li>
+				<li>使用<a id="_idIndexMarker913"/>图像标识符，我们用存储库标识符:<pre><strong class="bold">$ docker tag &lt;IMAGE_ID&gt; 123456789012.dkr.ecr.eu-west-1.amazonaws.com/sm-processing-custom:latest</strong></pre>标记图像</li>
+				<li>我们将<a id="_idIndexMarker914"/>图像推送到存储库:<pre><strong class="bold">$ docker push 123456789012.dkr.ecr.eu-west-1.amazonaws.com/sm-processing-custom:latest</strong></pre></li>
+				<li>转到 Jupyter 笔记本，我们用新容器配置一个通用的<code>Processor</code>对象，它相当于我们用于培训的通用<code>Estimator</code>模块。因此，不需要<code>framework_version</code>参数:<pre>from sagemaker.processing import Processor sklearn_processor = Processor(      image_uri='123456789012.dkr.ecr.eu-west-1.amazonaws.com/sm-processing-custom:latest',     role=sagemaker.get_execution_role(),     instance_type='ml.c5.2xlarge',     instance_count=1)</pre></li>
+				<li>使用相同的<code>ProcessingInput</code>和<code>ProcessingOutput</code>对象，我们运行<a id="_idIndexMarker915"/>处理作业。由于<a id="_idIndexMarker916"/>我们的处理代码现在存储在容器中，我们不需要像传递<code>SKLearnProcessor</code> : <pre>from sagemaker.processing import ProcessingInput, ProcessingOutput sklearn_processor.run(     inputs=[         ProcessingInput(             source=input_data,             destination='/opt/ml/processing/input')     ],     outputs=[         ProcessingOutput(             output_name='train_data',             source='/opt/ml/processing/train/')     ],     arguments=[         '--filename', 'abcnews-date-text.csv.gz'     ] )</pre>那样传递<code>code</code>参数</li>
+				<li>一旦培训工作完成，我们就可以在 S3 取得其成果。</li>
+			</ol>
+			<p>这就结束了我们对 SageMaker 中定制容器的探索。如您所见，您几乎可以运行任何东西，只要它适合 Docker 容器。</p>
+			<h1 id="_idParaDest-167"><a id="_idTextAnchor166"/>总结</h1>
+			<p>内置框架非常有用，但是有时您需要一些稍微不同或者非常不同的东西。无论是从内置容器还是从零开始，SageMaker 都可以让您完全按照您想要的方式构建您的培训和部署容器。所有人的自由！</p>
+			<p>在本章中，您学习了如何为数据处理、训练和部署定制 Python 和 R 容器。您看到了如何将它们与 SageMaker SDK 及其常用工作流一起使用。您还了解了 MLflow，这是一个很好的开源工具，允许您使用 CLI 训练和部署模型。</p>
+			<p>这就结束了我们对 SageMaker 中建模选项的广泛覆盖:内置算法、内置框架和定制代码。在下一章中，您将了解 SageMaker 的特性，这些特性有助于您扩展培训工作。</p>
+		</div>
+	</div>
+</body></html>

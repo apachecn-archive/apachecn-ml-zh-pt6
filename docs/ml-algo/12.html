@@ -1,0 +1,812 @@
+<html><head/><body><html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Introducing Recommendation Systems</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">介绍推荐系统</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>想象一下，一个拥有数千种商品的网店。如果你不是注册用户，你可能会看到一个有一些亮点的主页，但是如果你已经购买了一些商品，如果网站显示你可能会购买的产品，而不是随机选择，这将是很有趣的。这就是推荐系统的目的，在这一章中，我们将讨论创建这样一个系统的最常见的技术。</p>
+
+<p>基本概念是用户、商品和评级(或者关于产品的隐性反馈，比如你已经购买了它们)。每个模型都必须使用已知数据(如在监督场景中)，以便能够建议最合适的项目或预测尚未评估的所有项目的评级。</p>
+
+<p>我们将讨论两种不同的策略:</p>
+
+<ul>
+
+<li>基于用户或基于内容</li>
+
+<li>协同过滤</li>
+
+</ul>
+
+<p>第一种方法是基于我们拥有的关于用户或产品的信息，其目标是将新用户与现有的一组同行相关联，以建议其他成员积极评价的所有项目，或者根据产品的特征对产品进行聚类，并提出与所考虑的项目相似的项目子集。第二种方法稍微复杂一点，使用显式评级，其目的是预测每个项目和每个用户的值。即使协同过滤需要模式计算能力，廉价资源的巨大可用性允许对每个大型数据集使用这些算法，产生几乎实时的推荐。该模型还可以每天重新训练或更新。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Naive user-based systems</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">简单的基于用户的系统</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在第一个场景中，我们假设我们有一组用户，由<em> m </em>维特征向量表示:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/ec26e60e-47b6-4105-954e-842784928738.png" style="width:21.08em;height:1.50em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">典型的特征是年龄、性别、兴趣等等。所有这些都必须使用前面章节中讨论的技术之一进行编码(例如，可以将它们二进制化、在固定范围内归一化或转换为一个热点矢量)。但是，一般来说，避免不同的方差会对相邻点之间的距离计算产生负面影响是很有用的。</p>
+
+<p class="CDPAlignLeft CDPAlign">我们有一套<em> k </em>的物品:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/6992ec58-89cd-4602-a6d0-61f499c49025.png" style="width:10.67em;height:1.67em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">我们还假设存在将每个用户与项目子集(已购买或好评)相关联的关系，对于这些项目，已经执行了明确的动作或反馈:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/0ef619ae-4944-4cd1-8d77-3d5f7decec92.png" style="width:21.83em;height:1.50em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">在基于用户的系统中，用户被周期性地聚类(通常使用<strong>k-最近邻</strong> ( <strong> k-NN </strong>)方法)，因此考虑一个普通用户<em> u </em>(也是一个新样本)，我们可以立即确定一个半径为<em> R </em>的球，它包含所有与我们的样本相似(因此是邻居)的用户:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/97f9bc25-8e34-442a-96b9-eeafcbf1aa64.png" style="width:18.33em;height:1.50em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">此时，我们可以使用前面介绍的关系创建建议项目集:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/cefda6ab-ed4e-48cf-8bee-e00750209a64.png" style="width:27.83em;height:4.42em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">换句话说，这个集合包含了所有被邻居积极评价或购买的独特产品。我使用形容词 n <em> aive </em>是因为有一个类似的选择，我们将在专门讨论协同过滤的部分讨论。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Implementing a user-based system with scikit-learn</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">用 scikit-learn 实现基于用户的系统</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>出于我们的目的，我们需要创建一个用户和产品的虚拟数据集(但是使用真实数据集非常容易):</p>
+
+<pre>import numpy as np<br/><br/>nb_users = 1000<br/>users = np.zeros(shape=(nb_users, 4))<br/><br/>for i in range(nb_users):<br/>   users[i, 0] = np.random.randint(0, 4)<br/>    users[i, 1] = np.random.randint(0, 2)<br/>    users[i, 2] = np.random.randint(0, 5)<br/>    users[i, 3] = np.random.randint(0, 5)</pre>
+
+<p>我们假设有<kbd>1000</kbd>个用户具有<kbd>4</kbd>个特征，用介于<kbd>0</kbd>和<kbd>4</kbd>或<kbd>5</kbd>之间的整数表示。它们是什么意思并不重要；它们的作用是描述用户的特征并允许集合的聚类。当然，特征必须与任务相符。换句话说，我们假设距离可以<strong>接地</strong>。因此，如果<em> d(A，B) &lt; d(B，C) </em>，则意味着实际用户<em> A </em>比<em> C </em>更类似于<em> B </em>。</p>
+
+<p>对于产品，我们还需要创建关联:</p>
+
+<pre>nb_product = 20<br/>user_products = np.random.randint(0, nb_product, size=(nb_users, 5))</pre>
+
+<p>我们假设我们有<kbd>20</kbd>个不同的项目(从 1 到 20；<kbd>0</kbd>表示用户没有购买任何东西)和一个关联矩阵，其中每个用户都链接到在<kbd>0</kbd>和<kbd>5</kbd>(最大值)之间限定的多个产品，例如:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/f9824acf-5848-4563-b857-0bc46d74290e.png" style="width:17.50em;height:8.67em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">此时，我们需要使用 scikit-learn 提供的<kbd>NearestNeighbors</kbd>实现对用户进行集群:</p>
+
+<pre class="CDPAlignLeft CDPAlign">from sklearn.neighbors import NearestNeighbors<br/><br/>nn = NearestNeighbors(n_neighbors=20, radius=2.0)<br/>nn.fit(users)</pre>
+
+<p>我们选择了<kbd>20</kbd>个邻居，欧几里得半径等于<kbd>2.0</kbd>。当我们想要查询模型以了解球(其中心是一个样本且具有固定半径)中包含哪些项目时，会使用此参数。在我们的例子中，我们将查询模型以获得测试用户的所有邻居:</p>
+
+<pre>test_user = np.array([2, 0, 3, 2])<br/>d, neighbors = nn.kneighbors(test_user.reshape(1, -1))<br/><br/>print(neighbors)<br/>array([[933,  67, 901, 208,  23, 720, 121, 156, 167,  60, 337, 549,  93,<br/>        563, 326, 944, 163, 436, 174,  22]], dtype=int64)</pre>
+
+<p>现在，我们需要使用关联矩阵构建推荐列表(出于教学目的，这一步没有得到很好的优化):</p>
+
+<pre>suggested_products = []<br/><br/>for n in neighbors:<br/>    for products in user_products[n]:<br/>        for product in products:<br/>            if product != 0 and product not in suggested_products:<br/>                suggested_products.append(product)<br/><br/>print(suggested_products)<br/>[14, 5, 13, 4, 8, 9, 16, 18, 10, 7, 1, 19, 12, 11, 6, 17, 15, 3, 2]</pre>
+
+<p>对于每个邻居，我们检索他们购买的产品并执行联合，避免包含零值(意味着没有产品)和重复元素。结果是可以为许多不同的系统几乎实时地获得建议的列表(未排序)。在某些情况下，当用户或项目的数量太大时，可以将列表限制为固定数量的元素，并减少邻居的数量。这种方法也很幼稚，因为它没有考虑用户之间的实际距离(或相似性)来衡量建议。可以考虑将距离作为一个加权因素，但是采用协作过滤方法更简单，它提供了一个更健壮的解决方案。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Content-based systems</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">基于内容的系统</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>这可能是最简单的方法，它仅基于建模为 m 维特征向量的产品:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/b4bf056b-f7ed-48c3-ae27-7782b2b2ba1c.png" style="width:24.50em;height:1.83em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">就像用户一样，特征也可以是分类的(事实上，对于产品来说更容易)，例如，一本书或一部电影的流派，它们可以在编码后与数值(如价格、长度、正面评论数等)一起使用。</p>
+
+<p class="CDPAlignLeft CDPAlign">然后，采用聚类策略，即使最常用的策略是 k-NN，因为它允许我们控制每个邻域的大小，以确定给定样品产品的质量和建议的数量。</p>
+
+<p class="CDPAlignLeft CDPAlign">使用 scikit-learn，首先我们创建一个虚拟产品数据集:</p>
+
+<pre class="CDPAlignLeft CDPAlign">nb_items = 1000<br/>items = np.zeros(shape=(nb_items, 4))<br/><br/>for i in range(nb_items):<br/>    items[i, 0] = np.random.randint(0, 100)<br/>    items[i, 1] = np.random.randint(0, 100)<br/>    items[i, 2] = np.random.randint(0, 100)<br/>    items[i, 3] = np.random.randint(0, 100)</pre>
+
+<p>在这种情况下，我们有<kbd>1000</kbd>个样本，其<kbd>4</kbd>个整数特征被限制在<kbd>0</kbd>和<kbd>100</kbd>之间。然后，我们继续像前面的例子一样，对它们进行聚类:</p>
+
+<pre>nn = NearestNeighbors(n_neighbors=10, radius=5.0)<br/>nn.fit(items)</pre>
+
+<p>此时，可以使用<kbd>radius_neighbors()</kbd>方法、<strong> </strong>查询我们的模型，这允许我们将研究限制在有限的子集内。默认半径(通过<kbd>radius</kbd>参数设置)为<kbd>5.0</kbd>，但我们可以动态更改:</p>
+
+<pre>test_product = np.array([15, 60, 28, 73])<br/>d, suggestions = nn.radius_neighbors(test_product.reshape(1, -1), radius=20)<br/><br/>print(suggestions)<br/>[array([657, 784, 839, 342, 446, 196], dtype=int64)]<br/><br/>d, suggestions = nn.radius_neighbors(test_product.reshape(1, -1), radius=30)<br/><br/>print(suggestions)<br/>[ array([844, 340, 657, 943, 461, 799, 715, 863, 979, 784, 54, 148, 806,<br/> 465, 585, 710, 839, 695, 342, 881, 864, 446, 196, 73, 663, 580, 216], dtype=int64)]</pre>
+
+<p>当然，当尝试这些例子时，建议的数量可以不同，因为我们使用随机数据集，所以我建议尝试不同的半径值(特别是当使用不同的度量时)。</p>
+
+<p>当使用 k-NN 进行聚类时，考虑用于确定样本之间距离的度量是很重要的。scikit-learn 的缺省值是<strong xmlns:epub="http://www.idpf.org/2007/ops">闵可夫斯基距离</strong> <em xmlns:epub="http://www.idpf.org/2007/ops"> d <sub> p </sub> (a，b) </em>，正如在<a xmlns:epub="http://www.idpf.org/2007/ops" href="73cab6de-2a23-4a71-acfd-991ff9bd2f5f.xhtml" target="_blank">第 11 章</a>、<em xmlns:epub="http://www.idpf.org/2007/ops">、</em>中讨论的，它是欧几里德距离的推广。参数<em xmlns:epub="http://www.idpf.org/2007/ops"> p </em>控制距离的类型，默认值为<em xmlns:epub="http://www.idpf.org/2007/ops"> 2 </em>，因此得到的度量是经典的欧几里德距离。其他距离由 SciPy 提供(在<kbd xmlns:epub="http://www.idpf.org/2007/ops">scipy.spatial.distance</kbd>包中)，例如包括<strong xmlns:epub="http://www.idpf.org/2007/ops">汉明</strong>和<strong xmlns:epub="http://www.idpf.org/2007/ops">JAC card</strong>T25】距离。前者定义为两个向量之间的不一致比例(如果是二进制的，这是归一化的不同比特数)，例如:</p>
+
+<pre class="CDPAlignLeft CDPAlign">from scipy.spatial.distance import hamming<br/><br/>a = np.array([0, 1, 0, 0, 1, 0, 1, 1, 0, 0])<br/>b = np.array([1, 1, 0, 0, 0, 1, 1, 1, 1, 0])<br/>d = hamming(a, b)<br/><br/>print(d)<br/>0.40000000000000002</pre>
+
+<p>意味着有 40%的不一致比例，或者考虑到两个向量都是二进制的，有 4 个不同的位(满分 10)。当需要强调某个特定特征的存在/不存在时，这种方法会很有用。</p>
+
+<p>Jaccard 距离定义如下:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/d8f04a66-5d17-40f2-b278-ded8d499df72.png" style="width:19.25em;height:3.08em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">测量两个不同项目集(<em> A </em>和<em> B </em>)之间的差异特别有用。如果我们的特征向量是二进制的，考虑到标准布尔操作符<kbd>OR</kbd>和<kbd>AND</kbd>，可以立即应用这个距离。使用之前的测试值，我们得到:</p>
+
+<pre class="CDPAlignLeft CDPAlign">from scipy.spatial.distance import jaccard<br/><br/>d = jaccard(a, b)<br/>print(d)<br/>0.5714285714285714</pre>
+
+<p>这个度量被限制在<em>零</em>(相等向量)和<em>一</em>(完全不同)之间。</p>
+
+<p>至于汉明距离，当需要比较由二进制状态组成的项目时(例如<em>存在/不存在</em>、<em>是/否</em>等等)，它会非常有用。如果您想对 k-NN 采用不同的度量，可以使用<kbd>metric</kbd>参数直接指定:</p>
+
+<pre>nn = NearestNeighbors(n_neighbors=10, radius=5.0, metric='hamming')<br/>nn.fit(items)<br/><br/>nn = NearestNeighbors(n_neighbors=10, radius=5.0, metric='jaccard')<br/>nn.fit(items)</pre>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Model-free (or memory-based) collaborative filtering</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">无模型(或基于记忆)的协同过滤</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>与基于用户的方法一样，让我们考虑两组元素:用户和项目。然而，在这种情况下，我们并不假设它们具有明确的特征。相反，我们尝试基于每个用户(行)对每个项目(列)的偏好来建模用户-项目矩阵，例如:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/f4ae1fac-9045-45e9-8d8a-7a1351f8fdc9.png" style="width:15.83em;height:8.75em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">在这种情况下，评分限制在<em> 1 </em>和<em> 5 </em>之间(<em> 0 </em>表示没有评分)，我们的目标是根据用户的评分向量(即基于特定类型特征的内部表示)对用户进行聚类。这使得我们即使在没有关于用户的明确信息的情况下也能产生推荐。然而，它有一个缺点，称为<strong>冷启动</strong>，这意味着当新用户没有评级时，不可能找到正确的邻居，因为他们可以属于几乎任何集群。</p>
+
+<p class="CDPAlignLeft CDPAlign">一旦聚类完成，就很容易检查哪些产品(尚未评级)对给定用户的评级最高，因此更有可能被购买。在 scikit-learn 中实现一个解决方案是可能的，就像我们以前做的那样，但是我想介绍一个叫做<strong> Crab </strong>的小框架(见本节末尾的方框)来简化这个过程。</p>
+
+<p class="CDPAlignLeft CDPAlign">为了构建模型，我们首先需要将<kbd>user_item_matrix</kbd>定义为一个 Python 字典，其结构如下:</p>
+
+<pre class="CDPAlignLeft CDPAlign">{ user_1: { item1: rating, item2: rating, ... }, ..., user_n: ... }</pre>
+
+<p>内部用户字典中缺少值意味着没有评级。在我们的示例中，我们考虑拥有<kbd>5</kbd>项的<kbd>5</kbd>用户:</p>
+
+<pre>from scikits.crab.models import MatrixPreferenceDataModel<br/><br/>user_item_matrix = {<br/>    1: {1: 2, 2: 5, 3: 3},<br/>    2: {1: 5, 4: 2},<br/>    3: {2: 3, 4: 5, 3: 2},<br/>    4: {3: 5, 5: 1},<br/>    5: {1: 3, 2: 3, 4: 1, 5: 3}<br/>}<br/><br/>model = MatrixPreferenceDataModel(user_item_matrix)</pre>
+
+<p>一旦定义了<kbd>user_item_matrix</kbd>，我们需要选择一个度量，因此，需要选择一个距离函数<em> d(u <sub> i </sub>，u <sub> j </sub> ) </em>，以构建一个相似性矩阵:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/f954506f-163b-4616-bbf0-0e73ab8e6d85.png" style="width:19.58em;height:6.17em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">使用 Crab，我们按照以下方式实现这一点(使用欧几里德度量):</p>
+
+<pre class="CDPAlignLeft CDPAlign">from scikits.crab.similarities import UserSimilarity<br/>from scikits.crab.metrics import euclidean_distances<br/><br/>similarity_matrix = UserSimilarity(model, euclidean_distances)</pre>
+
+<p>有很多指标，比如皮尔森和雅克卡德，所以我建议访问网站(<a href="http://muricoca.github.io/crab">http://muricoca.github.io/crab</a>)了解更多信息。此时，可以构建推荐系统(基于 k-NN 聚类方法)并测试它:</p>
+
+<pre>from scikits.crab.recommenders.knn import UserBasedRecommender<br/><br/>recommender = UserBasedRecommender(model, similarity_matrix, with_preference=True)<br/><br/>print(recommender.recommend(2))<br/>[(2, 3.6180339887498949), (5, 3.0), (3, 2.5527864045000417)]</pre>
+
+<p>因此，<kbd>recommender</kbd>为用户<kbd>2</kbd>建议以下预测评级:</p>
+
+<ul>
+
+<li><strong>第 2 项</strong> : 3.6(可四舍五入至 4.0)</li>
+
+<li>第五项 : 3</li>
+
+<li><strong>第 3 项</strong> : 2.5(可四舍五入为 3.0)</li>
+
+</ul>
+
+<p>运行代码时，您可能会看到一些警告(Crab 正在持续开发中)。但是，它们不会影响功能。如果您想避免它们，您可以使用<kbd>catch_warnings()</kbd>上下文管理器:</p>
+
+<pre>import warnings<br/><br/>with warnings.catch_warnings():<br/>    warnings.simplefilter("ignore")<br/>    print(recommender.recommend(2))</pre>
+
+<p>可以建议所有项目，或者将列表限制在最高评级(例如，避免项目<kbd>3</kbd>)。这种方法非常类似于基于用户的模型。然而，它速度更快(非常大的矩阵可以并行处理),并且它不关心可能产生误导结果的细节。只有评级被认为是定义用户的有用特征。像基于模型的协同过滤一样，冷启动问题可以通过两种方式解决:</p>
+
+<ul>
+
+<li>要求用户评价一些项目(这种方法经常被采用，因为很容易展示一些电影/书籍的封面，并要求用户选择他们喜欢什么和不喜欢什么)。</li>
+
+<li>通过随机分配一些平均评级将用户置于平均邻域中。在这种方法中，可以立即开始使用推荐系统。然而，有必要在开始时接受一定程度的误差，并在产生真实评级时纠正虚假评级。</li>
+
+</ul>
+
+<p>Crab 是一个用于构建协同过滤系统的开源框架。它仍在开发中，因此没有实现所有可能的功能。然而，它非常容易使用，并且对于许多任务来说非常强大。带有安装说明和文档的主页是 http://muricoca.github.io/crab/index.html。螃蟹靠<kbd>scikits.learn</kbd>，和 Python 3 还是有些问题的。因此，对于这个例子，我推荐使用 Python 2.7。可以使用<kbd>pip</kbd> : <kbd>pip install -U scikits.learn</kbd>和<kbd>pip install -U crab</kbd>安装两个包。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Model-based collaborative filtering</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">基于模型的协同过滤</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>这是目前最先进的方法之一，也是上一节已经介绍过的方法的延伸。起点始终是基于评级的用户项目矩阵:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/80aa7742-0b72-4aa6-ba63-c52d9603c406.png" style="width:17.75em;height:6.75em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">然而，在这种情况下，我们假设用户和商品都存在<strong>潜在因素</strong>。换句话说，我们将一般用户定义如下:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/c49facf9-442d-4b95-9d26-5a4fbc7f607d.png" style="width:22.00em;height:1.67em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">通用物料的定义如下:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/ce59b69b-6d01-4c44-ad11-4ecc9d02e3b4.png" style="width:21.92em;height:1.75em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">我们不知道每个向量分量的值(因此它们被称为潜在的)，但是我们假设获得如下排序:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/95d7dffe-dd19-46bd-b9ed-895f31226e72.png" style="width:8.17em;height:2.25em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">因此，我们可以说，排名是从排名为<em xmlns:epub="http://www.idpf.org/2007/ops"> k </em>的潜在空间中获得的，其中<em xmlns:epub="http://www.idpf.org/2007/ops"> k </em>是我们想要在我们的模型中考虑的潜在变量的数量。一般来说，确定 k<em xmlns:epub="http://www.idpf.org/2007/ops">的正确值是有规则的，所以最好的方法是检查不同的值，并用已知等级的子集测试模型。然而，还有一个大问题需要解决:找到潜在变量。有几种策略，但是在讨论它们之前，理解我们问题的维度是很重要的。如果我们有 1000 个用户和 500 个产品，<em xmlns:epub="http://www.idpf.org/2007/ops"> M </em>有 500000 个元素。如果我们决定等级等于 10，这意味着我们需要找到 5，000，000 个受已知等级约束的变量。可以想象，这个问题很容易变得无法用标准方法解决，必须采用并行解决方案。</em></p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Singular value decomposition strategy</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">奇异值分解策略</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p class="CDPAlignLeft CDPAlign">第一种方法基于用户项目矩阵的<strong>奇异值分解</strong> ( <strong> SVD </strong>)。这种技术允许通过低秩分解来变换矩阵，并且也可以以增量的方式使用，如在 2002 年的<em>用于高度可扩展的推荐系统的增量奇异值分解算法</em>、<em>萨瓦 B </em>、<em>卡里皮斯 G </em>、<em>康斯坦 J </em>、<em>里德尔 J </em>中所述。特别是，如果用户项矩阵有<em> m </em>行和<em> n </em>列:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/f805a855-2c47-472d-90f1-79e35829eb29.png" style="width:35.92em;height:1.67em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">我们已经假设我们有实矩阵(在我们的例子中经常是这样)，但是一般来说它们是复杂的。<em> U </em>和<em> V </em>为酉矩阵，而<em>σ</em>为矩形对角矩阵。<em> U </em>的列包含左奇异向量，转置的<em> V </em>的行包含右奇异向量，而对角矩阵<em>σ</em>包含奇异值。选择<em> k </em>潜在因子意味着取第一个<em> k </em>奇异值，因此取相应的<em> k </em>左右奇异向量:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/7bf59c03-c38c-497e-9719-c672f9d816a3.png" style="width:10.17em;height:2.00em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">这种技术的优点是对于<em> k </em>的任何值，最小化<em> M </em>和<em> M <sub> k </sub> </em>之差的 Frobenius 范数，因此这是近似完全分解的最佳选择。在进入预测阶段之前，让我们使用 SciPy 创建一个示例。首先要做的是创建一个虚拟的用户项目矩阵:</p>
+
+<pre class="CDPAlignLeft CDPAlign">M = np.random.randint(0, 6, size=(20, 10))<br/><br/>print(M)<br/>array([[0, 4, 5, 0, 1, 4, 3, 3, 1, 3],<br/>       [1, 4, 2, 5, 3, 3, 3, 4, 3, 1],<br/>       [1, 1, 2, 2, 1, 5, 1, 4, 2, 5],<br/>       [0, 4, 1, 2, 2, 5, 1, 1, 5, 5],<br/>       [2, 5, 3, 1, 1, 2, 2, 4, 1, 1],<br/>       [1, 4, 3, 3, 0, 0, 2, 3, 3, 5],<br/>       [3, 5, 2, 1, 5, 3, 4, 1, 0, 2],<br/>       [5, 2, 2, 0, 1, 0, 4, 4, 1, 0],<br/>...</pre>
+
+<p>我们假设我们有<kbd>20</kbd>个用户和<kbd>10</kbd>个产品。评级在<kbd>1</kbd>和<kbd>5</kbd>之间，<kbd>0</kbd>表示不评级。现在，我们可以分解<kbd>M</kbd>:</p>
+
+<pre>from scipy.linalg import svd<br/><br/>import numpy as np<br/><br/>U, s, V = svd(M, full_matrices=True)<br/>S = np.diag(s)<br/><br/>print(U.shape)<br/>(20L, 20L)<br/><br/>print(S.shape)<br/>(10L, 10L)<br/><br/>print(V.shape)<br/>(10L, 10L)</pre>
+
+<p>现在，让我们只考虑前八个奇异值，它们对于用户和项目都有八个潜在因素:</p>
+
+<pre>Uk = U[:, 0:8]<br/>Sk = S[0:8, 0:8]<br/>Vk = V[0:8, :]</pre>
+
+<p>重要的是要记住，在 SciPy 的 SVD 实现中，<em> V </em>已经被转置了。当不需要完整的矩阵时，可以设置<kbd>full_matrices=False</kbd>参数。在这种情况下，包含奇异向量的两个矩阵将使用最小维数<em> k = min(m，n) </em>来切割。因此，尺寸如下所示:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/319ab418-e5db-4028-99b5-7edb6a126944.png" style="width:22.50em;height:1.75em;"/></p>
+
+<p>如果所需组件的数量小于或等于<em> k </em>，这个解决方案允许更快的计算，强烈推荐。</p>
+
+<p>根据<em>高度可扩展推荐系统的增量奇异值分解算法</em>、<em>、</em>、<em> Sarwar B </em>、<em> Karypis G </em>、<em> Konstan J </em>、<em> Riedl J </em>、<em> 2002 </em>，我们可以很容易地得到一个考虑客户和产品之间余弦相似度(与点积成正比)的预测。两个潜在因素矩阵如下:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/5108f801-9b2a-4852-94b7-0e7447680706.png" style="width:9.58em;height:3.67em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">考虑到精确度的损失，考虑每个用户的平均评级(对应于用户-项目矩阵的平均行值)是有用的，因此用户<em> i </em>和项目<em> j </em>的最终评级预测变成如下:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/d0625b49-d860-4b84-a062-78ad7ce5e90e.png" style="width:13.50em;height:1.42em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">这里，<em> S <sub> U </sub> (i) </em>和<em> S <sub> I </sub> (j) </em>分别是用户和产品向量。继续我们的示例，让我们确定用户<kbd>5</kbd>和项目<kbd>2</kbd>的评级预测:</p>
+
+<pre class="CDPAlignLeft CDPAlign">Su = Uk.dot(np.sqrt(Sk).T)<br/>Si = np.sqrt(Sk).dot(Vk).T<br/>Er = np.mean(M, axis=1)<br/><br/>r5_2 = Er[5] + Su[5].dot(Si[2])<br/><br/>print(r5_2)<br/>2.38848720112</pre>
+
+<p>这种方法具有中等的复杂性。特别地，SVD 是<em> O(m <sup> 3 </sup> ) </em>并且当添加新的用户或项目时，必须采用增量策略(如在<em>用于高度</em> <em>可伸缩推荐系统的增量奇异值分解算法</em>、<em>萨瓦尔 B </em>、<em>卡里皮斯 G </em>、<em>康斯坦 J </em>、<em>里德尔 J </em>、2002 中所述)；然而，当元素的数量不太大时，它可以是有效的。在所有其他情况下，可以采用下一个策略(以及并行架构)。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Alternating least squares strategy</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">交替最小二乘策略</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>通过定义以下损失函数，寻找潜在因素的问题可以容易地表达为最小二乘优化问题:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="fm-editor-equation" src="img/0f247775-c4f3-4c4a-8099-cf6779602df0.png" style="width:26.00em;height:3.83em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign"><em xmlns:epub="http://www.idpf.org/2007/ops"> L </em>仅限于已知样本(用户、物品)。第二项作为正则化因子，整个问题可以很容易地用任何优化方法解决。然而，还有一个额外的问题:我们需要确定两组不同的变量(用户和项目因素)。我们可以用一种叫做<strong xmlns:epub="http://www.idpf.org/2007/ops">交替最小二乘法</strong> ( <strong xmlns:epub="http://www.idpf.org/2007/ops"> ALS </strong>)的方法来解决这个问题，这种方法在<em xmlns:epub="http://www.idpf.org/2007/ops">推荐系统的矩阵分解技术</em>、<em xmlns:epub="http://www.idpf.org/2007/ops"> Koren Y </em>、<em xmlns:epub="http://www.idpf.org/2007/ops"> Bell R </em>、<em xmlns:epub="http://www.idpf.org/2007/ops"> Volinsky C </em>、<em xmlns:epub="http://www.idpf.org/2007/ops"> IEEE 计算机杂志</em>、<em xmlns:epub="http://www.idpf.org/2007/ops">8 月</em><em xmlns:epub="http://www.idpf.org/2007/ops">2009<em xmlns:epub="http://www.idpf.org/2007/ops">中有所描述该算法非常容易描述，可以概括为两个主要的迭代步骤:</em></em></p>
+
+<ul>
+
+<li><em xmlns:epub="http://www.idpf.org/2007/ops">p<sub>I</sub>T73】固定，<em xmlns:epub="http://www.idpf.org/2007/ops">q<sub>j</sub>T77】优化</em></em></li>
+
+<li><em> q </em> <sub> <em> j </em> </sub>固定，<em> p <sub> i </sub> </em>优化</li>
+
+</ul>
+
+<p>当达到预定精度时，算法停止。它可以很容易地用并行策略实现，以便能够在短时间内处理巨大的矩阵。此外，考虑到虚拟集群的价格，也可以定期重新训练模型，以立即(在可接受的延迟内)包括新产品和用户。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>ALS with Apache Spark MLlib</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">使用 Apache Spark MLlib 的 ALS</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>Apache Spark 超出了本书的范围，所以如果您想了解这个强大框架的更多信息，我建议您阅读在线文档或许多可用书籍中的一本。在<em>Machine Learning with Spark</em>、<em> Pentreath N </em>、<em> Packt Publishing </em>中，有关于<strong>机器学习库</strong> ( <strong> MLlib </strong>)以及如何实现本书讨论的大部分算法的有趣介绍。</p>
+
+<p>Spark 是一个并行计算引擎，现在是 Hadoop 项目的一部分(即使不使用它的代码)，它可以在本地模式或非常大的集群(具有数千个节点)上运行，以使用海量数据执行复杂的任务。它主要基于 Scala，尽管也有针对 Java、Python 和 r 的接口。在本例中，我们将使用 PySpark，这是一个内置的 shell，用于使用 Python 代码运行 Spark。</p>
+
+<p>在本地模式下启动 PySpark 后，我们会得到一个标准的 Python 提示符，然后我们就可以开始工作了，就像使用任何其他标准 Python 环境一样:</p>
+
+<pre># Linux<br/>&gt;&gt;&gt; ./pyspark<br/><br/># Mac OS X<br/>&gt;&gt;&gt; pyspark<br/><br/># Windows<br/>&gt;&gt;&gt; pyspark<br/><br/>Python 3.X.X |Anaconda X.0.0 (64-bit)| (default, Apr 26 2018, 11:07:13)<br/>Type "help", "copyright", "credits" or "license" for more information.<br/>Anaconda is brought to you by Continuum Analytics.<br/>Please check out: http://continuum.io/thanks and https://anaconda.org<br/>Using Spark's default log4j profile: org/apache/spark/log4j-defaults.properties<br/>Setting default log level to "WARN".<br/>To adjust logging level use sc.setLogLevewl(newLevel).<br/>Welcome to<br/> ____ __<br/> / __/__ ___ _____/ /__<br/> _\ \/ _ \/ _ `/ __/ '_/<br/> /__ / .__/\_,_/_/ /_/\_\ version 2.0.2<br/> /_/<br/><br/>Using Python version 3.X.X (default,Apr 26 2018, 11:07:13)<br/>SparkSession available as 'spark'.<br/>&gt;&gt;&gt;</pre>
+
+<p>Spark MLlib 通过一个非常简单的机制实现 ALS 算法。<kbd>Rating</kbd>类是元组(用户、产品、评级)的包装器，所以我们可以很容易地定义一个虚拟数据集(这只是一个例子，因为它非常有限):</p>
+
+<pre>from pyspark.mllib.recommendation import Rating<br/><br/>import numpy as np<br/><br/>nb_users = 200<br/>nb_products = 100<br/><br/>ratings = []<br/><br/>for _ in range(10):<br/>    for i in range(nb_users):<br/>        rating = Rating(user=i, <br/>                        product=np.random.randint(1, nb_products), <br/>                        rating=np.random.randint(0, 5))<br/>        ratings.append(rating)<br/><br/>ratings = sc.parallelize(ratings)</pre>
+
+<p>我们假设我们有<kbd>200</kbd>个用户和<kbd>100</kbd>个产品，并且我们已经通过迭代主循环填充了一个<kbd>ratings</kbd>的列表，该主循环将一个等级分配给一个随机产品<kbd>10</kbd>次。我们没有控制重复或其他不寻常的情况。<kbd>last sc.parallelize()</kbd>命令是一种让 Spark 将我们的列表转换成一种叫做<strong>弹性分布式数据集</strong> ( <strong> RDD </strong>)的结构的方法，这种结构将用于剩余的操作。对这些结构的大小没有实际限制，因为它们分布在不同的执行器上(如果在集群模式下),并且可以处理 Pb 级数据集，就像我们处理 kb 级数据集一样。</p>
+
+<p>此时，我们可以训练一个<kbd>ALS</kbd>模型(正式名称为<kbd>MatrixFactorizationModel</kbd>)并使用它进行一些预测:</p>
+
+<pre>from pyspark.mllib.recommendation import ALS<br/><br/>model = ALS.train(ratings, rank=5, iterations=10)</pre>
+
+<p>我们需要<kbd>5</kbd>潜在因素和<kbd>10</kbd>优化迭代。如前所述，为每个模型确定正确的等级并不容易，因此在训练阶段之后，总会有一个使用已知数据的验证阶段。<strong>均方误差</strong> ( <strong> MSE </strong>)是理解模型如何工作的一个好方法。我们可以使用相同的训练数据集来完成。首先要做的是删除 ratings(因为我们只需要由<kbd>user</kbd>和<kbd>product</kbd>组成的元组):</p>
+
+<pre>test = ratings.map(lambda rating: (rating.user, rating.product))</pre>
+
+<p>如果您不熟悉 MapReduce 范式，您只需要知道<kbd>map()</kbd>对所有元素应用相同的函数(在本例中是<kbd>lambda</kbd>)。现在，我们可以大量预测收视率:</p>
+
+<pre>predictions = model.predictAll(test)</pre>
+
+<p>然而，为了计算误差，我们还需要添加<kbd>user</kbd>和<kbd>product</kbd>来获得可以比较的元组:</p>
+
+<pre>full_predictions = predictions.map(lambda pred: ((pred.user, pred.product), pred.rating))</pre>
+
+<p>结果是一系列行，其结构<kbd>((user, item), rating)</kbd>就像标准字典条目<kbd>(key, value)</kbd>。这很有用，因为使用 Spark，我们可以通过使用它们的键来连接两个 rdd。我们对原始数据集也做了同样的事情，然后我们继续将训练值与预测相结合:</p>
+
+<pre>split_ratings = ratings.map(lambda rating: ((rating.user, rating.product), rating.rating))<br/>joined_predictions = split_ratings.join(full_predictions)</pre>
+
+<p>现在，对于每个键<kbd>(user, product)</kbd>我们有两个值:<kbd>target</kbd>和<kbd>prediction</kbd>。因此，我们可以计算出均方误差:</p>
+
+<pre>mse = joined_predictions.map(lambda x: (x[1][0] - x[1][1]) ** 2).mean()</pre>
+
+<p>第一个映射将每一行转换成<kbd>target</kbd>和<kbd>prediction</kbd>之间的平方差，而<kbd>mean()</kbd>函数计算平均值。此时，让我们检查我们的错误并产生一个<kbd>prediction</kbd>:</p>
+
+<pre>print('MSE: %.3f' % mse)<br/>MSE: 0.580<br/><br/>prediction = model.predict(10, 20)<br/>print('Prediction: %3.f' % prediction)<br/>Prediction: 2.810</pre>
+
+<p>因此，我们的误差很小，但是可以通过改变迭代的等级或次数来改善。用户对产品<kbd>20</kbd>的评分<kbd>prediction</kbd>约为<kbd>2.810</kbd>(可四舍五入至 3)。如果您运行代码，这些值可能会不同，因为我们使用的是随机的用户项矩阵。此外，如果您不想使用 shell 并直接运行代码，则需要在文件的开头显式声明<kbd>SparkContext</kbd>:</p>
+
+<pre>from pyspark import SparkContext, SparkConf<br/><br/>conf = SparkConf().setAppName('ALS').setMaster('local[*]')<br/>sc = SparkContext(conf=conf)</pre>
+
+<p>我们已经通过<kbd>SparkConf</kbd>类创建了一个配置，并指定了一个应用程序名和一个主程序(在本地模式下，所有内核都可用)。这足以运行我们的代码。但是，如果您需要更多信息，请访问本章末尾信息框中提到的页面。要运行应用程序(从 Spark 2.0 开始)，您必须执行以下命令:</p>
+
+<pre># Linux, Mac OSx<br/>./spark-submit als_spark.py<br/><br/># Windows<br/>spark-submit als_spark.py</pre>
+
+<p>当使用<kbd>spark-submit</kbd>运行脚本时，您将看到成百上千的日志行，这些日志行向您告知正在执行的所有操作。其中，在计算结束时，您还会看到打印功能消息(<kbd>stdout</kbd>)。</p>
+
+<p>当然，这只是对 Spark ALS 的介绍，但我希望了解该过程有多简单以及如何有效解决尺寸限制是有用的。</p>
+
+<p>如果您不知道如何设置环境并启动 PySpark，我建议您阅读在线快速入门指南(<a href="https://spark.apache.org/docs/2.1.0/quick-start.html">https://spark.apache.org/docs/2.1.0/quick-start.html</a>)，即使您不知道所有的细节和配置参数，这也很有用。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Summary </title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:85d0fc88-5ddd-460f-b178-82acc24a1d31" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">摘要</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在本章中，我们讨论了构建推荐系统的主要技术。在一个基于用户的场景中，我们假设我们有足够多的关于用户的信息可以对他们进行聚类，并且我们隐含地假设相似的用户会喜欢相同的产品。通过这种方式，可以很快确定每个新用户的邻居，并推荐被他们的同行积极评价的产品。同样，基于内容的场景是基于根据产品的特殊特征对其进行聚类。在这种情况下，假设较弱，因为购买某个项目或给予肯定评价的用户很可能也会对类似的产品采取同样的做法。</p>
+
+<p>然后，我们引入了协作过滤，这是一种基于显式评级的技术，用于预测所有用户和产品的所有缺失值。在基于内存的变体中，我们不训练模型，而是尝试直接使用用户产品矩阵，寻找测试用户的 k-NN，并通过平均值计算排名。这种方法与基于用户的场景非常相似，也有相同的局限性；特别是，管理大型矩阵非常困难。另一方面，基于模型的方法更复杂，但是在训练模型之后，它可以实时预测评级。此外，还有诸如 Spark 这样的并行框架，可以用来使用廉价的服务器集群处理大量数据。</p>
+
+<p>在<a href="5afb3604-3bdd-49d1-aea7-df0e414e34ff.xhtml" target="_blank">第 13 章</a>、<em>介绍自然语言处理、</em>我们将介绍一些<strong>自然语言处理</strong> ( <strong> NLP </strong>)技术，这些技术在自动分类文本或使用机器翻译系统时非常重要。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html></body></html>

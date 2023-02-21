@@ -1,0 +1,2322 @@
+<html><head/><body>
+
+  
+    <title>Setting Up the Wiki Game</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">设置维基游戏</h1>
+                
+            
+            
+                
+<p class="calibre2">我希望你现在对朱莉娅很兴奋。友好的、富于表现力的、直观的语法、强大的<strong class="calibre4">读取-评估-打印循环</strong> ( <strong class="calibre4"> REPL </strong>)、卓越的性能以及内置和第三方库的丰富性是一个改变游戏规则的组合，特别是对于数据科学，以及一般的编程。事实上，在仅仅两个介绍性章节中，我们就能够掌握这门语言的基础知识，并配置一个足够强大的数据科学设置来分析 Iris 数据集，这是非常惊人的——祝贺您，我们完成了一项伟大的工作！</p>
+<p class="calibre2">但是我们才刚刚开始。我们已经打下的基础现在足够强大，允许我们使用 Julia 开发几乎任何类型的程序。难以置信？好吧，这就是证据——在接下来的三章中，我们将和 Julia 一起开发一个基于网络的游戏！</p>
+<p class="calibre2">它将遵循互联网著名的<em class="calibre16">六度维基百科</em>的叙述。如果你从来没有听说过它，这个想法是，维基百科上的任何两篇文章都可以连接起来，只需使用页面上的链接，只需点击六次或更少。也叫<strong class="calibre4">六度分离</strong>。</p>
+<p class="calibre2">如果你想知道这与 Julia 有什么关系，这是一个有趣的借口来学习数据挖掘和 web 抓取，并学习更多关于语言的知识，并将我们新获得的知识应用于构建 web 应用程序。</p>
+<p class="calibre2">在这一章中，我们将为 web scraper 打下基础。我们将看看在客户机-服务器架构中如何通过 web 发出请求，以及如何使用<kbd class="calibre12">HTTP</kbd>包获取网页。我们将学习 HTML 文档、HTML 和 CSS 选择器，以及用于 Julia 的 HTML 解析器<kbd class="calibre12">Gumbo</kbd>。在这个过程中，我们将在 REPL 中试验更多的代码，我们将了解该语言的其他关键特性，如字典、错误处理、函数和条件语句。我们还将建立我们的第一个朱莉娅项目。</p>
+<p class="calibre2">我们将在本章中讨论的主题包括以下内容:</p>
+<ul class="calibre10">
+<li class="calibre11">什么是网络搜集，它是如何用于数据收集的</li>
+<li class="calibre11">如何使用 Julia 发出请求并获取网页</li>
+<li class="calibre11">了解<kbd class="calibre12">Pair</kbd>类型</li>
+<li class="calibre11">了解字典，这是 Julia 的一种更通用的数据结构</li>
+<li class="calibre11">异常处理，帮助我们捕获代码中的错误</li>
+<li class="calibre11">函数是 Julia 中的基本构件和最重要的代码单元之一——我们将学习如何定义和使用它们来创建可重用的模块化代码</li>
+<li class="calibre11">一些有用的 Julia 技巧，比如管道运算符和短路计算</li>
+<li class="calibre11">使用<kbd class="calibre12">Pkg</kbd>建立 Julia 项目</li>
+</ul>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Technical requirements</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">技术要求</h1>
+                
+            
+            
+                
+<p class="calibre2">Julia 包生态系统正在不断发展，每天都有新的包版本发布。大多数时候这是好消息，因为新版本带来了新特性和错误修复。然而，由于许多软件包仍处于测试阶段(版本 0.x ),任何新版本都可能引入突破性的变化。因此，书中介绍的代码可能会停止工作。为了确保您的代码将产生与书中描述的相同的结果，建议使用相同的包版本。以下是本章中使用的外部软件包及其具体版本:</p>
+<pre class="calibre17">Gumbo@v0.5.1<br class="title-page-name"/>HTTP@v0.7.1<br class="title-page-name"/>IJulia@v1.14.1<br class="title-page-name"/>OrderedCollections@v1.0.2</pre>
+<p class="calibre2">为了安装软件包的特定版本，您需要运行:</p>
+<pre class="calibre17"><strong class="calibre1">pkg&gt; add PackageName@vX.Y.Z</strong> </pre>
+<p class="calibre2">例如:</p>
+<pre class="calibre17"><strong class="calibre1">pkg&gt; add IJulia@v1.14.1</strong></pre>
+<p class="calibre2">或者，你可以通过下载本章提供的<kbd class="calibre12">Project.toml</kbd>文件并使用<kbd class="calibre12">pkg&gt;</kbd>实例化来安装所有使用过的包，如下所示:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; download("https://raw.githubusercontent.com/PacktPublishing/Julia-Programming-Projects/master/Chapter03/Project.toml", "Project.toml")</strong><br class="title-page-name"/><strong class="calibre1">pkg&gt; activate . </strong><br class="title-page-name"/><strong class="calibre1">pkg&gt; instantiate</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Data harvesting through web scraping</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">通过网络搜集获取数据</h1>
+                
+            
+            
+                
+<p class="calibre2">使用软件从网页中提取数据的技术被称为<strong class="calibre4">网络搜集</strong>。它是数据收集的重要组成部分，通常通过名为<strong class="calibre4">网络爬虫</strong>的程序来实现。数据采集或数据挖掘是一项有用的技术，通常用于数据科学工作流中，从互联网(通常是网站，而不是 API)收集信息，然后使用各种算法处理这些数据以实现不同的目的。</p>
+<p class="calibre2">在一个非常高的层次上，这个过程包括请求一个网页，获取其内容，解析其结构，然后提取所需的信息。例如，这可以是图像、文本段落或包含股票信息和价格的表格数据——几乎是网页上的任何内容。如果内容分布在多个网页上，爬行器还会提取链接，并自动跟随这些链接来拉动其余的页面，重复应用相同的爬行过程。</p>
+<p class="calibre2">web 抓取器最常见的用途是用于 web 索引，如 Google 或 Bing 等搜索引擎。在线价格监控和价格比较、个人数据挖掘(或联系信息搜集)、在线信誉系统以及产品评论平台是 web 抓取工具的其他常见用例。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>How the web works – a crash course</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">网络如何工作——速成班</h1>
+                
+            
+            
+                
+<p class="calibre2">在过去的十年里，互联网已经成为我们生活中不可或缺的一部分。我们大多数人每天都广泛使用它来获取大量信息。在谷歌上搜索一些事情，比如喧闹(喧闹且缺乏约束或纪律)，在社交网络上与朋友聊天，在 Instagram 上查看最新的美食餐厅，在网飞上观看大片，或者阅读维基百科关于阿蒂托贡(多哥的一个地方，他们在那里练习伏都教)的条目——它们都只是点击一下。所有这些，虽然性质不同，但功能几乎相同。</p>
+<p class="calibre2">一台连接互联网的设备，无论是使用 Wi-Fi 的电脑还是连接到移动数据网络的智能手机，以及一个用于访问网络的应用程序(通常是 Chrome 或 Firefox 等网络浏览器，也有专用的，如脸书或网飞的移动应用程序)，都代表<em class="calibre16">客户端</em>。在另一端，我们有<em class="calibre16">服务器— </em>一台存储信息的计算机，无论是网页、视频还是整个网络应用程序。</p>
+<p class="calibre2">当客户机想要访问服务器上可用的信息时，它发起一个<em class="calibre16">请求</em>。如果服务器确定客户端具有访问资源的许可，则将信息的副本从服务器下载到客户端上以进行显示。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Making HTTP requests</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">发出 HTTP 请求</h1>
+                
+            
+            
+                
+<p class="calibre2"><strong class="calibre4">超文本传输协议</strong> ( <strong class="calibre4"> HTTP </strong>)是用于通过网络传输文档的通信协议。它是为 web 浏览器和 web 服务器之间的通信而设计的。HTTP 实现了标准的客户机-服务器模型，其中客户机打开一个连接并发出请求，然后等待响应。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Learning about HTTP methods</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">了解 HTTP 方法</h1>
+                
+            
+            
+                
+<p class="calibre2">HTTP 定义了一组请求方法来指示对给定资源要执行的操作。最常见的方法是<kbd class="calibre12">GET</kbd>，这意味着从服务器检索数据。使用链接浏览互联网时会用到它。<kbd class="calibre12">POST</kbd>方法请求服务器接受一个封装的数据负载，这通常是提交 web 表单的结果。还有一些其他的方法，包括<kbd class="calibre12">HEAD</kbd>、<kbd class="calibre12">PUT</kbd>、<kbd class="calibre12">DELETE</kbd>、<kbd class="calibre12">PATCH</kbd>等等，但是它们很少被使用，也很少被客户端和 web 服务器支持。因为我们的网络爬虫不需要它们，所以不包括它们。</p>
+<p>如果你感兴趣，你可以在 https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods 阅读。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Understanding HTTPS</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">了解 HTTPS</h1>
+                
+            
+            
+                
+<p class="calibre2">HTTP Secure 基本上是通过加密连接的 HTTP。它最初是一种替代协议，主要用于处理网上支付和传输敏感的公司信息。但近年来，随着一些大公司推动它取代互联网上普通的 HTTP 连接，它开始被广泛使用。出于讨论的目的，HTTP 和 HTTPS 可以互换使用。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Understanding HTML documents</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">理解 HTML 文档</h1>
+                
+            
+            
+                
+<p class="calibre2">为了从获取的网页中提取数据，我们需要分离和操作包含所需信息的结构元素。这就是为什么在执行网络抓取时，对网页的一般结构有一个基本的了解是有帮助的。如果你以前做过网页抓取，可能使用不同的编程语言，或者如果你对 HTML 文档有足够的了解，可以跳过这一部分。另一方面，如果你是新手或者只是需要快速复习，请继续读下去。</p>
+<p class="calibre2">超文本标记语言是创建网页和网络应用的黄金标准。HTML 与 HTTP 携手并进，HTTP 是通过互联网传输 HTML 文档的协议。</p>
+<p class="calibre2">HTML 页面的构建块是 HTML 元素。它们提供了网页的内容和结构。它们可以嵌套在一起，以定义彼此之间的复杂关系(如父、子、兄弟姐妹、祖先等)。HTML 元素由写在尖括号(<kbd class="calibre12">&lt;tag&gt;...&lt;/tag&gt;</kbd>)之间的<em class="calibre16">标签</em>表示。官方的 W3C 规范定义了大量这样的标签，代表了从标题和段落到列表、表单、链接、图像、引用等等的所有内容。</p>
+<p class="calibre2">为了让你有个概念，下面是 Julia 的维基百科页面上的主标题是如何用 HTML 表示的，网址是<a href="https://en.wikipedia.org/wiki/Julia_(programming_language)" class="calibre9">https://en . Wikipedia . org/wiki/Julia _(programming _ language)</a>:</p>
+<pre class="calibre17">&lt;h1&gt;Julia (programming language)&lt;/h1&gt; </pre>
+<p class="calibre2">此 HTML 代码在现代浏览器中呈现，如下所示:</p>
+<p class="CDPAlignCenter"><img src="img/f6a9965d-2c15-4643-bd33-f82a58f07ae4.png" class="calibre45"/></p>
+<p class="calibre2">一个更详细的示例可以呈现如下所示的嵌套结构:</p>
+<pre class="calibre17">&lt;div&gt; 
+    &lt;h2&gt;Language features&lt;/h2&gt; 
+    &lt;p&gt;According to the official website, the main features of the language are:&lt;/p&gt; 
+    &lt;ul&gt; 
+           &lt;li&gt;Multiple dispatch&lt;/li&gt; 
+           &lt;li&gt;Dynamic type sytem&lt;/li&gt; 
+           &lt;li&gt;Good performance&lt;/li&gt; 
+    &lt;/ul&gt; 
+&lt;/div&gt; 
+&lt;h2&gt;), a paragraph of text (<kbd class="calibre12">&lt;p&gt;</kbd>), and an unordered list (<kbd class="calibre12">&lt;ul&gt;</kbd>), with three list items (<kbd class="calibre12">&lt;li&gt;</kbd>), all within a page section (<kbd class="calibre12">&lt;div&gt;</kbd>):</pre>
+<p class="CDPAlignCenter"><img src="img/651176fc-fa07-42b3-84e8-e8926b7e6d81.png" class="calibre46"/></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>HTML selectors</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">HTML 选择器</h1>
+                
+            
+            
+                
+<p class="calibre2">HTML 的目的是提供内容和结构。这就是我们传达任何信息所需要的，不管它有多复杂。然而，随着计算机和网络浏览器变得越来越强大，网页的使用越来越广泛，用户和开发者想要更多。他们寻求扩展 HTML 的方法，使其包含漂亮的格式(设计)和丰富的行为(交互性)。</p>
+<p class="calibre2">这就是为什么<strong class="calibre4">级联样式表</strong> ( <strong class="calibre4"> CSS </strong>)被创造出来——一种定义 HTML 文档设计的风格语言。此外，JavaScript 成为客户端的首选编程语言，增加了网页的交互性。</p>
+<p class="calibre2">CSS 和 JavaScript 提供的样式规则和交互特性与定义良好的 HTML 元素相关联。也就是说，样式和交互性必须明确地以相关 HTML 文档中的元素为目标。例如，CSS 规则可以针对页面的主要标题，或者 JavaScript 验证规则可以针对登录表单中的文本输入。如果你认为一个网页是一个 HTML 元素的结构化集合，那么这个目标是通过<em class="calibre16">选择</em>(子集合)元素来实现的。</p>
+<p class="calibre2">最简单的方法是通过类型和结构(层次结构)来识别 HTML 标签，从而选择元素。在前面的例子中，我们看到了一个 Julia 的特征列表，我们可以通过指示一个类似于<kbd class="calibre12">div &gt; ul &gt; li</kbd>的层次结构来选择所有的列表项(<kbd class="calibre12">&lt;li&gt;</kbd>元素)，表示所有的<kbd class="calibre12">li</kbd>项，嵌套在<kbd class="calibre12">ul</kbd>元素中，嵌套在<kbd class="calibre12">div</kbd>中。这些叫做<strong class="calibre4"> HTML 选择器</strong>。</p>
+<p class="calibre2">然而，这种方法有局限性。一方面，当处理大型、复杂、深度嵌套的 HTML 文档时，我们必须处理同样复杂的层次结构，这是一项繁琐且容易出错的任务。另一方面，这种方法可能无法提供足够的特异性来允许我们选择想要作为目标的元素。例如，在同一个 Julia Wikipedia 页面上，我们如何区分功能列表和外部链接列表？它们都有相似的结构。</p>
+<p class="calibre2">朱莉娅的维基百科页面上的外部链接列表如下:</p>
+<p class="CDPAlignCenter"><img src="img/d619d904-331b-4876-829a-c4fda798db99.png" class="calibre47"/></p>
+<p class="calibre2"><strong class="calibre4">语言特性</strong>部分也有类似的结构:</p>
+<p class="CDPAlignCenter"><img src="img/fd81a3ab-09e3-4adb-aa2a-1b209715d3b1.png" class="calibre48"/></p>
+<p class="calibre2">两个 HTML 元素在结构上完全相同的事实使得很难单独为语言特性选择列表项。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Learning about the HTML attributes</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">了解 HTML 属性</h1>
+                
+            
+            
+                
+<p class="calibre2">这就是 HTML 属性发挥作用的地方。这些是增强 HTML 标签的键值对，提供额外的信息。例如，为了定义一个链接，我们将使用<kbd class="calibre12">&lt;a&gt;</kbd>标签— <kbd class="calibre12">&lt;a&gt;This is a link&lt;/a&gt;</kbd>。</p>
+<p class="calibre2">但显然，这还不够。如果这是一个链接，它链接到什么？作为开发人员，我们需要提供关于链接位置的额外信息。这是通过添加带有相应值的<kbd class="calibre12">href</kbd>属性来实现的:</p>
+<pre class="calibre17">&lt;a <strong class="calibre1">href="https://julialang.org/"</strong>&gt;This is a link to Julia's home page&lt;/a&gt;</pre>
+<p class="calibre2">啊，是的，现在我们正在谈论！一个超级方便的链接到朱莉娅的主页。</p>
+<p class="calibre2">通常，选择 HTML 元素时可以使用所有属性。但并不是所有的都同样有用。最重要的一个可以说是<kbd class="calibre12">id</kbd>属性。它允许我们给一个元素分配一个惟一的标识符，然后以一种非常有效的方式引用它。另一个重要的属性是<kbd class="calibre12">class</kbd>，广泛用于 CSS 样式规则。</p>
+<p class="calibre2">这就是我们上一个带有额外属性的示例的样子:</p>
+<pre class="calibre17">&lt;a href="https://julialang.org/" <strong class="calibre1">id="julia_link"</strong> <strong class="calibre1">class="external_link"</strong>&gt;This is a link to Julia's home page&lt;/a&gt;</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Learning about CSS and JavaScript selectors</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">了解 CSS 和 JavaScript 选择器</h1>
+                
+            
+            
+                
+<p class="calibre2">从历史上看，JavaScript 开始使用基于<kbd class="calibre12">id</kbd>属性和 HTML 元素(标签)名称的选择器。后来，CSS 规范带来了一组更强大的选择器，不仅使用了<kbd class="calibre12">class</kbd>、<kbd class="calibre12">id</kbd>和标签，还使用了属性及其值、元素状态(如<kbd class="calibre12">focused</kbd>或<kbd class="calibre12">disabled</kbd>)以及考虑到关系的更具体的元素层次结构。</p>
+<p class="calibre2">这里有几个 CSS 选择器的例子，可以用来定位前面讨论过的<kbd class="calibre12">&lt;a&gt;</kbd>标签:</p>
+<ul class="calibre10">
+<li class="calibre11"><kbd class="calibre12">#julia_link</kbd>是<kbd class="calibre12">id</kbd>属性的选择器(<kbd class="calibre12">#</kbd>)</li>
+<li class="calibre11"><kbd class="calibre12">.external_link</kbd>是<kbd class="calibre12">class</kbd>属性(<kbd class="calibre12">.</kbd>)的选择器</li>
+<li class="calibre11"><kbd class="calibre12">a</kbd>是<kbd class="calibre12">&lt;a&gt;</kbd>标签的选择器</li>
+<li class="calibre11"><kbd class="calibre12">a[href*="julialang.org"]</kbd>将选择所有具有包含<kbd class="calibre12">"julialang.org"</kbd>的<kbd class="calibre12">href</kbd>属性的<kbd class="calibre12">&lt;a&gt;</kbd>标签</li>
+</ul>
+<p>你可以在<a href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors" class="calibre19">https://developer . Mozilla . org/en-US/docs/Web/CSS/CSS _ Selectors</a>了解更多关于 CSS 选择器的信息。保持这个资源是值得的，因为网页抓取非常依赖 CSS 选择器，我们将在下一章看到。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Understanding the structure of a link</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">了解链接的结构</h1>
+                
+            
+            
+                
+<p class="calibre2">链接，在技术术语中称为<strong class="calibre4">统一资源定位符</strong>(<strong class="calibre4">URL</strong>)，是在互联网上唯一标识资源的字符串。它们被非正式地称为<strong class="calibre4">网址</strong>。有时你可能会看到它们被称为<strong class="calibre4">统一资源标识符</strong> ( <strong class="calibre4"> URIs </strong>)。</p>
+<p class="calibre2">在我们之前的例子中，Julia 的维基百科网页可以通过 URL<a href="https://en.wikipedia.org/wiki/Julia_(programming_language)" class="calibre9">https://en . Wikipedia . org/wiki/Julia _(programming _ language)</a>访问。该 URL 引用资源<kbd class="calibre12">/wiki/Julia_(programming_language)</kbd>，其表示为 HTML 文档，可以通过 HTTPS 协议(<kbd class="calibre12">https:</kbd>)从域名为<kbd class="calibre12">wikipedia.org</kbd>的网络主机请求。(哇，这有点拗口，但是现在你可以理解在互联网上请求一个网页的过程是多么复杂了)。</p>
+<p class="calibre2">因此，一个普通的 URL 可以被分解成以下几个部分— <kbd class="calibre12">scheme://host/path?query#fragment</kbd>。</p>
+<p class="calibre2">比如我们看一看<a href="https://en.wikipedia.org/wiki/Julia_(programming_language)?uselang=en#Interaction" class="calibre9">https://en . Wikipedia . org/wiki/Julia _(programming _ language)？uselang=en#Interaction </a>，我们将<kbd class="calibre12">https</kbd>作为<kbd class="calibre12">scheme</kbd>，<kbd class="calibre12">en.wikipedia.org</kbd>作为<kbd class="calibre12">host</kbd>，<kbd class="calibre12">/wiki/Julia_(programming_language)</kbd>作为<kbd class="calibre12">path</kbd>，<kbd class="calibre12">?uselang=en</kbd>作为<kbd class="calibre12">query</kbd>，最后，<kbd class="calibre12">#Interaction</kbd>作为<kbd class="calibre12">fragment</kbd>。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Accessing the internet from Julia</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">从朱莉娅那里访问互联网</h1>
+                
+            
+            
+                
+<p class="calibre2">现在，您已经很好地理解了如何通过客户机-服务器交互来访问互联网上的网页，让我们看看如何用 Julia 来实现这一点。</p>
+<p class="calibre2">最常见的网络客户端是网络浏览器，如 Chrome 或 Firefox。然而，这些是给人类用户使用的，用花哨的用户界面和复杂的交互来呈现网页。Web 抓取可以通过 web 浏览器手动完成，这是事实，但最有效和可扩展的方式是通过完全自动化的软件驱动的过程。尽管网络浏览器可以自动化(比如 https://www.seleniumhq.org<a href="https://www.seleniumhq.org" target="_blank" class="calibre9">的 Selenium</a>)，但这是一项更困难、更容易出错、更耗费资源的任务。对于大多数用例，首选方法是使用专用的 HTTP 客户端。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Making requests with the HTTP package</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">使用 HTTP 包发出请求</h1>
+                
+            
+            
+                
+<p class="calibre2"><kbd class="calibre12">Pkg</kbd>，Julia 内置的包管理器，提供对优秀的<kbd class="calibre12">HTTP</kbd>包的访问。它展示了构建 web 客户端和服务器的强大功能——我们将广泛使用它。</p>
+<p class="calibre2">正如您已经习惯的那样，额外的功能离<kbd class="calibre12">pkg&gt; add HTTP</kbd>和<kbd class="calibre12">julia&gt; using HTTP</kbd>只有两个命令之遥。</p>
+<p class="calibre2">回想一下我们在上一节中关于 HTTP 方法的讨论；最重要的是<kbd class="calibre12">GET</kbd>，用于向服务器请求资源，以及<kbd class="calibre12">POST</kbd>，它向服务器发送数据负载并接受响应。<kbd class="calibre12">HTTP</kbd>包公开了一组匹配的函数——我们可以访问<kbd class="calibre12">HTTP.get</kbd>、<kbd class="calibre12">HTTP.post</kbd>、<kbd class="calibre12">HTTP.delete</kbd>、<kbd class="calibre12">HTTP.put</kbd>等等。</p>
+<p class="calibre2">假设我们想要请求 Julia 的维基百科页面。我们只需要页面的 URL 和<kbd class="calibre12">HTTP.get</kbd>方法:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; HTTP.get("https://en.wikipedia.org/wiki/Julia_(programming_language)")</strong> </pre>
+<p class="calibre2">结果将是一个代表 Julia 的维基百科页面的<kbd class="calibre12">Response</kbd>对象。REPL 显示标题和响应正文的第一行，截断其余部分:</p>
+<p class="CDPAlignCenter"><img src="img/40970dc4-f4d3-409d-bccf-6a67b91a9cc1.png" class="calibre49"/></p>
+<p class="calibre2">截图显示了我们收到的<kbd class="calibre12">HTTP.Messages.Response</kbd>对象的详细信息 HTTP 头列表和响应体的第一部分。让我们确保将它保存在一个变量中，以便以后引用它。记住，Julia 将最后一次计算的结果临时存储在<kbd class="calibre12">ans</kbd> REPL 变量中，所以让我们从那里开始:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; resp = ans</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Handling HTTP responses</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">处理 HTTP 响应</h1>
+                
+            
+            
+                
+<p class="calibre2">在接收和处理请求后，服务器发回一条 HTTP 响应消息。这些消息具有标准化的结构。它们包含大量信息，其中最重要的部分是状态代码、标题和主体。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>HTTP status codes</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">HTTP 状态代码</h1>
+                
+            
+            
+                
+<p class="calibre2">状态代码是一个三位数的整数，其中第一个数字代表类别，接下来的两个数字用于定义子类别。它们如下:</p>
+<ul class="calibre10">
+<li class="calibre11"><strong class="calibre1"> 1XX -信息</strong>:请求已收到。这表示临时响应。</li>
+<li class="calibre11"><strong class="calibre1"> 2XX - Success </strong>:这是最重要的响应状态，表示请求已被成功接收、理解和接受。这就是我们在网络挖掘脚本中寻找的东西。</li>
+<li class="calibre11"><strong class="calibre1"> 3XX -重定向</strong>:此类状态代码表示客户端必须采取额外的操作。这通常意味着必须发出额外的请求才能访问资源，因此我们的脚本必须处理这种情况。我们还需要积极防止周期性的重定向。我们不会在我们的项目中处理如此复杂的场景，但是在实际应用中，3XX 状态代码将需要基于子类别的特殊处理。</li>
+</ul>
+<p>维基百科很好地描述了各种 3XX 状态代码，并说明了在每种情况下应该做什么:<a href="https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#3xx_Redirection" class="calibre19">https://en . Wikipedia . org/wiki/List _ of _ HTTP _ status _ codes # 3XX _ Redirection</a>。</p>
+<ul class="calibre10">
+<li class="calibre11"><strong class="calibre1"> 4XX -客户端错误</strong>:这意味着我们可能在发送请求时出错了。可能是 URL 错误，找不到资源(<kbd class="calibre12">404</kbd>)，也可能是不允许我们访问页面(<kbd class="calibre12">401</kbd>和<kbd class="calibre12">403</kbd>状态代码)。4XX 响应代码有一个很长的列表，类似于 3XX 响应代码，我们的程序应该处理各种场景以确保请求最终成功。</li>
+<li class="calibre11"><strong class="calibre1"> 5XX -服务器错误</strong>:恭喜你，你在服务器上发现或导致了一个问题！根据实际状态代码，这可能是可操作的，也可能是不可操作的。<kbd class="calibre12">503</kbd>(服务不可用)或<kbd class="calibre12">504</kbd>(网关超时)是相关的，因为它们表示我们应该稍后再试。</li>
+</ul>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Learning about HTTP headers</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">了解 HTTP 头</h1>
+                
+            
+            
+                
+<p class="calibre2">HTTP 头允许客户端和服务器传递附加信息。我们不会深入头部传输的细节，因为 Julia 的<kbd class="calibre12">HTTP</kbd>库使我们不必处理原始头部。但是，有几个值得一提，因为它们对网络抓取很重要:</p>
+<ul class="calibre10">
+<li class="calibre11"><kbd class="calibre12">Age</kbd>、<kbd class="calibre12">Cache-Control</kbd>、<kbd class="calibre12">Expires</kbd>表示页面的有效性，可以用来设置数据刷新次数</li>
+<li class="calibre11"><kbd class="calibre12">Last-Modified</kbd>、<kbd class="calibre12">Etag</kbd>和<kbd class="calibre12">If-Modified-Since</kbd>可用于内容版本控制，以检查页面自上次检索以来是否发生了更改</li>
+<li class="calibre11">必须使用<kbd class="calibre12">Cookie</kbd>和<kbd class="calibre12">Set-Cookie</kbd>来读取和写入与服务器正确通信所需的 cookies</li>
+<li class="calibre11">标题的<kbd class="calibre12">Content-*</kbd>系列，比如<kbd class="calibre12">Content-Disposition</kbd>、<kbd class="calibre12">Content-Length</kbd>、<kbd class="calibre12">Content-Type</kbd>、<kbd class="calibre12">Content-Encoding</kbd>等等，有助于处理和验证响应消息</li>
+</ul>
+<p>查看<a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers" class="calibre19">https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers</a>和<a href="https://en.wikipedia.org/wiki/List_of_HTTP_header_fields" class="calibre19">https://en.wikipedia.org/wiki/List_of_HTTP_header_fields</a>了解关于 HTTP 报头字段的完整讨论。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>The HTTP message body</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">HTTP 消息正文</h1>
+                
+            
+            
+                
+<p class="calibre2">消息体是最重要的部分，也是 web 抓取的原因(网页本身的内容)，实际上是响应的可选部分。主体的存在、属性和大小由<kbd class="calibre12">Content-*</kbd>系列的头指定。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Understanding HTTP responses</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">了解 HTTP 响应</h1>
+                
+            
+            
+                
+<p class="calibre2"><kbd class="calibre12">HTTP.get</kbd>调用的结果是一个对象，它很好地反映了原始 HTTP 响应。这个包通过提取原始的 HTTP 数据并把它整齐地设置在一个数据结构中，使我们的生活变得更容易，这使得操作它变得轻而易举。</p>
+<p class="calibre2">让我们来看看它的属性(或者用 Julia 的行话来说是<em class="calibre16">字段</em>):</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; fieldnames(typeof(resp)) 
+(:version, :status, :headers, :body, :request)</strong> </pre>
+<p class="calibre2"><kbd class="calibre12">fieldnames</kbd>函数接受一个类型作为它的参数，并返回一个包含参数的字段(或属性)名称的元组。为了获得值的类型，我们可以使用<kbd class="calibre12">typeof</kbd>函数，就像前面的例子一样。</p>
+<p class="calibre2">对！现在，<kbd class="calibre12">status</kbd>、<kbd class="calibre12">headers</kbd>和<kbd class="calibre12">body</kbd>字段听起来应该很熟悉。<kbd class="calibre12">version</kbd>字段表示 HTTP 协议的版本(响应第一行的<kbd class="calibre12">HTTP/1.1</kbd>部分)。今天，互联网上的大多数 web 服务器都使用该协议的 1.1 版本，但一个新的主要版本 2.0 几乎可以广泛部署。最后，<kbd class="calibre12">request</kbd>字段保存对触发当前响应的<kbd class="calibre12">HTTP.Messages.Request</kbd>对象的引用。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>The status code</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">状态代码</h1>
+                
+            
+            
+                
+<p class="calibre2">让我们仔细看看状态代码:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; resp.status 200</strong> </pre>
+<p class="calibre2">果然，我们得到了一个有效的响应，在此通过<kbd class="calibre12">200</kbd>状态码确认。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>The headers</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">标题</h1>
+                
+            
+            
+                
+<p class="calibre2">标题呢？如前所述，它们包含指示消息体是否存在的关键信息。让我们来看看:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; resp.headers</strong> </pre>
+<p class="calibre2">输出如下所示:</p>
+<p class="CDPAlignCenter"><img src="img/3f152978-7e46-46bd-b503-682191cc7121.png" class="calibre50"/></p>
+<p class="calibre2">对于某些值，您的输出会有所不同，但是应该很容易发现我们之前提到的关键 HTTP 头。<kbd class="calibre12">Content-Length</kbd>确认响应体的存在。<kbd class="calibre12">Content-Type</kbd>提供了关于如何解释消息体编码的信息(这是一个使用 UTF-8 字符编码的 HTML 文档)。我们可以使用<kbd class="calibre12">Last-Modified</kbd>值来优化缓存和网络爬虫的更新频率。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>The message body</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">邮件正文</h1>
+                
+            
+            
+                
+<p class="calibre2">因为我们刚刚确认了我们有一个响应体，所以让我们来看看:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; resp.body 
+193324-element Array{UInt8,1}: 
+ 0x3c 
+ 0x21 
+ 0x44  
+# ... output truncated ... </strong> </pre>
+<p class="calibre2">哎呀，这看起来不像我们期待的网页。不过不用担心，这些是原始响应的字节数——我们可以很容易地将其转换成人类可读的 HTML 字符串。还记得我在学习弦乐的时候提到过<kbd class="calibre12">String</kbd>方法吗？这就是它派上用场的地方:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; resp_body = String(resp.body)</strong> </pre>
+<p class="calibre2">您的 REPL 现在应该输出一个表示 Julia 的 Wikipedia 页面的长 HTML 字符串。</p>
+<p class="calibre2">如果我们看一看第一个<kbd class="calibre12">500</kbd>人物，我们会开始看到熟悉的模式:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; resp_body[1:500]</strong> </pre>
+<p class="calibre2">输出如下所示:</p>
+<p class="CDPAlignCenter"><img src="img/8aa4f988-cd12-4e2b-b699-c9e9fa77d70f.png" class="calibre51"/></p>
+<p class="calibre2">果不其然，使用 Chrome 的查看页面源码会显示相同的 HTML:</p>
+<p class="CDPAlignCenter"><img src="img/837384ea-fd70-4459-80ae-71b4b2f99c81.png" class="calibre52"/></p>
+<p class="calibre2">这是肯定的——我们刚刚成功地迈出了构建网络爬虫的第一步！</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Learning about pairs</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">学习配对</h1>
+                
+            
+            
+                
+<p class="calibre2">在查看响应头时，您可能已经注意到它的类型是<kbd class="calibre12">Pair</kbd>对象的<kbd class="calibre12">Array</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; resp.headers 
+25-element Array{Pair{SubString{String},SubString{String}},1}</strong> </pre>
+<p class="calibre2">一个<kbd class="calibre12">Pair</kbd>代表一个 Julia 数据结构——以及相应的类型。<kbd class="calibre12">Pair</kbd>包含两个通常用于引用键值关系的值。这两个元素的类型决定了<kbd class="calibre12">Pair</kbd>的具体类型。</p>
+<p class="calibre2">例如，我们可以用下面的代码构造一个<kbd class="calibre12">Pair</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; Pair(:foo, "bar") 
+:foo =&gt; "bar"</strong> </pre>
+<p class="calibre2">如果我们检查它的类型，我们会看到它是<kbd class="calibre12">Symbol</kbd>和<kbd class="calibre12">String</kbd>的<kbd class="calibre12">Pair</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; typeof(Pair(:foo, "bar")) 
+Pair{Symbol,String}</strong> </pre>
+<p class="calibre2">我们也可以通过使用<kbd class="calibre12">x =&gt; y</kbd>文字符号来创建<kbd class="calibre12">Pairs</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; 3 =&gt; 'C' 
+3 =&gt; 'C' 
+ 
+julia&gt; typeof(3 =&gt; 'C') 
+Pair{Int64,Char}</strong> 
+ </pre>
+<p class="calibre2">这个<kbd class="calibre12">=&gt;</kbd>双箭应该看着眼熟。这就是我们在响应标头中看到的内容，例如:</p>
+<pre class="calibre17">"Content-Type" =&gt; "text/html; charset=UTF-8"</pre>
+<p class="calibre2">显然，一旦创建，就可以访问存储在<kbd class="calibre12">Pair</kbd>中的值。一种方法是对其进行索引:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; p = "one" =&gt; 1 
+"one" =&gt; 1 
+ 
+julia&gt; p[1] 
+"one" 
+ 
+julia&gt; p[2] 
+1</strong> 
+ </pre>
+<p class="calibre2">我们还可以访问<kbd class="calibre12">first</kbd>和<kbd class="calibre12">second</kbd>字段，以便分别获得<kbd class="calibre12">first</kbd>和<kbd class="calibre12">second</kbd>值:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; p.first 
+"one" 
+ 
+julia&gt; p.second 
+1</strong> </pre>
+<p class="calibre2">就像元组一样，<kbd class="calibre12">Pairs</kbd>是不可变的，所以这是行不通的:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; p.first = "two" 
+ERROR: type Pair is immutable 
+ 
+julia&gt; p[1] = "two" 
+ERROR: MethodError: no method matching setindex!(::Pair{String,Int64} </strong></pre>
+<p class="calibre2">是 Julia 的构建模块之一，可以用来创建字典，这是最重要的类型和数据结构之一。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Dictionaries</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">字典</h1>
+                
+            
+            
+                
+<p class="calibre2">这本名为<kbd class="calibre12">Dict</kbd>的字典是 Julia 最强大、最通用的数据结构之一。这是一个关联集合——它将<em class="calibre16">键与值关联起来。您可以将<kbd class="calibre12">Dict</kbd>看作一个查找表实现——给定一条信息，即键，它将返回相应的值。</em></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Constructing dictionaries</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">构建词典</h1>
+                
+            
+            
+                
+<p class="calibre2">创建一个<kbd class="calibre12">Dict</kbd>的空实例就像下面这样简单:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; d = Dict() 
+Dict{Any,Any} with 0 entries</strong> </pre>
+<p class="calibre2">花括号<kbd class="calibre12">{Any,Any}</kbd>之间的信息代表<kbd class="calibre12">Dict</kbd>的键和值的类型。因此，<kbd class="calibre12">Dict</kbd>本身的具体类型是由其键和值的类型定义的。编译器将尽力从集合各部分的类型中推断出集合的类型。在这种情况下，由于字典是空的，无法推断出任何信息，所以 Julia 默认为<kbd class="calibre12">Any</kbd>和<kbd class="calibre12">Any</kbd>。</p>
+<p class="calibre2">一个<kbd class="calibre12">{Any,Any}</kbd>类型的<kbd class="calibre12">Dict</kbd>允许我们任意添加任何类型的数据。我们可以使用<kbd class="calibre12">setindex!</kbd>方法向集合中添加一个新的键值对:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; setindex!(d, "World", "Hello") 
+Dict{Any,Any} with 1 entry: 
+  "Hello" =&gt; "World"</strong> </pre>
+<p class="calibre2">然而，向一个<kbd class="calibre12">Dict</kbd>添加值通常是使用方括号符号来完成的(这类似于对其进行索引，同时也执行赋值):</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; d["Hola"] = "Mundo" 
+"Mundo" </strong> </pre>
+<p class="calibre2">到目前为止，我们只添加了<kbd class="calibre12">Strings</kbd>——但是就像我说的，因为我们的<kbd class="calibre12">Dict</kbd>接受任何种类的键和值，所以没有任何约束:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; d[:speed] = 6.4 
+6.4</strong> </pre>
+<p class="calibre2">现在我们的<kbd class="calibre12">Dict</kbd>在这里:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; d 
+Dict{Any,Any} with 3 entries: 
+  "Hello" =&gt; "World" 
+  :speed  =&gt; 6.4 
+  "Hola"  =&gt; "Mundo"</strong> </pre>
+<p>请注意，键<kbd class="calibre24">=&gt;</kbd>值对没有按照我们添加它们的顺序排列。<kbd class="calibre24">Dicts</kbd>不是在朱丽亚订购的收藏品。我们将在几个段落中详细讨论这一点。</p>
+<p class="calibre2">如果该键已经存在，相应的值将被更新，返回新值:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; d["Hello"] = "Earth" "Earth"</strong> </pre>
+<p class="calibre2">这是我们更新的<kbd class="calibre12">Dict</kbd>。注意<kbd class="calibre12">"Hello"</kbd>现在指向<kbd class="calibre12">"Earth"</kbd>而不是<kbd class="calibre12">"World"</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; d 
+Dict{Any,Any} with 3 entries: 
+  "Hello" =&gt; "Earth" 
+  :speed  =&gt; 6.4 
+  "Hola"  =&gt; "Mundo"  </strong> </pre>
+<p class="calibre2">如果我们在实例化<kbd class="calibre12">Dict</kbd>时提供一些初始数据，编译器将能够更好地识别类型:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; dt = Dict("age" =&gt; 12) 
+Dict{String,Int64} with 1 entry: 
+  "age" =&gt; 12</strong> </pre>
+<p class="calibre2">我们可以看到，<kbd class="calibre12">Dict</kbd>的类型现在将键约束为<kbd class="calibre12">String</kbd>，值约束为<kbd class="calibre12">Int</kbd>——这是我们用来实例化<kbd class="calibre12">Dict</kbd>的<kbd class="calibre12">Pair</kbd>的类型。现在，如果为键或值传递不同的类型，Julia 将尝试转换它—如果失败，将出现错误:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; dt[:price] = 9.99 
+MethodError: Cannot `convert` an object of type Symbol to an object of type String</strong> </pre>
+<p class="calibre2">在某些情况下，自动转换会起作用:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; dx = Dict(1 =&gt; 11) 
+Dict{Int64,Int64} with 1 entry: 
+  1 =&gt; 11 </strong><br class="title-page-name"/><strong class="calibre1">julia&gt; dx[2.0] = 12 
+12</strong><br class="title-page-name"/><br class="title-page-name"/></pre>
+<p class="calibre2">Julia 已经悄悄地将<kbd class="calibre12">2.0</kbd>转换为相应的<kbd class="calibre12">Int</kbd>值:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; dx 
+Dict{Int64,Int64} with 2 entries: 
+  2 =&gt; 12 
+  1 =&gt; 11</strong> </pre>
+<p class="calibre2">但这并不总是奏效:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; dx[2.4] = 12 
+InexactError: Int64(Int64, 2.4)</strong> </pre>
+<p class="calibre2">我们可以在一个<kbd class="calibre12">Dict</kbd>中存储随机的复杂数据，它的类型将被 Julia 正确地推断出来:</p>
+<pre class="calibre17"><strong class="calibre1"> julia&gt; clients_purchases = Dict( 
+       "John Roche" =&gt; ["soap", "wine", "apples", "bread"], 
+       "Merry Lou"  =&gt; ["bottled water", "apples", "cereals", "milk"] 
+       ) 
+Dict{String,Array{String,1}} with 2 entries: 
+  "John Roche" =&gt; ["soap", "wine", "apples", "bread"] 
+  "Merry Lou"  =&gt; ["bottled water", "apples", "cereals", "milk"]</strong> </pre>
+<p class="calibre2">您还可以在构造<kbd class="calibre12">Dict</kbd>时指定和约束它的类型，而不是留给 Julia:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; dd = Dict{String,Int}("" =&gt; 2.0) 
+Dict{String,Int64} with 1 entry: 
+  "x" =&gt; 2</strong> </pre>
+<p class="calibre2">在这里，我们可以看到类型定义如何否决了<kbd class="calibre12">2.0</kbd>值的类型，它是一个<kbd class="calibre12">Float64</kbd>(当然，和前面的例子一样，Julia 已经将<kbd class="calibre12">2.0</kbd>转换为它的整数对应物)。</p>
+<p class="calibre2">我们也可以使用<kbd class="calibre12">Pairs</kbd>来创建一个<kbd class="calibre12">Dict</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; p1 = "a" =&gt; 1 
+"a"=&gt;1 </strong><br class="title-page-name"/><strong class="calibre1">julia&gt; p2 = Pair("b", 2) 
+"b"=&gt;2 </strong><br class="title-page-name"/><strong class="calibre1">julia&gt; Dict(p1, p2) 
+Dict{String,Int64} with 2 entries: 
+  "b" =&gt; 2 
+  "a" =&gt; 1</strong> </pre>
+<p class="calibre2">我们也可以使用<kbd class="calibre12">Pair</kbd>中的<kbd class="calibre12">Array</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; Dict([p1, p2]) 
+Dict{String,Int64} with 2 entries: 
+  "b" =&gt; 2 
+  "a" =&gt; 1</strong> </pre>
+<p class="calibre2">我们可以对元组数组做同样的事情:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; Dict([("a", 5), ("b", 10)]) 
+Dict{String,Int64} with 2 entries: 
+  "b" =&gt; 10 
+  "a" =&gt; 5</strong> </pre>
+<p class="calibre2">最后，可以使用理解来构建<kbd class="calibre12">Dict</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; using Dates 
+julia&gt; Dict([x =&gt; Dates.dayname(x) for x = (1:7)]) 
+Dict{Int64,String} with 7 entries: 
+  7 =&gt; "Sunday" 
+  4 =&gt; "Thursday" 
+  2 =&gt; "Tuesday" 
+  3 =&gt; "Wednesday" 
+  5 =&gt; "Friday" 
+  6 =&gt; "Saturday" 
+  1 =&gt; "Monday"</strong> </pre>
+<p class="calibre2">您的输出将会不同，因为键很可能不会按从<kbd class="calibre12">1</kbd>到<kbd class="calibre12">7</kbd>的顺序排列。这是非常重要的一点——正如已经提到的，在《朱丽亚》,<kbd class="calibre12">Dict</kbd>是没有顺序的。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Ordered dictionaries</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">有序词典</h1>
+                
+            
+            
+                
+<p class="calibre2">如果你需要你的字典保持有序，你可以使用<kbd class="calibre12">OrderedCollections</kbd>包(<a href="https://github.com/JuliaCollections/%20OrderedCollections.jl" class="calibre9">https://github.com/JuliaCollections/有序集合. jl </a>)，特别是<kbd class="calibre12">OrderedDict</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">pkg&gt; add OrderedCollections 
+julia&gt; using OrderedCollections, Dates 
+julia&gt; OrderedDict(x =&gt; Dates.monthname(x) for x = (1:12)) 
+DataStructures.OrderedDict{Any,Any} with 12 entries: 
+  1  =&gt; "January" 
+  2  =&gt; "February" 
+  3  =&gt; "March" 
+  4  =&gt; "April" 
+  5  =&gt; "May" 
+  6  =&gt; "June" 
+  7  =&gt; "July" 
+  8  =&gt; "August" 
+  9  =&gt; "September" 
+  10 =&gt; "October" 
+  11 =&gt; "November" 
+  12 =&gt; "December"</strong> </pre>
+<p class="calibre2">现在，元素按照添加到集合中的顺序存储(从<kbd class="calibre12">1</kbd>到<kbd class="calibre12">12</kbd>)。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Working with dictionaries</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">使用字典</h1>
+                
+            
+            
+                
+<p class="calibre2">正如我们已经看到的，我们可以使用方括号符号索引到一个<kbd class="calibre12">Dict</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; d = Dict(:foo =&gt; 1, :bar =&gt; 2) 
+Dict{Symbol,Int64} with 2 entries: 
+  :bar =&gt; 2 
+  :foo =&gt; 1 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; d[:bar] </strong><br class="title-page-name"/><strong class="calibre1">2</strong> </pre>
+<p class="calibre2">试图访问尚未定义的密钥将导致<kbd class="calibre12">KeyError</kbd>，如下所示:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; d[:baz] 
+ERROR: KeyError: key :baz not found</strong> </pre>
+<p class="calibre2">为了避免这种情况，我们可以首先检查密钥是否存在:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; haskey(d, :baz) 
+false</strong> </pre>
+<p class="calibre2">另一种方法是，如果我们想在键不存在时也获得一个默认值，我们可以使用下面的方法:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; get(d, :baz, 0) 
+0</strong> </pre>
+<p class="calibre2"><kbd class="calibre12">get</kbd>函数有一个更强大的孪生函数<kbd class="calibre12">get!</kbd>，它也使用默认值将搜索到的关键字存储到<kbd class="calibre12">Dict</kbd>中:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; d 
+Dict{Symbol,Int64} with 2 entries: 
+  :bar =&gt; 2 
+  :foo =&gt; 1 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; get!(d, :baz, 100) 
+100 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; d 
+Dict{Symbol,Int64} with 3 entries: 
+  :baz =&gt; 100 
+  :bar =&gt; 2 
+  :foo =&gt; 1 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; haskey(d, :baz) 
+true </strong> </pre>
+<p class="calibre2">如果您想知道，函数名末尾的感叹号是有效的——表示一个重要的 Julia 命名约定。这应该被视为一个警告，使用该函数将修改其参数的数据。在这种情况下，<kbd class="calibre12">get!</kbd>功能会将<kbd class="calibre12">:baz = 100</kbd> <kbd class="calibre12">Pair</kbd>添加到<kbd class="calibre12">d</kbd> <kbd class="calibre12">Dict</kbd>中。</p>
+<p class="calibre2">删除键值<kbd class="calibre12">Pair</kbd>只是调用<kbd class="calibre12">delete!</kbd>的问题(注意这里也有感叹号):</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; delete!(d, :baz) 
+Dict{Symbol,Int64} with 2 entries: 
+  :bar =&gt; 2 
+  :foo =&gt; 1 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; haskey(d, :baz) 
+false</strong> </pre>
+<p class="calibre2"/>
+<p class="calibre2">按照要求，<kbd class="calibre12">:baz</kbd>键及其相应的值已经消失。</p>
+<p class="calibre2">我们可以使用名副其实的函数<kbd class="calibre12">keys</kbd>和<kbd class="calibre12">values</kbd>来请求键和值的集合。它们将返回底层集合上的迭代器:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; keys(d) 
+Base.KeySet for a Dict{Symbol,Int64} with 2 entries. Keys: 
+  :bar 
+  :foo </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; values(d) 
+Base.ValueIterator for a Dict{Symbol,Int64} with 2 entries. Values: 
+  2 
+  1</strong> </pre>
+<p class="calibre2">使用<kbd class="calibre12">collect</kbd>检索相应的数组:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; collect(keys(d)) 
+2-element Array{Symbol,1}: 
+ :bar 
+ :foo 
+ 
+julia&gt; collect(values(d)) 
+2-element Array{Int64,1}: 
+ 2 
+ 1</strong> </pre>
+<p class="calibre2">我们可以将一个<kbd class="calibre12">Dict</kbd>与另一个<kbd class="calibre12">Dict</kbd>结合起来:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; d2 = Dict(:baz =&gt; 3) 
+Dict{Symbol,Int64} with 1 entry: 
+  :baz =&gt; 3 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; d3 = merge(d, d2) 
+Dict{Symbol,Int64} with 3 entries: 
+  :baz =&gt; 3 
+  :bar =&gt; 2 
+  :foo =&gt; 1</strong> </pre>
+<p class="calibre2">如果某些键出现在多个字典中，将保留最后一个集合中的值:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; merge(d3, Dict(:baz =&gt; 10)) 
+Dict{Symbol,Int64} with 3 entries: 
+  :baz =&gt; 10 
+  :bar =&gt; 2 
+  :foo =&gt; 1</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Using the HTTP response</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">使用 HTTP 响应</h1>
+                
+            
+            
+                
+<p class="calibre2">对 Julia 的字典数据结构有了很好的理解后，我们现在可以更仔细地看看我们的<kbd class="calibre12">HTTP</kbd>响应对象<kbd class="calibre12">resp</kbd>的<kbd class="calibre12">headers</kbd>属性。</p>
+<p class="calibre2">为了更容易访问各种标题，首先让我们将数组<kbd class="calibre12">Pair</kbd>转换成一个<kbd class="calibre12">Dict</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; headers = Dict(resp.headers) 
+Dict{SubString{String},SubString{String}} with 23 entries: 
+"Connection"     =&gt; "keep-alive" 
+  "Via"          =&gt; "1.1 varnish (Varnish/5.1), 1.1 varnish (Varni... 
+  "X-Analytics"  =&gt; "ns=0;page_id=38455554;https=1;nocookies=1" 
+#... output truncated... #</strong></pre>
+<p class="calibre2">我们可以检查<kbd class="calibre12">Content-Length</kbd>的值来确定我们是否有一个响应体。如果它大于<kbd class="calibre12">0</kbd>，这意味着我们得到了一个 HTML 消息:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; headers["Content-Length"] 
+"193324"</strong> </pre>
+<p class="calibre2">重要的是要记住<kbd class="calibre12">headers</kbd>字典中的所有值都是字符串，所以我们不能直接比较它们:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; headers["Content-Length"] &gt; 0 
+ERROR: MethodError: no method matching isless(::Int64, ::String)</strong> </pre>
+<p class="calibre2">我们需要先把它解析成一个整数:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; parse(Int, headers["Content-Length"]) &gt; 0 
+true</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Manipulating the response body</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">操纵响应体</h1>
+                
+            
+            
+                
+<p class="calibre2">之前，我们将响应体读入一个<kbd class="calibre12">String</kbd>并存储到<kbd class="calibre12">resp_body</kbd>变量中。这是一个很长的 HTML 字符串，理论上，我们可以使用<kbd class="calibre12">Regex</kbd>和其他字符串处理函数来查找和提取我们需要的数据。然而，这种方法非常复杂并且容易出错。在 HTML 文档中搜索内容的最佳方式是通过 HTML 和 CSS 选择器。唯一的问题是这些选择器不对字符串进行操作——它们只对一个<strong class="calibre4">文档对象模型</strong> ( <strong class="calibre4"> DOM </strong>)进行操作。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Building a DOM representation of the page</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">构建页面的 DOM 表示</h1>
+                
+            
+            
+                
+<p class="calibre2">DOM 代表一个 HTML 文档的内存结构。它是一种数据结构，允许我们以编程方式操作底层的 HTML 元素。DOM 将文档表示为逻辑树，我们可以使用选择器来遍历和查询这个层次结构。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Parsing HTML with Gumbo</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">用 Gumbo 解析 HTML</h1>
+                
+            
+            
+                
+<p class="calibre2">Julia 的<kbd class="calibre12">Pkg</kbd>生态系统提供了对<kbd class="calibre12">Gumbo</kbd>的访问，这是一个 HTML 解析器库。提供一个 HTML 字符串，<kbd class="calibre12">Gumbo</kbd>将把它解析成一个文档和它对应的 DOM。这个包是和 Julia 一起做网页抓取的重要工具，我们来补充一下。</p>
+<p class="calibre2">通常，使用以下内容进行安装:</p>
+<pre class="calibre17"><strong class="calibre1">pkg&gt; add Gumbo 
+julia&gt; using Gumbo </strong> </pre>
+<p class="calibre2">我们现在准备将 HTML 字符串解析成 DOM，如下所示:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; dom = parsehtml(resp_body)</strong><br class="title-page-name"/><strong class="calibre1"> HTML Document</strong></pre>
+<p class="calibre2"><kbd class="calibre12">dom</kbd>变量现在引用了一个<kbd class="calibre12">Gumbo.HTMLDocument</kbd>，一个网页的内存 Julia 表示。这是一个只有两个字段的简单对象:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; fieldnames(typeof(dom)) 
+(:doctype, :root)</strong>  </pre>
+<p class="calibre2"><kbd class="calibre12">doctype</kbd>代表 HTML <kbd class="calibre12">&lt;!DOCTYPE html&gt;</kbd>元素，这是维基百科页面所使用的:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; dom.doctype 
+"html"</strong> </pre>
+<p class="calibre2">现在，让我们把注意力集中在<kbd class="calibre12">root</kbd>房产上。这实际上是 HTML 页面最外层的元素——包含其余元素的<kbd class="calibre12">&lt;html&gt;</kbd>标签。它为我们提供了进入 DOM 的入口点。我们可以问<kbd class="calibre12">Gumbo</kbd>关于它的属性:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; dom.root.attributes 
+Dict{AbstractString,AbstractString} with 3 entries: 
+  "class" =&gt; "client-nojs" 
+  "lang"  =&gt; "en" 
+  "dir"   =&gt; "ltr"</strong> </pre>
+<p class="calibre2">这是一个<kbd class="calibre12">Dict</kbd>，键代表 HTML 属性和值——属性的值。果然，它们与页面的 HTML 相匹配:</p>
+<p class="CDPAlignCenter"><img src="img/c0902ff6-5eb5-4e1e-9b3f-e3f3d130e397.png" class="calibre53"/></p>
+<p class="calibre2">还有一个类似的<kbd class="calibre12">attrs</kbd>方法，也是为了同样的目的:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; attrs(dom.root) 
+Dict{AbstractString,AbstractString} with 3 entries: 
+  "class" =&gt; "client-nojs" 
+  "lang"  =&gt; "en" 
+  "dir"   =&gt; "ltr"</strong> </pre>
+<p class="calibre2">当有疑问时，我们可以使用<kbd class="calibre12">tag</kbd>方法询问元素的名称:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; tag(dom.root) 
+:HTML</strong> </pre>
+<p class="calibre2"><kbd class="calibre12">Gumbo</kbd>公开一个<kbd class="calibre12">children</kbd>方法，该方法返回一个包含所有嵌套<kbd class="calibre12">HTMLElement</kbd>的数组。如果你只是继续执行<kbd class="calibre12">julia&gt; children(dom.root)</kbd>，REPL 的输出将很难跟上。一个<kbd class="calibre12">HTMLElement</kbd>的 REPL 表示是它的 HTML 代码，对于有许多子元素的顶级元素，它将填满许多终端屏幕。让我们使用一个<kbd class="calibre12">for</kbd>循环来遍历子元素并只显示它们的标签:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; for c in children(dom.root) 
+           @show tag(c) 
+       end 
+tag(c) = :head 
+tag(c) = :body</strong> </pre>
+<p class="calibre2">好多了！</p>
+<p class="calibre2">由于子元素是集合的一部分，我们可以对它们进行索引:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; body = children(dom.root)[2];</strong> </pre>
+<p class="calibre2">请注意结束分号(<kbd class="calibre12">;</kbd>)。当在表达式末尾的 REPL 中使用时，它将禁止输出(所以我们不会看到原本会输出的<kbd class="calibre12">&lt;body&gt;</kbd>的很长的 HTML 代码)。<kbd class="calibre12">body</kbd>变量现在将引用<kbd class="calibre12">HTMLElement{:body}</kbd>的一个实例:</p>
+<pre class="calibre17">HTMLElement{:body}: 
+&lt;body class="mediawiki ltr sitedir-ltr mw-hide-empty-elt ns-0 ns-subject page-Julia_programming_language rootpage-Julia_programming_language skin-vector action-view"&gt; 
+# ... output truncated ...</pre>
+<p class="calibre2">我们需要的最后一个方法是<kbd class="calibre12">getattr</kbd>，它返回属性名称的值。如果没有为元素定义属性，它会引发一个<kbd class="calibre12">KeyError</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; getattr(dom.root, "class") 
+"client-nojs"</strong> <br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; getattr(dom.root, "href") # oops! 
+ERROR: KeyError: key "href" not found</strong> </pre>
+<p class="calibre2">询问一个<kbd class="calibre12">&lt;html&gt;</kbd>标签的<kbd class="calibre12">href</kbd>属性没有任何意义。果然，我们很快得到了一个<kbd class="calibre12">KeyError</kbd>，因为<kbd class="calibre12">href</kbd>不是这个<kbd class="calibre12">HTMLElement</kbd>的属性。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Coding defensively</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">防御性编码</h1>
+                
+            
+            
+                
+<p class="calibre2">像前一个错误，当它是一个更大的脚本的一部分时，有可能完全改变程序的执行，导致不希望的和潜在的代价高昂的结果。一般来说，当程序执行过程中出现意外情况时，可能会使软件处于错误状态，从而无法返回正确的值。在这种情况下，最好通过抛出一个<kbd class="calibre12">Exception</kbd>来显式地通知调用代码这种情况，而不是将问题推到整个执行堆栈上并潜在地传播。</p>
+<p class="calibre2">Julia 的核心和第三方包中的许多函数都很好地利用了错误抛出机制。检查您使用的函数的文档，看看它们抛出了什么类型的错误，这是一个很好的实践。在编程行话中，错误被称为异常。</p>
+<p class="calibre2">与<kbd class="calibre12">getattr</kbd>的情况一样，<kbd class="calibre12">Gumbo</kbd>包的作者警告我们，试图读取一个未定义的属性会导致<kbd class="calibre12">KeyError</kbd>异常。我们将很快学习如何处理异常，方法是在代码中捕获它们，获取问题的相关信息，并阻止或允许异常在调用堆栈中进一步传播。有时这是最好的方法，但我们不想滥用这种技术，因为用这种方法处理错误会耗费大量资源。处理异常比执行简单的数据完整性检查和分支要慢得多。</p>
+<p class="calibre2">对于我们的项目，第一道防线是简单地检查属性是否在元素中定义。我们可以通过检索属性<kbd class="calibre12">Dict</kbd>的键并检查我们想要的键是否是集合的一部分来做到这一点。这是一行程序:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; in("href", collect(keys(attrs(dom.root)))) 
+false</strong> </pre>
+<p class="calibre2">显然，<kbd class="calibre12">href</kbd>不是<kbd class="calibre12">&lt;html&gt;</kbd>标签的属性。</p>
+<p class="calibre2">使用这种方法，我们可以轻松地编写逻辑，在尝试查找属性值之前检查属性是否存在。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>The pipe operator</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">管道操作员</h1>
+                
+            
+            
+                
+<p class="calibre2">读取多个嵌套函数可能会对大脑造成负担。可以使用 Julia 的管道操作符<kbd class="calibre12">|&gt;</kbd>重写前面的示例<kbd class="calibre12">collect(keys(attrs(dom.root)))</kbd>，以提高可读性。</p>
+<p class="calibre2">例如，以下代码段嵌套了三个函数调用，每个内部函数都成为最外层函数的参数:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; collect(keys(attrs(dom.root))) 
+3-element Array{AbstractString,1}: 
+ "class" 
+ "lang" 
+ "dir"</strong></pre>
+<p class="calibre2">为了提高可读性，可以使用管道操作符将它重写为一个函数链。这段代码产生完全相同的结果:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; dom.root |&gt; attrs |&gt; keys |&gt; collect 
+3-element Array{AbstractString,1}: 
+ "class" 
+ "lang" 
+ "dir"</strong> </pre>
+<p class="calibre2"><kbd class="calibre12">|&gt;</kbd>操作符所做的是将第一个值的输出作为下一个函数的参数。所以<kbd class="calibre12">dom.root |&gt; attrs</kbd>和<kbd class="calibre12">attrs(dom.root)</kbd>是一样的。不幸的是，管道运算符只适用于单参数函数。但它对于清理代码仍然非常有用，大大提高了可读性。</p>
+<p>对于更高级的管道功能，您可以查看<kbd class="calibre24">Lazy</kbd>包，特别是位于<a href="https://github.com/MikeInnes/Lazy.jl#macros" class="calibre19">https://github.com/MikeInnes/Lazy.jl#macros.</a>的<kbd class="calibre24">@&gt;</kbd>和<kbd class="calibre24">@&gt;&gt;</kbd></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Handling errors like a pro</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">像专家一样处理错误</h1>
+                
+            
+            
+                
+<p class="calibre2">有时候，防御性编码并不是解决方案。也许你程序的关键部分需要读取网络上的文件或访问数据库。如果由于暂时的网络故障而无法访问资源，那么在没有数据的情况下，您真的无能为力。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>The try...catch statements</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">尝试...catch 语句</h1>
+                
+            
+            
+                
+<p class="calibre2">如果您发现您认为由于超出您控制的条件(即<em class="calibre16">异常</em>条件——因此得名<em class="calibre16">异常</em>)执行可能会脱离轨道的代码部分，您可以使用 Julia 的<kbd class="calibre12">try...catch</kbd>语句。这正是它听起来的样子——你指示编译器<em class="calibre16">尝试</em>一段代码，如果作为一个问题的结果，一个异常被<em class="calibre16">抛出</em> <em class="calibre16">，</em>到<em class="calibre16">捕捉</em>它。一个异常被<em class="calibre16">捕获</em>的事实意味着它不会在整个应用程序中传播。</p>
+<p class="calibre2">让我们来看看它的实际应用:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; try 
+    getattr(dom.root, "href") 
+catch 
+    println("The $(tag(dom.root)) tag doesn't have a 'href' attribute.") 
+end 
+The HTML tag doesn't have a 'href' attribute.</strong> </pre>
+<p class="calibre2">在这个例子中，一旦遇到错误，在<kbd class="calibre12">try</kbd>分支中的代码的执行正好在那个点停止，并且执行流立即在<kbd class="calibre12">catch</kbd>分支中继续。</p>
+<p class="calibre2">如果我们将代码片段修改如下，它会变得更清楚:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; try 
+    getattr(dom.root, "href") 
+    println("I'm here too") 
+catch 
+    println("The $(tag(dom.root)) tag doesn't have a 'href' attribute.") 
+end 
+The HTML tag doesn't have a 'href' attribute.</strong> </pre>
+<p class="calibre2">新添加的行<kbd class="calibre12">println("I'm here too")</kbd>没有被执行，消息没有被输出的事实证明了这一点。</p>
+<p class="calibre2">当然，如果没有抛出异常，事情会发生变化:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; try 
+getattr(dom.root, "class") 
+    println("I'm here too") 
+catch 
+    println("The $(tag(dom.root)) tag doesn't have a 'href' attribute.") 
+end 
+I'm here too</strong> </pre>
+<p class="calibre2"><kbd class="calibre12">catch</kbd>构造接受一个可选参数，即由<kbd class="calibre12">try</kbd>块抛出的<kbd class="calibre12">Exception</kbd>对象。这允许我们检查异常，并根据其属性分支我们的代码。</p>
+<p class="calibre2">在我们的例子中，Julia 内置了<kbd class="calibre12">KeyError</kbd>异常。当我们试图访问或删除一个不存在的元素(比如一个<kbd class="calibre12">Dict</kbd>中的键或者一个<kbd class="calibre12">HTMLElement</kbd>的属性)时，它会被抛出。所有的<kbd class="calibre12">KeyError</kbd>实例都有一个 key 属性，它提供关于丢失数据的信息。因此，我们可以使我们的代码更加通用:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; try 
+     getattr(dom.root, "href") 
+catch ex 
+    if isa(ex, KeyError)  
+            println("The $(tag(dom.root)) tag doesn't have a '$(ex.key)' attribute.") 
+    else  
+           println("Some other exception has occurred") 
+    end 
+end 
+The HTML tag doesn't have a 'href' attribute.</strong> </pre>
+<p class="calibre2">这里，我们将异常作为<kbd class="calibre12">ex</kbd>变量传递到<kbd class="calibre12">catch</kbd>块中。然后我们检查我们是否正在处理一个<kbd class="calibre12">KeyError</kbd>异常——如果是，我们通过访问<kbd class="calibre12">ex.key</kbd>字段来检索丢失的键，使用这个信息来显示一个定制错误。如果是不同类型的异常，我们会显示一条一般的错误消息:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; try 
+     error("Oh my!") 
+catch ex 
+    if isa(ex, KeyError)  
+            println("The $(tag(dom.root)) tag doesn't have a '$(ex.key)' attribute.") 
+    else  
+           println("Some exception has occurred") 
+    end 
+end 
+Some exception has occurred</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>The finally clause</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">finally 子句</h1>
+                
+            
+            
+                
+<p class="calibre2">在执行状态更改或使用文件或数据库等资源的代码中，通常需要在代码完成时进行一些清理工作(如关闭文件或数据库连接)。这段代码通常会进入<kbd class="calibre12">try</kbd>分支——但是如果抛出异常会发生什么呢？</p>
+<p class="calibre2">在这种情况下，<kbd class="calibre12">finally</kbd>条款开始发挥作用。这可以添加在<kbd class="calibre12">try</kbd>或<kbd class="calibre12">catch</kbd>分支之后。<kbd class="calibre12">finally</kbd>块中的代码<em class="calibre16">保证</em>被执行，不管是否抛出异常:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; try 
+    getattr(dom.root, "href") 
+catch ex 
+    println("The $(tag(dom.root)) tag doesn't have a '$(ex.key)' attribute.") 
+finally 
+    println("I always get called") 
+end 
+The HTML tag doesn't have a 'href' attribute. 
+I always get called</strong> </pre>
+<p class="calibre2">有<kbd class="calibre12">try</kbd>没有<kbd class="calibre12">catch</kbd>或者<kbd class="calibre12">finally</kbd>是违法的；</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; try getattr(dom.root, "href") end syntax: try without catch or finally</strong> </pre>
+<p class="calibre2">我们需要提供一个<kbd class="calibre12">catch</kbd>或者一个<kbd class="calibre12">finally</kbd>块(或者两个都提供)。</p>
+<p class="calibre2"><kbd class="calibre12">try/catch/finally</kbd>块将返回最后一个求值的表达式，所以我们可以在一个变量中捕获它:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; result = try 
+           error("Oh no!") 
+       catch ex 
+           "Everything is under control" 
+        end 
+"Everything is under control" 
+ 
+julia&gt; result 
+"Everything is under control"</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Throwing exceptions on errors</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">出错时引发异常</h1>
+                
+            
+            
+                
+<p class="calibre2">作为开发人员，当我们的代码遇到问题并且不应该继续时，我们也可以选择创建和抛出异常。Julia 提供了一长串内置异常，涵盖了大量用例。你可以在<a href="https://docs.julialang.org/en/stable/manual/control-flow/#Built-in-Exceptions-1" class="calibre9">https://docs . Julia lang . org/en/stable/manual/control-flow/# Built-in-Exceptions-1</a>上了解它们。</p>
+<p class="calibre2">为了抛出异常，我们使用了名副其实的<kbd class="calibre12">throw</kbd>函数。例如，如果我们想要复制由 Gumbo 的<kbd class="calibre12">getattr</kbd>方法引起的错误，我们所要做的就是调用以下代码:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; throw(KeyError("href")) 
+ERROR: KeyError: key "href" not found</strong> </pre>
+<p class="calibre2">如果 Julia 提供的内置异常与您的情况不太相关，该语言提供了一种通用的错误类型<kbd class="calibre12">ErrorException</kbd>。它需要一个额外的<kbd class="calibre12">msg</kbd>参数，该参数应该提供关于错误性质的更多细节:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; ex = ErrorException("To err is human, but to really foul things up you need a computer.") 
+ErrorException("To err is human, but to really foul things up you need a computer.") </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; throw(ex) 
+ERROR: To err is human, but to really foul things up you need a computer. 
+ 
+julia&gt; ex.msg 
+"To err is human, but to really foul things up you need a computer."</strong> </pre>
+<p class="calibre2">Julia 提供了抛出<kbd class="calibre12">ErrorException</kbd>的快捷方式，即<kbd class="calibre12">error</kbd>函数:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; error(<a class="calibre30">"</a><a class="calibre30">To err is </a><a class="calibre30">human</a><a class="calibre30"> - to blame it on a computer is even more so.</a>") 
+ERROR: To err is human - to blame it on a computer is even more so. </strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Rethrowing exceptions</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">再次引发异常</h1>
+                
+            
+            
+                
+<p class="calibre2">但是如果我们意识到我们捕获的异常不能(或者不应该)被我们的代码处理，我们该怎么办呢？例如，假设我们期望捕获一个可能丢失的属性，但是结果我们得到了一个<kbd class="calibre12">Gumbo</kbd>解析异常。这样的问题必须在执行栈的更高层处理，可能是通过再次尝试获取网页并重新解析它，或者通过为管理员记录错误消息。</p>
+<p class="calibre2">如果我们自己<kbd class="calibre12">throw</kbd>这个异常，初始错误的来源<kbd class="calibre12">stacktrace</kbd>将会丢失。对于这种情况，Julia 提供了<kbd class="calibre12">rethrow</kbd>函数，其用法如下:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; try 
+           Dict()[:foo] 
+       catch ex 
+           "nothing to see here" 
+       end 
+"nothing to see here"</strong> </pre>
+<p class="calibre2">如果我们自己简单地抛出异常，就会发生这样的情况:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; try 
+           Dict()[:foo] 
+       catch ex 
+           throw(ex) 
+       end 
+ERROR: KeyError: key :foo not found 
+Stacktrace: 
+ [1] top-level scope at REPL</strong> </pre>
+<p class="calibre2">我们抛出了<kbd class="calibre12">KeyError</kbd>异常，但是异常的起源丢失了；它看起来好像源自我们在<kbd class="calibre12">catch</kbd>块中的代码。与下面的例子相比，我们使用了<kbd class="calibre12">rethrow</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; try 
+           Dict()[:foo] 
+       catch ex 
+            rethrow(ex) 
+       end 
+ERROR: KeyError: key :foo not found 
+Stacktrace: 
+ [1] getindex(::Dict{Any,Any}, ::Symbol) at ./dict.jl:474 
+ [2] top-level scope at REPL[140]</strong></pre>
+<p class="calibre2">原始异常被重新引发，而不改变堆栈跟踪。现在我们可以看到异常源自于<kbd class="calibre12">dict.jl</kbd>文件。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Learning about functions</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">了解函数</h1>
+                
+            
+            
+                
+<p class="calibre2">在我们开始编写我们的第一个完整的 Julia 程序 web crawler 之前，我们需要走另一条重要的弯路。这是最后一个了，我保证。</p>
+<p class="calibre2">随着我们的代码变得越来越复杂，我们应该开始使用函数。由于其快速的输入-输出反馈循环，REPL 非常适合探索性编程，但是对于任何重要的软件来说，使用函数是必由之路。函数是 Julia 不可或缺的一部分，可以提高可读性、代码重用性和性能。</p>
+<p class="calibre2">在 Julia 中，函数是将一组值作为参数并返回值的对象:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; function add(x, y) 
+           x + y 
+       end 
+add (generic function with 1 method)</strong> </pre>
+<p class="calibre2">还有一个简洁的<em class="calibre16">赋值表</em>用于函数声明:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; add(x, y) = x + y 
+add (generic function with 1 method)</strong> </pre>
+<p class="calibre2">第二种形式非常适合简单的单行函数。</p>
+<p class="calibre2">调用一个函数只是简单地调用它的名字并向它传递所需的参数:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; add(1, 2) 
+3</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>The return keyword</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">return 关键字</h1>
+                
+            
+            
+                
+<p class="calibre2">如果你有以前的编程经验，你可能会惊讶地发现调用<kbd class="calibre12">add</kbd>函数正确地返回了预期的值，尽管我们没有在函数体中放入任何显式的<kbd class="calibre12">return</kbd>语句。在 Julia 中，函数会自动返回最后一次计算的表达式的结果。这通常是函数体中的最后一个表达式。</p>
+<p class="calibre2">显式的<kbd class="calibre12">return</kbd>关键字也是可用的。使用它将导致函数立即退出，并将值传递给<kbd class="calibre12">return</kbd>语句:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; function add(x, y) 
+           return "I don't feel like doing math today" 
+           x + y 
+       end 
+add (generic function with 1 method) </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; add(1, 2) 
+"I don't feel like doing math today"</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Returning multiple values</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">返回多个值</h1>
+                
+            
+            
+                
+<p class="calibre2">尽管 Julia 不支持返回多个值，但它确实提供了一个非常接近实际情况的巧妙技巧。任何函数都可以返回一个元组。因为构造和析构元组非常灵活，所以这种方法非常强大和易读:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; function addremove(x, y) 
+           x+y, x-y 
+       end 
+addremove (generic function with 1 method) </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; a, b = addremove(10, 5) 
+(15, 5) </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; a 
+15 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; b 
+5</strong> </pre>
+<p class="calibre2">这里我们定义了一个函数，<kbd class="calibre12">addremove</kbd>，它返回两个整数的元组。我们可以通过简单地为每个元素分配一个对应的变量来提取元组中的值。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Optional arguments</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">可选参数</h1>
+                
+            
+            
+                
+<p class="calibre2">函数参数可以有合理的默认值。对于这种情况，Julia 允许定义默认值。如果提供了相应的参数，则不必在每次调用时都显式传递这些参数:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; function addremove(x=100, y=10) 
+           x+y, x-y 
+       end 
+addremove (generic function with 3 methods)</strong> </pre>
+<p class="calibre2">该功能对<kbd class="calibre12">x</kbd>和<kbd class="calibre12">y</kbd>都有默认值。我们可以在不传递任何参数的情况下调用它:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; addremove() 
+(110, 90)</strong> </pre>
+<p class="calibre2">这个片段演示了当函数调用时没有提供默认值时，Julia 如何使用它们。</p>
+<p class="calibre2">我们只能传递第一个参数，对于第二个参数，将使用默认值:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; addremove(5) 
+(15, -5)</strong> </pre>
+<p class="calibre2">最后，我们可以通过这两个参数；所有默认值都将被覆盖:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; addremove(5, 1) 
+(6, 4)</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Keyword arguments</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">关键字参数</h1>
+                
+            
+            
+                
+<p class="calibre2">需要一长串参数的函数可能很难使用，因为程序员必须记住预期值的顺序和类型。对于这种情况，我们可以定义接受带标签参数的函数。这些被称为<strong class="calibre4">关键字参数</strong>。</p>
+<p class="calibre2">为了定义接受关键字参数的函数，我们需要在函数的未标记参数列表后添加一个分号，并在其后跟随一个或多个<kbd class="calibre12">keyword=value</kbd>对。我们实际上在第二章、<em class="calibre16">创建我们的第一个 Julia 应用</em>中遇到了这样的函数，当时我们使用<kbd class="calibre12">Gadfly</kbd>来绘制鸢尾花数据集:</p>
+<pre class="calibre17">plot(iris, x=:SepalLength, y=:PetalLength, color=:Species) </pre>
+<p class="calibre2">在这个例子中，<kbd class="calibre12">x</kbd>、<kbd class="calibre12">y</kbd>和<kbd class="calibre12">color</kbd>都是关键字自变量。</p>
+<p class="calibre2">带有关键字参数的函数的定义如下:</p>
+<pre class="calibre17">function thermal_confort(temperature, humidity<strong class="calibre1">;</strong> scale = :celsius, age = 35) </pre>
+<p class="calibre2">这里，我们定义了一个新函数<kbd class="calibre12">thermal_confort</kbd>，它有两个必需的参数<kbd class="calibre12">temperature</kbd>和<kbd class="calibre12">humidity</kbd>。该函数还接受两个关键字参数，<kbd class="calibre12">scale</kbd>和<kbd class="calibre12">age</kbd>，它们分别具有默认值<kbd class="calibre12">:celsius</kbd>和<kbd class="calibre12">35</kbd>。所有关键字参数都必须有默认值。</p>
+<p class="calibre2">调用这样的函数意味着使用位置参数和关键字参数:</p>
+<pre class="calibre17">thermal_confort(27, 56, age = 72, scale = :fahrenheit)</pre>
+<p class="calibre2">如果没有提供关键字参数的值，则使用默认值。</p>
+<p class="calibre2">关键字参数默认值从左到右计算，这意味着默认表达式可能引用前面的关键字参数:</p>
+<pre class="calibre17">function thermal_confort(temperature, humidity; scale = :celsius, age = 35, <strong class="calibre1">health_risk = age/100</strong>) </pre>
+<p class="calibre2">注意，我们在默认值<kbd class="calibre12">health_risk</kbd>中引用了关键字参数<kbd class="calibre12">age</kbd>。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Documenting functions</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">记录功能</h1>
+                
+            
+            
+                
+<p class="calibre2">Julia 自带强大的代码记录特性。用法很简单——任何出现在顶层的字符串，就在一个对象之前，都将被解释为文档(它被称为<strong class="calibre4"> docstring </strong>)。docstring 被解释为 markdown，因此我们可以使用标记进行丰富的格式化。</p>
+<p class="calibre2"><kbd class="calibre12">thermal_confort</kbd>功能的文档如下:</p>
+<pre class="calibre17">""" 
+        thermal_confort(temperature, humidity; &lt;keyword arguments&gt;) <br class="title-page-name"/>Compute the thermal comfort index based on temperature and humidity. It can optionally take into account the age of the patient. Works for both Celsius and Fahrenheit.  <br class="title-page-name"/># Examples: 
+```julia-repl 
+julia&gt; thermal_confort(32, 78) 
+12 
+``` <br class="title-page-name"/># Arguments <br class="title-page-name"/>- temperature: the current air temperature 
+- humidity: the current air humidity 
+- scale: whether :celsius or :fahrenheit, defaults to :celsius 
+- age: the age of the patient 
+""" 
+function thermal_confort(temperature, humidity; scale = :celsius, age = 35)</pre>
+<p class="calibre2">现在，我们可以通过使用 REPL 的帮助模式来访问我们函数的文档:</p>
+<pre class="calibre17"><strong class="calibre1">help?&gt; thermal_confort</strong> </pre>
+<p class="calibre2">输出如下所示:</p>
+<p class="CDPAlignCenter"><img src="img/12ccbd57-9f44-4685-8595-dbdfb105fecc.png" class="calibre54"/></p>
+<p class="calibre2">很有用，不是吗？在外部包的帮助下，Docstrings 也可以用来为你的 Julia 项目生成完整的文档，这些外部包将完整的 API 文档构建为独立的网站、markdown 文档、PDF 文档等等。我们将在第 11 章、<em class="calibre16">创建 Julia 包</em>中看到如何做到这一点。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Writing a basic web crawler – take one</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">编写一个基本的网络爬虫——举一个例子</h1>
+                
+            
+            
+                
+<p class="calibre2">我们现在准备编写我们的第一个完整的 Julia 程序——一个简单的网络爬虫。第一次迭代将请求 Julia 的 Wikipedia 页面，解析它并提取所有内部 URL，将它们存储在一个<kbd class="calibre12">Array</kbd>中。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Setting up our project</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">设置我们的项目</h1>
+                
+            
+            
+                
+<p class="calibre2">我们需要做的第一件事是建立一个专门的项目。这是通过使用<kbd class="calibre12">Pkg</kbd>完成的。这是非常重要的一步，因为它允许我们有效地管理和版本化我们程序所依赖的包。</p>
+<p class="calibre2">首先，我们需要一个文件夹来存放我们的软件。创建一个——姑且称之为<kbd class="calibre12">WebCrawler</kbd>。我会用朱莉娅来做，但你爱怎么做就怎么做:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; mkdir("WebCrawler") 
+"WebCrawler" 
+ 
+julia&gt; cd("WebCrawler/")</strong> </pre>
+<p class="calibre2">现在我们可以使用<kbd class="calibre12">Pkg</kbd>来添加依赖项。当我们开始一个新项目时，我们需要初始化它。这是通过以下方式实现的:</p>
+<pre class="calibre17"><strong class="calibre1">pkg&gt; activate .</strong></pre>
+<p class="calibre2">这告诉<kbd class="calibre12">Pkg</kbd>我们想要管理当前项目中的依赖关系，而不是在全局范围内进行。您会注意到光标已经改变，指示激活项目的名称<kbd class="calibre12">WebCrawler</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">(WebCrawler) pkg&gt;</strong> </pre>
+<p class="calibre2">到目前为止，我们安装的所有其他包都在全局环境中，这由<kbd class="calibre12">(v1.0)</kbd>光标指示:</p>
+<pre class="calibre17"><strong class="calibre1">(v1.0) pkg&gt;</strong> </pre>
+<div><kbd class="calibre24">(v1.0)</kbd> is the global environment, labeled with the currently installed Julia version. If you try the examples on a different Julia version, you'll get a different label.</div>
+<p class="calibre2">如果我们检查状态，我们会看到项目环境中还没有安装任何包:</p>
+<pre class="calibre17"><strong class="calibre1">(WebCrawler) pkg&gt; st 
+    Status `Project.toml`</strong> </pre>
+<p class="calibre2">我们的软件将有两个依赖项— <kbd class="calibre12">HTTP</kbd>和<kbd class="calibre12">Gumbo</kbd>。是时候添加它们了:</p>
+<pre class="calibre17"><strong class="calibre1">(WebCrawler) pkg&gt; add HTTP 
+(WebCrawler) pkg&gt; add Gumbo</strong> </pre>
+<p class="calibre2">现在我们可以创建一个新文件来存放我们的代码。姑且称之为<kbd class="calibre12">webcrawler.jl</kbd>。可以使用 Julia 创建它:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; touch("webcrawler.jl") 
+"webcrawler.jl"</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Writing a Julia program</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">写一个 Julia 程序</h1>
+                
+            
+            
+                
+<p class="calibre2">与我们之前在 REPL 和伊久利亚笔记本中的工作不同，这将是一个独立的程序:所有的逻辑都将放在这个<kbd class="calibre12">webcrawler.jl</kbd>文件中，当准备就绪时，我们将使用<kbd class="calibre12">julia</kbd>二进制文件来执行它。</p>
+<p class="calibre2">Julia 文件是从上到下解析的，所以我们需要以正确的顺序提供所有必要的指令(使用语句、变量初始化、函数定义等等)。我们将在本章中浓缩到目前为止构建这个小程序的所有步骤。</p>
+<p class="calibre2">为了使事情更简单，最好使用一个成熟的 Julia 编辑器。在 Atom/Juno 或 Visual Studio 代码(或者任何你喜欢的编辑器)中打开<kbd class="calibre12">webcrawler.jl</kbd>。</p>
+<p class="calibre2">我们想做的第一件事是通知 Julia 我们计划使用<kbd class="calibre12">HTTP</kbd>和<kbd class="calibre12">Gumbo</kbd>包。我们可以编写一条<kbd class="calibre12">using</kbd>语句，列出多个依赖项，用逗号分隔:</p>
+<pre class="calibre17">using HTTP, Gumbo </pre>
+<p class="calibre2">此外，我们决定使用 Julia 的维基百科页面来测试我们的爬虫。链接是<a href="https://en.wikipedia.org/wiki/Julia_(programming_language)" class="calibre9">https://en . Wikipedia . org/wiki/Julia _(programming _ language)</a>。将这种类似配置的值存储在常量中是一种很好的做法，而不是将<em class="calibre16">魔法字符串</em>散布在整个代码库中:</p>
+<pre class="calibre17">const PAGE_URL = "https://en.wikipedia.org/wiki/Julia_(programming_language)" </pre>
+<p class="calibre2">我们还说过，我们希望将所有链接存储在一个<kbd class="calibre12">Array</kbd>中——让我们也设置一下。请记住，Julia 中的常量主要与类型有关，所以如果我们在声明数组后将值推入数组，也没有问题:</p>
+<pre class="calibre17">const LINKS = String[] </pre>
+<p class="calibre2">这里，我们将<kbd class="calibre12">LINKS</kbd>常量初始化为<kbd class="calibre12">String</kbd>的空<kbd class="calibre12">Array</kbd>。符号<kbd class="calibre12">String[]</kbd>产生与<kbd class="calibre12">Array{String,1}()</kbd>和<kbd class="calibre12">Vector{String}()</kbd>相同的结果。它基本上表示空的<kbd class="calibre12">Array</kbd>文字<kbd class="calibre12">[]</kbd>加上<kbd class="calibre12">Type</kbd>约束<kbd class="calibre12">String</kbd>——创建一个<kbd class="calibre12">String</kbd>值的<kbd class="calibre12">Vector</kbd>。</p>
+<p class="calibre2">接下来的步骤是——获取页面，寻找成功的响应(状态<kbd class="calibre12">200</kbd>，然后检查标题以查看我们是否收到了消息体(<kbd class="calibre12">Content-Length</kbd>大于零)。在第一次迭代中，我们只需要做一次。但是提前考虑一下，对于我们游戏的最终版本，我们将不得不在每个游戏会话中重复这个过程多达六次(因为将会有多达六度的维基百科，所以我们将不得不爬行多达六页)。我们能做的最好的事情是编写一个通用函数，它将页面 URL 作为唯一的参数，获取页面，执行必要的检查，并返回消息体(如果有的话)。让我们称这个函数为<kbd class="calibre12">fetchpage</kbd>:</p>
+<pre class="calibre17">function fetchpage(url)<br class="title-page-name"/>    response = HTTP.get(url)<br class="title-page-name"/>    if response.status == 200 &amp;&amp; parse(Int, Dict(response.headers)["Content-Length"]) &gt; 0<br class="title-page-name"/>        String(response.body)<br class="title-page-name"/>    else<br class="title-page-name"/>        ""<br class="title-page-name"/>    end<br class="title-page-name"/>end   </pre>
+<p class="calibre2">首先，我们调用<kbd class="calibre12">HTTP.get(url)</kbd>，将<kbd class="calibre12">HTTP.Messages.Response</kbd>对象存储在<kbd class="calibre12">response</kbd>变量中。然后我们检查响应状态是否为<kbd class="calibre12">200</kbd>以及<kbd class="calibre12">Content-Length</kbd>报头是否大于<kbd class="calibre12">0</kbd>。如果是，我们将消息体读入一个字符串。如果没有，我们返回一个空字符串<kbd class="calibre12">""</kbd>，来表示空的主体。这有很多<em class="calibre16">if</em>——看起来是时候让我们更仔细地看看条件语句<kbd class="calibre12">if/else</kbd>，因为它们真的很重要。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Conditional evaluation of if, elseif, and else statements</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">if、elseif 和 else 语句的条件求值</h1>
+                
+            
+            
+                
+<p class="calibre2">除了最基本的程序之外，所有程序都必须能够计算变量，并根据变量的当前值执行不同的逻辑分支。条件求值允许根据布尔表达式的值执行(或不执行)部分代码。Julia 提供了用于编写条件表达式的<kbd class="calibre12">if</kbd>、<kbd class="calibre12">elseif</kbd>和<kbd class="calibre12">else</kbd>语句。它们是这样工作的:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; x = 5 
+5 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; if x &lt; 0 
+           println("x is a negative number") 
+      elseif x &gt; 0 
+           println("x is a positive number greater than 0") 
+      else  
+           println("x is 0") 
+      end 
+x is a positive number greater than 0</strong> </pre>
+<p class="calibre2">如果条件<kbd class="calibre12">x &lt; 0</kbd>为真，则评估其底层块。如果不是，表达式<kbd class="calibre12">x &gt; 0</kbd>被求值，作为<kbd class="calibre12">elseif</kbd>分支的一部分。如果为真，则评估其对应的块。如果两个表达式都不成立，则评估<kbd class="calibre12">else</kbd>块。</p>
+<p class="calibre2"><kbd class="calibre12">elseif</kbd>和<kbd class="calibre12">else</kbd>块是可选的，我们可以使用任意多的<kbd class="calibre12">elseif</kbd>块。评估<kbd class="calibre12">if</kbd>、<kbd class="calibre12">elseif</kbd>和<kbd class="calibre12">else</kbd>构造中的条件，直到第一个返回<kbd class="calibre12">true</kbd>。则评估相关块，并返回其最后计算的值，退出条件评估。因此，Julia 中的条件语句也返回值——所选分支中最后执行的语句。以下代码说明了这一点:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; status = if x &lt; 0 
+                         "x is a negative number" 
+                  elseif x &gt; 0 
+                         "x is a positive number greater than 0" 
+                   else  
+                         "x is 0" 
+                   end 
+"x is a positive number greater than 0" </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; status 
+"x is a positive number greater than 0"</strong> </pre>
+<p class="calibre2">最后，记住<kbd class="calibre12">if</kbd>块不引入局部范围是非常重要的。也就是说，在退出代码块后，可以访问其中定义的变量(当然，前提是已经评估了相应的分支):</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; status = if x &lt; 0 
+            "x is a negative number" 
+       elseif x &gt; 0 
+            y = 20 
+            "x is a positive number greater than 0" 
+       else  
+            "x is 0" 
+       end 
+"x is a positive number greater than 0" 
+ 
+julia&gt; y 
+20</strong> </pre>
+<p class="calibre2">我们可以看到在<kbd class="calibre12">elseif</kbd>块中初始化的<kbd class="calibre12">y</kbd>变量在条件表达式之外仍然是可访问的。</p>
+<p class="calibre2">如果我们将变量声明为<kbd class="calibre12">local</kbd>，就可以避免这种情况:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; status = if x &lt; 0 
+            "x is a negative number" 
+       elseif x &gt; 0 
+            local z = 20 
+            "x is a positive number greater than 0" 
+       else  
+            "x is 0" 
+       end 
+"x is a positive number greater than 0" 
+ 
+julia&gt; z 
+UndefVarError: z not defined</strong></pre>
+<p class="calibre2">当声明<kbd class="calibre12">local</kbd>时，变量<em class="calibre16">不再泄漏</em>到<kbd class="calibre12">if</kbd>块之外。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>The ternary operator</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">三元运算符</h1>
+                
+            
+            
+                
+<p class="calibre2">使用三元运算符<kbd class="calibre12">? :</kbd>可以表达<kbd class="calibre12">if</kbd>、<kbd class="calibre12">then</kbd>和<kbd class="calibre12">else</kbd>类型的条件。其语法如下:</p>
+<pre class="calibre17">x ? y : z </pre>
+<p class="calibre2"/>
+<p class="calibre2">如果<kbd class="calibre12">x</kbd>为真，则表达式<kbd class="calibre12">y</kbd>被求值——否则，<kbd class="calibre12">z</kbd>被求值。例如，考虑下面的代码:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; x = 10 
+10 
+ 
+julia&gt; x &lt; 0 ? "negative" : "positive" 
+"positive"</strong> </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Short-circuit evaluation</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">短路评估</h1>
+                
+            
+            
+                
+<p class="calibre2">Julia 提供了一种更简洁的评估方式——短路评估。在由<kbd class="calibre12">&amp;&amp;</kbd>和<kbd class="calibre12">||</kbd>运算符连接的一系列布尔表达式中，只评估最小数量的表达式——确定整个链的最终布尔值所需的数量。我们可以利用这一点返回特定的值，这取决于要评估的内容。例如:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; x = 10 
+10 
+ 
+<a class="calibre30">julia&gt; x &gt; 5 &amp;&amp; "bigger than 5"<br class="title-page-name"/></a>"bigger than 5"</strong></pre>
+<p class="calibre2">在表达式<kbd class="calibre12">A &amp;&amp; B</kbd>中，仅当且仅当<kbd class="calibre12">A</kbd>的计算结果为<kbd class="calibre12">true</kbd>时，才计算第二个表达式<kbd class="calibre12">B</kbd>。在这种情况下，整个表达式具有子表达式<kbd class="calibre12">B</kbd>的返回值，在前面的例子中是<kbd class="calibre12">bigger than 5</kbd>。</p>
+<p class="calibre2">相反，如果<kbd class="calibre12">A</kbd>评估为<kbd class="calibre12">false</kbd>，则<kbd class="calibre12">B</kbd>根本不会被评估。因此，要小心——整个表达式将返回一个<kbd class="calibre12">false</kbd>布尔值(不是字符串！):</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; x &gt; 15 &amp;&amp; "bigger than 15" 
+false</strong> </pre>
+<p class="calibre2">同样的逻辑也适用于逻辑<kbd class="calibre12">or</kbd>运算符<kbd class="calibre12">||</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; x &lt; 5 || <a class="calibre30">"greater </a>than 5"</strong><br class="title-page-name"/><strong class="calibre1">"greater than 5"</strong></pre>
+<p class="calibre2">在表达式<kbd class="calibre12">A || B</kbd>中，只有当<kbd class="calibre12">A</kbd>的计算结果为<kbd class="calibre12">false</kbd>时，第二个表达式<kbd class="calibre12">B</kbd>才会被计算。当第一个子表达式被评估为<kbd class="calibre12">true</kbd>时，同样的逻辑适用；<kbd class="calibre12">true</kbd>将整个表达式的返回值:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; x &gt; 5 || "less than 5" 
+true</strong> </pre>
+<p class="calibre2"/>
+<p class="calibre2"/>
+<p class="calibre2"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Beware of operator precedence</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">注意运算符优先级</h1>
+                
+            
+            
+                
+<p class="calibre2">有时，短路表达式会使编译器困惑，导致错误或意外结果。例如，短路表达式通常用于赋值操作，如下所示:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; x &gt; 15 || message = "That's a lot"</strong> </pre>
+<p class="calibre2">由于<kbd class="calibre12">=</kbd>赋值操作符比逻辑<kbd class="calibre12">or</kbd>和<kbd class="calibre12">||</kbd>具有更高的优先级，因此该操作将因<kbd class="calibre12">syntax: invalid assignment location "(x &gt; 15) || message"</kbd>错误而失败。通过使用括号显式控制求值顺序，可以很容易地解决这个问题:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; x &gt; 15 || (message = "That's a lot") 
+"That's a lot"</strong> </pre>
+<p class="calibre2">这一点需要记住，因为这是初学者常见的错误来源。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Carrying on with the crawler's implementation</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">继续爬虫的实现</h1>
+                
+            
+            
+                
+<p class="calibre2">到目前为止，您的代码应该如下所示:</p>
+<pre class="calibre17">using HTTP, Gumbo <br class="title-page-name"/><br class="title-page-name"/>const PAGE_URL = "https://en.wikipedia.org/wiki/Julia_(programming_language)" 
+const LINKS = String[] <br class="title-page-name"/><br class="title-page-name"/>function fetchpage(url) 
+  response = HTTP.get(url) 
+  if response.status == 200 &amp;&amp; parse(Int, Dict(response.headers)["Content-Length"]) &gt; 0 
+    String(response.body) 
+  else 
+    "" 
+  end 
+end </pre>
+<p class="calibre2">现在应该清楚了，响应体或者空字符串是由<kbd class="calibre12">if/else</kbd>语句返回的。而且由于这是在<kbd class="calibre12">fetchpage</kbd>函数内部评估的最后一段代码，这个值也成为整个函数的返回值。</p>
+<p class="calibre2">好了，我们现在可以使用<kbd class="calibre12">fetchpage</kbd>函数获取维基百科页面的 HTML 内容，并将其存储在<kbd class="calibre12">content</kbd>变量中:</p>
+<pre class="calibre17">content = fetchpage(PAGE_URL)  </pre>
+<p class="calibre2">如果获取操作成功并且<kbd class="calibre12">content</kbd>不是空字符串，我们可以将 HTML 字符串传递给<kbd class="calibre12">Gumbo</kbd>来构造 DOM。然后，我们可以遍历这个 DOM 的<kbd class="calibre12">root</kbd>元素的所有子元素并寻找链接(使用<kbd class="calibre12">a</kbd>标签选择器)。对于每个元素，我们希望检查<kbd class="calibre12">href</kbd>属性，并且只有当它指向另一个维基百科页面时才存储它的值:</p>
+<pre class="calibre17">if ! isempty(content) 
+  dom = Gumbo.parsehtml(content) <br class="title-page-name"/>  extractlinks(dom.root) 
+end</pre>
+<p class="calibre2">提取链接的功能是:</p>
+<pre class="calibre17">function extractlinks(elem) 
+  if  isa(elem, HTMLElement) &amp;&amp;  
+      tag(elem) == :a &amp;&amp; in("href", collect(keys(attrs(elem)))) 
+        url = getattr(elem, "href") 
+        startswith(url, "/wiki/") &amp;&amp; push!(LINKS, url) 
+  end 
+ 
+  for child in children(elem) 
+    extractlinks(child) 
+  end 
+end </pre>
+<p class="calibre2">这里，我们声明了一个<kbd class="calibre12">extractlinks</kbd>函数，它将一个叫做<kbd class="calibre12">elem</kbd>的<kbd class="calibre12">Gumbo</kbd>元素作为唯一的参数。然后我们检查<kbd class="calibre12">elem</kbd>是否是一个<kbd class="calibre12">HTMLElement</kbd>，如果是，我们检查它是否对应于一个链接标签(代表一个<kbd class="calibre12">&lt;a&gt;</kbd> HTML 标签的<kbd class="calibre12">:a</kbd> Julia <kbd class="calibre12">Symbol</kbd>)。然后我们检查元素是否定义了一个<kbd class="calibre12">href</kbd>属性，以避免得到一个<kbd class="calibre12">KeyError</kbd>。如果一切正常，我们将获得<kbd class="calibre12">href</kbd>元素的值。最后，如果<kbd class="calibre12">href</kbd>的值是一个内部 URL——也就是以<kbd class="calibre12">/wiki/</kbd>开头的 URL——我们将它添加到我们的<kbd class="calibre12">LINKS</kbd> <kbd class="calibre12">Array</kbd>中。</p>
+<p class="calibre2">一旦我们检查完元素的链接，我们将检查它是否包含其他嵌套的 HTML 元素。如果是这样，我们希望对它的每个孩子重复同样的过程。这就是最后一个<kbd class="calibre12">for</kbd>循环的作用。</p>
+<p class="calibre2">剩下唯一要做的就是在我们文件的最后显示填充的<kbd class="calibre12">LINKS</kbd> <kbd class="calibre12">Array</kbd>。由于一些链接可能会在页面中出现不止一次，所以让我们确保通过使用<kbd class="calibre12">unique</kbd>函数将<kbd class="calibre12">Array</kbd>减少到唯一的元素:</p>
+<pre class="calibre17">display(unique(LINKS))  </pre>
+<p class="calibre2">现在，我们可以通过在存储文件的文件夹中打开一个终端来执行这个脚本。然后运行— <kbd class="calibre12">$ julia webcrawler.jl</kbd>。</p>
+<p class="calibre2">链接很多，所以输出会很长。这是最重要的:</p>
+<pre class="calibre17"><strong class="calibre1"> $ julia webcrawler.jl 
+440-element Array{String,1}: 
+ "/wiki/Programming_paradigm" 
+ "/wiki/Multi-paradigm_programming_language" 
+ "/wiki/Multiple_dispatch" 
+ "/wiki/Object-oriented_programming" 
+ "/wiki/Procedural_programming" 
+# ... output truncated ...</strong> </pre>
+<p class="calibre2">通过查看输出，我们会注意到，在第一次优化中，一些链接指向特殊的维基百科页面，这些页面包含诸如<kbd class="calibre12">/File:</kbd>、<kbd class="calibre12">/Category:</kbd>、<kbd class="calibre12">/Help:</kbd>、<kbd class="calibre12">/Special:</kbd>等部分。所以我们可以跳过所有包含列<kbd class="calibre12">:</kbd>的 URL，因为这些不是文章，对我们的游戏没有用。</p>
+<p class="calibre2">为此，请查找这样一行内容:</p>
+<pre class="calibre17">startswith(url, "/wiki/") &amp;&amp; push!(LINKS, url)</pre>
+<p class="calibre2">将前面一行替换为以下内容:</p>
+<pre class="calibre17">startswith(url, "/wiki/") &amp;&amp; ! occursin(":", url) &amp;&amp; push!(LINKS, url) </pre>
+<p class="calibre2">如果你现在运行这个程序，你应该会看到 Julia 的维基百科页面上所有链接到其他维基百科文章的 URL 列表。</p>
+<p class="calibre2">这是完整的代码:</p>
+<pre class="calibre17">using HTTP, Gumbo <br class="title-page-name"/><br class="title-page-name"/>const PAGE_URL = "https://en.wikipedia.org/wiki/Julia_(programming_language)" 
+const LINKS = String[] <br class="title-page-name"/><br class="title-page-name"/>function fetchpage(url) 
+  response = HTTP.get(url) 
+  if response.status == 200 &amp;&amp; parse(Int, Dict(response.headers)["Content-Length"]) &gt; 0 
+    String(response.body) 
+  else 
+    "" 
+  end 
+end 
+ 
+function extractlinks(elem) 
+  if  isa(elem, HTMLElement) &amp;&amp; tag(elem) == :a &amp;&amp; in("href", collect(keys(attrs(elem)))) 
+        url = getattr(elem, "href") 
+        startswith(url, "/wiki/") &amp;&amp; ! occursin(":", url) &amp;&amp; push!(LINKS, url) 
+  end 
+ 
+  for child in children(elem) 
+    extractlinks(child) 
+  end 
+end 
+  
+content = fetchpage(PAGE_URL) <br class="title-page-name"/><br class="title-page-name"/>if ! isempty(content) 
+  dom = Gumbo.parsehtml(content)<br class="title-page-name"/>  extractlinks(dom.root) <br class="title-page-name"/>end<br class="title-page-name"/> <br class="title-page-name"/>display(unique(LINKS)) </pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+  
+    <title>Summary</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+
+  
+        
+
+                            
+                    <h1 class="header-title">摘要</h1>
+                
+            
+            
+                
+<p class="calibre2">Web 抓取是数据挖掘的一个关键组成部分，Julia 为处理这些任务提供了一个强大的工具箱。在这一章中，我们讨论了构建网络爬虫的基础。我们学习了如何使用 Julia web 客户端请求网页以及如何读取响应，如何使用 Julia 强大的<kbd class="calibre12">Dict</kbd>数据结构来读取 HTTP 信息，如何通过处理错误使我们的软件更具弹性，如何通过编写函数并记录它们来更好地组织我们的代码，以及如何使用条件逻辑来做出决策。</p>
+<p class="calibre2">有了这些知识，我们构建了第一个版本的网络爬虫。在下一章，我们将改进它，并用它来为我们即将到来的维基游戏提取数据。在这个过程中，我们将深入学习这门语言，了解类型、方法和模块，以及如何与关系数据库交互。</p>
+
+
+            
+
+            
+        
+    
+
+
+</body></html>

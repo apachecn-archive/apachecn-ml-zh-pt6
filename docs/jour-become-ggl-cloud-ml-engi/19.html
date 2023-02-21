@@ -1,0 +1,847 @@
+<html><head/><body>
+
+
+
+
+
+
+
+
+
+<title>Appendix 4: Practicing with Google Vertex AI</title>
+
+
+
+
+
+
+
+<div><div><h1 class="chapter-number" id="_idParaDest-217"><a id="_idTextAnchor218"/>附录 4</h1>
+
+<h1 id="_idParaDest-218"><a id="_idTextAnchor219"/>用 Google Vertex AI 练习</h1>
+
+<p>在<a href="B18333_07.xhtml#_idTextAnchor143"> <em class="italic">第七章</em> </a>、<em class="italic">探索谷歌云顶点 AI </em>中，我们讨论了谷歌云顶点 AI。本附录包含谷歌云控制台中谷歌顶点人工智能的一些实践教程，循序渐进。我们将涵盖以下实验:</p>
+
+<ul>
+
+<li>vertex AI–启用其 API</li>
+
+<li>顶点人工智能-数据集</li>
+
+<li>顶点人工智能-标记任务</li>
+
+<li>顶点人工智能–训练</li>
+
+<li>顶点 AI–预测(顶点 AI 端点)</li>
+
+<li>顶点人工智能–预测(顶点人工智能批量预测)</li>
+
+<li>顶点人工智能-工作台</li>
+
+<li>顶点人工智能–特征库</li>
+
+<li>顶点人工智能——管道和元数据</li>
+
+<li>顶点人工智能–模型监控</li>
+
+</ul>
+
+<p>希望您跟随这些实验练习 Vertex AI 并获得实现技能。</p>
+
+<h1 id="_idParaDest-219"><a id="_idTextAnchor220"/>Vertex AI–启用其 API</h1>
+
+<p>要开始在谷歌云控制台中使用<a id="_idIndexMarker730"/> Vertex AI，您需要设置一个计费帐户并创建一个项目。一旦您创建了一个项目(<em class="italic">Vertex AI–演示文档</em>)，您将位于以下项目主页仪表板上:</p>
+
+<div><div><img alt="" height="826" src="img/B18333_14_1.jpg" width="1081"/>
+
+</div>
+
+</div>
+
+<p>通过左上角菜单导航<a id="_idIndexMarker731"/>启动顶点 AI:</p>
+
+<div><div><img alt="" height="720" src="img/B18333_14_2.jpg" width="481"/>
+
+</div>
+
+</div>
+
+<p>第一次启动 Vertex AI，需要启用 Vertex AI API。为此，选择一个<strong class="bold">区域</strong>并点击蓝色<strong class="bold">启用顶点 AI API </strong>按钮:</p>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">f</p>
+
+<div><div><img alt="" height="552" src="img/B18333_14_3.jpg" width="1129"/>
+
+</div>
+
+</div>
+
+<p>默认情况下，启用<a id="_idIndexMarker732"/>顶点 AI API 后，你将登陆顶点 AI API 仪表盘。</p>
+
+<h1 id="_idParaDest-220"><a id="_idTextAnchor221"/>顶点人工智能–数据集</h1>
+
+<p>我们<a id="_idIndexMarker733"/>将在 Vertex AI 中使用的第一个工具是<strong class="bold">数据集</strong>。点击<strong class="bold">数据集</strong>后，您将被带到相应的页面。由于我们正在进行一个全新的项目，因此没有要显示的数据集。点击<strong class="bold">创建数据集</strong>开始:</p>
+
+<div><div><img alt="" height="646" src="img/B18333_14_4.jpg" width="1025"/>
+
+</div>
+
+</div>
+
+<p>输入数据集的名称，并从以下四个主要类别中选择要使用的数据集类型:</p>
+
+<ul>
+
+<li><strong class="bold">图片</strong>:<ul><li><strong class="bold">图像分类(单标签)</strong></li>
+
+<li><strong class="bold">图像分类(多标签)</strong></li>
+
+<li><strong class="bold">图像物体检测</strong></li>
+
+<li><strong class="bold">图像分割</strong></li>
+
+</ul></li>
+
+<li><strong class="bold">表格</strong>:<ul><li><strong class="bold">回归/分类</strong></li>
+
+<li><strong class="bold">预测</strong></li>
+
+</ul></li>
+
+<li><strong class="bold">正文</strong>:<ul><li><strong class="bold">文本分类(单标签)</strong></li>
+
+<li><strong class="bold">文本分类(多标签)</strong></li>
+
+<li><strong class="bold">文本实体提取</strong></li>
+
+<li><strong class="bold">文本情感分析</strong></li>
+
+</ul></li>
+
+<li><strong class="bold">视频</strong>:<ul><li><strong class="bold">视频动作识别</strong></li>
+
+<li><strong class="bold">视频分类</strong></li>
+
+<li><strong class="bold">视频对象跟踪</strong></li>
+
+</ul></li>
+
+</ul>
+
+<p>选择数据集类型后，将在 Google 云存储中创建一个 bucket 作为默认数据集<a id="_idIndexMarker735"/>存储库。在这里，您可以指定将创建存储桶的区域:</p>
+
+<div><div><img alt="" height="664" src="img/B18333_14_5.jpg" width="1081"/>
+
+</div>
+
+</div>
+
+<p>点击<strong class="bold">创建</strong>按钮。您将进入下一页，在这里您需要指定导入方法。导入数据有三个选项:</p>
+
+<ul>
+
+<li><strong class="bold">从您的电脑上传图像</strong></li>
+
+<li><strong class="bold">从电脑上传导入文件</strong></li>
+
+<li><strong class="bold">选择从云存储中导入文件</strong></li>
+
+</ul>
+
+<p>要从本地计算机选择文件，点击<strong class="bold">选择文件</strong>按钮:</p>
+
+<div><div><img alt="" height="656" src="img/B18333_14_6.jpg" width="1218"/>
+
+</div>
+
+</div>
+
+<p>在出现的页面上，导航到本地计算机上包含您的图片的文件夹，然后选择一张或多张您想要上传到数据集的图片。请注意，每次上传最多可以上传 500 张图片。您上传的图片应采用以下格式之一:</p>
+
+<ul>
+
+<li>联合图像专家组</li>
+
+<li>GIF 格式</li>
+
+<li>PNG</li>
+
+<li>位图文件的扩展名(Bitmap)</li>
+
+<li>图标</li>
+
+</ul>
+
+<p>如果您需要上传更多图片，您需要点击<strong class="bold">选择文件</strong>按钮，并指定您想要为您的数据集使用哪个 Google Cloud bucket。</p>
+
+<p>图片上传后，您可以浏览数据集中的所有图像并检查它们的状态(它们将被标记为或<strong class="bold">未标记为</strong>)。如下面的截图所示，我们总共有 20 张图像，并且所有图像都没有标记(标记任务将在下一节中介绍):</p>
+
+<div><div><img alt="" height="1238" src="img/B18333_14_7.jpg" width="1380"/>
+
+</div>
+
+</div>
+
+<p>如果您希望使用<a id="_idIndexMarker737"/>其他两个选项将图像添加到数据集，即<strong class="bold">从您的计算机上传导入文件</strong>和<strong class="bold">选择从云存储导入文件</strong>，您只需提供一个云存储的链接，如下图所示:</p>
+
+<div><div><img alt="" height="956" src="img/B18333_14_8.jpg" width="1380"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">其他三个类别(<strong class="bold">表格</strong>、<strong class="bold">文本</strong>和<strong class="bold">视频</strong>)遵循相同的过程，因为您必须创建<a id="_idIndexMarker738"/>数据集，并从您的本地计算机或谷歌云存储中上传文件。您还必须输入数据集名称，并从提供的选项中选择一个区域。</p>
+
+<p><a id="_idTextAnchor222"/>顶点人工智能–标记任务</p>
+
+<h1 id="_idParaDest-221">在本节中，您将学习如何在 Vertex AI 中标记数据。有几种方法可以在创建的数据集中标记数据。如果使用小型数据集，可以手动标记每个数据集。默认情况下，数据集每页仅显示 10 幅图像。如果您想在同一页上查看所有图片，您可以从<strong class="bold">每页项目</strong>选项中选择一个数字。有三种选择——<strong class="bold">10</strong>、<strong class="bold"> 50 </strong>和<strong class="bold"> 100 </strong>:</h1>
+
+<p>因为我们还没有创建标签，所以我们需要定义/创建一个标签名。点击<code>Brain</code>和<code>Spine</code>:</p>
+
+<div><div><img alt="" height="874" src="img/B18333_14_9.jpg" width="1309"/>
+
+</div>
+
+</div>
+
+<p>创建/添加新标签后，您可以选择每张图像并对其进行标记，也可以选择多张图像并对其进行分组标记(遵循从<em class="italic">步骤 1 </em>到<em class="italic"> 4 </em>的每个步骤):</p>
+
+<div><div><img alt="" height="795" src="img/B18333_14_10.jpg" width="1070"/>
+
+</div>
+
+</div>
+
+<p>标记完所有的<a id="_idIndexMarker741"/>图像后，您可以转到摘要页面检查是否有任何图像未被标记:</p>
+
+<div><div><img alt="" height="821" src="img/B18333_14_11.jpg" width="1380"/>
+
+</div>
+
+</div>
+
+<p>如果您有一个<a id="_idIndexMarker742"/>非常大的数据集，您可以创建一个标记任务，并将其分配给一个团队来标记数据集。</p>
+
+<div><div><img alt="" height="707" src="img/B18333_14_12.jpg" width="1380"/>
+
+</div>
+
+</div>
+
+<p><a id="_idTextAnchor223"/>顶点人工智能–训练</p>
+
+<h1 id="_idParaDest-222">既然您已经有了一个<a id="_idIndexMarker743"/>标记的数据集，就可以进行模型训练了。Vertex AI 为训练模型提供了不同的方法:</h1>
+
+<p>AutoML</p>
+
+<ul>
+
+<li>定制培训(高级)</li>
+
+<li>要开始 AutoML 训练，在 Vertex AI 控制台中，单击位于页面顶部的<strong class="bold">训练</strong>，然后单击<strong class="bold">创建</strong>按钮(在我们的示例中，我们将使用我们在上一节中创建的 MRI 图像数据集来执行 AutoML 训练):</li>
+
+</ul>
+
+<p>在出现的页面<a id="_idIndexMarker744"/>上，您需要为您尝试训练的模型定义一些规范:</p>
+
+<div><div><img alt="" height="726" src="img/B18333_14_13.jpg" width="1264"/>
+
+</div>
+
+</div>
+
+<p><strong class="bold">选择数据集</strong>:在这里，您可以看到您之前创建的所有数据集。</p>
+
+<ul>
+
+<li><strong class="bold">注释集</strong>:标签保存在称为注释的集合中。您可以更改注记集以将不同的标注组应用于同一数据集。</li>
+
+<li>在<strong class="bold">训练方法</strong>页面，选择<strong class="bold"> AutoML </strong>(默认情况下会被选中)。然后，点击<strong class="bold">继续</strong>:</li>
+
+</ul>
+
+<p>由于我们正在训练一个新的 ML 模型，我们需要选择<strong class="bold">训练新模型</strong>。但是如果您已经有一个训练过的模型，并且想要重新训练<em class="italic">或</em>训练一个模型作为现有模型的版本，选择<strong class="bold">训练新版本</strong>。</p>
+
+<div><div><img alt="" height="717" src="img/B18333_14_14.jpg" width="1130"/>
+
+</div>
+
+</div>
+
+<p>接下来，输入型号的<a id="_idIndexMarker745"/>名称并提供描述(描述是可选的)。</p>
+
+<p>在<strong class="bold">高级选项</strong>部分，会给出两个数据拆分选项:<strong class="bold">随机分配</strong>和<strong class="bold">手动(高级)</strong>。根据<strong class="bold">随机分配的</strong>，您的数据集将被自动随机化，并使用以下比率分成训练集、验证集和测试集:</p>
+
+<p><code>80%</code></p>
+
+<ul>
+
+<li><code>10%</code></li>
+
+<li><code>10%</code></li>
+
+<li>您可以根据培训模式的需要更改值。更多细节，请查看 https://cloud.google.com/vertex-ai/docs/general/ml-use?的谷歌文档 _ga=2.140326960。-2030104523.1635276817&amp;_ GAC = 1.58794719.1650385127 . cjwkcajwu _ msbhayeiwa 5 bbmf 84 zvxwfepx-vaejrusjfgq 8 rvneovnlhj 3 vlygmk 3 eao 6 yjhry 5 bocdkgqavd _ BwE:</li>
+
+</ul>
+
+<p>点击<strong class="bold">继续</strong>。</p>
+
+<div><div><img alt="" height="1174" src="img/B18333_14_15.jpg" width="1346"/>
+
+</div>
+
+</div>
+
+<p>在下一页也是最后一页，系统会提示您在<strong class="bold">预算</strong>部分输入金额。在这里，您需要指定用于训练特定模型的最大时间。点击<strong class="bold">开始训练</strong>选项:</p>
+
+<p>培训完成后，您将会收到一封确认邮件，并且可以看到其状态。现在，您可以从培训页面(我们培训模型的同一个页面)分析已培训的模型，或者从左侧菜单中点击<strong class="bold">模型</strong>，然后点击您想要分析的模型:</p>
+
+<div><div><img alt="" height="435" src="img/B18333_14_16.jpg" width="1317"/>
+
+</div>
+
+</div>
+
+<p>当您点击您想要分析的模型时，您将被提示选择模型的版本。因为我们训练了一个全新的模型，所以我们只有一个版本。下面的屏幕截图显示了我们的表格数据集的训练模型的摘要:</p>
+
+<div><div><img alt="" height="646" src="img/B18333_14_17.jpg" width="1323"/>
+
+</div>
+
+</div>
+
+<p>从这个图表中，您可以看到训练模型的性能，以及我们的分类模型的混淆矩阵。</p>
+
+<div><div><img alt="" height="670" src="img/B18333_14_18.jpg" width="1185"/>
+
+</div>
+
+</div>
+
+<p>模型训练后，是时候<a id="_idIndexMarker748"/>部署模型进行预测了。部署模型有两种方式:</p>
+
+<p>顶点 AI 端点</p>
+
+<ul>
+
+<li>顶点人工智能批量预测</li>
+
+<li>我们将在接下来的几节中更详细地讨论这些。</li>
+
+</ul>
+
+<p><a id="_idTextAnchor224"/>顶点人工智能–预测(顶点人工智能端点)</p>
+
+<h1 id="_idParaDest-223">在本节中，我们<a id="_idIndexMarker749"/>将通过 Vertex AI 端点部署我们的模型。部署模型有两种方式:</h1>
+
+<p>来自<strong class="bold">车型</strong></p>
+
+<ul>
+
+<li>从<strong class="bold">端点</strong></li>
+
+<li>让我们详细看看这些选项。</li>
+
+</ul>
+
+<p><a id="_idTextAnchor225"/>通过模型部署模型</p>
+
+<h2 id="_idParaDest-224">从<a id="_idIndexMarker751"/>左侧菜单进入<strong class="bold">模型</strong>部分<a id="_idIndexMarker750"/>，选择您想要部署的模型，并选择您想要部署的版本(记住，我们只有一个版本，因为我们已经构建/训练了一个全新的模型)。然后，在页面顶部，点击<strong class="bold">部署&amp;测试</strong>:</h2>
+
+<p>点击<strong class="bold">部署&amp;测试</strong>后，您将进入下一页。在这里，单击蓝色的<strong class="bold">部署到端点</strong>按钮:</p>
+
+<div><div><img alt="" height="563" src="img/B18333_14_19.jpg" width="1380"/>
+
+</div>
+
+</div>
+
+<p><a id="_idTextAnchor226"/>通过端点部署模型</p>
+
+<div><div><img alt="" height="656" src="img/B18333_14_20.jpg" width="1235"/>
+
+</div>
+
+</div>
+
+<h2 id="_idParaDest-225">从左侧菜单进入<a id="_idIndexMarker752"/>的<strong class="bold">端点</strong>部分。通过<a id="_idIndexMarker753"/>这样做，您将被导航到一个弹出页面，在这里您需要定义您的端点:</h2>
+
+<p>在下一页上，您需要指定要部署到端点的模型，并选择模型的版本:</p>
+
+<div><div><img alt="" height="662" src="img/B18333_14_21.jpg" width="1025"/>
+
+</div>
+
+</div>
+
+<p>指定计算节点的<a id="_idIndexMarker754"/>数量，其他设置保持不变。然后，点击<strong class="bold">完成</strong>然后<strong class="bold">创建</strong>:</p>
+
+<div><div><img alt="" height="763" src="img/B18333_14_22.jpg" width="1345"/>
+
+</div>
+
+</div>
+
+<p>在<a id="_idIndexMarker756"/>完成部署后，您将收到一封<a id="_idIndexMarker757"/>电子邮件，说明端点部署的状态。现在，我们可以开始预测了:</p>
+
+<div><div><img alt="" height="1419" src="img/B18333_14_23.jpg" width="1078"/>
+
+</div>
+
+</div>
+
+<p>转到<strong class="bold">型号</strong>。</p>
+
+<ol>
+
+<li>选择您希望使用的型号。</li>
+
+<li>选择模型的版本。</li>
+
+<li>在页面顶部，点击<strong class="bold">部署&amp;测试</strong>。</li>
+
+<li>您将到达一个页面，在这里您可以开始尝试/测试您部署的模型。点击蓝色<strong class="bold">上传图像</strong>按钮:</li>
+
+</ol>
+
+<p>从本地驱动器中选择一个图像<a id="_idIndexMarker758"/>。该图像将被<a id="_idIndexMarker759"/>上传到端点；在页面的右侧，您将看到预测的结果。在我们的例子中，我们上传了一个随机图像(<code>spine MARI</code>)，预测的准确率几乎达到了 99%:</p>
+
+<div><div><img alt="" height="586" src="img/B18333_14_24.jpg" width="1380"/>
+
+</div>
+
+</div>
+
+<p>如果您<a id="_idIndexMarker760"/>需要在移动/web <a id="_idIndexMarker761"/>应用程序中使用您的端点，您可以请求一个示例 API。在同一页面中，点击<strong class="bold">样品请求</strong>:</p>
+
+<div><div><img alt="" height="629" src="img/B18333_14_25.jpg" width="1181"/>
+
+</div>
+
+</div>
+
+<p>从出现的菜单中，您可以根据需要从<strong class="bold"> REST </strong>或<strong class="bold"> PYTHON </strong>部分复制脚本:</p>
+
+<div><div><img alt="" height="561" src="img/B18333_14_26.jpg" width="1309"/>
+
+</div>
+
+</div>
+
+<p>From the menu that appears, you can copy the script from the <strong class="bold">REST</strong> or <strong class="bold">PYTHON</strong> section based on your needs:</p>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">在几次<a id="_idIndexMarker762"/>尝试之后，系统将开始根据从端点收集的日志生成<a id="_idIndexMarker763"/>图形:</p>
+
+<div><div><img alt="" height="927" src="img/B18333_14_27.jpg" width="694"/>
+
+</div>
+
+</div>
+
+<p>到目前为止，我们<a id="_idIndexMarker764"/>已经将我们的模型部署到 Vertex AI 端点。现在，<a id="_idIndexMarker765"/>我们来学习一下如何使用批量预测。</p>
+
+<div><div><img alt="" height="555" src="img/B18333_14_28.jpg" width="1289"/>
+
+</div>
+
+</div>
+
+<p><a id="_idTextAnchor227"/>顶点 AI–预测(批量预测)</p>
+
+<h1 id="_idParaDest-226">当您不需要立即响应并且希望通过单个请求从累积的数据中获得预测时，使用批量预测<a id="_idIndexMarker766"/>。按照以下步骤为我们之前训练的模型执行批量预测:</h1>
+
+<p>从控制台的左侧菜单进入<strong class="bold">型号</strong>。</p>
+
+<ol>
+
+<li value="1">单击您想要使用的模型。</li>
+
+<li>单击您想要使用的模型版本。</li>
+
+<li>从顶部菜单中，点击<strong class="bold">批量预测</strong>。</li>
+
+<li>点击蓝色<strong class="bold">创建批量预测</strong>按钮:</li>
+
+<li>点击<strong class="bold">创建批量预测</strong>后，需要定义一些参数，如批量预测的名称、来源、输出等。让我们逐一分析一下:</li>
+
+</ol>
+
+<div><div><img alt="" height="486" src="img/B18333_14_29.jpg" width="986"/>
+
+</div>
+
+</div>
+
+<p><strong class="bold">批次预测名称</strong>:输入批次预测的名称。</p>
+
+<ul>
+
+<li><strong class="bold">选择来源</strong>:在这里，您需要指定将用于批量预测的值的来源。您<a id="_idIndexMarker767"/>可以从云存储中获取大查询表<em class="italic">或</em>文件。请记住，因为我们使用的是表格数据集，所以格式必须是 CSV、JSONL 或 TFRecord。</li>
+
+<li><strong class="bold">批量预测输出</strong>:选择输出的格式(BigQuery table、CSV、TFRecord 或 JSONL)并提供路径(BigQuery <em class="italic">或</em>云存储)。</li>
+
+<li><strong class="bold">可解释性选项</strong>:可选地，您可以选择<strong class="bold">为该模型启用特性属性</strong>，以获得特性属性作为输出的一部分。</li>
+
+<li>使用 BigQuery 数据集和我们创建的表，我们可以创建一个新的批量预测来预测<strong class="bold">风险级别</strong>列:</li>
+
+</ul>
+
+<p>Using a BigQuery dataset and the table we have created, we can create a new batch prediction to predict the <strong class="bold">Risk Level</strong> column:</p>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">定义完所有的<a id="_idIndexMarker768"/>参数后，点击<strong class="bold">创建</strong>；批量预测将开始处理。完成此过程需要一些时间，完成后您会收到一封电子邮件。</p>
+
+<div><div><img alt="" height="1580" src="img/B18333_14_30.jpg" width="871"/>
+
+</div>
+
+</div>
+
+<p><a id="_idTextAnchor228"/>顶点人工智能-工作台</p>
+
+<h1 id="_idParaDest-227">Vertex AI Workbench 是整个数据科学工作流程的单一开发环境。你可以使用<a id="_idIndexMarker769"/> Vertex AI Workbench 基于笔记本的环境来查询和探索数据，开发和训练模型，并作为流水线的<a id="_idIndexMarker770"/>部分运行你的代码。Vertex AI workbench 提供以下功能:</h1>
+
+<p><strong class="bold">托管笔记本电脑</strong>是 Google 托管的环境，其集成和功能可帮助您在基于笔记本电脑的端到端生产环境中进行设置和工作。</p>
+
+<ul>
+
+<li><strong class="bold">用户管理的笔记本电脑</strong>是深度学习虚拟机映像实例，可高度定制，因此非常适合需要对其环境进行大量控制的用户。</li>
+
+<li>要启动顶点人工智能工作台，导航到顶点人工智能控制台并点击<strong class="bold">工作台</strong>:</li>
+
+</ul>
+
+<p>如果是第一次使用 Vertex AI Workbench，需要启用笔记本 API，点击<strong class="bold"> Workbench </strong>后会有提示。点击<strong class="bold">启用</strong>:</p>
+
+<div><div><img alt="" height="441" src="img/B18333_14_31.jpg" width="1030"/>
+
+</div>
+
+</div>
+
+<p>If you are using Vertex AI Workbench for the first time, you will need to enable Notebook API, which you will be prompted for after you click on <strong class="bold">Workbench</strong>. Click on <strong class="bold">ENABLE</strong>:</p>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">在本实验中，我们将创建一个用户管理的笔记本。Vertex AI 提供不同类型的<a id="_idIndexMarker771"/> Jupyter 笔记本，具有各种预装库和依赖关系。在这个例子中，我们将创建一个简单的 Python 3 笔记本。请遵循以下步骤:</p>
+
+<div><div><img alt="" height="447" src="img/B18333_14_32.jpg" width="983"/>
+
+</div>
+
+</div>
+
+<p>从控制台的左侧菜单中，点击<strong class="bold">工作台</strong>。</p>
+
+<ol>
+
+<li value="1">点击页面顶部的<strong class="bold">新笔记本</strong>。</li>
+
+<li>从下拉菜单中，点击<strong class="bold"> Python 3 </strong>:</li>
+
+<li>在弹出菜单中，您需要通过提供笔记本名称<strong class="bold"/>、<strong class="bold">区域</strong>、<strong class="bold">区域</strong>等来识别笔记本。然后，点击<strong class="bold">创建</strong>:</li>
+
+</ol>
+
+<div><div><img alt="" height="633" src="img/B18333_14_33.jpg" width="1380"/>
+
+</div>
+
+</div>
+
+<p>现在，让我们检查并<a id="_idIndexMarker772"/>分析我们之前创建的笔记本，以及 Vertex AI 笔记本中有哪些功能。Vertex AI 提供了一个 Jupyter 笔记本环境。点击<strong class="bold">打开 JUPYTERLAB </strong>，如以下截图所示:</p>
+
+<div><div><img alt="" height="655" src="img/B18333_14_34.jpg" width="954"/>
+
+</div>
+
+</div>
+
+<p>您将导航到包含 JupyterLab 环境的新选项卡。在页面的左侧，您会看到所有的文件夹。默认情况下，有两个文件夹，但是您可以从不同的来源(如 GitHub)创建、上传或克隆一个文件夹。在页面的右侧<a id="_idIndexMarker773"/>有<strong class="bold">笔记本</strong>、<strong class="bold">控制台</strong>和<strong class="bold">其他</strong>，包括<strong class="bold">终端</strong>、<strong class="bold">文本文件</strong>等选项。点击笔记本下的<strong class="bold"> Python 3 </strong>。您将被带到一个空白笔记本，在那里您可以开始使用 Python 编程:</p>
+
+<div><div><img alt="" height="616" src="img/B18333_14_35.jpg" width="1380"/>
+
+</div>
+
+</div>
+
+<p>点击<code>.ipynb</code>文件(左侧)后，您可以开始输入右侧的脚本:</p>
+
+<div><div><img alt="" height="633" src="img/B18333_14_36.jpg" width="931"/>
+
+</div>
+
+</div>
+
+<p>至此，您已经创建了培训平台，并准备开始运行 Jupyter 笔记本电脑。</p>
+
+<div><div><img alt="" height="329" src="img/B18333_14_37.jpg" width="907"/>
+
+</div>
+
+</div>
+
+<p><a id="_idTextAnchor229"/>顶点人工智能–特征库</p>
+
+<h1 id="_idParaDest-228">Vertex AI 中的特征库是您可以创建实体和特征，并根据需要添加可在以后使用的值<a id="_idIndexMarker774"/>。在本演示中，我们将通过运行一些 Python 脚本，探索在 Jupyter 笔记本中创建包含实体和要素的要素存储。在进入笔记本之前，让我们通过 Google Cloud 控制台创建一个功能商店和实体。从控制台的左侧菜单中，点击<strong class="bold">功能</strong>:</h1>
+
+<p>由于我们尚未创建任何功能存储，因此此部分将为空。要创建新实体，点击页面顶部的<strong class="bold">创建实体类型</strong>:</p>
+
+<div><div><img alt="" height="860" src="img/B18333_14_38.jpg" width="1380"/>
+
+</div>
+
+</div>
+
+<p>从弹出的<a id="_idIndexMarker775"/>菜单中，输入所有必要的信息并点击<strong class="bold">创建</strong>按钮，如下所示:</p>
+
+<div><div><img alt="" height="698" src="img/B18333_14_39.jpg" width="1380"/>
+
+</div>
+
+</div>
+
+<p>接下来，我们将创建一个新的笔记本，并从 GitHub(<a href="https://github.com/GoogleCloudPlatform/vertex-ai-samples">https://github.com/GoogleCloudPlatform/vertex-ai-samples</a>)克隆一个存储库。在创建了一个笔记本并克隆了前面提到的<a id="_idIndexMarker776"/>存储库之后，从<code>cloned</code>文件夹，进入<code>Vertex-ai-samples</code> | <code>notebooks</code> | <code>official</code> | <code>feature_store</code>并点击<code>gapic-feature-store.ipynb</code>:</p>
+
+<div><div><img alt="" height="784" src="img/B18333_14_40.jpg" width="650"/>
+
+</div>
+
+</div>
+
+<p>安装所有附加的软件包，并输入您的项目 ID，如下面的屏幕截图所示:</p>
+
+<div><div><img alt="" height="608" src="img/B18333_14_41.jpg" width="1082"/>
+
+</div>
+
+</div>
+
+<p>运行所有的脚本(在这个演示文档中，我们不会检查每一行，但我们会强调与 Vertex AI 特性库相关的要点)。</p>
+
+<div><div><img alt="" height="486" src="img/B18333_14_42.jpg" width="1081"/>
+
+</div>
+
+</div>
+
+<p>这些脚本将执行以下操作:</p>
+
+<p>为输出准备数据集。它将在 BigQuery 中创建一个数据集来存放输出。</p>
+
+<ol>
+
+<li value="1">导入库并定义常数。</li>
+
+<li>创建特征库及其实体和特征。</li>
+
+<li>导入值。</li>
+
+<li>运行完所有脚本后，您可以在 Google <a id="_idIndexMarker777"/>控制台中检查创建的特性库(及其实体和特性)。从控制台，转到<strong class="bold">顶点 AI </strong>并点击左侧菜单中的<strong class="bold">特征</strong>:</li>
+
+</ol>
+
+<p>您会注意到我们已经创建了一个包含两个实体(<code>movies</code>和<code>users</code>)的特性库。每个实体都有三个特征。如果您单击提供的任何实体，您将看到关于该特定实体的一些详细信息(在我们的示例中，实体是<code>movies</code>):</p>
+
+<div><div><img alt="" height="548" src="img/B18333_14_43.jpg" width="1380"/>
+
+</div>
+
+</div>
+
+<p>作为一个完全托管的解决方案，Vertex AI 特征库为您提供了一个集中的存储库来组织、存储和服务 ML 特征，并为您的团队提供了一个在<a id="_idIndexMarker778"/>规模上共享、发现和重用 ML 特征的存储库。它对开发和部署新的 ML 应用程序有很大的帮助。关于功能商店的更多详细信息，请查看 https://cloud.google.com/vertex-ai/docs/featurestore。</p>
+
+<div><div><img alt="" height="480" src="img/B18333_14_44.jpg" width="1294"/>
+
+</div>
+
+</div>
+
+<p><a id="_idTextAnchor230"/>顶点人工智能–管道和元数据</p>
+
+<h1 id="_idParaDest-229">管道帮助你自动化和复制你的 ML 工作流程。Vertex AI 将其跨谷歌云的 ML 产品整合到一个无缝的开发体验中。以前，通过 AutoML 和定制模型训练的模型可以通过单独的服务访问。Vertex AI 将两者结合成一个 API，还有其他新产品。在这个演示中，我们将使用顶点管道创建和运行 ML 管道。</h1>
+
+<p>我们将使用 Vertex AI SDK 并创建一个 Jupyter 笔记本。创建好笔记本后，点击<strong class="bold">打开 JUPYTERLAB </strong>，如下截图所示:</p>
+
+<p>新笔记本将在新标签页中打开。克隆存储库(<a href="https://github.com/GoogleCloudPlatform/vertex-ai-samples">https://github.com/GoogleCloudPlatform/vertex-ai-samples</a>)。</p>
+
+<div><div><img alt="" height="591" src="img/B18333_14_45.jpg" width="1320"/>
+
+</div>
+
+</div>
+
+<p>从克隆的<a id="_idIndexMarker782"/>文件夹，转到<code>Vertex-ai-samples</code> | <code>notebooks</code> | <code>official</code> | <code>pipelines</code>。点击<code>automl_tabular_classification_beans.ipynb</code>文件后，笔记本会在左侧<a id="_idIndexMarker783"/>打开，如下图所示:</p>
+
+<p>从给定的笔记本中，阅读概述并查看特定演示的数据集、目标和成本。运行所有的命令(我们不会描述每一个脚本，但将重点放在与顶点人工智能管道相关的主要部分)。</p>
+
+<div><div><img alt="" height="639" src="img/B18333_14_46.jpg" width="1375"/>
+
+</div>
+
+</div>
+
+<p>您将要运行的脚本将执行以下操作:</p>
+
+<p>设置项目 ID 和存储桶(存储所有数据的位置)。</p>
+
+<ol>
+
+<li value="1">导入必要的库。</li>
+
+<li>定义常数并创建必要的组件。</li>
+
+<li>创建一个<a id="_idIndexMarker784"/>端到端的 ML 管道。该过程将花费 2 个多小时<a id="_idIndexMarker785"/>，因为它将执行以下任务:</li>
+
+<li>在 Vertex AI 中创建数据集。<ol><li>用 AutoML 训练一个表格分类模型。</li>
+
+<li>获取此模型的评估指标。</li>
+
+<li>根据评估指标，它将决定是否在顶点管道中使用条件逻辑部署模型。</li>
+
+<li>使用顶点预测将模型部署到端点。</li>
+
+<li>创建管道后，要查看和分析它，在顶点 AI 的左侧菜单中，点击<strong class="bold">管道</strong>，如下图所示:</li>
+
+</ol></li>
+
+</ol>
+
+<p>点击<strong class="bold">管道</strong>后，您将<a id="_idIndexMarker786"/>带到一个页面，在此您可以选择您<a id="_idIndexMarker787"/>想要查看的管道。您将看到以下管道图:</p>
+
+<div><div><img alt="" height="977" src="img/B18333_14_47.jpg" width="1313"/>
+
+</div>
+
+</div>
+
+<p>如果您单击<code>dataset</code>工件，您将看到关于创建的顶点 AI 数据集的详细信息。您可以点击<strong class="bold"> URI </strong>旁边指定的链接，转到该数据集的页面:</p>
+
+<div><div><img alt="" height="921" src="img/B18333_14_48.jpg" width="1132"/>
+
+</div>
+
+</div>
+
+<p>要检查来自定制评估组件的结果度量可视化，单击<code>metrics</code>工件。在<a id="_idIndexMarker790"/>仪表盘的右侧，您将能够<a id="_idIndexMarker791"/>看到该型号的混淆矩阵:</p>
+
+<div><div><img alt="" height="446" src="img/B18333_14_49.jpg" width="1510"/>
+
+</div>
+
+</div>
+
+<p>要检查从这个管道运行中创建的模型和端点，请转到<code>automl-beans</code>模型。在那里，您应该看到这个模型部署到一个端点:</p>
+
+<div><div><img alt="" height="1197" src="img/B18333_14_50.jpg" width="1378"/>
+
+</div>
+
+</div>
+
+<p>请记住，管道中的每个<a id="_idIndexMarker792"/>部分将产生输出，该输出将用作下一部分的输入<a id="_idIndexMarker793"/>。稍后，如果需要修改这些输出/输入，点击左侧菜单中的<strong class="bold">元数据</strong>按钮:</p>
+
+<div><div><img alt="" height="572" src="img/B18333_14_51.jpg" width="1348"/>
+
+</div>
+
+</div>
+
+<p>这样，我们就有了<a id="_idIndexMarker794"/>覆盖的顶点人工智能管道和元数据。在下一个<a id="_idIndexMarker795"/>部分，我们将讨论顶点人工智能的模型监控。</p>
+
+<div><div><img alt="" height="673" src="img/B18333_14_52.jpg" width="1380"/>
+
+</div>
+
+</div>
+
+<p><a id="_idTextAnchor231"/>顶点人工智能——模型监控</p>
+
+<h1 id="_idParaDest-230">在模型部署之后，我们<a id="_idIndexMarker796"/>需要监控它，因为数据和环境可能会随着时间的推移而改变并导致<a id="_idIndexMarker797"/>模型恶化。需要考虑<a id="_idIndexMarker798"/>监控的两个概念:<strong class="bold">特征偏斜</strong>和<strong class="bold">漂移检测</strong>。</h1>
+
+<p>在我们的演示文档中，我们将构建一个全新的表格数据集并训练该模型。在本例中，我们将使用<em class="italic">女子国际足球比赛结果</em>(<a href="https://www.kaggle.com/datasets/martj42/womens-international-football-results">https://www . ka ggle . com/datasets/martj 42/Women-International-Football-Results</a>)数据集。</p>
+
+<p>我们已经创建了一个表格数据集，并上传了一个从 Kaggle 下载的 CSV 文件。以下屏幕截图显示了数据集的摘要:</p>
+
+<p>我们还使用 AutoML 方法训练了一个模型<a id="_idIndexMarker799"/>，作为目标，我们使用了<code>neutral</code>列，它有两个值(或者是<code>False</code>或者是<code>True</code>)。下面的屏幕截图显示了已训练模型的摘要:</p>
+
+<div><div><img alt="" height="769" src="img/B18333_14_53.jpg" width="1380"/>
+
+</div>
+
+</div>
+
+<p>有了可解释的 AI，我们<a id="_idIndexMarker800"/>可以看到<code>tournament</code>列对我们的模型影响最大:</p>
+
+<div><div><img alt="" height="706" src="img/B18333_14_54.jpg" width="1380"/>
+
+</div>
+
+</div>
+
+<p>接下来，我们需要将我们的模型部署到端点。点击<strong class="bold">部署到端点</strong>按钮，如下图所示:</p>
+
+<div><div><img alt="" height="648" src="img/B18333_14_55.jpg" width="611"/>
+
+</div>
+
+</div>
+
+<p>在出现的弹出菜单中(在右侧)，填写所有字段:</p>
+
+<div><div><img alt="" height="576" src="img/B18333_14_56.jpg" width="1280"/>
+
+</div>
+
+</div>
+
+<p><strong class="bold">监控作业显示名称</strong>:监控作业的名称。</p>
+
+<ul>
+
+<li><strong class="bold">监视窗口长度</strong>:监视模型的时间。</li>
+
+<li><strong class="bold">提醒邮件</strong>:输入<a id="_idIndexMarker801"/>至少一个将要收到提醒的邮件(可以输入多个邮件地址)。</li>
+
+<li><strong class="bold">抽样率</strong>:抽样的百分比。</li>
+
+<li>保持其余字段不变，点击<strong class="bold">继续</strong>:</li>
+
+</ul>
+
+<p>在下一个也是最后一个部分，您需要指定监控目标(偏斜检测或漂移检测)。如果您选择<strong class="bold">训练服务偏斜检测</strong>选项，您需要指定<a id="_idIndexMarker802"/>训练数据源和目标列。但是，如果您选择<strong class="bold">预测漂移检测</strong>选项，您需要指定警报阈值。在我们的例子中，我们将选择<strong class="bold">预测漂移检测</strong>。接下来，点击<strong class="bold">部署</strong>按钮:</p>
+
+<div><div><img alt="" height="1232" src="img/B18333_14_57.jpg" width="833"/>
+
+</div>
+
+</div>
+
+<p>将部署处理到端点需要一段时间<a id="_idIndexMarker803"/>。部署完成后，您将收到关于<em class="italic">通知和部署状态</em>以及正在创建的<em class="italic">监控作业</em>的电子邮件(在两封单独的电子邮件中):</p>
+
+<div><div><img alt="" height="847" src="img/B18333_14_58.jpg" width="1115"/>
+
+</div>
+
+</div>
+
+<p>前面的屏幕截图显示了监控作业请求电子邮件通知的模型。请注意，请求<a id="_idIndexMarker804"/>已经提交，并且基于传入的预测请求。将对其进行采样和记录以供分析。</p>
+
+<div><div><img alt="" height="525" src="img/B18333_14_59.jpg" width="803"/>
+
+</div>
+
+</div>
+
+<p><a id="_idTextAnchor232"/>总结</p>
+
+<h1 id="_idParaDest-231">在本附录中，我们查看了基于 Google Cloud Vertex AI 套件的示例，该套件为数据科学家提供端到端服务。我们讨论了顶点 AI 数据集、标记任务、训练、预测、工作台、特征存储、管道、元数据和模型监控。</h1>
+
+<p>在下一个附录中，我们将讨论如何使用各种 Google Cloud ML APIs，包括 Vision API、NLP API、语音到文本 API、文本到语音 API、翻译 API 和 Dialogflow API。</p>
+
+<p>In the next appendix, we will discuss how to use various Google Cloud ML APIs, including the Vision API, NLP API, Speech-to-Text API, Text-to-Speech API, Translation API, and Dialogflow API.</p>
+
+</div>
+
+</div>
+
+
+
+</body></html>

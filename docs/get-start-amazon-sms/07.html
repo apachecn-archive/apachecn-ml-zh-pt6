@@ -1,0 +1,264 @@
+<html><head/><body>
+
+
+	
+		<title>B17447_05_ePub_RK</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-78"><em class="italic"> <a id="_idTextAnchor077"/>第五章</em>:用 SageMaker Studio IDE 构建和训练 ML 模型</h1>
+			<p>使用 SageMaker Studio 可以轻松构建和训练一个<strong class="bold">机器学习</strong> ( <strong class="bold"> ML </strong>)模型。它是一个为 ML 开发者设计的<strong class="bold">集成开发环境</strong> ( <strong class="bold"> IDE </strong>)，用于大规模高效地构建和训练 ML 模型。为了训练一个 ML 模型，你之前可能已经为你自己或你的团队处理了管理计算基础设施的繁琐开销，以正确地训练 ML 模型。您可能也经历过计算资源的限制，无论是在桌面计算机上还是在云资源上，您都有一个固定大小的实例。当您在 SageMaker Studio 中进行开发时，不再有供应和管理计算基础设施的困扰，因为您可以轻松地利用 SageMaker Studio 中的弹性计算及其对您的 ML 用例的复杂 ML 算法和框架的广泛支持。</p>
+			<p>在本章中，我们将讨论以下主题:</p>
+			<ul>
+				<li>使用 SageMaker 的内置算法训练模型</li>
+				<li>使用流行框架中编写的代码进行培训</li>
+				<li>使用 SageMaker 笔记本进行开发和协作</li>
+			</ul>
+			<h1 id="_idParaDest-79"><a id="_idTextAnchor078"/>技术要求</h1>
+			<p>对于本章，您需要访问在<a href="https://github.com/PacktPublishing/Getting-Started-with-Amazon-SageMaker-Studio/tree/main/chapter05">https://github . com/packt publishing/Getting-Started-with-Amazon-sage maker-Studio/tree/main/chapter 05</a>提供的代码。</p>
+			<h1 id="_idParaDest-80"><a id="_idTextAnchor079"/>用 SageMaker 的内置算法训练模型</h1>
+			<p>当你想在 SageMaker Studio 的笔记本上为你的 ML 用例<a id="_idIndexMarker292"/>和数据建立一个 ML 模型时，最简单的方法之一就是使用 SageMaker 的内置算法。使用<a id="_idIndexMarker294"/>内置算法有两个优点:</p>
+			<ul>
+				<li>内置算法不需要你写任何复杂的 ML 代码。您只需要提供您的数据，确保数据格式符合算法的要求，并指定超参数和计算资源。</li>
+				<li>内置算法针对 AWS 计算基础架构进行了优化，开箱即可扩展。跨多个计算实例执行分布式训练和/或启用 GPU 支持以加快训练时间非常容易。</li>
+			</ul>
+			<p>SageMaker 的内置算法套件提供了适合最常见的<a id="_idIndexMarker295"/> ML 用例的算法。有<a id="_idIndexMarker296"/>针对以下<a id="_idIndexMarker297"/>类别的算法:<strong class="bold">监督学习</strong>、<strong class="bold">非监督学习</strong>、<strong class="bold">图像分析</strong>、<strong class="bold">文本分析</strong>。最值得注意的是，<a id="_idIndexMarker298"/>有<strong class="bold"> XGBoost </strong>和<strong class="bold"> k-means </strong>分别用于有监督<a id="_idIndexMarker299"/>学习和<a id="_idIndexMarker300"/>无监督学习的表格数据，还有<a id="_idIndexMarker301"/> <strong class="bold">图像分类</strong>、<strong class="bold">物体检测</strong>和<strong class="bold">语义分割</strong>用于<a id="_idIndexMarker302"/>图像分析。对于文本<a id="_idIndexMarker303"/>分析，<a id="_idIndexMarker304"/>我们有<strong class="bold"> word2vec </strong>、<strong class="bold">文本分类</strong>和<strong class="bold">序列到序列</strong>算法。这些只是我们提到的每个类别的<a id="_idIndexMarker305"/>示例算法。还有更有用的算法可用，但我不会详尽地列出它们。你可以访问 https://docs.aws.amazon.com/sagemaker/latest/dg/algos.html 查看完整的列表和进一步的细节。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">GPU 对算法的支持和分布式训练能力各不相同。请访问<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/common-info-all-im-models.html">https://docs . AWS . Amazon . com/sage maker/latest/DG/common-info-all-im-models . html</a>获取 GPU 和每个算法的分布式训练支持。</p>
+			<p>让我们用一个用例和一个算法来演示如何使用 SageMaker 的内置算法。</p>
+			<h2 id="_idParaDest-81"><a id="_idTextAnchor080"/>轻松训练 NLP 模型</h2>
+			<p>训练一个 ML <a id="_idIndexMarker307"/>模型不需要用 SageMaker 的内置算法编写任何 ML 代码。我们将使用来自<em class="italic">DBpedia</em>(【https://www.dbpedia.org/】T21)的 DBpedia 本体数据集来查看一个 NLP 使用<a id="_idIndexMarker308"/>案例，以将句子分类，该数据集包括 560，000 个训练样本和 70，000 个维基百科文章标题和摘要的测试样本。请使用<strong class="bold"> Python 3(数据科学)</strong>内核和<strong class="bold"> ml.t3.medium </strong>实例从资源库<a id="_idIndexMarker309"/>中打开<code>chapter05/01-built_in_algorithm_text_classification.ipynb</code>中的笔记本。</p>
+			<p>在笔记本中，我们首先下载数据集并检查它，以了解我们需要如何处理数据，如以下代码片段所示:</p>
+			<pre>!wget -q https://github.com/le-scientifique/torchDatasets/raw/master/dbpedia_csv.tar.gz
+!tar -xzf dbpedia_csv.tar.gz
+!head dbpedia_csv/train.csv -n 3
+!cat dbpedia_csv/classes.txt</pre>
+			<p>我们看到数据<code>dbpedia_csv/train.csv</code>被格式化为<code>&lt;class index&gt;,&lt;title&gt;,&lt;abstract&gt;</code>。还有一个名为<code>dbpedia_csv/classes.txt</code>的文件，按照与<code>dbpedia_csv/train.csv</code>中的类索引相对应的顺序记录了类。</p>
+			<p>这是一个文本分类问题:给定一篇文章的摘要，我们想建立一个模型来预测和分类这个摘要所属的类别。当处理大量文本文档时，这是一个常见的用例，比如这个数据集来源的维基百科站点上的文章。使用人工审查来组织所有文档几乎是不可能的。</p>
+			<p>适合这个用例的内置算法之一是<strong class="bold"> BlazingText </strong>。BlazingText 为 Word2vec(无监督)和文本分类(有监督)提供了<a id="_idIndexMarker310"/>高度优化的实现。Word2vec 算法可以将<a id="_idIndexMarker311"/>文本转换为矢量表示，或者将<strong class="bold">单词嵌入</strong>，用于任何下游 NLP 用途，例如情感分析或命名实体识别。文本分类可以将文档分类。这对我们的用例及数据集来说是完美的。</p>
+			<p>使用 SageMaker 的内置算法时，为训练准备好数据是关键。使用 BlazingText 进行文本分类<a id="_idIndexMarker313"/>需要将每个数据点格式化为<code>__label__&lt;class&gt; text…</code>。这里有一个例子:</p>
+			<pre>__label__latin Lorem ipsum dolor sit amet , consectetur adipiscing elit , sed do eiusmod tempor incididunt ut labore et dolore magna aliqua . </pre>
+			<p>我们使用一个<code>preprocess</code>函数，它调用<code>transform_text</code>函数来标记抽象的每一行。我们在<code>transform_text</code>函数中使用了一个来自<code>nltk</code>库的句子分词器<code>punkt</code>。我们预处理训练和测试文件。为了使处理时间易于管理，我们只使用 20%的训练数据，如下面的代码片段所示:</p>
+			<pre>preprocess("dbpedia_csv/train.csv", "dbpedia.train", keep=0.2)
+preprocess("dbpedia_csv/test.csv", "dbpedia.validation")
+!head -n 1 dbpedia.train 
+<strong class="bold">__label__Company automatic electric automatic electric company ( ae ) was the largest of the manufacturing units of the automatic electric group . it was a telephone equipment supplier for independent telephone companies in north america and also had a world-wide presence . with its line of automatic telephone exchanges it was also a long-term supplier of switching equipment to the bell system starting in 1919.</strong></pre>
+			<p>我们可以看到，现在我们有了预期格式的数据。使用<code>preprocess</code>中的<code>keep</code>参数随意将训练集扩展到更高的百分比。预处理之后，我们就可以调用内置算法了。</p>
+			<p>SageMaker 的内置算法是完全托管的容器，可以通过简单的 SDK 调用来访问。以下代码允许我们使用 BlazingText 算法进行文本分类:</p>
+			<pre>image=sagemaker.image_uris.retrieve(framework='blazingtext', 
+                                    region=region, 
+                                    version='1')
+print(image)
+<strong class="bold">433757028032.dkr.ecr.us-west-2.amazonaws.com/blazingtext:1</strong></pre>
+			<p>在<a id="_idIndexMarker314"/>执行之后，我们在<a id="_idIndexMarker315"/>中得到一个字符串，一个名为<code>image</code>的变量。你可能想知道，这个看起来像 URL 路径的字符串是什么？这怎么是模型训练的算法？</p>
+			<p><strong class="bold">容器技术</strong>是 SageMaker 管理培训的核心。容器技术<a id="_idIndexMarker316"/>允许 SageMaker 灵活地使用来自任何框架和任何运行时需求的算法。SageMaker 不使用笔记本中的运行时设置，也不使用笔记本背后的计算资源来进行模型训练，而是将您提供的数据和一个包含运行时设置和代码库的容器映像带到一个单独的 SageMaker 管理的计算基础设施来进行模型训练。</p>
+			<p><code>image</code>中的路径指向<a id="_idIndexMarker317"/>存储在<strong class="bold">亚马逊弹性容器注册表</strong> ( <strong class="bold"> ECR </strong>)中的容器图像，该图像具有 BlazingText ML 算法。我们可以用它来开始 SageMaker 估计器的模型训练工作。</p>
+			<p>SageMaker estimator 是完全管理的模型训练的关键构造，它使我们能够用一个简单的 API 来控制模型训练工作的各个方面。下面的片段是我们如何用 SageMaker 的 BlazingText 算法设置一个训练作业:</p>
+			<pre>estimator = sagemaker.estimator.estimator(
+            image,
+            role,
+            instance_count=1,
+            instance_type='ml.c5.2xlarge',
+            volume_size=30,
+            max_run=360000,
+            input_mode='File',
+            enable_sagemaker_metrics=True,
+            output_path=s3_output_location,
+            hyperparameters={
+                'mode': 'supervised',
+                'epochs': 20,
+                'min_count': 2,
+                'learning_rate': 0.05,
+                'vector_dim': 10,
+                'early_stopping': True,
+                'patience': 4,
+                'min_epochs': 5,
+                'word_ngrams': 2,
+            },
+)</pre>
+			<p>最值得注意的是，<a id="_idIndexMarker319"/>进入估算器的参数如下:</p>
+			<ul>
+				<li>作为容器的算法，<code>image</code></li>
+				<li><code>hyperparameters</code>对于培训工作</li>
+				<li>作业所需的计算资源、<code>instance_type</code>、<code>instance_count</code>和<code>volume_size</code></li>
+				<li>IAM 执行角色，<code>role</code></li>
+			</ul>
+			<p>正如你所看到的，我们不仅指定了算法选项，还指示 SageMaker 我们需要什么样的云计算资源来进行这次模型训练。我们请求一个<code>ml.c5.2xlarge</code>实例，这是一个计算优化的实例，具有高性能处理器，为这个培训作业提供 30 GB 的存储空间。它允许我们在原型开发期间为笔记本环境使用一个轻量级的、廉价的实例类型(<code>ml.t3.medium</code>)，并在一个更强大的实例类型上进行全面的培训，以更快地完成工作。</p>
+			<p>建立了算法和计算资源；接下来，我们需要将估计器<a id="_idIndexMarker320"/>与训练数据<a id="_idIndexMarker321"/>相关联。在我们准备好数据之后，我们需要将数据上传到 S3 桶中，以便 SageMaker 培训作业可以访问<code>ml.c5.4xlarge</code>实例。我们通过简单地用数据调用<code>estimator.fit()</code>来开始训练:</p>
+			<pre>train_channel = prefix + '/train'
+validation_channel = prefix + '/validation'
+sess.upload_data(path='dbpedia_csv/dbpedia.train', bucket=bucket, key_prefix=train_channel)
+sess.upload_data(path='dbpedia_csv/dbpedia.validation', bucket=bucket, key_prefix=validation_channel)
+s3_train_data = f's3://{bucket}/{train_channel}'
+s3_validation_data = f's3://{bucket}/{validation_channel}'
+print(s3_train_data)
+print(s3_validation_data)
+data_channels = {'train': s3_train_data, 
+                 'validation': s3_validation_data}
+exp_datetime = strftime('%Y-%m-%d-%H-%M-%S', gmtime())
+jobname = f'dbpedia-blazingtext-{exp_datetime}'
+estimator.fit(inputs=data_channels,
+              job_name=jobname,
+              logs=True)</pre>
+			<p>您可以在笔记本中查看作业日志，并观察以下内容:</p>
+			<ul>
+				<li>SageMaker 为这个培训工作构建了一个<code>ml.c5.2xlarge</code>实例。</li>
+				<li>SageMaker 从 S3 下载数据，从 ECR 下载 BlazingText 容器图像。</li>
+				<li>SageMaker 运行模型训练，并在此处显示的单元格输出中记录训练和验证准确性:<pre><strong class="bold">#train_accuracy: 0.9961</strong> <strong class="bold">Number of train examples: 112000</strong> <strong class="bold">#validation_accuracy: 0.9766</strong> <strong class="bold">Number of validation examples: 70000</strong></pre></li>
+			</ul>
+			<p>训练<a id="_idIndexMarker323"/>作业的单元<a id="_idIndexMarker322"/>输出也可在<code>estimator(…, enable_sagemaker_metrics=True)</code>中<a id="_idIndexMarker324"/>获得，被自动发送到<strong class="bold">亚马逊云观察指标</strong>。即使笔记本被意外删除，这个<a id="_idIndexMarker325"/>也能让我们管理培训工作。</p>
+			<p>一旦训练作业完成，您就可以在<code>estimator.model_data</code>中访问训练好的模型，稍后可以在云中(这是我们将在下一章中深入探讨的主题)或在装有<code>fastText</code>程序的计算机上使用该模型进行托管和推理。您可以使用以下代码块访问模型:</p>
+			<pre>!aws s3 cp {estimator.model_data} ./dbpedia_csv/
+%%sh
+cd dbpedia_csv/
+tar -zxf model.tar.gz
+# Use the model archive with fastText
+# eg. fasttext predict ./model.bin test.txt</pre>
+			<p class="callout-heading">注意</p>
+			<p class="callout">BlazingText 是 FastText 的 GPU 加速版本。fast text(<a href="https://fasttext.cc/">https://fasttext.cc/</a>)是一个开源库，可以执行单词嵌入生成(无监督)和文本分类(有监督)。BlazingText 和 FastText 创建的模型是相互兼容的。</p>
+			<p>我们已经<a id="_idIndexMarker326"/>创建了一个复杂的<a id="_idIndexMarker327"/>文本分类模型，该模型能够以 0.9766 的精度对来自 DBpedia 的文档类别进行分类，并使用最少的 ML 代码对验证数据进行分类。</p>
+			<p>让我们也建立一个 ML 实验管理框架，<strong class="bold"> SageMaker 实验</strong>，来跟踪我们在本章中启动的任务。</p>
+			<h2 id="_idParaDest-82"><a id="_idTextAnchor081"/>使用 SageMaker 实验管理培训工作</h2>
+			<p>作为数据科学家，我们可能都遇到过一个棘手的情况，模型<a id="_idIndexMarker328"/>训练运行的数量可能会增长得非常快<a id="_idIndexMarker329"/>，以至于很难在各种实验设置中跟踪最佳模型，如数据集版本、超参数和算法。在 SageMaker Studio 中，您可以使用<strong class="bold"> SageMaker Experiments </strong>轻松跟踪训练运行中的实验，并在实验和试验组件 UI 中可视化它们。SageMaker 实验是一个开源项目(<a href="https://github.com/aws/sagemaker-experiments">https://github.com/aws/sagemaker-experiments</a>)，可以通过 Python SDK 以编程方式访问。</p>
+			<p>在 SageMaker 实验中，<strong class="bold">实验</strong>是<strong class="bold">试验</strong>运行的集合，这些运行是 ML 工作流的执行，可以包含<strong class="bold">试验组件</strong>，例如数据处理和模型训练。</p>
+			<p>让我们继续使用<code>chapter05/01-built_in_algorithm_text_classification.ipynb</code>笔记本，看看我们如何使用 SageMaker Experiments 设置一个实验和试验，以跟踪具有不同学习率的培训工作，以便我们可以在 SageMaker Studio 中轻松比较试验的性能:</p>
+			<ol>
+				<li>首先，我们在笔记本内核中安装<code>sagemaker-experiments</code>SDK:<pre>!pip install -q sagemaker-experiments</pre></li>
+				<li>然后我们创建一个名为<code>dbpedia-text-classification</code>的实验，我们可以使用<code>smexperiments</code>库:<pre>from smexperiments.experiment import Experiment from smexperiments.trial import Trial from botocore.exceptions import ClientError from time import gmtime, strftime import time experiment_name = 'dbpedia-text-classification' try:     experiment = Experiment.create(         experiment_name=experiment_name,          description='Training a text classification model using dbpedia dataset.') except ClientError as e:     print(f'{experiment_name} experiment already exists! Reusing the existing experiment.')</pre>来存储与这个模型训练用例相关的所有作业</li>
+				<li>然后<a id="_idIndexMarker330"/>我们创建一个实用的<a id="_idIndexMarker331"/>函数<code>create_estimator()</code>，带有一个输入参数<code>learning_rate</code>，以便以后在迭代不同的学习速率时使用:<pre>def create_estimator(learning_rate):     hyperparameters={'mode': 'supervised',                      'epochs': 40,                      'min_count': 2,                      'learning_rate': learning_rate,                      'vector_dim': 10,                      'early_stopping': True,                      'patience': 4,                      'min_epochs': 5,                      'word_ngrams': 2}     estimator = sagemaker.estimator.estimator(                     image,                     role,                     instance_count=1,                     instance_type='ml.c4.4xlarge',                     volume_size=30,                     max_run=360000,                     input_mode='File',                     enable_sagemaker_metrics=True,                     output_path=s3_output_location,                     hyperparameters=hyperparameters)     return estimator</pre></li>
+				<li>让我们<a id="_idIndexMarker332"/>以不同的学习速率在<code>for</code>循环中运行三个训练<a id="_idIndexMarker333"/>任务，以便了解精度如何变化:<pre>for lr in [0.1, 0.01, 0.001]:     exp_datetime = strftime('%Y-%m-%d-%H-%M-%S', gmtime())     jobname = f'dbpedia-blazingtext-{exp_datetime}'     exp_trial = Trial.create(         experiment_name=experiment_name,          trial_name=jobname)     experiment_config={         'ExperimentName': experiment_name,         'TrialName': exp_trial.trial_name,         'TrialComponentDisplayName': 'Training'}     estimator = create_estimator(learning_rate=lr)         estimator.fit(inputs=data_channels,              job_name=jobname,              experiment_config=experiment_config,              wait=False)</pre></li>
+			</ol>
+			<p>在<code>for</code>循环中，我们<a id="_idIndexMarker334"/>创建唯一的训练作业名称<code>dbpedia-blazingtext-{exp_datetime}</code>，将<a id="_idIndexMarker335"/>与试验<code>exp_trial</code>和实验配置<code>experiment_config</code>相关联，以存储信息。然后我们将<code>experiment_config</code>传递给<code>estimator.fit()</code>函数，SageMaker 将自动为我们跟踪实验。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">我们将<code>wait=False</code>放在<code>estimator.fit()</code>调用中。这允许训练作业异步运行，这意味着单元将立即返回，而不是由流程保留，直到训练完成。实际上，我们具有不同学习率的作业是并行运行的，每个作业都使用自己单独的 SageMaker 管理的实例进行训练。</p>
+			<p>在 SageMaker Studio 中，您可以轻松地将这些培训工作的结果与 SageMaker 实验进行比较。我们可以在 SageMaker Studio 用户界面中创建一个图表，比较学习率不同的三种作业的准确性:</p>
+			<ol>
+				<li value="1">点击左侧工具条中的<strong class="bold"> SageMaker 组件和注册表</strong>，如图<em class="italic">图 5.1 </em>所示:</li>
+			</ol>
+			<div><div><img src="img/B17447_06_01.jpg" alt="Figure 5.1 – Viewing experiments and trials from the left sidebar&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.1–从左侧栏查看实验和试验</p>
+			<ol>
+				<li value="2">在<a id="_idIndexMarker336"/>下拉菜单中选择<strong class="bold">实验和试验</strong>，如图<em class="italic">图 5.1 </em>所示。</li>
+				<li>右键点击<strong class="bold">dbpedia-text-class ification</strong>实验条目上的<a id="_idIndexMarker337"/>，选择<strong class="bold">在试验组件列表</strong>中打开。</li>
+				<li>主工作区将弹出一个新视图。如<em class="italic">图 5.2 </em>所示，您可以配置各列以显示精确度和学习率。相对于三个<strong class="bold">学习率</strong>设置，我们可以看到<strong class="bold">验证:精度</strong>和<strong class="bold">训练:精度</strong>。随着<strong class="bold"> learning_rate </strong>设置为<strong class="bold"> 0.01 </strong>，我们拥有最平衡的训练和验证精度。0.1 的学习率是过拟合的，而 0.001 的学习率是欠拟合的。</li>
+			</ol>
+			<div><div><img src="img/B17447_06_02.jpg" alt="Figure 5.2 – Viewing and comparing training jobs&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.2–查看和比较培训工作</p>
+			<ol>
+				<li value="5">我们可以<a id="_idIndexMarker338"/>创建一个<strong class="bold">验证的线图<a id="_idIndexMarker339"/>:准确度</strong>对<strong class="bold">学习率</strong>。多选三个试验组件，点击右上角的<strong class="bold">添加图表</strong>。将弹出一个新视图。如<em class="italic">图 5.3 </em>所示配置图表属性。您将得到一个图表，显示<strong class="bold">验证:准确性</strong>和<strong class="bold">学习率</strong>之间的关系。</li>
+			</ol>
+			<div><div><img src="img/B17447_06_03.jpg" alt="Figure 5.3 – Comparing and charting validation accuracy versus learning rate&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.3–验证准确性与学习速度的比较和图表</p>
+			<p>SageMaker <a id="_idIndexMarker340"/> Experiments 对于管理作业和资源以及在 SageMaker Studio 中开始大规模构建 ML 项目时比较性能非常有用<a id="_idIndexMarker341"/>。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">没有<code>experiment_config</code>的训练和加工作业将被放置在<strong class="bold">未分配的试验部件</strong>中。</p>
+			<p>通常情况下，您已经有一些 ML 项目使用 TensorFlow 和 PyTorch 等流行框架来训练模型。您也可以使用 SageMaker 的全面管理培训功能来运行它们。</p>
+			<h1 id="_idParaDest-83"><a id="_idTextAnchor082"/>使用流行框架中编写的代码进行培训</h1>
+			<p>由于我们之前提到的容器技术，SageMaker 的<a id="_idIndexMarker342"/>完全管理的培训<a id="_idIndexMarker343"/>也适用于您最喜欢的 ML 框架。你可能已经和<code>Tensorflow</code>、<code>PyTorch</code>、<code>Hugging</code>、<code>MXNet</code>、<code>scikit-learn</code>以及更多的人一起工作过。您可以通过 SageMaker 轻松使用它们，这样您就可以使用其全面管理的培训功能，并从轻松配置适当规模的计算基础架构中受益。SageMaker 使<a id="_idIndexMarker345"/>你能够为定制模型使用自己的训练脚本，并在流行框架的预构建容器上运行它们。这个<a id="_idIndexMarker346"/>被称为<strong class="bold">脚本模式</strong>。对于预构建容器没有涵盖的框架，您也可以为您选择的几乎任何框架使用自己的容器。</p>
+			<p>让我们以训练一个用 TensorFlow 编写的情感分析模型为例，向您展示如何在 SageMaker 中使用您自己的脚本来运行 SageMaker 的预建 TensorFlow 容器。然后我们将描述其他框架的类似过程。</p>
+			<h2 id="_idParaDest-84"><a id="_idTextAnchor083"/>张量流</h2>
+			<p>TensorFlow 是 ML 的开源框架，专门用于深度神经网络。您可以<a id="_idIndexMarker347"/>使用 SageMaker 的<a id="_idIndexMarker348"/>预建 TensorFlow 训练和推理容器运行 TensorFlow 代码，可通过 SageMaker SDK 的<code>sagemaker.tensorflow</code>获得。请使用<code>ml.t3.medium</code>实例从存储库中打开<code>chapter05/02-tensorflow_sentiment_analysis.ipynb</code>中的笔记本。本例的目的是使用 TensorFlow 层构建的神经网络，根据 IMDb 电影数据库中的电影评论来训练和预测情感(正面/负面)。您可以在笔记本电脑中运行神经网络训练，但这需要您有一个计算实例，能够随时用大量数据训练深度神经网络，即使您只是在探索数据和编写代码。但是使用 SageMaker，您可以通过使用较小的实例进行代码构建，并且只使用 GPU 实例进行全面培训，来优化计算使用。</p>
+			<p>在<code>chapter06/02-tensorflow_sentiment_analysis.ipynb</code>中，我们首先安装我们需要的库，并建立 Sagemaker 会话。然后，我们从<code>tensorflow.python.keras.datasets</code>加载 IMDb 数据集，运行最少的数据预处理，并将训练和测试分割保存到本地文件系统，然后保存到 S3 存储桶。</p>
+			<p>假设我们之前已经开发了一个在这个 IMDb 数据集上工作的神经网络架构，如下面的代码块所示，我们可以很容易地将其引入 SageMaker 进行训练。</p>
+			<pre>embedding_layer = tf.keras.layers.Embedding(max_features,
+                                            embedding_dims,
+                                            input_length=maxlen)
+sequence_input = tf.keras.Input(shape=(maxlen,), dtype='int32')
+embedded_sequences = embedding_layer(sequence_input)
+x = tf.keras.layers.Dropout(args.drop_out_rate)(embedded_sequences)
+x = tf.keras.layers.Conv1D(filters, kernel_size, padding='valid', activation='relu', strides=1)(x)
+x = tf.keras.layers.MaxPooling1D()(x)
+x = tf.keras.layers.GlobalMaxPooling1D()(x)
+x = tf.keras.layers.Dense(hidden_dims, activation='relu')(x)
+x = tf.keras.layers.Dropout(drop_out_rate)(x)
+preds = tf.keras.layers.Dense(1, activation='sigmoid')(x)
+model = tf.keras.Model(sequence_input, preds)
+optimizer = tf.keras.optimizers.Adam(learning_rate)
+model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])</pre>
+			<p>SageMaker 可以将 TensorFlow <a id="_idIndexMarker349"/>脚本放入 Docker 容器中，并用数据训练脚本。为此，SageMaker 要求脚本知道容器、计算基础设施中设置的环境变量，并且可选地，脚本需要能够从执行中获取输入，例如超参数。以下是步骤:</p>
+			<ol>
+				<li value="1">创建一个脚本来放入模型架构和数据加载函数(<code>get_model</code>、<code>get_train_data</code>、<code>get_test_data</code>等等)。</li>
+				<li>Create an argument parser that takes in parameters such as hyperparameters and training data location from script execution. SageMaker is going to run the script as an executable in the container with arguments specified from a SDK call. The training data location is passed into the script with a default from environmental variable SageMaker set up in the container (<code>SM_CHANNEL_*</code>). The argument parser is defined in a <code>parse_arg()</code> function, shown as follows: <pre>def parse_args():
+    parser = argparse.ArgumentParser()
+    # hyperparameters sent by the client are passed as command-line arguments to the script
+    parser.add_argument('--epochs', type=int, default=1)
+    parser.add_argument('--batch_size', type=int, default=64)
+    parser.add_argument('--learning_rate', type=float, default=0.01)
+    parser.add_argument('--drop_out_rate', type=float, default=0.2)
+    # data directories
+    parser.add_argument('--train', type=str, default=os.environ.get('SM_CHANNEL_TRAIN'))
+    parser.add_argument('--test', type=str, default=os.environ.get('SM_CHANNEL_TEST'))
+    # model directory /opt/ml/model default set by SageMaker
+    parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_MODEL_DIR'))
+    return parser.parse_known_args()</pre><p class="callout-heading">注意</p><p class="callout"><code>SM_CHANNEL_*</code>环境变量中的<code>TRAIN</code>或<code>TEST</code>后缀必须与<code>estimator.fit()</code>调用中<a id="_idIndexMarker351"/>输入数据通道中提供的<a id="_idIndexMarker350"/>匹配。所以，后来，当我们指定数据通道时，我们需要创建一个字典，它的键是<code>TRAIN</code>和<code>TEST</code>，不区分大小写。</p></li>
+				<li>将培训步骤作为<code>if __name__ == "__main__":</code> : <pre>if __name__ == "__main__":     args, _ = parse_args()     x_train, y_train = get_train_data(args.train)     x_test, y_test = get_test_data(args.test)     model = get_model(args)     history = model.fit(x_train, y_train,               batch_size=args.batch_size,               epochs=args.epochs,               validation_data=(x_test, y_test))     save_history(args.model_dir + "/history.p", history)     # create a TensorFlow SavedModel for deployment to a SageMaker endpoint with TensorFlow Serving     model.save(args.model_dir + '/1')</pre>的一部分</li>
+				<li>确保<a id="_idIndexMarker352"/>用参数解析器中的变量替换网络中的变量。例如，将<code>tf.keras.optimizers.Adam(learning_rate)</code>改为<code>tf.keras.optimizers.Adam(</code> args。<code>learning_rate)</code>。</li>
+				<li>在我们的<a id="_idIndexMarker353"/>笔记本上，我们把脚本写给<code>code/tensorflow_sentiment.py</code>。</li>
+				<li>使用<code>sagemaker.tensorflow.TensorFlow</code>创建一个张量流估计器，它是我们之前使用的<code>estimator</code>类的扩展，专门处理用张量流编写的 ML 训练:<pre>from sagemaker.tensorflow import TensorFlow exp_datetime = strftime('%Y-%m-%d-%H-%M-%S', gmtime()) jobname = f'imdb-tf-{exp_datetime}' model_dir = f's3://{bucket}/{prefix}/{jobname}' code_dir = f's3://{bucket}/{prefix}/{jobname}' train_instance_type = 'ml.p3.2xlarge' hyperparameters = {'epochs': 10, 'batch_size': 256, 'learning_rate': 0.01 , 'drop_out_rate': 0.2 } estimator = TensorFlow(source_dir='code',                        entry_point='tensorflow_sentiment.py',                        model_dir=model_dir,                        code_location=code_dir,                        instance_type=train_instance_type,                        instance_count=1,                        enable_sagemaker_metrics=True,                        hyperparameters=hyperparameters,                        role=role,                        framework_version='2.1',                        py_version='py3')</pre></li>
+			</ol>
+			<p>TensorFlow 估计器中的一些关键参数是<code>source_dir</code>、<code>entry_point</code>、<code>code_location</code>、<code>framework_version</code>和<code>py_version</code>。<code>source_dir</code>，<code>entry_point</code>是我们指定训练<a id="_idIndexMarker355"/>脚本在 EFS 文件系统(<code>code/tensorflow_sentiment.py</code>)上的位置。如果需要使用任何额外的 Python 库，可以将这些库包含在一个<code>requirements.txt</code>文件中，并将文本文件放在<code>source_dir</code>参数中指定的目录中。在执行训练脚本之前，SageMaker 将首先安装<code>requirements.txt</code>中列出的库。剧本将在 S3 上演。<code>framework_version</code>和<code>py_version</code>允许我们指定开发训练脚本的 TensorFlow 版本和 Python 版本。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">你可以在<a href="https://github.com/aws/deep-learning-containers/blob/master/available_images.md">https://github . com/AWS/deep-learning-containers/blob/master/available _ images . MD</a>找到 TensorFlow 支持的版本。你<a id="_idIndexMarker356"/>可以在<a href="https://sagemaker.readthedocs.io/en/stable/frameworks/tensorflow/sagemaker.tensorflow.html">https://sagemaker . readthe docs . io/en/stable/frameworks/TensorFlow/sagemaker . tensor flow . html</a>找到 tensor flow 估算器 API。</p>
+			<ol>
+				<li value="7">创建<a id="_idIndexMarker357"/>数据通道字典:<pre>data_channels = {'train':train_s3, 'test': test_s3}</pre></li>
+				<li>在 SageMaker 实验中创建了一个新的实验:<pre>experiment_name = 'imdb-sentiment-analysis' try:     experiment = Experiment.create(         experiment_name=experiment_name,          description='Training a sentiment classification model using imdb dataset.') except ClientError as e:     print(f'{experiment_name} experiment already exists! Reusing the existing experiment.') # Creating a new trial for the experiment exp_trial = Trial.create(     experiment_name=experiment_name,      trial_name=jobname) experiment_config={     'ExperimentName': experiment_name,     'TrialName': exp_trial.trial_name,     'TrialComponentDisplayName': 'Training'}</pre></li>
+				<li>用数据和实验配置调用<code>estimator.fit()</code>函数:<pre>estimator.fit(inputs=data_channels,               job_name=jobname,               experiment_config=experiment_config,               logs=True)</pre></li>
+			</ol>
+			<p>在一个具有一个高性能 NVIDIA V100 Tensor Core GPU 的 ml.p3.2xlarge 实例上的培训<a id="_idIndexMarker359"/>需要大约 3 分钟。一旦训练工作完成，你就可以从 S3 的<code>model_dir</code>访问训练好的<a id="_idIndexMarker360"/>模型。这个模型是一个 Keras 模型，可以通过 Keras' <code>load_model</code> API 加载。然后，您可以像在 TensorFlow 中一样评估模型:</p>
+			<pre>!mkdir ./imdb_data/model -p
+!aws s3 cp {estimator.model_data} ./imdb_data/model.tar.gz
+!tar -xzf ./imdb_data/model.tar.gz -C ./imdb_data/model/
+my_model=tf.keras.models.load_model('./imdb_data/model/1/')
+my_model.summary()
+loss, acc=my_model.evaluate(x_test, y_test, verbose=2)
+print('Restored model, accuracy: {:5.2f}%'.format(100 * acc))
+<strong class="bold">782/782 - 55s - loss: 0.7448 - accuracy: 0.8713</strong>
+<strong class="bold">Restored model, accuracy: 87.13%</strong></pre>
+			<p>我们已经使用 SageMaker 完全管理的训练基础设施成功训练了一个定制的 TensorFlow 模型来预测 IMDb 评论情绪。对于其他框架，采用自定义脚本来 SageMaker 是一个相当类似的过程。我们将看看 PyTorch、Hugging Face、MXNet 和 scikit-learn 的估算器 API，它们共享同一个基类:<code>sagemaker.estimator.Framework</code>。</p>
+			<h2 id="_idParaDest-85"><a id="_idTextAnchor084"/>火炬</h2>
+			<p>PyTorch 是一个<a id="_idIndexMarker361"/>流行的开源深度学习<a id="_idIndexMarker362"/>框架，类似于 TensorFlow。类似于 SageMaker 如何支持 TensorFlow，SageMaker 有一个专门用于 PyTorch 的估计器。可以用<code>sagemaker.pytorch.PyTorch</code>类访问。API 的文档可以在<a href="https://sagemaker.readthedocs.io/en/stable/frameworks/pytorch/sagemaker.pytorch.html">https://sagemaker . readthedocs . io/en/stable/frameworks/py torch/sagemaker . py torch . html</a>上找到。按照<em class="italic"> TensorFlow </em>部分中的<em class="italic">步骤</em> <em class="italic"> 1-9 </em>来使用您的 PyTorch 训练脚本，但是您将指定 PyTorch 版本来访问特定的 SageMaker 管理的 PyTorch 训练容器映像，而不是<code>framework_version</code>。</p>
+			<h2 id="_idParaDest-86"><a id="_idTextAnchor085"/>抱紧脸</h2>
+			<p>拥抱脸是一个致力于自然语言处理用例的 ML 框架。它帮助您<a id="_idIndexMarker363"/>利用预构建的架构<a id="_idIndexMarker364"/>和预训练的模型轻松训练复杂的 NLP 模型。同时兼容 TensorFlow 和 PyTorch，可以用自己最熟悉的框架进行训练。您可以使用<code>sagemaker.huggingface.HuggingFace</code>类访问估计器。该 API 的文档可在<a href="https://sagemaker.readthedocs.io/en/stable/frameworks/huggingface/sagemaker.huggingface.html">https://sagemaker . readthe docs . io/en/stable/frameworks/hugging face/sagemaker . hugging face . html</a>获得。按照<em class="italic"> TensorFlow </em>部分的<em class="italic">步骤</em> <em class="italic"> 1-9 </em>使用您的脚本。与 TensorFlow/PyTorch 估计器相比，主要区别在于有一个额外的参数<code>transformers_version</code>，用于<code>pytorch_version</code>或<code>tensorflow_version</code>而不是<code>framework_version</code>。</p>
+			<h2 id="_idParaDest-87"><a id="_idTextAnchor086"/> MXNet</h2>
+			<p>MXNet 是一个<a id="_idIndexMarker365"/>流行的开源深度学习<a id="_idIndexMarker366"/>框架，类似于 TensorFlow。您可以使用<code>sagemaker.mxnet.MXNet</code>类访问 MXNet 估算器<a id="_idIndexMarker367"/>。API 文档可以在<a href="https://sagemaker.readthedocs.io/en/stable/frameworks/mxnet/sagemaker.mxnet.html">https://sage maker . readthe docs . io/en/stable/frameworks/mxnet/sage maker . mxnet . html</a>获得。按照<em class="italic"> TensorFlow </em>部分中的<em class="italic">步骤</em> <em class="italic"> 1-9 </em>来使用您的 MXNet 训练脚本，但不是<code>framework_version</code>，您需要指定 MXNet 版本来访问特定的 SageMaker 管理的容器映像。</p>
+			<h2 id="_idParaDest-88"><a id="_idTextAnchor087"/> Scikit-learn</h2>
+			<p><code>sagemaker.sklearn.SKLearn</code>阶级。该 API 的文档可从 https://sagemaker . readthe docs . io/en/stable/frameworks/sklearn/sage maker . sklearn . html 获得。按照<em class="italic"> TensorFlow </em>部分中的<em class="italic">步骤</em> <em class="italic"> 1-9 </em>使用您的 sk learn 培训脚本，但是<a id="_idIndexMarker370"/>而不是<code>framework_version</code>，您需要指定 sk learn 版本来访问特定的 sage maker 管理的容器映像。</p>
+			<p>在 SageMaker Studio 中开发时，您通常需要能够与同事协作，并能够使用不同的 Python 库运行 ML 和数据科学代码。让我们看看如何在 SageMaker Studio 中丰富我们的建模体验。</p>
+			<h1 id="_idParaDest-89"><a id="_idTextAnchor088"/>使用 SageMaker 笔记本进行开发和协作</h1>
+			<p>SageMaker Studio IDE 使协作和定制变得容易。除了<a id="_idIndexMarker371"/>选择支持 SageMaker 笔记本的内核和实例的自由之外，您还可以管理 Git 库，比较<a id="_idIndexMarker372"/>笔记本，以及共享笔记本。</p>
+			<p>用户可以在 SageMaker Studio 中轻松地与 Git 存储库进行交互，并且您可能已经为这本书从 GitHub 中克隆了示例存储库。你不仅可以从系统终端克隆一个存储库，还可以使用 UI 左侧栏中的 Git 集成来图形化地与你的代码库交互，如图<em class="italic">图 5.4 </em>所示。您可以使用 UI 执行通常在 Git 中执行的操作:切换分支、拉、提交和推。</p>
+			<div><div><img src="img/B17447_06_04.jpg" alt="Figure 5.4 – Graphical interface of Git integration in the SageMaker Studio IDE&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.4–sage maker Studio IDE 中 Git 集成的图形界面</p>
+			<p>您还可以通过右击已更改的<a id="_idIndexMarker374"/>文件并选择<code>$ git diff</code>，对已更改的<a id="_idIndexMarker374"/>文件执行<em class="italic">笔记本差异</em>。例如，在<em class="italic">图 5.5 </em>中，我们可以清楚地看到<code>instance_type</code>自上次提交后已经被更改:</p>
+			<div><div><img src="img/B17447_06_05.jpg" alt="Figure 5.5 – Visualizing changes in a notebook in Git&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.5–在 Git 中可视化笔记本中的变化</p>
+			<p>SageMaker Studio 中的另一个<a id="_idIndexMarker375"/>强大的协作功能是与您的同事共享笔记本，以便他们可以直接在您创建的<a id="_idIndexMarker376"/>笔记本上工作。点击笔记本右上角的<strong class="bold">共享</strong>按钮，可以共享笔记本输出和 Git 库信息，如图<em class="italic">图 5.6 </em>所示:</p>
+			<div><div><img src="img/B17447_06_06.jpg" alt="Figure 5.6 – Sharing a notebook in SageMaker Studio with another user&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.6–在 SageMaker Studio 中与其他用户共享笔记本</p>
+			<p>系统会提示您选择要包含的信息级别，并提供一个 URL，如 https://<sm-domain-id>. studio .<region>.sagemaker.aws/jupyter/default/lab？sage maker-share-id = xxxxxxxxxxxxxxxxxxxxxx，适用于在同一个 SageMaker Studio 域中拥有用户配置文件的任何人。一旦您的同事打开该 URL，他们将看到只读笔记本、快照详情以及创建副本的选项，以便能够编辑笔记本，如图<em class="italic">图 5.7 </em>所示:</region></sm-domain-id></p>
+			<div><div><img src="img/B17447_06_07.jpg" alt="Figure 5.7 – Another user's view of the shared notebook&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 5.7–共享笔记本的另一个用户视图</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">创建域时,<a id="_idIndexMarker377"/>笔记本共享功能需要配置<a id="_idIndexMarker378"/>。如<a href="B17447_02_ePub_RK.xhtml#_idTextAnchor025"> <em class="italic">第 2 章</em> </a>、<em class="italic">介绍亚马逊 SageMaker Studio </em>所述，如果您使用<strong class="bold">快速入门</strong>设置域，笔记本共享将启用。如果使用标准设置，则需要明确启用笔记本共享。</p>
+			<h1 id="_idParaDest-90"><a id="_idTextAnchor089"/>总结</h1>
+			<p>在这一章中，我们解释了如何在 SageMaker Studio 的笔记本中训练一个 ML 模型。我们运行了两个例子，一个使用 SageMaker 内置的 BlazingText 算法来训练文本分类模型，另一个使用 TensorFlow 作为深度学习框架来构建网络架构，以训练情感分析模型来预测电影评论数据中的情感。我们了解了 SageMaker 的完全托管培训功能是如何工作的，以及如何从 SageMaker SDK 为您的培训脚本调配适量的计算资源。</p>
+			<p>我们展示了 SageMaker Experiments 在 SageMaker Studio 的 UI 中管理和比较 ML 训练运行的能力。除了使用 TensorFlow 脚本进行培训之外，我们还解释了 SageMaker 培训在使用各种 ML 框架(如 PyTorch、MXNet、Hugging Face 和 scikit-learn)时有多灵活。最后但同样重要的是，我们向您展示了 SageMaker 的 Git 集成和笔记本共享特性如何帮助提高您的工作效率。</p>
+			<p>在下一章中，我们将了解<strong class="bold"> SageMaker Clarify </strong>以及如何应用 SageMaker Clarify 来检测数据和 ML 模型中的偏差，并解释模型如何做出决策。理解偏差和模型的可解释性对于创建一个公平的 ML 模型是必不可少的。我们将深入探讨 SageMaker Clarify 用来衡量偏差的方法和指标，以及 Clarify 如何解释该模型。</p>
+		</div>
+	
+
+</body></html>

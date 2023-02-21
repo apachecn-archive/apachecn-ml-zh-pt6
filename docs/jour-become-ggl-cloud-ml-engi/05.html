@@ -1,0 +1,399 @@
+<html><head/><body>
+
+
+
+
+
+
+
+
+
+<title>Chapter 3: Preparing for ML Development</title>
+
+
+
+
+
+
+
+<div><div><h1 class="chapter-number" id="_idParaDest-72"><a id="_idTextAnchor072"/> 3</h1>
+
+<h1 id="_idParaDest-73"><a id="_idTextAnchor073"/>为 ML 开发做准备</h1>
+
+<p>在本书的<em class="italic">第二部分</em>中，我们将研究 ML 过程。我们将从准备工作开始，包括 ML 问题框架化定义一个 ML 问题；数据准备和特征工程，以准备好数据；随后是 ML 模型开发阶段，包括模型训练、模型验证、模型测试和模型部署。我们将用神经网络和 DL 来结束《T4》第二部。</p>
+
+<p>在这一章中，将讨论两个 ML 准备任务:ML 问题框架和数据准备。对于我们正在解决的问题，我们将解决以下问题:</p>
+
+<ul>
+
+<li>业务需求是什么？</li>
+
+<li>ML 是解决问题的最好方法吗？</li>
+
+<li>问题的输入和输出是什么？</li>
+
+<li>我的数据在哪里？</li>
+
+<li>我如何衡量 ML 解决方案的成功？</li>
+
+<li>数据准备好了吗？</li>
+
+<li>我如何收集我的数据？</li>
+
+<li>我如何转换和构建我的数据？</li>
+
+<li>我如何为 ML 模型选择特征？</li>
+
+</ul>
+
+<p>在模型训练和部署之前，我们确定业务需求、理解问题及其输入/输出、建立业务成功度量、收集、转换和构建高质量数据集是非常重要的。通过这一过程，我们将学习和发展以下技能:</p>
+
+<ul>
+
+<li>定义和理解业务问题</li>
+
+<li>将其转化为 ML 问题</li>
+
+<li>定义和衡量业务问题的成功</li>
+
+<li>定义高质量数据集</li>
+
+<li>收集数据</li>
+
+<li>转换和构建数据</li>
+
+<li>特征工程</li>
+
+</ul>
+
+<p>让我们在阅读本章时记住这些问题和技巧。</p>
+
+<h1 id="_idParaDest-74"><a id="_idTextAnchor074"/>从业务需求出发</h1>
+
+<p>典型的<a id="_idIndexMarker140"/> ML 过程从定义业务需求开始。按照以下步骤定义问题的业务需求:</p>
+
+<ol>
+
+<li>在所有利益相关者中，清楚地定义你的 ML 解决方案应该达到的商业结果。例如，对于一个预测 ML 问题，我们需要定义一个企业可以接受并得到所有利益相关者同意的准确度范围。</li>
+
+<li>明确定义 ML 问题的数据来源。所有的 ML 项目都是基于大量的数据。您需要清楚地定义什么是可靠的数据源，包括培训数据、评估数据、测试数据和定期更新的数据。</li>
+
+<li>明确定义 ML 模型更新的频率(因为数据分布随时间漂移)，以及在模型更新期间维持生产的策略。</li>
+
+<li>明确定义 ML 产品或项目的财务指标。了解任何限制，如资源可用性和预算规划等。</li>
+
+<li>明确定义问题的规则、政策和法规。</li>
+
+</ol>
+
+<p>让我们看一个问题和业务需求的例子:</p>
+
+<ul>
+
+<li><strong class="bold">例 1 </strong>:一家名为 Zeellow 的房地产公司在美国做了大量买卖房产的生意。由于业务的性质，准确预测房价对 Zeellow 来说至关重要。过去几年，他们为美国房屋积累了大量的历史资料。</li>
+
+</ul>
+
+<p>在这里，商业结果是准确预测美国的房价。商业利益相关者一致认为超过 2%的预测误差是不可接受的。数据源被定义为内部历史属性数据库。由于数据库更新，模型需要每月更新。该项目有两名数据科学家和两名数据工程师全职工作，并且已经提供了足够的资金。没有关于房子数据和 ML 问题的规定。</p>
+
+<h1 id="_idParaDest-75"><a id="_idTextAnchor075"/>定义 ML 问题</h1>
+
+<p>在我们确定了业务需求之后，我们需要通过确定问题的<a id="_idIndexMarker142"/>特征和目标来定义问题。对于<em class="italic">例 1 </em>，房价是目标，特征是影响房价的房屋属性，比如位置、房屋面积(总平方)、房龄、房屋的卧室和卫生间数量等等。<em class="italic">表 3.1 </em>显示了一个小样本数据集:</p>
+
+<div><div><img alt="Table 3.1 – Example 1 dataset&#10;&#10;" height="372" src="img/Table_3.1.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">表 3.1–示例 1 数据集</p>
+
+<p>然后，问题被定义为在特征和目标之间建立模型，并发现它们之间的关系。在问题定义过程中，我们会更好地理解问题，决定 ML 是否是问题的最佳解决方案，以及问题属于哪一类。</p>
+
+<h2 id="_idParaDest-76"><a id="_idTextAnchor076"/>ML 是最佳方案吗？</h2>
+
+<p>当面对一个问题时，我们需要做的第一件事就是为问题选择最佳的建模/解决方案。例如，给定一个物理对象的初始位置和<a id="_idIndexMarker143"/>速度，它的质量，以及作用于它的力，我们如何精确预测它在任意时刻<em class="italic"> t </em>的位置？对于这个问题，一个传统的数学模型，基于经典力学世界的牛顿定律，比任何 ML 模型都管用得多！</p>
+
+<p>虽然科学建模提供了预测目标和特征之间的数学关系，但有许多问题很难甚至不可能建立数学模型，ML 可能是解决这些问题的最佳方法。我们如何知道 ML 是否是解决给定问题的最佳方法？在判断 ML 是否是问题的潜在好解决方案时，需要检查几个条件:</p>
+
+<ul>
+
+<li>在特征和预测目标之间存在一种模式。对于<em class="italic">例 1 </em>，我们知道房价会与房屋特征如位置、总面积、年龄等有关，房价与其特征之间存在模式。</li>
+
+<li>现有的模式或关系不能用数学或科学来建模。对于<em class="italic">例 1 </em>，房价和特征之间的关系无法用数学公式表示。</li>
+
+<li>有大量高质量的数据可用。对于<em class="italic">例 1 </em>，Zeellow 积累了大量美国房屋的历史数据，包括价格及其特点。</li>
+
+<li>在<em class="italic">例 1 </em>中，Zeellow 需要预测房价。显然，房价和房子的特征之间存在关系，但是很难建立一个数学模型来描述这种关系。因为我们有足够的历史数据，ML 可能是解决这个问题的好方法。</li>
+
+</ul>
+
+<p>让我们看看更多的例子，看看 ML 是否是他们的最佳解决方案:</p>
+
+<ul>
+
+<li><strong class="bold">例 2 </strong> : Zeellow Mortgage 是 Zeellow 的子公司，是美国的一家抵押贷款业务。他们还积累了大量关于抵押贷款申请人的历史数据，并试图自动化批准或拒绝新申请的决策过程。</li>
+
+<li><strong class="bold">例 3</strong>:Zeellow assessment 是 zee llow 的子公司，他们在签订合同时对现有房屋进行价格评估。一个很好的近似方法<a id="_idIndexMarker144"/>是看看相似的属性是如何定价的，这导致了属性的分组。</li>
+
+</ul>
+
+<p>在我们检查这两个问题并检查它们的条件之后，我们可以决定 ML 是否是解决问题的方法。此外，我们将看看 ML 问题的类别以及我们的三个例子属于什么类型。</p>
+
+<h2 id="_idParaDest-77"><a id="_idTextAnchor077"/> ML 问题类别</h2>
+
+<p>ML 问题可以分为几类。对于<em class="italic">示例 1 </em>，Zeellow 需要预测房价，这是一个连续值，相比之下<em class="italic">示例 2</em>ML 需要<a id="_idIndexMarker145"/>预测抵押贷款申请的批准(是)或拒绝(否)。输出连续值的 ML 问题称为<strong class="bold">回归</strong>，输出离散值(两个或两个以上)的<a id="_idIndexMarker146"/>问题称为<strong class="bold">分类</strong>。如果<a id="_idIndexMarker147"/>有两个输出(是和否)，那么<a id="_idIndexMarker148"/>称为<strong class="bold">二元分类</strong>。如果有超过<a id="_idIndexMarker149"/>两个输出，则称为<strong class="bold">多类分类</strong>。</p>
+
+<p>在<em class="italic">示例 1 </em>和<em class="italic">示例 2 </em>中，我们让机器从标记有结果的现有数据集学习。<em class="italic">例 1 </em>的数据集是针对过去几年中售出的房屋的，因此包括房屋位置、卧室和浴室的数量、房龄和销售价格。<em class="italic">例 2 </em>的数据集包括抵押申请人的性别、年龄、收入、婚姻状况等，以及申请<a id="_idIndexMarker150"/>是否被批准。由于两个例子的输入都被标记，它们被称为<strong class="bold">监督学习</strong>。输入数据，如<em class="italic">示例 1 </em>中的房屋位置、卧室和浴室数量、房屋年龄，以及<em class="italic">示例 2 </em>中申请人的性别、年龄、收入和婚姻状况，被称为<strong class="bold">特征</strong>，因为它们反映了数据集属性(特征)。</p>
+
+<p><strong class="bold">无监督学习问题</strong>另一方面，有未标记的输入。对于<em class="italic">例 3 </em>，Zeellow <a id="_idIndexMarker151"/>评估需要将房屋分成不同的组，每个组都有相似的特征。这里的重点不是房价，而是识别数据中有意义的模式，并将房屋分组。由于我们不标记数据集，这是一个无监督的学习问题。</p>
+
+<p>机器学习问题的另一种类型<a id="_idIndexMarker152"/>是<strong class="bold">强化学习</strong> ( <strong class="bold"> RL </strong>)。在 RL 中，你不收集带有标签的例子。您设置了模型(代理)和<a id="_idIndexMarker153"/>一个奖励函数，在代理执行任务时奖励它。通过强化学习，智能体可以很快学会如何超越人类。更多细节可以在维基百科页面上找到(<a href="https://en.wikipedia.org/wiki/Reinforcement_learning">https://en.wikipedia.org/wiki/Reinforcement_learning</a>)。</p>
+
+<h2 id="_idParaDest-78"><a id="_idTextAnchor078"/> ML 模型输入和输出</h2>
+
+<p>在 ML 问题中，输入通常是数据集，包括各种数据格式/媒体，如数字数据、图像、音频等。输入数据集极其重要，将决定 ML 模型的好坏。</p>
+
+<p>对于监督学习，标记的数据用于训练模型，模型是一个软件，代表机器从训练数据中学到了什么。监督学习的输入是已标记的要素和目标数据集，模型通过将已标记的目标值与模型输出进行比较来查找错误。误差<strong class="bold"> </strong>就是我们要优化的。注意，我们指的是误差的优化，而不是误差的最小化。换句话说，将误差降至零可能不会产生最佳模型。</p>
+
+<p>在监督学习中，回归模型的输出是连续的数值，而分类模型的输出是表示类别的离散值(二元分类为是/否)。</p>
+
+<p>对于无监督学习，输入数据不被标记，通常，目标是找到输入数据模式<a id="_idIndexMarker156"/>并将它们分组<a id="_idIndexMarker157"/>到不同的类别，称为<strong class="bold">聚类</strong>或<strong class="bold">分组</strong>。</p>
+
+<p>对于强化学习，输入是状态，输出是 ML 执行的动作。在输入和输出之间，我们有一个函数，它把一个状态作为输入，返回一个动作作为输出。</p>
+
+<h1 id="_idParaDest-79"><a id="_idTextAnchor079"/>测量 ML 解决方案和数据就绪性</h1>
+
+<p>在我们定义了问题并得出 ML 是潜在的好的解决方案的结论之后，我们需要<a id="_idIndexMarker158"/>建立一种方法来衡量问题<a id="_idIndexMarker159"/>的解决方案，以及它是否准备好用于生产部署。对于<em class="italic">示例 1 </em>，我们需要就房屋预测误差的可接受范围达成共识，并且我们可以在生产中使用 ML 模型。</p>
+
+<h2 id="_idParaDest-80"><a id="_idTextAnchor080"/> ML 模型性能测量</h2>
+
+<p>为了评估 ML 解决方案的性能，我们使用 ML 指标。对于回归模型，<a id="_idIndexMarker160"/>有三个指标:均方误差、平均绝对误差和 r 平方。对于分类模型，我们使用混淆矩阵。我们将在接下来的章节中详细讨论。</p>
+
+<p>ML 解决方案准备好部署了吗？我们需要回到 ML 问题框架中模型的原始业务目标:</p>
+
+<ul>
+
+<li>对于 Zeellow 来说，预测房价达到 95%的准确率就足够了吗？</li>
+
+<li>对于 Zeellow 抵押贷款，是否允许我们以 95%的信心做出决定？</li>
+
+<li>对于 Zeellow 评估，我们能以 95%的准确率将一栋房子归入适当的类别吗？</li>
+
+</ul>
+
+<p>在我们用测试数据集评估了 ML 模型并确认该模型达到了业务需求之后，我们将准备将其部署到生产中。</p>
+
+<h2 id="_idParaDest-81"><a id="_idTextAnchor081"/>数据准备就绪</h2>
+
+<p>数据在机器学习过程中扮演着如此重要的角色，以至于数据的质量对模型性能有着巨大的影响，所谓的<em class="italic">垃圾输入，垃圾输出</em>。ML 模型的准确性依赖于许多因素，包括数据集的大小和质量。认为<em class="italic">数据越多，模型越精确的观点</em>并不总是正确的。实时获取大量干净、高质量的数据是一个巨大的挑战。通常在一个 ML 项目中，我们花费很大一部分时间来收集和准备数据集。根据我们需要解决的 ML 问题，有几种收集数据的方法和来源。例如，我们可以采用以下方法:</p>
+
+<ul>
+
+<li>公司收集的历史数据，如用户数据和媒体数据</li>
+
+<li>来自研究机构和政府机构的公开数据</li>
+
+</ul>
+
+<p>对于我的 ML 模型，多少<a id="_idIndexMarker162"/>数据足够了，我们如何衡量我们数据的质量？这取决于你想解决的机器学习问题的类型。作为问题框架过程的一部分，我们需要检查并确保我们有足够的高质量数据来构建 ML 解决方案。接下来，我们将讨论关于数据准备和特征工程的更多细节。</p>
+
+<h1 id="_idParaDest-82"><a id="_idTextAnchor082"/>收集数据</h1>
+
+<p><strong class="bold">数据收集</strong>正在收集<a id="_idIndexMarker163"/>源数据，并将其存储在一个中央安全位置。在数据收集阶段，我们尝试回答以下问题:</p>
+
+<ul>
+
+<li>问题的本质是什么，我们有正确的数据吗？</li>
+
+<li>数据在哪里，我们可以访问这些数据吗？</li>
+
+<li>我们可以做什么来将所有数据接收到一个中央存储库中？</li>
+
+<li>我们如何保护中央数据存储库？</li>
+
+</ul>
+
+<p>这些问题在任何 ML 项目中都是至关重要的，因为在真实的业务中，数据通常分布在许多不同的异构源系统中，将所有源数据整合在一起形成数据集可能会面临巨大的挑战。</p>
+
+<p>一个常见的<a id="_idIndexMarker164"/>数据收集和整合过程称为<strong class="bold">提取、转换和加载</strong> ( <strong class="bold"> ETL </strong>)有以下步骤:</p>
+
+<ol>
+
+<li value="1"><strong class="bold">提取</strong>:将不同来源的数据提取到一个位置。</li>
+
+<li><strong class="bold">转换</strong>:在数据提取和合并过程中，我们可能需要改变数据格式，修改一些数据，删除重复数据等等。</li>
+
+<li><strong class="bold"> Load </strong>:数据被加载到一个单独的存储库中，比如 Google Cloud Storage 或者 Google BigQuery。</li>
+
+</ol>
+
+<p>在这个 ETL 过程中，我们还需要解决数据大小、质量和安全性问题:</p>
+
+<ul>
+
+<li><strong class="bold">数据量</strong>:我们需要多少数据才能得到有用的 ML 结果？虽然答案<a id="_idIndexMarker165"/>取决于 ML 问题，但经验法则是训练数据集将比模型的可训练参数多几倍。例如，一个典型的回归问题可能需要十倍于特征的观察值。典型的图像分类问题可能需要成千上万的图像来创建高精度的图像分类器。一般来说，用大数据集训练的简单模型比用小数据集训练的复杂模型表现更好。</li>
+
+<li><strong class="bold">数据质量</strong>:这个<a id="_idIndexMarker166"/>可以包括以下内容:<ul><li><strong class="bold">可靠性</strong>:数据来源可靠吗？数据集的标签是否正确？数据集过滤是否正确？是否有重复或缺失的值？</li>
+
+<li><strong class="bold">特征表示</strong>:数据集是否表示有用的 ML 特征？有没有异常值？</li>
+
+<li><strong class="bold">训练和生产数据之间的一致性</strong>:训练数据集和生产数据集之间是否存在偏差？</li>
+
+</ul></li>
+
+<li><strong class="bold">数据安全</strong>:<a id="_idIndexMarker167"/>数据安全吗？我们需要<a id="_idIndexMarker168"/>加密数据吗？数据集中有没有<strong class="bold">个人身份信息</strong> ( <strong class="bold"> PII </strong>)？访问数据集是否有任何法律或法规要求？</li>
+
+</ul>
+
+<p>在收集数据并将其存储在中央安全存储库中之后，我们需要构建数据并将其转换为正确的格式，以便可以用于 ML 模型训练。我们将在下一节讨论这一点。</p>
+
+<h1 id="_idParaDest-83"><a id="_idTextAnchor083"/>数据工程</h1>
+
+<p>数据工程的目标是确保数据集代表真实的 ML 问题<a id="_idIndexMarker169"/>，并具有用于 ML 模型训练的正确格式。通常，我们使用统计技术来采样、平衡和缩放数据集，并处理数据集中的缺失值和异常值。本节包括以下内容:</p>
+
+<ul>
+
+<li>用子数据集采样数据</li>
+
+<li>平衡数据集类</li>
+
+<li>转换数据</li>
+
+</ul>
+
+<p>让我们从数据采样和平衡开始。</p>
+
+<h2 id="_idParaDest-84"><a id="_idTextAnchor084"/>数据采样和平衡</h2>
+
+<p>数据采样是一种<a id="_idIndexMarker170"/>统计分析技术，用于选择、操作和<a id="_idIndexMarker171"/>分析较大数据集中的代表性子集。采样<a id="_idIndexMarker172"/>数据在数据<a id="_idIndexMarker173"/>建设中起着重要的作用。在对数据进行采样时，您需要非常小心，不要引入有偏见的因素。更多详情请参考<a href="https://developers.google.com/machine-learning/data-prep/construct/sampling-splitting/sampling">https://developers . Google . com/machine-learning/data-prep/construct/sampling-splitting/sampling</a>。</p>
+
+<p>一个分类数据集有两个以上的数据集类。我们把构成集合<strong class="bold">大部分的类称为多数类</strong>，把构成小命题<strong class="bold">的类称为少数类</strong>。当数据集具有偏斜的类比例时——这意味着少数类的比例明显小于多数类的比例，这是一个不平衡的数据集，我们需要使用称为<strong class="bold">下采样</strong>和<strong class="bold">上加权</strong>的统计技术来平衡它。让我们考虑一个欺诈检测数据集，该数据集有 1 个肯定结果和 200 个否定结果。模型训练过程将不会反映真实的问题，因为正面的比例是如此之小。在这种情况下，我们需要分两步处理数据集:</p>
+
+<ul>
+
+<li><strong class="bold">下采样</strong>:从主导类中提取<a id="_idIndexMarker174"/>数据样本，平衡类。使用 50 倍缩减取样，缩减取样后的比例将为 40:1。</li>
+
+<li><strong class="bold">上加权</strong>:在 ML 模型训练期间，将<a id="_idIndexMarker175"/>主导类权重增加相同的因子 50(与下采样因子相同)。</li>
+
+</ul>
+
+<p>一些 ML <a id="_idIndexMarker176"/>库提供了内置特性<a id="_idIndexMarker177"/>来促进这个过程。有关这些技术的更多细节以及我们为什么执行前面的步骤，请参考<a href="https://developers.google.com/machine-learning/data-prep/construct/sampling-splitting/imbalanced-data">https://developers . Google . com/machine-learning/data-prep/construct/sampling-splitting/unbalanced-data</a>。</p>
+
+<h2 id="_idParaDest-85"><a id="_idTextAnchor085"/>数值转换</h2>
+
+<p>对于具有覆盖明显不同范围的数字特征<a id="_idIndexMarker179"/>的数据集<a id="_idIndexMarker178"/>(例如，抵押申请批准 ML 模型中的年龄特征)，强烈建议规范化数据集，因为这将有助于梯度下降等算法收敛。规范化数据的常用方法如下:</p>
+
+<ul>
+
+<li>缩放到一个范围</li>
+
+<li>剪报</li>
+
+<li>对数标度</li>
+
+<li>木桶/宁滨</li>
+
+</ul>
+
+<h3>缩放到一个范围</h3>
+
+<p><strong class="bold">缩放到一个范围</strong>归一化<a id="_idIndexMarker180"/>是将浮点特征值从其自然范围(例如，0-90 的年龄范围)转换到一个标准范围(例如，0 到 1，或-1 到+1)。当您知道数据的大致范围(上限和下限)，并且数据在该范围内大致均匀分布时，这是一个很好的规范化实践。例如，大多数年龄值在 0 到 90 之间，并且该范围的每个部分都有大量的人，因此将年龄值正常化是一种常见的做法。</p>
+
+<h3>特征裁剪</h3>
+
+<p><strong class="bold">特征裁剪</strong>将高于(或低于)某个值的所有特征值限制为一个固定值。如果您的<a id="_idIndexMarker181"/>数据集包含极端异常值，要素裁剪可能是一个好的做法。例如，您可以将所有高于 80 的温度值裁剪为 80。可以在其他归一化之前或之后应用特征裁剪。</p>
+
+<h3>对数标度</h3>
+
+<p><strong class="bold">对数缩放</strong>计算<a id="_idIndexMarker182"/>你的特征值的对数，从而将一个宽的数据范围压缩到一个窄的范围。当少数数据值有很多点，而大多数其他值只有很少点时，<em class="italic">对数标度</em>成为一种很好的转换方法。例如，电影评级是<em class="italic">日志缩放</em>的良好业务用例，因为大多数电影评级很低，而少数电影评级很高。</p>
+
+<h3>桶装</h3>
+
+<p><strong class="bold">斗</strong>也叫<a id="_idIndexMarker183"/>宁滨。它使用一组阈值将<a id="_idIndexMarker184"/>数字特征转换为分类特征。一个很好的例子是将房价分为低、中、高三类，以便更好地建模。</p>
+
+<h2 id="_idParaDest-86"><a id="_idTextAnchor086"/>分类值转换</h2>
+
+<p>分类值是没有有序关系的离散值，每个值标记<a id="_idIndexMarker185"/>一个类别。如果分类<a id="_idIndexMarker186"/>数据没有任何顺序，例如，一个<em class="italic">颜色</em>特征具有诸如红色、绿色和蓝色的值，并且在类别之间没有偏好，如果您分配<em class="italic"> 1 </em>、<em class="italic"> 2 </em>和<em class="italic"> 3 </em>的值来分别表示<em class="italic">红色</em>、<em class="italic">绿色</em>和<em class="italic">蓝色</em>，模型可能会将蓝色解释为比红色更重要，因为我们经常<a id="_idIndexMarker187"/>将非序数数据编码成多个列或特征，称为<strong class="bold">一键编码</strong>。<em class="italic">图 3.2 </em>显示了颜色特征的一键编码转换——红色为 100，蓝色为 010，绿色为 001:</p>
+
+<div><div><img alt="Figure 3.2 – One-hot encoding for the “color” feature&#10;&#10;" height="332" src="img/Figure_3.2.jpg" width="1347"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图 3.2–用于“颜色”功能的一键编码</p>
+
+<p>一键<a id="_idIndexMarker188"/>编码将非有序<a id="_idIndexMarker189"/>分类值转换成数值，而不会引入任何有序偏差。它广泛用于 ML 数据转换。</p>
+
+<h2 id="_idParaDest-87"><a id="_idTextAnchor087"/>缺失值处理</h2>
+
+<p>在准备数据集时，我们经常会看到缺失的数据。例如，数据集<a id="_idIndexMarker190"/>中的一些列可能会因为数据收集错误而丢失，或者数据不是针对某个特定要素收集的。缺失数据会使<a id="_idIndexMarker191"/>难以准确解释特征和目标变量之间的关系，处理缺失数据是数据准备的重要步骤。</p>
+
+<p>根据导致缺失数据的原因、总数据集大小和缺失值的比例，我们可以丢弃整个要素或估算缺失值。例如，如果一行或一列有很大比例的缺失值，<em class="italic">删除</em>整行或整列可能是一个可行的选项。如果缺失值随机分布在整个数据集中，并且只是其行或列的一小部分，那么<em class="italic">插补</em>可能是更好的选择。对于分类变量，我们通常可以用平均值、中值或最频繁值来替换缺失值。对于数值或连续变量，我们通常使用平均值或中位数来估算。有时，我们也会遇到空值或零，但是应该小心处理，因为零可以是列中的一个值，而 ETL 管道会用零替换所有缺失的值。</p>
+
+<h2 id="_idParaDest-88"><a id="_idTextAnchor088"/>异常值处理</h2>
+
+<p>通常，我们也会<a id="_idIndexMarker192"/>看到异常值——与数据集中的其他值相距<a id="_idIndexMarker193"/>异常距离的数据点。异常值会使模型更难准确预测，因为它们会使值偏离与该特征相关的其他更正常的值。根据异常值的原因，您想要清理它们，或者转换它们以增加数据集的丰富性<a id="_idIndexMarker194"/>(一些算法具有处理异常值的内置函数):</p>
+
+<ul>
+
+<li><strong class="bold">删除异常值或输入异常值</strong>:如果您的异常值是基于人为错误，如错误输入的数据</li>
+
+<li><strong class="bold">转换异常值</strong>:取一个值的自然对数，减少异常值对整个数据集的影响</li>
+
+</ul>
+
+<p>通过<a id="_idIndexMarker195"/>前面显示的数据构建和转换过程，数据集准备就绪。现在是时候进入下一步了:检查和选择特性(影响模型目标的变量)——这个过程叫做特性工程。</p>
+
+<h1 id="_idParaDest-89"><a id="_idTextAnchor089"/>特色工程</h1>
+
+<p><strong class="bold">特征工程</strong>是在 ML 建模中选择和转换最相关特征的<a id="_idIndexMarker196"/>过程。这是 ML 学习过程中最重要的步骤之一。特征工程包括<strong class="bold">特征选择</strong>和<strong class="bold">特征合成</strong>(转换)。</p>
+
+<h2 id="_idParaDest-90"><a id="_idTextAnchor090"/>功能选择</h2>
+
+<p>对于在初始阶段提取了大量特征的 ML <a id="_idIndexMarker197"/>问题<a id="_idIndexMarker198"/>，使用特征选择来减少这些特征(输入变量)的数量，以便我们可以专注于对模型预测目标变量最有用的特征。为问题提取特征后，需要使用特征选择方法来选择最适合模型训练的特征。根据是否需要 ML 训练，有两种主要类型的特征选择方法可供使用——过滤方法和包装方法:</p>
+
+<ul>
+
+<li><strong class="bold">过滤方法</strong>使用统计<a id="_idIndexMarker199"/>技术<a id="_idIndexMarker200"/>对每个输入变量和目标变量之间的关系进行评估和评分。分数用于比较特征并决定将在模型中使用的输入变量。</li>
+
+<li><strong class="bold">包装器方法</strong>创建许多具有不同输入特征子集的模型<a id="_idIndexMarker201"/>并执行模型训练和比较它们的性能<a id="_idIndexMarker202"/>。将选择根据性能度量适合最佳性能模型的特征子集。包装器方法需要在不同的子集上进行 ML 训练。</li>
+
+</ul>
+
+<h2 id="_idParaDest-91"><a id="_idTextAnchor091"/>特征合成</h2>
+
+<p>合成特征是通过算法创建的，通常与真实特征的组合<a id="_idIndexMarker203"/>一起使用算术运算，如加法、减法、乘法和除法，来训练机器学习模型。<strong class="bold">特征合成</strong>提供了<a id="_idIndexMarker204"/>对数据模式的深刻见解，并有助于一些 ML 问题的模型训练。</p>
+
+<p>在数据收集、构建和转换以及特征工程之后，我们的数据已经为下一阶段——建模开发做好了准备。</p>
+
+<h1 id="_idParaDest-92"><a id="_idTextAnchor092"/>总结</h1>
+
+<p>在本章中，我们讨论了 ML 流程的准备工作。从业务需求出发，你需要了解问题，看看 ML 是否是它的最佳解决方案。然后，您定义 ML 问题，设置性能测量，并确定用于 ML 建模的数据，以确保我们有一个高质量的数据集。</p>
+
+<p>数据发挥了如此重要的作用！在本章中，我们还讨论了数据准备和特征工程。从数据收集和构建到数据转换、特征选择和特征合成，数据管道为 ML 模型训练准备数据集。掌握这些数据准备和特征工程技能将为我们提供对数据的洞察，并帮助我们进行模型开发。在下一章，我们将讨论 ML 模型开发过程，从模型训练和验证到模型测试和部署。</p>
+
+<h1 id="_idParaDest-93"><a id="_idTextAnchor093"/>延伸阅读</h1>
+
+<p>要进一步了解您在本章中学到的内容，您可以参考以下链接:</p>
+
+<ul>
+
+<li><a href="https://developers.google.com/machine-learning/problem-framing%20">https://developers . Google . com/machine-learning/problem-frameing</a></li>
+
+<li><a href="https://developers.google.com/machine-learning/data-prep">https://developers.google.com/machine-learning/data-prep</a></li>
+
+</ul>
+
+</div>
+
+<div><div/>
+
+</div>
+
+</div>
+
+
+
+</body></html>

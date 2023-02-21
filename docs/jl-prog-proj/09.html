@@ -1,0 +1,1588 @@
+<html><head/><body>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Working with Dates, Times, and Time Series</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">使用日期、时间和时间序列</h1>
+                
+            
+            
+                
+<p class="calibre2">我们在机器学习领域经历了一段非常令人惊奇和有意义的旅程。我们已经学会了如何使用算法对标记的数据进行分类，并应用我们的发现提出建议。我们已经看到了如何通过使用无监督的机器学习和聚类算法从原始的、未标记的信息中提取商业价值。然而，到目前为止，我们的分析中还缺少一个关键要素——时间维度。</p>
+<p class="calibre2"><em class="calibre16">时间就是金钱，</em>常言道——因此，各种规模的组织，从小企业到大公司，到政府，再到欧盟等复杂的跨国机构，都会随着时间的推移不断测量和监控大量的经济指标。为了有意义，定期收集数据，使分析师能够识别隐藏的结构和模式，并根据过去和现在的情况预测未来的发展。这些值在时间尺度上定期测量，代表一个时间序列。时间序列分析和预测可以提供非常有价值的洞察力，让市场参与者了解趋势，并根据准确的历史数据做出明智的决策。</p>
+<p class="calibre2">我们将用两章，这一章和下一章，来学习时间序列和进行分析和预测。在本章中，我们将通过了解以下内容来奠定基础:</p>
+<ul class="calibre10">
+<li class="calibre11">在 Julia 中处理日期和时间</li>
+<li class="calibre11">处理时区信息</li>
+<li class="calibre11">用<kbd class="calibre12">TimeSeries</kbd>处理时间序列数据</li>
+<li class="calibre11">用强大的<kbd class="calibre12">Plots</kbd>包绘制时间序列数据</li>
+<li class="calibre11"><kbd class="calibre12">TimeArray</kbd>数据结构</li>
+</ul>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Technical requirements</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">技术要求</h1>
+                
+            
+            
+                
+<p class="calibre2">Julia 包生态系统正在不断发展，每天都有新的包版本发布。大多数时候这是好消息，因为新版本带来了新特性和错误修复。然而，由于许多软件包仍处于测试阶段(版本 0.x ),任何新版本都可能引入突破性的变化。因此，书中介绍的代码可能会停止工作。为了确保您的代码将产生与书中描述的相同的结果，建议使用相同的包版本。以下是本章中使用的外部软件包及其具体版本:</p>
+<pre class="calibre17">IJulia@v1.14.1<br class="title-page-name"/>MarketData@v0.11.0<br class="title-page-name"/>Plots@v0.22.0<br class="title-page-name"/>TimeZones@v0.8.2</pre>
+<p class="calibre2">为了安装软件包的特定版本，您需要运行:</p>
+<pre class="calibre17"><strong class="calibre1">pkg&gt; add PackageName@vX.Y.Z</strong> </pre>
+<p class="calibre2">例如:</p>
+<pre class="calibre17"><strong class="calibre1">pkg&gt; add IJulia@v1.14.1</strong></pre>
+<p class="calibre2">或者，你可以通过下载本章提供的<kbd class="calibre12">Project.toml</kbd>文件并使用<kbd class="calibre12">pkg&gt;</kbd>实例化来安装所有使用的包，如下所示:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; download("https://raw.githubusercontent.com/PacktPublishing/Julia-Programming-Projects/master/Chapter09/Project.toml", "Project.toml")</strong><br class="title-page-name"/><strong class="calibre1">pkg&gt; activate . </strong><br class="title-page-name"/><strong class="calibre1">pkg&gt; instantiate</strong></pre>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Working with dates and times</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">使用日期和时间</h1>
+                
+            
+            
+                
+<p class="calibre2">Julia 提供了一个非常丰富的 API 来处理日期和时间信息。所有功能都被打包到<kbd class="calibre12">Dates</kbd>模块中。该模块内置于语言中，因此不需要额外的软件包安装。为了访问它的功能，我们所要做的就是声明我们将成为<kbd class="calibre12">using Dates</kbd>。</p>
+<p class="calibre2">日期模块公开了三种主要类型— <kbd class="calibre12">Date</kbd>、<kbd class="calibre12">DateTime</kbd>和<kbd class="calibre12">Time</kbd>。它们都是抽象类型<kbd class="calibre12">TimeType</kbd>的子类型，分别代表日、毫秒和纳秒精度。</p>
+<p class="calibre2">Julia 试图尽可能简单地处理日期和时间。这就是为什么，一方面，它提供了三种不同的类型，每种类型都有自己的时间表示:</p>
+<ul class="calibre10">
+<li class="calibre11">一个<kbd class="calibre12">Date</kbd>对象映射到一个日期——一个由日、月和年定义的时间实体</li>
+<li class="calibre11"><kbd class="calibre12">Time</kbd>的一个实例是一个时刻——小时、分钟、秒和毫秒，但是绝对没有关于日期本身的信息</li>
+<li class="calibre11">正如你可能从名字中猜到的那样，<kbd class="calibre12">DateTime</kbd>是一个将<kbd class="calibre12">Date</kbd>和<kbd class="calibre12">Time</kbd>放在一起的对象，指定了一个准确的时间点</li>
+</ul>
+<p class="calibre2">另一方面，默认情况下，所有这些类型都有一种简单的方法来表示日期和时间，也就是说，它们没有考虑时区、夏令时或闰秒等因素。它是您的计算机的本地日期和时间的写照，没有任何额外的信息。</p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Constructing dates and times</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">构建日期和时间</h1>
+                
+            
+            
+                
+<p class="calibre2">为了构造表示当前日期或时间的新日期/时间对象，Julia 提供了两个助手函数，<kbd class="calibre12">now</kbd>和<kbd class="calibre12">today</kbd>。让我们看看<strong class="calibre4">读取-评估-打印循环</strong> ( <strong class="calibre4"> REPL </strong>)中的一些例子:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; using Dates 
+ 
+julia&gt; d = today() 
+2018-11-08 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; typeof(d) 
+Date </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; dt = now() 
+2018-11-08T16:33:34.868 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; dt |&gt; typeof 
+DateTime  </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; t = Dates.Time(now()) 
+16:34:13.065 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; typeof(t) </strong><br class="title-page-name"/><strong class="calibre1">Time</strong> </pre>
+<p class="calibre2"><kbd class="calibre12">now</kbd>函数还可以接受一个额外的参数来返回 UTC 时间(没有根据夏令时进行本地调整):</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; now(UTC) 
+2018-11-08T15:35:08.776</strong> </pre>
+<p class="calibre2">在内部，所有类型都包装了一个可以通过<kbd class="calibre12">instant</kbd>字段访问的<kbd class="calibre12">Int64</kbd>值:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; dt.instant 
+Dates.UTInstant{Millisecond}(63677378014868 milliseconds) </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; t.instant 
+75147529000000 nanoseconds </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; d.instant 
+Dates.UTInstant{Day}(737006 days)</strong> </pre>
+<p class="calibre2">对象的<kbd class="calibre12">instant</kbd>属性反映了每种类型的精度级别。</p>
+<p class="calibre2">当然，我们也可以使用专用的构造函数实例化表示任意随机时刻的对象:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; DateTime(2018) # we can pass just the year as a single argument 
+2018-01-01T00:00:00 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; DateTime(2018, 6) # passing the year and the month 
+2018-06-01T00:00:00 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; DateTime(2018, 6, 15) # year, month and day 
+2018-06-15T00:00:00 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; DateTime(2018, 6, 15, 10) # year, month, day and hour (10 AM) 
+2018-06-15T10:00:00 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; DateTime(2018, 6, 15, 10, 30) # 15th of June 2018, 10:30 AM  
+2018-06-15T10:30:00 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; DateTime(2018, 6, 15, 10, 30, 45) # ...and 45 seconds 
+2018-06-15T10:30:45 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; DateTime(2018, 06, 15, 10, 30, 45, 123) # ... and finally, milliseconds  
+2018-06-15T10:30:45.123</strong> </pre>
+<p class="calibre2">对于<kbd class="calibre12">Date</kbd>和<kbd class="calibre12">Time</kbd>，构造函数以类似的方式工作——下面是几个例子:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; Date(2019) # January 1st 2019 
+2019-01-01 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; Date(2018, 12, 31) # December 31st 2018 
+2018-12-31 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; Time(22, 05) # 5 past 10 PM 
+22:05:00 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; Time(22, 05, 25, 456) # 5 past 10 PM, 25s and 456 milliseconds 
+22:05:25.456 </strong> </pre>
+<p class="calibre2">构造函数将防止我们传递错误的值，从而导致错误。这与其他自动执行日期时间运算的语言不同，例如，2018 年 12 月 22 日会自动转换为 2019 年 1 月 1 日。这不会发生在朱莉娅身上:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; Date(2018, 12, 32) 
+ERROR: ArgumentError: Day: 32 out of range (1:31) 
+Stacktrace: 
+ [1] Date(::Int64, ::Int64, ::Int64) at ./dates/types.jl:204</strong> </pre>
+<p class="calibre2">还有用于各个日期和时间组件(年、月、日、小时、分钟、秒和毫秒)的构造函数。它们返回相应的<kbd class="calibre12">Period</kbd>类型的实例(稍后我们将详细研究句点)。周期可用于创建日期/时间对象:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; eleven_hours = Hour(11) 
+11 hours </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; half_hour = Minute(30) 
+30 minutes </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; brunch_time = Time(eleven_hours, half_hour) 
+11:30:00 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; this_year = "2018" 
+julia&gt; xmas_month = "12" 
+julia&gt; xmas_day = "25" 
+julia&gt; Date(Year(this_year), Month(xmas_month), Day(xmas_day)) 
+2018-12-25</strong> </pre>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Parsing strings into dates and times</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">将字符串解析为日期和时间</h1>
+                
+            
+            
+                
+<p class="calibre2">一个常见的需求是将来自外部输入(数据库、文件、用户输入等)的格式正确的字符串解析为相应的日期和时间对象:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; Date("25/12/2019", "dd/mm/yyyy") # Christmas day in 2019 
+2019-12-25 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; DateTime("25/12/2019 14,30", "dd/mm/yyyy HH,MM") # xmas day in 2019, at 2:30 PM 
+2019-12-25T14:30:00</strong> </pre>
+<p class="calibre2">这些是 Julia 识别的特殊日期时间字符及其含义:</p>
+<ul class="calibre10">
+<li class="calibre11"><kbd class="calibre12">y</kbd>:年份数字，例<kbd class="calibre12">yyyy</kbd>为<kbd class="calibre12">2015</kbd>，<kbd class="calibre12">yy</kbd>为<kbd class="calibre12">15</kbd></li>
+<li class="calibre11"><kbd class="calibre12">m</kbd>:月份数字，例如<kbd class="calibre12">m =&gt; 3</kbd>或<kbd class="calibre12">03</kbd></li>
+<li class="calibre11"><kbd class="calibre12">u</kbd>:短月份名称，示例<kbd class="calibre12">Jan</kbd></li>
+<li class="calibre11"><kbd class="calibre12">U</kbd>:长月份名称，示例<kbd class="calibre12">January</kbd></li>
+<li class="calibre11"><kbd class="calibre12">e</kbd>:一周中较短的一天，例如<kbd class="calibre12">Tue</kbd></li>
+<li class="calibre11"><kbd class="calibre12">E</kbd>:一周中的长日，例如<kbd class="calibre12">Tuesday</kbd></li>
+<li class="calibre11"><kbd class="calibre12">d</kbd>:日、例<kbd class="calibre12">3</kbd>或<kbd class="calibre12">03</kbd></li>
+<li class="calibre11"><kbd class="calibre12">H</kbd>:小时数字，例<kbd class="calibre12">HH</kbd> = <kbd class="calibre12">00</kbd></li>
+<li class="calibre11"><kbd class="calibre12">M</kbd>:分位数，例<kbd class="calibre12">MM</kbd> = <kbd class="calibre12">00</kbd></li>
+<li class="calibre11"><kbd class="calibre12">S</kbd>:第二位数字，例<kbd class="calibre12">s</kbd> = <kbd class="calibre12">00</kbd></li>
+<li class="calibre11"><kbd class="calibre12">s</kbd>:毫秒数字，例子<kbd class="calibre12">.000</kbd></li>
+</ul>
+<p class="calibre2">有了这些，我们可以将任何日期/时间字符串解析成正确的对象:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; DateTime("Thursday, 1 of February 2018 at 12.35", "E, d of U yyyy at HH.MM") 
+2018-02-01T12:35:00</strong> </pre>
+<p class="calibre2">我们也可以一次解析多个字符串，作为一个数组的元素。首先，我们创建一个表示有效日期的字符串数组，格式为<kbd class="calibre12">yyyy-mm-dd</kbd>。我们用一个理解来创建这个数组，并将其命名为<kbd class="calibre12">d</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; d = ["$(rand(2000:2020))-$(rand(1:12))-$(rand(1:28))" for _ in 1:100] 
+100-element Array{String,1}:  
+ "2001-7-1" 
+ "2005-9-4"</strong></pre>
+<pre class="calibre17"><strong class="calibre1"> "2018-3-3" 
+# output truncated </strong> </pre>
+<p class="calibre2">接下来，我们可以使用点标记法，通过使用<kbd class="calibre12">Date</kbd>构造函数来逐元素处理数组:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; Date.(d, "yyyy-mm-dd") 
+100-element Array{Date,1}: 
+ 2001-07-01 
+ 2005-09-04 
+ 2018-03-03 
+# output truncated </strong> </pre>
+<p class="calibre2">或者，我们可以使用专门的<kbd class="calibre12">DateFormat</kbd>类型，而不是使用字符串来表示日期的格式:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; date_format = DateFormat("yyyy-mm-dd") 
+dateformat"yyyy-mm-dd" </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; Date.(d, date_format) 
+100-element Array{Date,1}: 
+2001-07-01 
+2005-09-04 
+2018-03-03 
+# output truncated </strong> </pre>
+<p class="calibre2">为了获得更好的性能，建议在解析大量字符串时使用<kbd class="calibre12">DateFormat</kbd>。Julia 提供了一些格式作为标准库的一部分，例如，<kbd class="calibre12">ISODateTimeFormat</kbd>和<kbd class="calibre12">RFC1123Format</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; DateTime("2018-12-25", ISODateTimeFormat) 
+2018-12-25T00:00:00</strong> </pre>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Formatting dates</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">格式化日期</h1>
+                
+            
+            
+                
+<p class="calibre2">如果我们可以将日期格式的字符串解析成日期/时间对象，我们也可以反过来做。我们可以使用各种格式将日期和时间输出为字符串。例如，请参见以下内容:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; Dates.format(now(), RFC1123Format) 
+"Thu, 08 Nov 2018 20:04:35" </strong> </pre>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Defining other locales</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">定义其他语言环境</h1>
+                
+            
+            
+                
+<p class="calibre2">默认情况下，Julia 将使用<kbd class="calibre12">english</kbd>地区，这意味着日期和月份的名称将是英文的。但是，我们可以通过定义其他地区来国际化我们的日期:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; spanish_months = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"] 
+12-element Array{String,1} # output truncated </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; spanish_days = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"] 
+7-element Array{String,1} # output truncated </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; Dates.LOCALES["es"] = Dates.DateLocale(spanish_months, String[], spanish_days, String[]) 
+Dates.DateLocale # output truncated</strong> </pre>
+<p class="calibre2"><kbd class="calibre12">Dates.DateLocale</kbd>函数需要四个数组，分别对应于月份名称、月份缩写名称、日期名称和日期缩写名称。如您所见，我们没有提供名称的缩写版本。只要我们不试图使用它们，我们就不会有事:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; Dates.format(now(), "E, d U yyyy", locale = "es") 
+"jueves, 8 noviembre 2018"</strong> </pre>
+<p class="calibre2">但是，尝试使用缩写的日期名称会导致错误:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; Dates.format(now(), "e, d U yyyy", locale = "es") 
+ERROR: BoundsError: attempt to access 0-element Array{String,1} at index [4]</strong> </pre>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Working with date and time accessors</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">使用日期和时间访问器</h1>
+                
+            
+            
+                
+<p class="calibre2">如果我们想要访问日期的各个部分(年、月、日)，我们可以通过可用的访问器函数来检索各个部分:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; earth_day = Date(2018, 4, 22) 
+2018-04-22 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt;year(earth_day) # the year 
+2018 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; month(earth_day) # the month  
+4</strong> </pre>
+<p class="calibre2">为了简洁起见，API 还公开了复合方法:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; monthday(earth_day) # month and day 
+(4, 22) </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; yearmonthday(earth_day) # year month and day 
+(2018, 4, 22)</strong> </pre>
+<p class="calibre2">类似的访问器也可用于<kbd class="calibre12">DateTime</kbd>——但是没有提供复合方法:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; earth_hour = DateTime(2018, 4, 22, 22, 00) 
+2018-04-22T22:00:00 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; hour(earth_hour) # the hour 
+22 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; minute(earth_hour) # the minute 
+0</strong> </pre>
+<p class="calibre2">还定义了返回<kbd class="calibre12">Period</kbd>对象的可选访问器——它们有大写名称:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; Hour(earth_hour) # a period of 22 hours 
+22 hours </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; Month(earth_hour) # a period of 4 months 
+4 months 
+ 
+julia&gt; Month(earth_hour) |&gt; typeof |&gt; supertype</strong><br class="title-page-name"/><strong class="calibre1"> DatePeriod 
+ 
+julia&gt; supertype(DatePeriod) 
+Period</strong> </pre>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Querying dates</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">查询日期</h1>
+                
+            
+            
+                
+<p class="calibre2">一旦我们有了一个日期对象，我们就可以获得大量关于它的额外信息，比如星期几、闰年、一年中的哪一天等等。我们可以使用<kbd class="calibre12">Dates</kbd> API 来提取关于日期/时间对象的这类信息。</p>
+<p class="calibre2">考虑一下这个:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; yoga_day = Date(2019, 6, 21) # Really, the International Yoga Day does exist! 
+2019-06-21</strong> </pre>
+<p class="calibre2">你很好奇 2019 年瑜伽日是什么时候吗？让我们用我们的朱莉娅技能来弄清楚:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; dayname(yoga_day) 
+"Friday"</strong> </pre>
+<p class="calibre2">如果您需要一天(一周内)的数值，还有<kbd class="calibre12">dayofweek(yoga_day)</kbd>，它显然会返回<kbd class="calibre12">5</kbd>，因为星期五是一周的第五天。</p>
+<p class="calibre2">当然，我们也可以在这里使用本地化名称:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; dayname(yoga_day, locale="es") 
+"viernes"</strong> </pre>
+<p class="calibre2">我们可以调用的另一个有用的函数是<kbd class="calibre12">dayofweekofmonth(yoga_day)</kbd>，它会告诉我们今天是哪个月的星期五——2019 年 6 月的第三个星期五。</p>
+<p class="calibre2">如果你不确定这如何有用，举个例子，事件总是有规律地在一个月的某一天发生。一个很好的例子是我参加的聚会，它总是在每个月的第三个星期四举行。</p>
+<p class="calibre2">我们还可以获得大量关于月份和年份的信息:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; monthname(yoga_day, locale="es") # June, with the Spanish locale  
+"junio" </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; isleapyear(yoga_day) # 2019 is not a leap year 
+false </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; dayofyear(yoga_day) # It's the 172nd day of 2019 
+172 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; quarterofyear(yoga_day) # 2nd quarter of 2019 
+2 </strong> </pre>
+<p>API 非常丰富，包括了比这里介绍的更多的方法。请访问位于<a href="https://docs.julialang.org/en/v1/stdlib/Dates/index.html#stdlib-dates-api-1" class="calibre19">https://docs . Julia lang . org/en/v1/stdlib/Dates/index . html # stdlib-Dates-API-1</a>的文档页面。</p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Defining the date ranges</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">定义日期范围</h1>
+                
+            
+            
+                
+<p class="calibre2">Julia 允许我们定义日期范围来表示连续的时间段。例如，我们可以将全年表示为 1 月 1 日到 12 月 31 日之间的天数范围:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; year_2019 = Date(2019, 1, 1):Day(1):Date(2019,12,31) 
+2019-01-01:1 day:2019-12-31</strong> </pre>
+<p class="calibre2">我们创建了一个以一天为步长的日期范围，因此<kbd class="calibre12">365</kbd>项，因为 2019 年不是闰年:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; typeof(year_2019) 
+StepRange{Date,Day} </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; size(year_2019) 
+(365,)</strong> </pre>
+<p class="calibre2">我们可以使用名副其实的<kbd class="calibre12">collect</kbd>函数实例化实际的<kbd class="calibre12">Date</kbd>对象:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; collect(year_2019) 
+365-element Array{Date,1}: 
+ 2019-01-01 
+ 2019-01-02 
+ 2019-01-03 
+# output truncated</strong> </pre>
+<p class="calibre2">当然，我们也可以通过索引来访问元素，如下所示:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; year_2019[100] # day 100 
+2019-04-10</strong> </pre>
+<p class="calibre2">也可以用其他步骤来定义范围，例如每月间隔:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; year_2019 = Date(2019, 1, 1):Month(1):Date(2019,12,31) 
+2019-01-01:1 month:2019-12-01 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; collect(year_2019) # First day of each of the 12 months 
+12-element Array{Date,1}: 
+ 2019-01-01 
+ 2019-02-01 
+ 2019-03-01 
+# output truncated</strong> </pre>
+<p class="calibre2">我们可以为该步骤传递任何<kbd class="calibre12">Period</kbd>对象，例如:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; year_2019 = Date(2019, 1, 1):Month(3):Date(2019,12,31) # Quarterly 
+2019-01-01:3 months:2019-10-01 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; collect(year_2019) # The first of each of the 4 quarters 
+4-element Array{Date,1}: 
+ 2019-01-01 
+ 2019-04-01 
+ 2019-07-01 
+ 2019-10-01 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; year_2019 = Date(2019, 1, 1):Week(2):Date(2019,12,31) # Bi weekly 
+2019-01-01:2 weeks:2019-12-31 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; collect(year_2019) 
+27-element Array{Date,1}: 
+ 2019-01-01 
+ 2019-01-15 
+ 2019-01-29 
+# output truncated</strong> </pre>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Period types and period arithmetic</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">期间类型和期间算法</h1>
+                
+            
+            
+                
+<p class="calibre2">我们已经看到了一些<kbd class="calibre12">Period</kbd>建造者。这些都是可用的— <kbd class="calibre12">Day</kbd>、<kbd class="calibre12">Week</kbd>、<kbd class="calibre12">Month</kbd>、<kbd class="calibre12">Year</kbd>、<kbd class="calibre12">Hour</kbd>、<kbd class="calibre12">Minute</kbd>、<kbd class="calibre12">Second</kbd>、<kbd class="calibre12">Millisecond</kbd>、<kbd class="calibre12">Microsecond</kbd>、<kbd class="calibre12">Nanosecond</kbd>。<kbd class="calibre12">Period</kbd>类型是一个抽象类型，有两个具体的子类型<kbd class="calibre12">DatePeriod</kbd>和<kbd class="calibre12">TimePeriod</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; subtypes(Period) 
+2-element Array{Any,1}: 
+ DatePeriod 
+ TimePeriod</strong> </pre>
+<p class="calibre2"><kbd class="calibre12">Period</kbd>在朱丽亚代表一段持续时间。这是一个非常有用的抽象概念，代表了人们日常使用的模糊时间概念。想想一个月——一个月有多少天——30 天还是 31 天？28 呢？还是 29？</p>
+<p class="calibre2">很多时候，在提供更多信息之前，使用模糊的抽象概念而不切换到实际日期是很有用的。以假设的火星之旅为例。根据<a href="https://image.gsfc.nasa.gov/poetry/venus/q2811.html" class="calibre9">https://image.gsfc.nasa.gov/poetry/venus/q2811.html</a><a href="https://image.gsfc.nasa.gov/poetry/venus/q2811.html" class="calibre9">的说法，返回火星需要<kbd class="calibre24">21 months</kbd> — <kbd class="calibre24">9</kbd>到达那里，<kbd class="calibre24">3</kbd>停留在那里，<kbd class="calibre24">9</kbd>再返回:</a></p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; duration_of_trip_to_mars = Month(9) * 2 + Month(3) 
+21 months</strong> </pre>
+<p class="calibre2">这 21 个月到底要花多长时间还不确定，直到我们真正决定何时开始旅行:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; take_off_day = Date(2020, 1, 15) 
+2020-01-15</strong> </pre>
+<p class="calibre2">现在我们可以计算宇航员将离开多久:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; return_day = take_off_day + duration_of_trip_to_mars 
+2021-10-15 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; time_diff = return_day - take_off_day 
+639 days</strong> </pre>
+<p class="calibre2">然而，如果由于技术原因，发射日期将推迟五个月，结果将会不同:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; take_off_day += Month(5) 
+2020-06-15 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; return_day = take_off_day + duration_of_trip_to_mars 
+2022-03-15 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; time_diff = return_day - take_off_day 
+638 days</strong> </pre>
+<p>重要的是要记住，与其他编程语言不同，它们对一个月的默认长度做出假设——例如 JavaScript 中的 31 天或 PHP 中的 30 天——Julia 采用了不同的方法。关于<kbd class="calibre24">Period</kbd>算术的详细解释，可以阅读官方文档在<a href="https://docs.julialang.org/en/v1/stdlib/Dates/index.html#TimeType-Period-Arithmetic-1" class="calibre19">https://docs . Julia lang . org/en/v1/stdlib/Dates/index . html # time type-Period-algorithm-1。</a></p>
+<p class="calibre2">一段时间不一定是一段完整的时间。Julia 允许我们表达不规则的时间间隔，如<kbd class="calibre12">1</kbd>月和<kbd class="calibre12">2</kbd>周。然而，不规则的时间量(组合了不同类型的时段)将在内部由不同的类型表示——不是<kbd class="calibre12">Period</kbd>，而是<kbd class="calibre12">CompoundPeriod</kbd>。这是如何工作的:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; isa(Month(3), Period) 
+true </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; isa(Month(3) + Month(1), Period) 
+true </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; isa(Month(1) + Week(2), Period)  
+false </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; isa(Month(1) + Week(2), Dates.CompoundPeriod)  
+true</strong> </pre>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Date adjustments</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">日期调整</h1>
+                
+            
+            
+                
+<p class="calibre2">算术非常强大，但有时我们需要表达依赖于其他日期的更灵活的规则。我在考虑下个月的<em class="calibre16">最后一天</em>，<em class="calibre16">下周二</em>，或者<em class="calibre16">每个月的第三个星期一</em>。</p>
+<p class="calibre2">对于这种情况，<kbd class="calibre12">Dates</kbd>模块公开了调整器 API。首先，我们有<kbd class="calibre12">firstdayof*</kbd>和<kbd class="calibre12">lastdayof*</kbd>系列的函数— <kbd class="calibre12">firstdayofweek</kbd>、<kbd class="calibre12">firstdayofmonth</kbd>、<kbd class="calibre12">firstdayofquarter</kbd>和<kbd class="calibre12">firstdayofyear</kbd>；分别加上<kbd class="calibre12">lastdayofweek</kbd>、<kbd class="calibre12">lastdayofmonth</kbd>、<kbd class="calibre12">lastdayofquarter</kbd>、<kbd class="calibre12">lastdayofyear</kbd>。它们将日期/时间对象作为输入，然后<em class="calibre16">将</em>调整到指定的时间点:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; firstdayofweek(Date(2019, 1, 31)) 
+2019-01-28</strong> </pre>
+<p class="calibre2">2019 年，一周包括 1 月 31 日的第一天是 28 日星期一。</p>
+<p class="calibre2"><kbd class="calibre12">lastdayof*</kbd>系列功能的工作方式类似。尽管它们很有用，但是它们没有提供足够的灵活性。幸运的是，我们有保险。如果我们需要第一天或最后一天之外的其他日期，我们必须使用<kbd class="calibre12">tonext</kbd>和<kbd class="calibre12">toprev</kbd>对函数。它们有两种口味。第一种方法采用子类型<kbd class="calibre12">TimeType</kbd>(即任意<kbd class="calibre12">Time</kbd>、<kbd class="calibre12">Date</kbd>、<kbd class="calibre12">DateTime</kbd>)和一周中的某一天:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; tonext(Date(2019, 4, 1), Saturday) 
+2019-04-06</strong> </pre>
+<p class="calibre2">愚人节后的下一个周六是 2019 年 4 月 7 日。</p>
+<p class="calibre2"><kbd class="calibre12">tonext</kbd>的另一个方法更加强大——它接受一个类似的<kbd class="calibre12">TimeType</kbd>和一个函数。它将调整日期，直到函数返回<kbd class="calibre12">true</kbd>。为了理解这有多有用，让我们回到之前的 meetup 例子，我每个月第三个星期四参加的会议。要知道下一次会议什么时候举行，我所要做的就是问朱莉娅:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; tonext(today()) do d  # today is Thu 8th of November, 2019 
+         dayofweek(d) == Thursday &amp;&amp; dayofweekofmonth(d) == 3 
+       end 
+2018-11-15</strong> </pre>
+<p class="calibre2"><kbd class="calibre12">toprev</kbd>功能的工作方式类似。</p>
+<p class="calibre2">另一个函数<kbd class="calibre12">filter</kbd>，允许我们获得所有匹配的日期作为一个<kbd class="calibre12">Iterator</kbd>。跟进我们的 meetups 日程，让我们试着找出 2019 年所有会议的日期。但我们还必须考虑到，在 5 月的下半月，组织者将参加一次商务旅行，而 8 月是一个假期月。所以，在这段时间里不会有会议。我们该如何表达呢？事实证明，对于 Julia 来说，这非常简单(并且可读性很强):</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; filter(Date(2019):Day(1):Date(2020)) do d 
+           ! in(d, Date(2019, 5, 15):Day(1):Date(2019, 5, 31)) &amp;&amp;  
+           month(d) != August &amp;&amp;  
+           dayofweek(d) == Thursday &amp;&amp;  
+           dayofweekofmonth(d) == 3 
+   end |&gt; collect  
+10-element Array{Date,1}: 
+ 2019-01-17 
+ 2019-02-21 
+ 2019-03-21 
+ 2019-04-18 
+ 2019-06-20 
+ 2019-07-18 
+ 2019-09-19 
+ 2019-10-17 
+ 2019-11-21 
+ 2019-12-19</strong> </pre>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Rounding of dates</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">日期的舍入</h1>
+                
+            
+            
+                
+<p class="calibre2">可能存在这样的情况，我们有一个日期/时间，并且需要计算前一个或下一个完整的时间间隔，例如，下一个小时或前一天。<kbd class="calibre12">Dates</kbd> API 公开了一些对<kbd class="calibre12">Date</kbd>和<kbd class="calibre12">DateTime</kbd>对象进行舍入的方法— <kbd class="calibre12">floor</kbd>、<kbd class="calibre12">ceil</kbd>和<kbd class="calibre12">time</kbd>。它们非常直观，非常强大:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; now() 
+2018-11-08T21:13:20.605 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1"># round down to the nearest hour 
+julia&gt; floor(now(), Hour) 
+2018-11-08T21:00:00 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1"># or to the nearest 30 minutes increment 
+julia&gt; floor(now(), Minute(30))  
+2018-11-08T21:00:00 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1"># it also works with dates  
+julia&gt; floor(today(), Month) # today() is the 8th of Nov 2018 
+2018-11-01</strong> </pre>
+<p class="calibre2"><kbd class="calibre12">ceil</kbd>函数的工作方式类似，但它不是向下舍入，而是向上舍入。至于<kbd class="calibre12">round</kbd>函数，它将根据最接近的值向上或向下取整:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; round(today(), Month) 
+2018-11-01 # today is the 11th so beginning of month is closer 
+ 
+julia&gt; round(today() + Day(10), Month) 
+2018-12-01 # end of month is closer</strong> </pre>
+<p>在一些边缘情况下，舍入可能会出现意外行为——有关更多详细信息，请查看官方文档，网址为<a href="https://docs.julialang.org/en/v1/stdlib/Dates/index.html#Rounding-1" class="calibre19">https://docs . Julia lang . org/en/v1/stdlib/Dates/index . html # Rounding-1</a>。</p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Adding support for time zones</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">添加对时区的支持</h1>
+                
+            
+            
+                
+<p class="calibre2">如前所述，默认情况下，Julia 的日期/时间对象以本地时间操作，完全忽略时区。然而，我们可以使用<kbd class="calibre12">TimeZones</kbd>包轻松地扩展它们，使其具有时区意识。请按常规方式安装:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; using Pkg</strong><br class="title-page-name"/><strong class="calibre1">pkg&gt; add TimeZones</strong></pre>
+<p class="calibre2">一旦我们通知编译器我们将使用<kbd class="calibre12">TimeZones</kbd>，大量与时区相关的功能就唾手可得了。</p>
+<p class="calibre2">我们可以从探索可用时区开始:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; timezone_names() 
+439-element Array{AbstractString,1}: 
+ "Africa/Abidjan" 
+ "Africa/Accra" 
+# output truncated</strong> </pre>
+<p class="calibre2">让我们为<kbd class="calibre12">Amsterdam</kbd>创建一个时区对象:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; amstz = TimeZone("Europe/Amsterdam") 
+Europe/Amsterdam (UTC+1/UTC+2)</strong> </pre>
+<p class="calibre2">在 Julia 中，<kbd class="calibre12">TimeZone</kbd>是一个抽象类型，表示关于特定时区的信息，这意味着它不能被实例化——我们不能创建这种类型的对象。相反，将自动使用它的两个子类型之一— <kbd class="calibre12">VariableTimeZone</kbd>或<kbd class="calibre12">FixedTimeZone</kbd>。<kbd class="calibre12">VariableTimeZone</kbd>代表一个时区，其偏移量根据一年中的时间而变化，以考虑夏令时/夏令时。<kbd class="calibre12">FixedTimeZone</kbd>有一个不变的偏移量。</p>
+<p class="calibre2"><kbd class="calibre12">Europe/Amsterdam (UTC+1/UTC+2)</kbd>就是这样一个<kbd class="calibre12">VariableTimeZone</kbd>。这由圆括号内的信息表示，表示该时区的两个偏移量。检查类型将确认它:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; typeof(amstz) 
+TimeZones.VariableTimeZone</strong> </pre>
+<p class="calibre2">不改变偏移量的时区是<kbd class="calibre12">FixedTimeZone</kbd>的实例。这样的例子有<kbd class="calibre12">UTC</kbd>和<kbd class="calibre12">GMT</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; typeof(TimeZone("GMT")) 
+TimeZones.FixedTimeZone</strong> </pre>
+<p class="calibre2"><kbd class="calibre12">TimeZones</kbd>包还提供了一个特殊的字符串文字，<kbd class="calibre12">tz"..."</kbd>。它公开了与<kbd class="calibre12">TimeZone(...)</kbd>相同的功能，但输入更少:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; tz"Europe/Bucharest" 
+Europe/Bucharest (UTC+2/UTC+3)</strong> </pre>
+<p class="calibre2">有了这些知识，我们现在可以创建时区相关的日期/时间值。这些以<kbd class="calibre12">ZonedDateTime</kbd>对象的形式出现，顾名思义，代表了<kbd class="calibre12">DateTime</kbd>和<kbd class="calibre12">TimeZone</kbd>的混合:</p>
+<pre class="calibre17"><strong class="calibre1"># 8 PM, Christmas Day in Vienna, 2018 
+julia&gt; ZonedDateTime(DateTime(2018, 12, 25, 20), tz"Europe/Vienna") 
+2018-12-25T20:00:00+01:00</strong> </pre>
+<p class="calibre2">这可以通过跳过对<kbd class="calibre12">DateTime</kbd>的显式调用写得更简洁一点:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; ZonedDateTime(2018, 12, 25, 20, tz"Europe/Vienna") 
+2018-12-25T20:00:00+01:00</strong> </pre>
+<p class="calibre2"><kbd class="calibre12">TimeZones</kbd>模块还提供了一系列的实用方法。首先，我们可以通过使用恰当命名的<kbd class="calibre12">localzone</kbd>来检索本地时区:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; localzone() 
+Europe/Madrid (UTC+1/UTC+2)</strong> </pre>
+<p class="calibre2">我住在巴塞罗那，因此这是我的当前时区-您的输出将与您的实际时区相对应。</p>
+<p class="calibre2"><kbd class="calibre12">now</kbd>和<kbd class="calibre12">today</kbd>有两种延伸方式，分别以<kbd class="calibre12">now(::TimeZone)</kbd>和<kbd class="calibre12">today(::TimeZone)</kbd>的形式出现:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; now() 
+2018-11-08T22:32:59.336 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; now(tz"Europe/Moscow") 
+2018-11-09T00:33:23.138+03:00 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; today() 
+2018-11-08 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; today(tz"Europe/Moscow") 
+2018-11-09</strong> </pre>
+<p class="calibre2">代替<kbd class="calibre12">today(::TimeZone)</kbd>，另一个函数<kbd class="calibre12">todayat</kbd>可以使用两个参数——一天中的时间作为<kbd class="calibre12">Time</kbd>对象和一个<kbd class="calibre12">TimeZone</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; todayat(Time(22, 30), tz"Europe/Moscow") 
+2018-11-09T22:30:00+03:00</strong> </pre>
+<p class="calibre2">这次我们得到<kbd class="calibre12">Moscow</kbd>时间晚上 10 点 30 分。</p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Converting time zones</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">转换时区</h1>
+                
+            
+            
+                
+<p class="calibre2">我们想要做的最基本的事情之一是将一个<kbd class="calibre12">DateTime</kbd>从一个时区转换到另一个时区。使用<kbd class="calibre12">astimezone</kbd>函数很简单:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; xmas_day = ZonedDateTime(2018, 12, 25, 20, tz"Europe/Vienna") 
+2018-12-25T20:00:00+01:00 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; astimezone(xmas_day, tz"Australia/Sydney") 
+2018-12-26T06:00:00+11:00 </strong></pre>
+<p class="calibre2">当你晚上 8 点在维也纳庆祝圣诞节时，在澳大利亚的悉尼，第二天已经是早上 6 点了。</p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Parsing date strings</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">解析日期字符串</h1>
+                
+            
+            
+                
+<p class="calibre2">我们已经看到了如何使用 Julia 的<kbd class="calibre12">Dates</kbd> API 解析日期和日期/时间字符串。<kbd class="calibre12">TimeZones</kbd>包将这一功能向前推进了一步，允许我们解析包含时区的日期/时间字符串:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; ZonedDateTime("2018-12-25T20:00:00+01:00", "yyyy-mm-ddTHH:MM:SSzzzz") 
+2018-12-25T20:00:00+01:00</strong> </pre>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>ZonedDateTime period arithmetic</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">ZonedDateTime 周期算法</h1>
+                
+            
+            
+                
+<p class="calibre2">您会很高兴地听到，带时区感知对象的算术就像它的常规<kbd class="calibre12">TimeType</kbd>对应物一样工作。但是，在处理开始于一个偏移(如冬季)而结束于另一个偏移(如夏季)的时间段时，您必须格外小心。例如，让我们看看当欧洲切换到夏令时的时候会发生什么。</p>
+<p class="calibre2">时钟在三月的最后一个星期天改变。花一分钟，试着找出 2019 年 3 月最后一个星期天的日期。</p>
+<p class="calibre2">这是我的解决方案:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; last_day_of_winter = tonext(today()) do d 
+           dayofweek(d) == Sunday &amp;&amp; 
+           month(d) == March &amp;&amp; 
+           dayofmonth(d) &gt; dayofmonth(lastdayofmonth(d) - Day(7)) 
+       end 
+2019-03-31</strong> </pre>
+<p class="calibre2">现在，让我们给它一个时区，比如说，伦敦的:</p>
+<pre class="calibre17">london_time = ZonedDateTime(DateTime(last_day_of_winter), tz"Europe/London") 
+2019-03-31T00:00:00+00:00 </pre>
+<p class="calibre2">向其中添加一天将导致时区改变:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; next_day = london_time + Day(1) 
+2019-04-01T00:00:00+01:00</strong> </pre>
+<p class="calibre2">但是如果我们现在把相当于一天的时间去掉，而是以小时为单位，会怎么样呢？我们应该再次得到<kbd class="calibre12">london_time</kbd>的值，对吧？看一看:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; next_day - Hour(24) 
+2019-03-30T23:00:00+00:00</strong> </pre>
+<p class="calibre2">哎呀，不完全是！减去<kbd class="calibre12">24</kbd>小时其实比<kbd class="calibre12">london_time</kbd>早推了我们一个小时。其原因是时差的改变(切换到夏令时)实际上导致 25 日凌晨 2 点整整一个小时被跳过，使得这一天只有 23 小时长。</p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Time zone-aware date ranges</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">支持时区的日期范围</h1>
+                
+            
+            
+                
+<p class="calibre2">在处理时区问题时，需要记住的另一件重要事情是日期范围。如果范围的起始物料位于某个时区，但最终物料位于不同的时区，则最终物料对应的结果值将自动转换为起始物料的时区。一个例子可以说明这一点:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; interval = ZonedDateTime(2019, 8, 1, tz"Europe/London"):Hour(1):ZonedDateTime(2019, 8, 2, tz"Australia/Sydney") 
+2019-08-01T00:00:00+01:00:1 hour:2019-08-02T00:00:00+10:00 </strong><br class="title-page-name"/><br class="title-page-name"/><strong class="calibre1">julia&gt; collect(interval) 
+16-element Array{TimeZones.ZonedDateTime,1}: 
+2019-08-01T00:00:00+01:00 
+# output truncated 
+2019-08-01T15:00:00+01:00</strong> </pre>
+<p class="calibre2">数组中的最后一项<kbd class="calibre12">2018-08-01T15:00:00+01:00</kbd>表示与间隔中的最后一项<kbd class="calibre12">2018-08-02T00:00:00+10:00</kbd>相同的时间，但是它使用的是伦敦时区，而不是悉尼时区:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; astimezone(ZonedDateTime("2019-08-01T00:00:00+01:00", "yyyy-mm-ddTHH:MM:SSzzzz"), tz"Australia/Sydney" ) 
+2019-08-01T09:00:00+10:00</strong> </pre>
+<p class="calibre2">同样的时间，但是不同的时区。</p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Time series data in Julia</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">Julia 中的时间序列数据</h1>
+                
+            
+            
+                
+<p class="calibre2">时间序列是通过一段时间内的重复测量获得的定义明确的数据项的观察值的集合。这个定量观察的集合是有序的，允许我们理解底层结构。此类数据的示例包括公司股票的每日收盘价、零售商的季度销售额、对个人血糖水平的持续监控或每小时的气温。</p>
+<p class="calibre2">Julia 的包生态系统通过<kbd class="calibre12">TimeSeries</kbd>包提供了处理时间序列的强大功能。该软件包提供了一个广泛的 API，涵盖了所有的任务，从读取和写入带有时态数据的 CSV 文件，到过滤和分割时间序列，到数学和逻辑运算符，以及绘图。让我们将它添加到工具箱中:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; using Pkg 
+pkg&gt; add TimeSeries </strong> </pre>
+<p class="calibre2">现在，让我们得到一些时间序列数据。我们能做的最简单的事情就是使用<kbd class="calibre12">MarketData</kbd>包，它为研究和测试提供开源财务数据，并与<kbd class="calibre12">TimeSeries</kbd>完美配合。一旦你以通常的方式(<kbd class="calibre12">pkg&gt; add MarketData</kbd>)安装它，该模块将暴露一系列对应于不同数据集的变量。有些是小型测试数据库，叫做<kbd class="calibre12">cl</kbd>、<kbd class="calibre12">ohcl</kbd>、<kbd class="calibre12">ohlcv</kbd>等等。例如，<kbd class="calibre12">ohcl</kbd>数据集包含 500 行市场数据，从 2000 年 1 月 3 日到 2001 年 12 月 31 日—每行包含一个<kbd class="calibre12">Date</kbd>，加上<kbd class="calibre12">Open</kbd>、<kbd class="calibre12">High</kbd>、<kbd class="calibre12">Low</kbd>和<kbd class="calibre12">Close</kbd>值。它看起来是这样的:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; using MarketData 
+julia&gt; MarketData.ohlc 
+500x4 TimeSeries.TimeArray{Float64,2,Date,Array{Float64,2}} 2000-01-03 to 2001-12-31</strong> </pre>
+<p class="calibre2">您可以看到它属于<kbd class="calibre12">TimeArray</kbd>类型，并且它跨越了我刚才提到的时间间隔:</p>
+<p class="CDPAlignCenter"><img src="img/eb05f02d-8eab-4dfd-aa5f-0736a22adb87.png" class="calibre141"/></p>
+<p class="calibre2"><kbd class="calibre12">MarketData</kbd>模块还公开了三大公司更大的历史价格和数量数据——苹果(<kbd class="calibre12">AAPL</kbd>)、波音(<kbd class="calibre12">BA</kbd>)和卡特彼勒(<kbd class="calibre12">CAT</kbd>)。</p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>A quick look at our data with Plots and PyPlot</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">用图和 PyPlot 快速浏览我们的数据</h1>
+                
+            
+            
+                
+<p class="calibre2">老话说得好，一张<em class="calibre16">图抵得上千言万语</em>，下面就让我们通过作图来快速感受一下我们的数据吧。这是一个很好的机会来介绍最好的 Julia 数据可视化包之一— <kbd class="calibre12">Plots</kbd>。与我们之前使用的<kbd class="calibre12">Gadfly</kbd>不同，<kbd class="calibre12">Plots</kbd>采用了不同的方法——它是许多不同绘图库的接口。基本上，它就像中间件一样，为其他绘图包提供一个通用的、统一的 API(称为<strong class="calibre4">后端</strong>)。在 Julia 中，不同的绘图包具有不同的特性和优势，根据用户的特定需求，他们可能被迫学习另一个库、更改代码等等，以便交替使用不同的绘图包。通过一个统一的 API 和一个允许动态交换后端的简单机制来解决这个问题。</p>
+<p class="calibre2"><kbd class="calibre12">Plots</kbd>包支持以下后端— <kbd class="calibre12">PyPlot</kbd>、<kbd class="calibre12">Plotly</kbd>或<kbd class="calibre12">PlotlyJS</kbd>、<kbd class="calibre12">GR</kbd>、<kbd class="calibre12">UnicodePlots</kbd>、<kbd class="calibre12">PGFPlots</kbd>、<kbd class="calibre12">InspectDR</kbd>和<kbd class="calibre12">HDFS5</kbd>。你应该用哪一个？这取决于实际的用例，但作为一般规则，用<kbd class="calibre12">Plots</kbd>作者的话来说——<em class="calibre16">GR 代表速度，Plotly(JS)代表交互性，PyPlot 否则</em>。</p>
+<p>请阅读 http://docs.juliaplots.org/latest/backends/<a xmlns:epub="http://www.idpf.org/2007/ops" href="http://docs.juliaplots.org/latest/backends/" class="calibre19">的官方文档，了解每个后端的优缺点。</a></p>
+<p class="calibre2">我们将使用<kbd class="calibre12">PyPlot</kbd>，一个流行的同名 Python 包的 Julia 包装器。让我们安装<kbd class="calibre12">Plots</kbd>和<kbd class="calibre12">PyPlot</kbd>。运行<kbd class="calibre12">pkg&gt; add Plots</kbd>应该很简单。接下来，<kbd class="calibre12">pkg&gt; add PyPlot</kbd>将会更加投入。由于<kbd class="calibre12">PyPlot</kbd>使用<kbd class="calibre12">PyCall.jl</kbd>来调用 Python 代码，根据您当前的 Julia 安装，<kbd class="calibre12">Pkg</kbd>可能也必须安装<kbd class="calibre12">miniconda</kbd> Python 发行版。所以可能需要几分钟。</p>
+<p class="calibre2">要开始将<kbd class="calibre12">Plots</kbd>与<kbd class="calibre12">PyPlot</kbd>一起使用，请确保运行以下程序:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; using Plots 
+julia&gt; pyplot() 
+Plots.PyPlotBackend()</strong> </pre>
+<p class="calibre2"><kbd class="calibre12">pyplot</kbd>函数配置<kbd class="calibre12">PyPlot</kbd>后端供<kbd class="calibre12">Plots</kbd>使用。</p>
+<p>安装<kbd class="calibre24">PyPlot</kbd>后，当试图运行<kbd class="calibre24">pyplot()</kbd>时，可能会出现错误。请按照软件包提供的说明，并重新启动朱莉娅 REPL，如果这样建议。</p>
+<p class="calibre2">我们现在准备好出发了！该模块公开了<kbd class="calibre12">plot</kbd>函数，最简单的方法是用两个值集合调用，对应于 x 和 y 坐标:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; plot(1:10, rand(10))</strong></pre>
+<p class="calibre2">您应该会看到一个绘图在新窗口中呈现——我的窗口看起来是这样的，但是因为我们是可视化随机值，所以您的窗口会有所不同:</p>
+<div><img src="img/24e3b1b9-6fa8-40b5-9482-315774c49d10.png" class="calibre142"/></div>
+<p class="calibre2">这是由<kbd class="calibre12">PyPlot</kbd>渲染的十个随机值的图。</p>
+<p class="calibre2">这些图很酷的一点是它们可以使用<kbd class="calibre12">plot!</kbd>函数进行变异。例如，我们可以通过绘制矩阵向它添加两条线:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; plot!(rand(10, 2))</strong> </pre>
+<p class="calibre2">结果输出如下:</p>
+<div><img src="img/3e2175ee-847b-4e60-992e-c05ada127727.png" class="calibre143"/></div>
+<p class="calibre2">可以使用属性增强绘图。它们允许我们添加标签、标题，以及设计可视化样式等等。例如，下面是我们如何使用额外的属性来渲染之前的绘图:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; plot(1:10, rand(10,3), title="Three Lines",label=["First" "2nd" "Third Line"],lw=3) # lw stands for line width</strong> </pre>
+<p class="calibre2">输出如下所示:</p>
+<p class="CDPAlignCenter"><img src="img/5689f91d-543f-4d47-ab6f-029a6eae6867.png" class="calibre144"/></p>
+<p class="calibre2">API 还公开了用于在绘制之后修改绘图的函数:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; xlabel!("Beautiful lines") 
+julia&gt; ylabel!("Small lines")</strong> </pre>
+<p class="calibre2">输出如下所示:</p>
+<p class="CDPAlignCenter"><img src="img/396804be-9e5f-457b-992e-caaceafbb178.png" class="calibre145"/></p>
+<p class="calibre2">回到我们的市场数据，您会很高兴听到<kbd class="calibre12">TimeSeries</kbd>提供了与<kbd class="calibre12">Plots</kbd>的现成集成。我们所要做的就是运行以下命令:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; plot(MarketData.ohlc)</strong> </pre>
+<p class="calibre2">这是我们得到的结果:</p>
+<p class="CDPAlignCenter"><img src="img/773c1573-a29b-47c6-8e9b-4357d1258405.png" class="calibre146"/></p>
+<p class="calibre2">我们可以看到市场一直在增长，在 2000 年 3 月达到顶峰，然后突然下降到 50-60 左右。它在那里停留了几个月，然后在 9 月底再次下降，并一直保持在 30 岁以下，直到 2001 年底。这四个值，<kbd class="calibre12">Open</kbd>、<kbd class="calibre12">Close</kbd>、<kbd class="calibre12">High</kbd>和<kbd class="calibre12">Low</kbd>似乎高度相关。我们可以分别绘制它们:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; plot(MarketData.ohlc[:High])</strong> </pre>
+<p class="calibre2">我们得到以下结果:</p>
+<p class="CDPAlignCenter"><img src="img/f9fd4d5e-cf7f-49ae-8805-8a86d4ee1388.png" class="calibre147"/></p>
+<p class="calibre2">我们可以像这样追加额外的值:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; plot!(MarketData.ohlc[:Low])</strong> </pre>
+<p class="calibre2">输出如下所示:</p>
+<p class="CDPAlignCenter"><img src="img/29a912d7-2bf6-4fab-b2b5-18350a9f8a5a.png" class="calibre148"/></p>
+<p class="calibre2">将高值与低值可视化，我们可以看到在市场崩溃之前的时期中有更大的变化。</p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>The TimeArray type</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">TimeArray 类型</h1>
+                
+            
+            
+                
+<p class="calibre2">那么，你可能会想，这是怎么回事呢？它看起来确实很有趣，因为我们可以使用方括号和列名对它进行索引。我们可以使用<kbd class="calibre12">fieldnames</kbd>函数来查看它公开了哪些属性:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; fieldnames(typeof(MarketData.ohlc)) 
+(:timestamp, :values, :colnames, :meta)</strong> </pre>
+<p class="calibre2">事实上，一个<kbd class="calibre12">TimeArray</kbd>是一个复合类型——用 Julia 的说法是一个<kbd class="calibre12">struct</kbd>——有四个字段。</p>
+<p class="calibre2"><kbd class="calibre12">timestamp</kbd>字段代表一个时间值的向量——保存我们的时间序列的时间坐标。所以如果我们看一下我们的<kbd class="calibre12">TimeArray</kbd>对象，我们会在第一行看到这个:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; MarketData.ohlc |&gt; head 
+6×4 TimeArray{Float64,2,Date,Array{Float64,2}} 2000-01-03 to 2000-01-10 </strong> </pre>
+<p class="calibre2">看起来是这样的:</p>
+<div><img src="img/bb9db558-b55e-4d3c-954e-9343e9c66ade.png" class="calibre149"/></div>
+<p class="calibre2">在这个输出中，<kbd class="calibre12">2000-01-03</kbd>是<kbd class="calibre12">timestamp</kbd>数组中的第一个值。我们可以使用<kbd class="calibre12">timestamp</kbd> getter 来访问数组:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; timestamp(MarketData.ohlc) 
+500-element Array{Date,1}: 
+ 2000-01-03 
+ 2000-01-04 
+ 2000-01-05 
+# output truncated 
+ 
+julia&gt; timestamp(MarketData.ohlc)[1]  
+2000-01-03</strong> </pre>
+<p class="calibre2">根据数据集中的实际信息，它的类型可以是<kbd class="calibre12">Date</kbd>(在我们的例子中)、<kbd class="calibre12">Time</kbd>或<kbd class="calibre12">DateTime</kbd>—<kbd class="calibre12">TimeType</kbd>的任何子类型。</p>
+<p class="calibre2">当构造一个<kbd class="calibre12">TimeArray</kbd>时，你必须小心，因为<kbd class="calibre12">timestamp</kbd>数据必须被排序——否则，构造函数将出错。</p>
+<p class="calibre2">以此类推，有了<kbd class="calibre12">timestamp</kbd>字段，你大概就能猜出<kbd class="calibre12">values</kbd>属性是怎么回事了。它保存时间序列的数字数据:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; values(MarketData.ohlc) 
+500×4 Array{Float64,2}</strong> </pre>
+<p class="calibre2">输出如下所示:</p>
+<div><img src="img/c8b84b6a-445e-4ffd-a2c5-ae055a8b7e07.png" class="calibre150"/></div>
+<p class="calibre2">显然，<kbd class="calibre12">values</kbd>数组的行数必须与<kbd class="calibre12">timestamp</kbd>集合的长度相匹配。不太明显的是，<kbd class="calibre12">values</kbd>数组中的所有值必须是同一类型。</p>
+<p class="calibre2">因此，<kbd class="calibre12">TimeArray</kbd>中的每一行都由来自<kbd class="calibre12">timestamp</kbd>集合的一个项目和来自<kbd class="calibre12">values</kbd>数组的相应行组成:</p>
+<p class="CDPAlignCenter"><img src="img/6814dcbf-990b-40f3-8638-045d726da3fd.png" class="calibre151"/></p>
+<p class="calibre2"><kbd class="calibre12">colnames</kbd>函数返回值字段中每一列的列名数组。它们作为符号返回:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; colnames(MarketData.ohlc)  
+4-element Array{Symbol,1}: 
+ :Open 
+ :High 
+ :Low 
+ :Close </strong> </pre>
+<p class="calibre2">这里唯一的硬性约束是,<kbd class="calibre12">colnames</kbd>向量中的项目数必须与<kbd class="calibre12">values</kbd>集合中的列数相匹配。由于<kbd class="calibre12">TimeArrays</kbd>可以通过列名索引，构造函数将自动修改<kbd class="calibre12">colnames</kbd>向量中的重复字符串。随后的每个重复名称都将附加<em class="calibre16"> n、</em>，其中<em class="calibre16"> n </em>从<kbd class="calibre12">1</kbd>开始。</p>
+<p class="calibre2">如果您对列名不满意，可以使用<kbd class="calibre12">rename</kbd>方法更改它们，传入<kbd class="calibre12">TimeArray</kbd>对象和一组列名作为符号:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; rename(MarketData.ohlc, [:Opening, :Maximum, :Minimum, :Closing])</strong> </pre>
+<p class="calibre2">最后，<kbd class="calibre12">meta</kbd>字段应该用于将元信息附加到对象上。默认情况下，它是空的，可以由程序员根据需要进行设置。</p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Indexing the TimeArray objects</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">索引 TimeArray 对象</h1>
+                
+            
+            
+                
+<p class="calibre2"><kbd class="calibre12">TimeSeries</kbd>库公开了一个强大的 API，用于访问结构化为<kbd class="calibre12">TimeArray</kbd>数据的信息。我们已经看到，我们可以通过按列名建立索引来访问各个列:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; MarketData.ohlc[:High] 
+500×1 TimeArray{Float64,1,Date,Array{Float64,1}} 2000-01-03 to 2001-12-31</strong> </pre>
+<p class="calibre2">其结果是:</p>
+<div><img src="img/586df468-4d42-44f5-9328-7d3101990d98.png" class="calibre152"/></div>
+<p class="calibre2">我们甚至可以使用多种色谱柱的组合:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; MarketData.ohlc[:High, :Low]</strong> </pre>
+<p class="calibre2">输出如下所示:</p>
+<div><img src="img/52baa074-d17e-424a-b380-3906fbfbbcb6.png" class="calibre153"/></div>
+<p class="calibre2">我们还可以使用行 id 和日期/时间(对应于<kbd class="calibre12">timestamp</kbd>值)来索引数组。让我们尝试选择具有最高<kbd class="calibre12">Close</kbd>值的行。首先，让我们找到它:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; maximum(values(MarketData.ohlc[:Close])) 
+144.19</strong> </pre>
+<p class="calibre2">最高收盘价是<kbd class="calibre12">144.19</kbd>。请注意，按列名进行索引会返回另一个<kbd class="calibre12">TimeArray</kbd>实例，因此要获得它的底层数值，我们需要使用<kbd class="calibre12">values</kbd>函数。</p>
+<p class="calibre2">现在我们可以找到它对应的索引。我们可以通过使用<kbd class="calibre12">findall</kbd>快速获得所有等于<kbd class="calibre12">144.19</kbd>的值的索引数组:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; findall(values(MarketData.ohlc[:Close]) .== 144.19) 
+1-element Array{Int64,1}: 
+ 56</strong> </pre>
+<p class="calibre2">那将是第<kbd class="calibre12">56</kbd>行。我们可以使用这些信息来索引时间序列:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; MarketData.ohlc[56] 
+1×4 TimeArray{Float64,2,Date,Array{Float64,2}} 2000-03-22 to 2000-03-22</strong> </pre>
+<p class="calibre2">输出如下所示:</p>
+<p class="CDPAlignCenter"><img src="img/42806baa-f24a-4cfb-a27e-efbab4071af9.png" class="calibre154"/></p>
+<p class="calibre2">这是 2000 年 3 月 22 日。如果我们想查看前后的行，我们可以很容易地做到:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; MarketData.ohlc[50:60] 
+11×4 TimeArray{Float64,2,Date,Array{Float64,2}} 2000-03-14 to 2000-03-28</strong> </pre>
+<p class="calibre2">这就是产生的<kbd class="calibre12">TimeArray</kbd>:</p>
+<p class="CDPAlignCenter"><img src="img/0f0b8825-445a-4517-845e-e95f831e19f8.png" class="calibre155"/></p>
+<p class="calibre2">如果我们想检查日期前后一周中同一天的值，按范围索引支持一个步长参数。我们可以如下使用它:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; MarketData.ohlc[7:7:70]</strong> </pre>
+<p class="calibre2">我们每七天过滤一次，从第七行开始，一直到第七十行；即每个<kbd class="calibre12">Wednesday</kbd>，如<kbd class="calibre12">Dates.dayname</kbd>所示:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; dayname(timestamp(MarketData.ohlc)[56]) 
+"Wednesday"</strong> </pre>
+<p class="calibre2">如果我们想检索所有的星期三，我们当然可以使用关键字<kbd class="calibre12">end</kbd>，就像在<kbd class="calibre12">MarketData.ohlc[7:7:end]</kbd>中一样。</p>
+<p class="calibre2">假设我们对此很满意，但我们希望在约会中得到更多的背景信息。所以，我们想要所有的星期三加上我们约会的前一天和后一天。我们也可以通过索引数组来实现这一点:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; MarketData.ohlc[[7:7:49; 54;55;56;57; 63:7:70]] 
+13×4 TimeArray{Float64,2,Date,Array{Float64,2}} 2000-01-11 to 2000-04-11</strong> </pre>
+<p class="calibre2">输出如下所示:</p>
+<p class="CDPAlignCenter"><img src="img/145d0095-c6e0-45fb-a710-166e61811c4a.png" class="calibre156"/></p>
+<p class="calibre2">在这里，我们在 7 和 49 之间拉动第七行，然后是第 54、55、56 和 57 行，然后是 63 和 70 之间的第七行。</p>
+<div><kbd class="calibre24">TimeArray</kbd> indexing is very flexible, but keep in mind that the rows must always be ordered by date. This is the reason why we can't say, for instance, [<kbd class="calibre24">7:7:70</kbd>; <kbd class="calibre24">54;55;56;57</kbd>]—the elements would be out of order. And speaking of errors, including duplicate rows will also result in an error.</div>
+<p class="calibre2">我们还可以使用日期/时间对象进行索引:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; MarketData.ohlc[Date(2000, 03, 22)] 
+1×4 TimeArray{Float64,2,Date,Array{Float64,2}} 2000-03-22 to 2000-03-22</strong> </pre>
+<p class="calibre2">这会产生以下结果:</p>
+<p class="CDPAlignCenter"><img src="img/186fe5fa-0504-4ba5-8ecc-03f9b669a4cb.png" class="calibre157"/></p>
+<p class="calibre2">是的，我们也可以使用日期/时间范围:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; MarketData.ohlc[Date(2000, 03, 20):Day(1):Date(2000, 04,30)] 
+29×4 TimeArray{Float64,2,Date,Array{Float64,2}} 2000-03-20 to 2000-04-28</strong> </pre>
+<p class="calibre2">输出如下所示:</p>
+<p class="CDPAlignCenter"><img src="img/ec7bca41-878f-4422-8d74-01e6cf5fe4e5.png" class="calibre158"/></p>
+<p class="calibre2">使用其他日期范围步骤也同样有效:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; MarketData.ohlc[Date(2000, 03, 20):Dates.Week(1):Date(2000, 04,30)] 
+6×4 TimeArray{Float64,2,Date,Array{Float64,2}} 2000-03-20 to 2000-04-24 
+# output truncated</strong> </pre>
+<p class="calibre2">组合多个指数也是可行的:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; MarketData.ohlc[[Date(2000, 03, 20):Day(1):Date(2000, 04,30); Date(2000, 05, 01)]] 
+30×4 TimeArray{Float64,2,Date,Array{Float64,2}} 2000-03-20 to 2000-05-01</strong> </pre>
+<p class="calibre2">最后，我们可以想出我们可以想象的任何列和行的组合:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; MarketData.ohlc[:High, :Low][Date(2000, 03, 20):Day(1):Date(2000, 03,25)] 
+5×2 TimeArray{Float64,2,Date,Array{Float64,2}} 2000-03-20 to 2000-03-24</strong> </pre>
+<p class="calibre2">这是结果:</p>
+<p class="CDPAlignCenter"><img src="img/d5779849-23df-4573-9bc9-9baaee302341.png" class="calibre159"/></p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Querying TimeArray objects</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">查询 TimeArray 对象</h1>
+                
+            
+            
+                
+<p class="calibre2"><kbd class="calibre12">TimeSeries</kbd>模块公开了一个强大的类似查询的 API，用于过滤时间序列数据。让我们来看看每一个。</p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>The when() method</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">when()方法</h1>
+                
+            
+            
+                
+<p class="calibre2"><kbd class="calibre12">when</kbd>方法允许将来自<kbd class="calibre12">TimeArray</kbd>的元素聚合到特定的时间段中。例如，我们可以使用这个函数以更简洁的方式在数据集中挑选星期三:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; when(MarketData.ohlc[1:70], Dates.dayname, "Wednesday") 
+14x4 TimeArray{Float64,2,Date,Array{Float64,2}} 2000-01-05 to 2000-04-05 
+# output truncated</strong> </pre>
+<p class="calibre2">我们不仅仅局限于<kbd class="calibre12">Dates.dayname</kbd>；我们可以使用上一节中提到的许多<kbd class="calibre12">Dates</kbd>函数— <kbd class="calibre12">day</kbd>、<kbd class="calibre12">dayname</kbd>、<kbd class="calibre12">week</kbd>、<kbd class="calibre12">month</kbd>、<kbd class="calibre12">monthname</kbd>、<kbd class="calibre12">year</kbd>、<kbd class="calibre12">dayofweek</kbd>、<kbd class="calibre12">dayofweekofmonth</kbd>、<kbd class="calibre12">dayofyear</kbd>、<kbd class="calibre12">quarterofyear</kbd>和<kbd class="calibre12">dayofquarter</kbd>:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; when(MarketData.ohlc, Dates.monthname, "August") 
+46x4 TimeArray{Float64,2,Date,Array{Float64,2}} 2000-08-01 to 2001-08-31 
+# output truncated</strong> </pre>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>The from() method</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">from()方法</h1>
+                
+            
+            
+                
+<p class="calibre2">该函数从传递给该方法的日期开始截断一个<kbd class="calibre12">TimeArray</kbd>。对应于过去日期的行包含在结果中:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; from(MarketData.ohlc, Date(2000, 3, 22)) 
+445x4 TimeArray{Float64,2,Date,Array{Float64,2}} 2000-03-22 to 2001-12-31</strong> </pre>
+<p class="calibre2">输出如下所示:</p>
+<p class="CDPAlignCenter"><img src="img/55b57b0f-a293-455c-a2b0-0dab1525eef2.png" class="calibre160"/></p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>The to() method</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">to()方法</h1>
+                
+            
+            
+                
+<p class="calibre2"><kbd class="calibre12">to()</kbd>方法返回截止到作为参数传递的日期的行:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; to(MarketData.ohlc, Date(2000, 3, 22)) 
+56x4 TimeArray{Float64,2,Date,Array{Float64,2}} 2000-01-03 to 2000-03-22 
+# output truncated</strong> </pre>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>The findall() and findwhen() methods</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">findall()和 findwhen()方法</h1>
+                
+            
+            
+                
+<p class="calibre2">这个函数族测试一个条件，并返回条件为真的结果。唯一的区别是<kbd class="calibre12">findall()</kbd>返回一个包含行数的数组，而<kbd class="calibre12">findwhen()</kbd>返回一个日期/时间对象的向量。例如，如果我们想找到收盘值至少比开盘值高 10%的所有行，我们可以运行以下命令:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; findall(MarketData.ohlc[:Close] .&gt;= MarketData.ohlc[:Open] .+ MarketData.ohlc[:Open] .* 0.1) 
+7-element Array{Int64,1}: 
+  55 
+  74 
+ 119 
+ 254 
+ 260 
+ 271 
+ 302</strong> </pre>
+<p class="calibre2"><kbd class="calibre12">findwhen</kbd>将产生类似的输出，但是对于日期:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; findwhen(MarketData.ohlc[:Close] .&gt;= MarketData.ohlc[:Open] .+ MarketData.ohlc[:Open] .* 0.1) 
+7-element Array{Date,1}: 
+ 2000-03-21 
+ 2000-04-17 
+ 2000-06-21 
+ 2001-01-03</strong></pre>
+<pre class="calibre17"><strong class="calibre1"> 2001-01-11 
+ 2001-01-29 
+ 2001-03-14</strong> </pre>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Manipulating time series objects</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">操纵时间序列对象</h1>
+                
+            
+            
+                
+<p class="calibre2"><kbd class="calibre12">TimeSeries</kbd>公开了一组极简但有效的修改<kbd class="calibre12">TimeArray</kbd>对象的方法。</p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>merge()</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">合并()</h1>
+                
+            
+            
+                
+<p class="calibre2">首先，我们可以结合两个<kbd class="calibre12">TimeArrays</kbd>的数据。<kbd class="calibre12">merge</kbd>方法使用时间戳作为连接列——默认情况下，它执行内部连接。但是也可以执行左连接、右连接和外连接。让我们生成一些随机数据进行实验。我们将从创建一个包含随机值的时间序列开始，时间跨度为一周，从今天开始:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; d1 = today():Day(1):today() + Week(1) |&gt; collect 
+8-element Array{Date,1}: 
+ 2018-11-08 
+ 2018-11-09 
+ 2018-11-10 
+ 2018-11-11 
+ 2018-11-12 
+ 2018-11-13 
+ 2018-11-14 
+ 2018-11-15 
+ 
+julia&gt; t1 = TimeArray(d1, rand(length(d1)), [:V1]) 
+8×1 TimeArray{Float64,1,Date,Array{Float64,1}} 2018-11-08 to 2018-11-15</strong> </pre>
+<p class="calibre2">输出如下所示:</p>
+<p class="CDPAlignCenter"><img src="img/48da86e4-5b2e-47c9-9a5a-7f2805468a5b.png" class="calibre161"/></p>
+<p class="calibre2">接下来，我们将创建另一个分布在十天内的时间序列对象:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; d2 = today():Day(1):today() + Day(10) |&gt; collect 
+11-element Array{Date,1}: 
+ 2018-11-08 
+ 2018-11-09 
+ 2018-11-10 
+ 2018-11-11 
+ 2018-11-12 
+ 2018-11-13 
+ 2018-11-14 
+ 2018-11-15 
+ 2018-11-16 
+ 2018-11-17 
+ 2018-11-18 
+ 
+julia&gt; t2 = TimeArray(d2, rand(length(d2)), [:V2]) 
+11×1 TimeArray{Float64,1,Date,Array{Float64,1}} 2018-11-08 to 2018-11-18 </strong> </pre>
+<p class="calibre2">这将导致以下结果:</p>
+<p class="CDPAlignCenter"><img src="img/0f8eeb8c-ad11-46b2-9e8d-86caa687e8d1.png" class="calibre162"/></p>
+<p class="calibre2">所以现在我们有两个<kbd class="calibre12">TimeArray</kbd>实例，<kbd class="calibre12">t1</kbd>和<kbd class="calibre12">t2</kbd>。<kbd class="calibre12">t2</kbd>对象包含<kbd class="calibre12">t1</kbd>中所有日期加上另外三天的值。常规(内部连接)<kbd class="calibre12">merge</kbd>将只使用时间戳同时出现在<kbd class="calibre12">t1</kbd>和<kbd class="calibre12">t2</kbd>中的行:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; merge(t1, t2) 
+8×2 TimeArray{Float64,2,Date,Array{Float64,2}} 2018-11-08 to 2018-11-15 </strong></pre>
+<p class="calibre2">这是输出:</p>
+<p class="CDPAlignCenter"><img src="img/39a85886-a371-49c0-8d6a-f6c5cdbb1269.png" class="calibre163"/></p>
+<p class="calibre2">右连接、左连接和外连接将为不对应的行引入<kbd class="calibre12">NaN</kbd>值:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; merge(t1, t2, :right) 
+11×2 TimeArray{Float64,2,Date,Array{Float64,2}} 2018-11-08 to 2018-11-18</strong> </pre>
+<p class="calibre2">输出如下所示:</p>
+<p class="CDPAlignCenter"><img src="img/540ce8d0-6f8f-4667-af5a-78e86e19902c.png" class="calibre164"/></p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>The vcat() method</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">vcat()方法</h1>
+                
+            
+            
+                
+<p class="calibre2"><kbd class="calibre12">vcat()</kbd>方法可以认为是<kbd class="calibre12">merge</kbd>的对应物。如果<kbd class="calibre12">merge</kbd>连接两个时间序列的列，<kbd class="calibre12">vcat</kbd>则合并它们的行。它最明显的用例是将拆分成多个文件的数据集中的数据放在一起。让我们来看看它的实际应用:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; d3 = today() + Week(2):Day(1):today() + Week(3) |&gt; collect  
+8-element Array{Date,1}: 
+ 2018-11-22 
+ 2018-11-23 
+ 2018-11-24 
+ 2018-11-25 
+ 2018-11-26 
+ 2018-11-27</strong></pre>
+<pre class="calibre17"><strong class="calibre1"> 2018-11-28 
+ 2018-11-29 
+  
+julia&gt; t3 = TimeArray(d3, rand(length(d3)), [:V1]) 
+8×1 TimeArray{Float64,1,Date,Array{Float64,1}} 2018-11-22 to 2018-11-29</strong> </pre>
+<p class="calibre2">输出如下所示:</p>
+<p class="CDPAlignCenter"><img src="img/c45534bb-8872-49f5-a4d3-09e88dbbb1c8.png" class="calibre165"/></p>
+<p class="calibre2">我们已经创建了一个新的<kbd class="calibre12">TimeArray</kbd>，涵盖从今天开始的两周到三周的时间段:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; vcat(t1, t3) 
+16×1 TimeArray{Float64,1,Date,Array{Float64,1}} 2018-11-08 to 2018-11-29</strong> </pre>
+<p class="calibre2">这就是产生的<kbd class="calibre12">TimeArray</kbd>:</p>
+<p class="CDPAlignCenter"><img src="img/007b4a8f-21bc-41fe-8aea-05e93947e9d2.png" class="calibre166"/></p>
+<p class="calibre2">产生的时间序列结合了来自<kbd class="calibre12">t1</kbd>和<kbd class="calibre12">t3</kbd>的数据。</p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>The collapse() method</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">collapse()方法</h1>
+                
+            
+            
+                
+<p class="calibre2">这种方法允许将数据压缩到更长的时间范围内，例如将每日数据转换为每周数据:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; january = TimeArray(Date(2018, 1, 1):Day(1):Date(2018, 1, 31) |&gt; collect, rand(31), [:values]) 
+31×1 TimeArray{Float64,1,Date,Array{Float64,1}} 2018-01-01 to 2018-01-31</strong> </pre>
+<p class="calibre2">它产生以下输出:</p>
+<p class="CDPAlignCenter"><img src="img/610ec7a7-e78c-4718-8593-139b1f9adfdc.png" class="calibre167"/></p>
+<p class="calibre2">如果我们想要<kbd class="calibre12">collapse</kbd>时间序列，我们需要决定如何处理被折叠的数据。这是通过传递函数参数实现的。该方法的一般形式如下:</p>
+<pre class="calibre17">collapse(&lt;time series&gt;, &lt;time function&gt;, &lt;time filtering function&gt;, &lt;value collapsing function&gt;) </pre>
+<p class="calibre2">例如，我们可以通过保留周期的最后一天(<kbd class="calibre12">&lt;time filtering function&gt;</kbd>)和计算值的平均值(<kbd class="calibre12">&lt;value collapsing function&gt;</kbd>)将一月的数据<kbd class="calibre12">collapse</kbd>到一个周周期(<kbd class="calibre12">&lt;time function&gt;</kbd>):</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; using Statistics 
+julia&gt; collapse(january, week, last, mean) 
+5×1 TimeArray{Float64,1,Date,Array{Float64,1}} 2018-01-07 to 2018-01-31</strong> </pre>
+<p class="calibre2">输出如下所示:</p>
+<p class="CDPAlignCenter"><img src="img/fd0c2612-3271-47ef-845d-a2e3c898aa3d.png" class="calibre168"/></p>
+<p class="calibre2"><kbd class="calibre12">&lt;value collapsing function&gt;</kbd>是可选的，如果没有提供，将使用对应于时间戳的值:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; collapse(january, week, first) 
+5×1 TimeArray{Float64,1,Date,Array{Float64,1}} 2018-01-01 to 2018-01-29</strong> </pre>
+<p class="calibre2">这是我们得到的结果:</p>
+<p class="CDPAlignCenter"><img src="img/bc35d17e-515d-43a4-99ba-3625b30aae4e.png" class="calibre169"/></p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>The map() method</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">map()方法</h1>
+                
+            
+            
+                
+<p class="calibre2">最后，<kbd class="calibre12">map()</kbd>函数允许我们遍历时间序列中的每一行，并将函数应用于时间戳和值。我们可以轻松地将<kbd class="calibre12">january</kbd>时间序列中的第一周推迟一年，如下所示:</p>
+<pre class="calibre17"><strong class="calibre1">julia&gt; map(january[1:7]) do ts, values 
+           ts += Year(1) 
+           (ts, values) 
+       end 
+7×1 TimeArray{Float64,1,Date,Array{Float64,1}} 2019-01-01 to 2019-01-07</strong> </pre>
+<p class="calibre2">输出如下所示:</p>
+<p class="CDPAlignCenter"><img src="img/6703bb47-ea7a-4990-8be1-bda091b7c9b8.png" class="calibre170"/></p>
+<p class="calibre2">关于<kbd class="calibre12">TimeSeries</kbd>还有更多要说的。但是现在，我们就此打住。我们将在下一章回到<kbd class="calibre12">TimeArray</kbd>，在那里我们将使用它对欧盟的失业数字进行时间序列分析和预测。</p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+
+
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <title>Summary</title>
+    <meta content="urn:uuid:6c17f621-bd40-4366-ac6b-264b580a76bb" name="Adept.expected.resource"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  
+
+</head>
+  <body class="calibre">
+        
+
+                            
+                    <h1 class="header-title">摘要</h1>
+                
+            
+            
+                
+<p class="calibre2">在这一章中，我们学习了在 Julia 中处理日期和时间。这种语言提供了一个强大的、可访问的 API，它遵循了 Julia 的总体理念——您可以从简单开始，随着您的知识越来越丰富，可以扩充您的代码。因此，默认情况下，日期/时间对象使用本地时间，忽略时区等复杂细节。然而，时区支持只差一个包。我们已经看到了如何通过使用<kbd class="calibre12">TimeZones</kbd>提供的功能来扩展 Julia 的<kbd class="calibre12">Dates</kbd> API。</p>
+<p class="calibre2">利用我们对时态数据的理解，我们能够朝着成为熟练的 Julia 程序员又迈进了一步，并了解了时间序列和强大的<kbd class="calibre12">TimeArray</kbd>。我们已经看到了如何使用<kbd class="calibre12">Plots</kbd>绘制时间序列，这是一个非常通用的 Julia 绘图库——事实上，它是一个中间件，为一系列可视化包提供了一个公共 API，允许我们根据需要交换后端。</p>
+<p class="calibre2">在下一章中，我们将通过对欧盟的失业水平进行分析和预测来继续我们对时间序列的讨论。在这个过程中，我们将学习时间序列分析最重要的模式——趋势、季节性和不规则性，并且我们将通过执行各种时间序列转换来扩展我们对<kbd class="calibre12">TimeSeries</kbd>的了解。</p>
+
+
+            
+
+            
+        
+    </body>
+
+</html>
+</body></html>

@@ -1,0 +1,203 @@
+<html><head/><body>
+
+
+	
+		<title>B16069_02_Final_JM_ePub</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-34"><a id="_idTextAnchor035"/>第二章:图机器学习</h1>
+			<p><strong class="bold">机器学习</strong>是人工智能的<a id="_idIndexMarker180"/>子集，旨在为系统提供<em class="italic">学习</em>并从数据中改进的能力。它在许多不同的应用中取得了令人印象深刻的结果，特别是在很难或不可行显式定义规则来解决特定任务的情况下。例如，我们可以训练算法来识别垃圾邮件，将句子翻译成其他语言，识别图像中的对象，等等。</p>
+			<p>近年来，将机器学习应用于<em class="italic">图结构数据</em>的兴趣越来越大。这里，主要目标是自动学习合适的表示以进行预测，发现新的模式，并以相对于“传统”机器学习方法更好的方式理解复杂的动力学。</p>
+			<p>本章将首先回顾一些基本的机器学习概念。然后，将提供图形机器学习的介绍，特别关注<strong class="bold">表示学习</strong>。然后我们将分析一个实际的例子来引导你理解理论概念。<a id="_idTextAnchor036"/></p>
+			<p>本章将涵盖以下主题:</p>
+			<ul>
+				<li>机器学习的复习</li>
+				<li>什么是图上的机器学习，为什么它很重要？</li>
+				<li>在图形机器学习算法中导航的通用分类法</li>
+			</ul>
+			<h1 id="_idParaDest-35"><a id="_idTextAnchor037"/>技术要求</h1>
+			<p>在我们所有的练习中，我们将使用 Jupyter 笔记本和<em class="italic"> Python 3.8 </em>。以下是本章使用<code>pip</code>需要安装的 Python 库列表。例如，在命令行上运行<code>pip install networkx==2.5</code>，依此类推:</p>
+			<pre>Jupyter==1.0.0
+networkx==2.5
+matplotlib==3.2.2
+node2vec==0.3.3
+karateclub==1.0.19
+scipy==1.6.2</pre>
+			<p>与本章相关的所有代码文件都可以在<a href="https://github.com/PacktPublishing/Graph-Machine-Learning/tree/main/Chapter02">https://github . com/packt publishing/Graph-Machine-Learning/tree/main/chapter 02</a>获得。</p>
+			<h1 id="_idParaDest-36"><a id="_idTextAnchor038"/>理解图上的机器学习</h1>
+			<p>在<a id="_idIndexMarker181"/>人工智能的分支中，<strong class="bold">机器学习</strong>是近年来最受关注的一个。指的是一类计算机算法，通过经验<em class="italic">自动学习和提高自己的技能，而不需要显式编程</em>。这种方法从大自然中获得灵感。想象一个运动员第一次面对一个新奇的动作:他们慢慢开始，小心翼翼地模仿教练的手势，尝试，犯错，再尝试。最终，他们会提高，变得越来越自信。</p>
+			<p>那么，这个概念如何转化为机器呢？本质上是一个优化问题。目标是找到一个数学模型，能够在特定任务中实现最佳性能。可以使用特定的性能指标来衡量性能(也称为<a id="_idIndexMarker182"/>损失函数或<strong class="bold">成本函数</strong>)。在一个普通的<a id="_idIndexMarker183"/>学习任务中，算法被提供了数据，可能是大量的数据。该算法使用这些数据迭代地为特定任务做出决策或预测。在每次迭代中，使用损失函数评估决策。产生的<em class="italic">误差</em>用于更新模型参数，希望这意味着模型<a id="_idIndexMarker184"/>将执行得更好。这个过程俗称<strong class="bold">训练</strong>。</p>
+			<p>更正式地说，让我们考虑一个特定的任务，<em class="italic"> T </em>和一个性能指标，<em class="italic"> P </em>，它允许我们量化一个算法在<em class="italic"> T </em>上执行得有多好。根据 Mitchell (Mitchell et al .，1997)，如果一个算法在任务<em class="italic"> T </em>中的性能(由<em class="italic"> P </em>测量)随着经验<em class="italic"> E </em>而提高，那么该算法被称为从经验<em class="italic"> E </em>中学习。</p>
+			<h2 id="_idParaDest-37"><a id="_idTextAnchor039"/>机器学习的基本原理</h2>
+			<p>机器学习算法<a id="_idIndexMarker185"/>分为三大类，被称为<em class="italic">监督</em>、<em class="italic">非监督</em>和<em class="italic">半监督</em>学习。这些学习范例取决于向算法提供数据的方式以及如何评估性能。</p>
+			<p><strong class="bold">监督学习</strong>是当我们知道问题的答案时使用的<a id="_idIndexMarker186"/>学习范式。在这种情况下，数据集由形式为<em class="italic"> &lt; x，y &gt; </em>的样本对组成，其中<em class="italic"> x </em>是输入(例如，图像或语音信号)，而<em class="italic"> y </em>是相应的期望输出(例如，图像代表什么或语音在说什么)。输入变量也被称为<em class="italic">特征</em>，而输出通常被称为<em class="italic">标签</em>、<em class="italic">目标</em>和<em class="italic">注释</em>。在监督设置中，通常使用<em class="italic">距离函数</em>来评估性能。该函数测量预测和预期输出之间的差异。根据标签的类型，监督学习可以进一步分为以下几种:</p>
+			<ul>
+				<li><strong class="bold">分类</strong>:这里标签<a id="_idIndexMarker187"/>是离散的，指输入所属的“类”。分类的例子是确定照片中的<a id="_idIndexMarker188"/>对象或者预测电子邮件是否是垃圾邮件。</li>
+				<li><strong class="bold">回归</strong>:目标为<a id="_idIndexMarker189"/>连续。回归问题的例子有预测建筑物内的温度或预测任何特定产品的销售价格。</li>
+			</ul>
+			<p>无监督学习不同于有监督学习，因为问题的答案是未知的。在这种情况下，我们没有任何标签，只提供了输入<em class="italic"> &lt; x &gt; </em>。因此，目标是推断结构和模式，试图找到相似之处。</p>
+			<p>发现相似例子的组(聚类)是这些问题之一，以及在高维空间中给出数据的新表示。</p>
+			<p>在<strong class="bold">半监督学习</strong>中，使用标记和未标记数据的组合来训练<a id="_idIndexMarker192"/>算法。通常，为了指导对未标记输入数据中存在的结构的研究，使用有限量的标记数据。</p>
+			<p>另外值得一提的是<strong class="bold">强化学习</strong>用于训练机器学习模型做出<a id="_idIndexMarker193"/>决策序列。人工智能算法面临类似游戏的情况，根据执行的动作获得<em class="italic">惩罚</em>或<em class="italic">奖励</em>。算法的作用是理解如何行动以最大化奖励和最小化惩罚。</p>
+			<p>最小化<a id="_idIndexMarker194"/>上的误差光有训练数据是不够的。机器学习中的关键词是<em class="italic">学习</em>。这意味着算法必须能够达到相同的性能水平，即使是在看不见的数据上。评估机器学习算法泛化能力的最常见方式是将数据集分为两部分:训练集<strong class="bold">和测试集<strong class="bold"/>。<a id="_idIndexMarker195"/>模型在训练集上被训练，其中损失函数<a id="_idIndexMarker196"/>被计算并用于更新参数。训练后，在测试集上评估模型的性能。此外，当更多的数据可用时，测试集可以进一步分为<a id="_idIndexMarker197"/>验证<strong class="bold">和<strong class="bold">测试</strong>集。验证集通常用于在训练期间评估模型的性能。</strong></strong></p>
+			<p>当训练机器学习算法时，可以观察到三种情况:</p>
+			<ul>
+				<li>在第一种情况下，模型在训练集上达到低水平的性能。这种情况通常被称为<strong class="bold">欠匹配</strong>，这意味着模型不够强大，不足以解决任务。</li>
+				<li>在第二种情况下，该模型在训练集上实现了高水平的性能，但在测试数据上难以一般化。这种情况称为<strong class="bold">过拟合</strong>。在这种<a id="_idIndexMarker199"/>情况下，模型只是记忆训练数据，而没有真正理解它们之间的真实关系。</li>
+				<li>最后，理想的情况是模型能够在训练和测试数据上实现(可能)最高水平的性能。</li>
+			</ul>
+			<p>图 2.1 中的<em class="italic">风险曲线给出了一个过拟合和欠拟合<a id="_idIndexMarker200"/>的例子。从图中可以看出，训练集和测试集的性能如何根据模型的复杂性(要拟合的参数数量)而变化:</em></p>
+			<div><div><img src="img/B16069_02_01.jpg" alt="Figure 2.1 – Risk curve describing the prediction error on training and test set error in the function of the model complexity (number of parameters of the model)"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 2.1–风险曲线描述了模型复杂性(模型参数数量)函数中训练和测试集误差的预测误差</p>
+			<p>过拟合<a id="_idIndexMarker201"/>是影响机器学习从业者的<a id="_idIndexMarker202"/>主要问题之一。发生这种情况有几个原因。一些原因可能如下:</p>
+			<ul>
+				<li>数据集可能定义不清，或者不能充分代表任务。在这种情况下，添加更多数据有助于缓解问题。</li>
+				<li>用于解决这个问题的数学模型对这项任务来说太强大了。在这种情况下，可以将适当的约束添加到损失函数中，以降低模型的“功效”这样的<a id="_idIndexMarker203"/>约束被称为<strong class="bold">正则化</strong>项。</li>
+			</ul>
+			<p>机器学习在许多领域取得了令人印象深刻的成果，成为计算机视觉、模式识别和自然语言处理等领域中最广泛和有效的方法之一。</p>
+			<h2 id="_idParaDest-38"><a id="_idTextAnchor040"/>机器学习对图形的好处</h2>
+			<p>已经开发了几种机器<a id="_idIndexMarker204"/>学习算法，每种算法都有自己的优点和局限性。其中，值得一提的是回归算法(例如，线性和逻辑回归)、基于实例的算法(例如，k 近邻或支持向量机)、决策树算法、贝叶斯算法(例如，朴素贝叶斯)、聚类算法(例如，k 均值)和人工神经网络。</p>
+			<p>但是这一切成功的关键是什么呢？</p>
+			<p>本质上，有一点:机器学习可以自动处理人类容易完成的任务。这些任务可能太复杂，无法用传统的计算机算法来描述，在某些情况下，它们甚至表现出比人更好的能力。在处理图形时尤其如此，因为它们的结构复杂，与图像或音频信号相比，它们在许多方面都有所不同。通过使用图形机器学习，我们可以创建算法来自动检测和解释重复出现的潜在模式。</p>
+			<p>由于这些原因，人们对图结构数据的<em class="italic">学习表示</em>越来越感兴趣，并且已经开发了许多机器学习算法来处理图。例如，我们可能对确定蛋白质在生物交互图中的作用、预测协作网络的进化、在社交网络中向用户推荐新产品等感兴趣(我们将在<a href="B16069_10_Final_JM_ePub.xhtml#_idTextAnchor150"> <em class="italic">第 10 章</em> </a>、<em class="italic">图的未来</em>中讨论这些和更多应用)。</p>
+			<p>由于其性质，图表可以在不同的粒度级别进行分析:在节点、边和图表级别(整个图表)，如图<em class="italic">图 2.2 </em>所示。对于每个级别，可能会面临不同的问题，因此，应该使用特定的算法:</p>
+			<div><div><img src="img/B16069_02_02.jpg" alt="Figure 2.2 – Visual representation of the three different levels of granularity in graphs&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 2.2-图形中三种不同粒度级别的可视化表示</p>
+			<p>在以下要点中，我们将给出这些级别中的每一个级别可能面临的机器学习问题的一些示例:</p>
+			<ul>
+				<li><strong class="bold">节点级</strong>:给定<a id="_idIndexMarker205"/>一个(可能很大的)图<img src="img/Formula_02_001.png" alt=""/>，目标是将每个顶点<img src="img/Formula_02_002.png" alt=""/>分类到正确的类中。在此设置中，数据集包括<em class="italic"> G </em>和一个对列表<em class="italic"> &lt; vi，yi &gt; </em>，其中<em class="italic"> vi </em>是图<em class="italic"> G </em>的一个节点，<em class="italic">y</em>T32】I 是该节点所属的类。</li>
+				<li><strong class="bold">边缘级别</strong>:给定<a id="_idIndexMarker206"/>一个(可能很大的)图<img src="img/Formula_02_003.png" alt=""/>，目标是将每个边缘<img src="img/Formula_02_004.png" alt=""/>分类到正确的类中。在这个设置中，数据集包括<em class="italic"> G </em>和一个对列表<em class="italic">ei，yi &gt; </em>，其中<em class="italic"> ei </em>是图<em class="italic"> G </em>的一条边，<em class="italic"> yi </em>是该边所属的类。这一级别的<a id="_idIndexMarker207"/>粒度的另一个典型任务是<strong class="bold">链接预测</strong>，预测图中两个现有节点之间是否存在链接的问题。</li>
+				<li><strong class="bold">图级</strong>:给定一个有<em class="italic"> m </em>个不同图的数据集，任务是建立一个能够将图<a id="_idIndexMarker208"/>分类到正确类别的机器学习算法。然后，我们可以将这个问题视为一个分类问题，其中数据集由一组对定义，<em class="italic"> &lt; Gi，yi </em> <em class="italic"> &gt; </em>，其中<em class="italic"> Gi </em>是一个图，<em class="italic"> yi </em>是该图所属的类。</li>
+			</ul>
+			<p>在本节中，我们讨论了机器学习的一些基本概念。此外，我们通过引入一些处理图形时常见的机器学习问题来丰富我们的描述。有了这些理论原则作为基础，我们现在将介绍一些与图形机器学习相关的更复杂的概念。</p>
+			<h1 id="_idParaDest-39"><a id="_idTextAnchor041"/>广义图嵌入问题</h1>
+			<p>在经典的<a id="_idIndexMarker209"/>机器学习应用中，处理输入数据的一种常见方式是在一个称为<strong class="bold">特征工程</strong>的过程中从一组特征中构建，该过程<a id="_idIndexMarker210"/>能够给出数据集中存在的每个实例的紧凑且有意义的表示。</p>
+			<p>从特征工程步骤获得的数据集然后将被用作机器学习算法的输入。如果这一过程通常适用于大范围的问题，当我们处理图形时，它可能不是最佳解决方案。事实上，由于它们定义良好的结构，找到一个能够包含所有有用信息的合适的表示可能不是一件容易的事情。</p>
+			<p>第一种，也是最直接的，创建能够从图中表示结构信息的特征的方法是<em class="italic">提取某些统计数据</em>。例如，一个图可以用它的度分布、效率和我们在前一章中描述的所有度量来表示。</p>
+			<p>更复杂的过程包括应用特定的内核函数，或者在其他情况下，应用能够将期望的属性合并到最终机器学习模型中的工程特定特征。但是，正如您可以想象的那样，这个过程可能非常耗时，并且在某些情况下，模型中使用的特征可能只是为最终模型获得最佳性能所真正需要的信息的子集。</p>
+			<p>在过去的十年中，为了定义新的方法来创建有意义的和紧凑的图表示，人们做了大量的工作。所有这些方法背后的总体思想是创建能够<em class="italic">学习</em>原始数据集的良好表示的算法，以便新空间中的几何关系反映原始图形的结构。我们通常把学习<a id="_idIndexMarker211"/>一个给定图的良好表示的过程叫做<strong class="bold">表示学习</strong>或者<strong class="bold">网络嵌入</strong>。我们将提供一个更正式的定义如下。</p>
+			<p><strong class="bold">表征学习</strong> ( <strong class="bold">网络嵌入</strong>)是旨在学习从离散图形到连续域的映射<a id="_idIndexMarker212"/>函数<img src="img/Formula_02_005.png" alt=""/>的任务。函数<img src="img/Formula_02_006.png" alt=""/>将能够<a id="_idIndexMarker213"/>执行低维向量表示，使得图<img src="img/Formula_02_007.png" alt=""/>的属性(局部和全局)被保留。</p>
+			<p>一旦映射<img src="img/Formula_02_008.png" alt=""/>被学习，它可以被应用到图中，并且产生的映射可以被用作机器学习算法的特征集。在<em class="italic">图 2.3 </em>中可以看到该过程的图形示例:</p>
+			<div><div><img src="img/B16069_02_03.jpg" alt="Figure 2.3 – Example of a workflow for a network embedding algorithm&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 2.3–网络嵌入算法的工作流程示例</p>
+			<p>映射<a id="_idIndexMarker214"/>功能<img src="img/Formula_02_009.png" alt=""/>也可用于学习节点和边的矢量表示。正如我们已经提到的，图上的机器学习问题可能发生在不同的粒度级别。因此，开发了不同的嵌入算法，以便学习生成节点(<img src="img/Formula_02_010.png" alt=""/>(也称为<a id="_idIndexMarker215"/>节点嵌入)或边(<img src="img/Formula_02_011.png" alt=""/>)(也称为<strong class="bold">边嵌入</strong>)的矢量表示的函数。这些映射函数试图构建一个向量空间，使得新空间中的几何关系反映原始图形、节点或边的结构。因此，我们将看到，在原始空间中相似的图、节点或<a id="_idIndexMarker217"/>边在新空间中也将是相似的。</p>
+			<p>换句话说，在嵌入函数生成的空间中，相似的结构将具有<em class="italic">小的欧几里德距离</em>，而不相似的结构将具有<em class="italic">大的欧几里德距离</em>。重要的是要强调，虽然大多数嵌入算法在欧几里德向量空间中生成映射，但是最近对非欧几里德映射函数有了兴趣。</p>
+			<p>现在让我们看一个<a id="_idIndexMarker218"/>嵌入空间<a id="_idIndexMarker219"/>看起来像什么的实际例子，以及如何在新空间中看到相似性。在下面的代码块中，我们展示了一个使用称为<strong class="bold">节点到向量</strong> ( <strong class="bold">节点 2Vec </strong>)的特定嵌入算法的例子。我们将在下一章描述它是如何工作的。目前，我们只能说该算法将把图<em class="italic"> G </em>的每个节点映射到一个向量中:</p>
+			<pre>import networkx as nx
+from node2vec import Node2Vec
+import matplotlib.pyplot as plt
+G = nx.barbell_graph(m1=7, m2=4)
+node2vec = Node2Vec(G, dimensions=2)
+model = node2vec.fit(window=10)
+fig, ax = plt.subplots()
+for x in G.nodes():
+    v = model.wv.get_vector(str(x))
+    ax.scatter(v[0],v[1], s=1000)
+    ax.annotate(str(x), (v[0],v[1]), fontsize=12)</pre>
+			<p>在前面的代码中，我们完成了以下工作:</p>
+			<ol>
+				<li>我们生成了一个杠铃图(在前一章中描述过)。</li>
+				<li>然后使用 Node2Vec 嵌入算法，以便将图的每个节点映射到二维向量中。</li>
+				<li>最后，绘制由嵌入算法生成的二维向量，表示原始图的节点。</li>
+			</ol>
+			<p>结果如<em class="italic">图 2.4 </em>所示:</p>
+			<div><div><img src="img/B16069_02_04.jpg" alt="Figure 2.4 – Application of the Node2Vec algorithm to a graph (left) to generate the embedding vector of its nodes (right)&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 2.4–将 Node2Vec 算法应用于图(左)以生成其节点的嵌入向量(右)</p>
+			<p>从<em class="italic">图 2.4 </em>中<a id="_idIndexMarker221"/>很容易看出，结构相似的节点彼此靠近，而结构不相似的节点彼此远离。观察 Node2Vec 区分组 1 和组 3 的能力也很有趣。由于该算法使用每个节点的相邻信息来生成表示，因此可以清楚地区分这两个组。</p>
+			<p>可以使用<strong class="bold">边到矢量</strong> ( <strong class="bold"> Edge2Vec </strong>)算法在<a id="_idIndexMarker222"/>中执行同一图形上的另一个示例，以便为同一图形的边生成映射<em class="italic"> G </em>:</p>
+			<pre>from node2vec.edges import HadamardEmbedder
+edges_embs = HadamardEmbedder(keyed_vectors=model.wv)
+fig, ax = plt.subplots()
+for x in G.edges():
+    v = edges_embs[(str(x[0]), str(x[1]))]
+    ax.scatter(v[0],v[1], s=1000)
+    ax.annotate(str(x), (v[0],v[1]), fontsize=12)</pre>
+			<p>在前面的代码中，我们完成了以下工作:</p>
+			<ol>
+				<li value="1">我们生成了一个杠铃图(在前一章中描述过)。</li>
+				<li><code>HadamardEmbedder</code>嵌入算法应用于 Node2Vec 算法(<code>keyed_vectors=model.wv</code>)的结果，以便将图的每条边映射到二维向量中。</li>
+				<li>最后，绘制由嵌入算法生成的代表原始图的节点的<a id="_idIndexMarker223"/>二维向量。</li>
+			</ol>
+			<p>结果如<em class="italic">图 2.5 </em>所示:</p>
+			<div><div><img src="img/B16069_02_05.jpg" alt="Figure 2.5 – Application of the Hadamard algorithm to a graph (left) to generate the embedding vector of its edges (right)"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 2.5–将 Hadamard 算法应用于图(左)以生成其边的嵌入向量(右)</p>
+			<p>至于节点嵌入，在<em class="italic">图 2.5 </em>中，我们报道了边嵌入算法的结果。从图中很容易看出，边缘嵌入算法清楚地识别相似的边缘。正如所预期的，属于组 1、2 和 3 的边聚集在明确定义和良好分组的区域中。此外，分别属于组 4 和组 5 的(6，7)和(10，11)边被很好地聚集在特定的组中。</p>
+			<p>最后，我们将提供一个<a id="_idIndexMarker224"/>图到矢量 ( <strong class="bold"> Grap2Vec </strong>)嵌入算法的例子。该算法将单个图形映射到矢量中。至于另一个例子，我们将在下一章更详细地讨论这个算法。在下面的代码块中，我们提供了一个 Python 示例，展示了如何使用 Graph2Vec 算法<a id="_idIndexMarker225"/>在一组图形上生成嵌入表示:</p>
+			<pre>import random
+import matplotlib.pyplot as plt
+from karateclub import Graph2Vec
+n_graphs = 20
+def generate_random():
+    n = random.randint(5, 20)
+    k = random.randint(5, n)
+    p = random.uniform(0, 1)
+    return nx.watts_strogatz_graph(n,k,p)
+Gs = [generate_random() for x in range(n_graphs)]
+model = Graph2Vec(dimensions=2)
+model.fit(Gs)
+embeddings = model.get_embedding()
+fig, ax = plt.subplots(figsize=(10,10))
+for i,vec in enumerate(embeddings):
+    ax.scatter(vec[0],vec[1], s=1000)
+    ax.annotate(str(i), (vec[0],vec[1]), fontsize=16)</pre>
+			<p>在本例中，已经完成了以下工作:</p>
+			<ol>
+				<li value="1">已经用随机参数生成了 20 瓦特-斯特罗加兹图(在前一章中描述过)。</li>
+				<li>然后，我们执行了图形嵌入算法，以生成每个图形的二维矢量表示。</li>
+				<li>最后，生成的向量被绘制在它们的欧几里得空间中。</li>
+			</ol>
+			<p>本<a id="_idIndexMarker226"/>示例的结果如图<em class="italic">图 2.6 </em>所示:</p>
+			<div><div><img src="img/B16069_02_06.jpg" alt="Figure 2.6 – Plot of two embedding vectors generated by the Graph2Vec algorithm applied to 20 randomly generated Watts-Strogatz graphs (left). Extraction of two graphs with a large Euclidean distance (Graph 12 and Graph 8 on the top right) and two graphs with a low Euclidean distance (Graph 14 and Graph 4 on the bottom right) is shown"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 2.6–graph 2 vec 算法生成的两个嵌入向量应用于 20 个随机生成的 Watts-Strogatz 图(左)。示出了具有大欧几里德距离的两个图(右上角的图 12 和图 8)和具有低欧几里德距离的两个图(右下角的图 14 和图 4)的提取</p>
+			<p>从<em class="italic">图 2.6 </em>中我们可以看到，欧几里德距离大的图，比如图 12 和图 8，有着不同的结构。前者由<code>nx.watts_strogatz_graph(20,20,0.2857)</code>参数生成，后者由<code>nx.watts_strogatz_graph(13,6,0.8621)</code>参数生成。相比之下，具有低欧几里德距离的图，例如图 14 和图 8，具有类似的结构。图表 14 由<code>nx.watts_strogatz_graph(9,9,0.5091)</code>命令生成，而图表 4 由<code>nx.watts_strogatz_graph(10,5,0.5659)</code>生成。</p>
+			<p>在科学文献中，已经开发了大量的嵌入方法。我们将在本书的下一节详细描述并使用其中的一些。这些方法通常分为两种主要类型:<em class="italic">直推式</em>和<em class="italic">感应式</em>，这取决于添加新样本时函数的更新程序。如果提供了新的节点，直推式方法更新模型(例如，重新训练)以推断关于节点的信息，而在归纳式方法中，模型被期望推广到在训练期间没有观察到的新节点、边或图。</p>
+			<h1 id="_idParaDest-40"><a id="_idTextAnchor042"/>图嵌入机器学习算法的分类</h1>
+			<p>已经开发了各种各样的<a id="_idIndexMarker228"/>方法来生成图形表示的紧凑空间。近年来，已经观察到研究人员和机器学习实践者趋向于统一符号以提供描述这种算法的通用定义的趋势。在本节中，我们将介绍一个简化版的分类法，该分类法是在论文【图的机器学习:模型和综合分类法(<a href="https://arxiv.org/abs/2005.03675">https://arxiv.org/abs/2005.03675</a>)中定义的。</p>
+			<p>在这种形式表示中，每个图、节点或边嵌入方法都可以用两个基本组件来描述，即编码器和解码器。<strong class="bold">编码器</strong> ( <strong class="bold"> ENC </strong>)将<a id="_idIndexMarker229"/>输入映射到嵌入空间，而<a id="_idIndexMarker230"/><strong class="bold">解码器</strong> ( <strong class="bold"> DEC </strong>)从学习到的嵌入(<em class="italic"> Figure 2.7 </em>)中解码关于图形的结构信息。</p>
+			<p>该论文中描述的框架遵循一个直观的想法:如果我们能够对一个图进行编码，使得解码器能够检索所有必要的信息，那么嵌入必须包含所有这些信息的压缩版本，并且可以用于下游的机器学习任务:</p>
+			<div><div><img src="img/B16069_02_07.jpg" alt="Figure 2.7 – Generalized encoder (ENC) and decoder (DEC) architecture for embedding algorithms&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 2.7–嵌入算法的通用编码器(ENC)和解码器(DEC)架构</p>
+			<p>在许多用于表示学习的<a id="_idIndexMarker231"/>基于图的机器学习算法中，解码器通常被设计成将节点嵌入对映射到真实值，通常表示原始图中节点的接近度(距离)。例如，可以实现解码器，使得给定两个节点<img src="img/Formula_02_012.png" alt=""/>和<img src="img/Formula_02_013.png" alt=""/>、<img src="img/Formula_02_014.png" alt=""/>的嵌入表示，如果在输入图中存在连接两个节点<img src="img/Formula_02_015.png" alt=""/>的边。在实践中，可以使用更有效的<em class="italic">接近度函数</em>来测量节点之间的相似性。</p>
+			<h2 id="_idParaDest-41"><a id="_idTextAnchor043"/>嵌入算法的分类</h2>
+			<p>受<em class="italic">图 2.7 </em>中描述的一般框架的启发，我们现在将各种<a id="_idIndexMarker232"/>嵌入算法分为四大组。此外，为了帮助您更好地理解这种分类，我们将用伪代码提供简单的代码快照。在我们的伪代码形式中，我们将<code>G</code>表示为一般的<code>networkx</code>图，将<code>graphs_list</code>表示为一列<code>networkx</code>图，将<code>model</code>表示为一般的嵌入算法:</p>
+			<ul>
+				<li><code>graphs_list</code>(第二行)。无监督和有监督的浅层嵌入方法将分别在<a href="B16069_03_Final_JM_ePub.xhtml#_idTextAnchor046"> <em class="italic">第三章</em> </a>、<em class="italic">无监督图学习</em>和<a href="B16069_04_Final_JM_ePub.xhtml#_idTextAnchor064"> <em class="italic">第四章</em> </a>、<em class="italic">有监督图学习</em>中描述。</li>
+				<li><code>graphs_list</code>(第 1 行)。一旦模型适合输入训练集，就有可能使用它来生成新的看不见的图<code>G</code>的嵌入<a id="_idIndexMarker238"/>向量。图形自动编码方法将在<a href="B16069_03_Final_JM_ePub.xhtml#_idTextAnchor046"> <em class="italic">第三章</em> </a>、<em class="italic">无监督图形学习</em>中描述。</li>
+				<li><strong class="bold">Neighborhood aggregation methods</strong>: These algorithms can be used to extract embeddings at the <a id="_idIndexMarker239"/>graph level, where nodes are labeled <a id="_idIndexMarker240"/>with some properties. Moreover, as for the graph autoencoding methods, the algorithms belonging to this class are able to learn a general mapping function, <img src="img/Formula_02_017.png" alt=""/>, also capable of generating the embedding vector for unseen instances.<p>这些算法的一个很好的特性是可以建立一个嵌入空间，其中不仅考虑了图的内部结构，还考虑了一些外部信息，定义为其节点的特性。例如，用这种方法，我们可以得到一个嵌入空间，它能够同时识别节点上具有相似结构和不同性质的图。无监督和有监督的邻域聚合方法将分别在<a href="B16069_03_Final_JM_ePub.xhtml#_idTextAnchor046"> <em class="italic">第三章</em> </a>、<em class="italic">无监督图学习</em>和<a href="B16069_04_Final_JM_ePub.xhtml#_idTextAnchor064"> <em class="italic">第四章</em> </a>、<em class="italic">有监督图学习</em>中描述。</p></li>
+				<li><strong class="bold">Graph regularization methods</strong>: Methods based on graph regularization are slightly different from the <a id="_idIndexMarker241"/>ones listed in the preceding points. Here, we do not have a graph as input. Instead, the objective is to learn from a set <a id="_idIndexMarker242"/>of features by exploiting their "interaction" to regularize the process. In more detail, a graph can be constructed from the features by considering feature similarities. The main idea is based on the assumption that nearby nodes in a graph are likely to have the same labels. Therefore, the loss function is designed to constrain the labels to be consistent with the graph structure. For example, regularization might constrain neighboring nodes to share similar embeddings, in terms of their distance in the L2 norm. For this reason, the encoder only <a id="_idIndexMarker243"/>uses <em class="italic">X</em> node features as input.<p>属于这个家族的算法<a id="_idIndexMarker244"/>学习一个函数<img src="img/Formula_02_018.png" alt=""/>，它将一组特定的特征(<img src="img/Formula_02_019.png" alt=""/>)映射到一个嵌入向量。至于图自动编码和邻域聚合方法，该算法也能够将学习到的函数应用于新的、看不见的特征。图正则化方法将在<a href="B16069_04_Final_JM_ePub.xhtml#_idTextAnchor064"> <em class="italic">第四章</em> </a>、<em class="italic">监督图学习</em>中描述。</p></li>
+			</ul>
+			<p>对于属于浅嵌入方法和邻域聚合方法组的算法，可以定义一个<em class="italic">非监督</em>和<em class="italic">监督</em>版本。属于图自动编码方法的算法适用于无监督任务，而属于图正则化方法的算法用于半监督/监督设置。</p>
+			<p>对于非监督算法，仅使用输入数据集中包含的信息(如节点、边或图)来嵌入特定数据集。对于监督设置，外部信息用于指导嵌入过程。这些信息通常被归类为一个标签，比如一对<em class="italic"> &lt; Gi，yi &gt; </em>，它们为每个图分配一个特定的类别。该过程比无监督的过程更复杂，因为该模型试图找到最佳矢量表示，以便找到标签到实例的最佳分配。为了澄清这个概念，我们可以考虑，例如，用于图像分类的<em class="italic">卷积神经网络</em>。在训练过程中，神经网络试图通过同时执行各种卷积滤波器的拟合，将每幅图像分类到正确的类别中。这些卷积滤波器的目标是找到输入数据的紧凑表示，以便最大化预测性能。同样的概念也适用于监督图嵌入，其中算法试图找到最佳的图表示，以便最大化类分配任务的性能。</p>
+			<p>从更加<a id="_idIndexMarker245"/>的数学角度来看，所有这些<a id="_idIndexMarker246"/>模型都用一个适当的损失函数来训练。这个函数可以用两个术语来概括:</p>
+			<ul>
+				<li>第一种用于监督设置，以最小化预测和目标之间的差异。</li>
+				<li>第二个用于评估输入图和在 ENC + DEC 步骤之后重建的图之间的相似性(这是结构重建误差)。</li>
+			</ul>
+			<p>形式上，它可以定义如下:</p>
+			<div><div><img src="img/Formula_02_020.jpg" alt=""/>
+				</div>
+			</div>
+			<p>这里，<img src="img/Formula_02_021.png" alt=""/>是监督设置中的损失函数。该模型被优化以最小化每个实例的正确类别(<img src="img/Formula_02_022.png" alt=""/>)和预测类别(<img src="img/Formula_02_023.png" alt=""/>)之间的误差。<img src="img/Formula_02_024.png" alt=""/>是表示输入图(<img src="img/Formula_02_025.png" alt=""/>)和在 ENC + DEC 处理(<img src="img/Formula_02_026.png" alt=""/>)之后获得的图之间的重构误差的损失函数。对于无监督的设置，我们有相同的损失，但<img src="img/Formula_02_027.png" alt=""/>，因为我们没有目标变量使用。</p>
+			<p>当我们试图解决图上的机器学习问题时，<a id="_idIndexMarker247"/>强调这些<a id="_idIndexMarker248"/>算法的主要作用是很重要的。它们可以被动地用于将图形转换成适合经典机器学习算法或数据可视化任务的特征向量。但是它们也可以在学习过程中积极使用<em class="italic"/>，在学习过程中，机器学习算法会找到一个针对特定问题的简洁而有意义的解决方案。</p>
+			<h1 id="_idParaDest-42"><a id="_idTextAnchor044"/>总结</h1>
+			<p>在这一章中，我们刷新了一些基本的<em class="italic">机器学习</em>概念，并发现了它们如何应用于图形。我们定义了基本的<em class="italic">图形机器学习</em>术语，特别关注<em class="italic">图形表示学习</em>。介绍了主要图形机器学习算法的分类，以阐明多年来开发的各种解决方案之间的区别。最后，提供了实际例子来开始理解如何将理论应用于实际问题。</p>
+			<p>在下一章，我们将修改主要的基于图的机器学习算法。我们将分析它们的行为，看看如何在实践中使用它们。</p>
+		</div>
+	
+
+</body></html>

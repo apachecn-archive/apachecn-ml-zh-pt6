@@ -1,0 +1,215 @@
+<html><head/><body>
+
+
+
+
+
+
+
+
+
+		<title>Chapter_14</title>
+
+		
+
+		
+
+	
+
+	
+
+		<div><h1 class="chapterNumber sigil_not_in_toc">14</h1>
+
+			<h1 class="chapterTitle" xml:lang="en-GB" id="sigil_toc_id_228" lang="en-GB"><a id="_idTextAnchor314"/>总结和结论</h1>
+
+</div>
+
+
+
+			<p class="normal">在这最后一章中，我将为你提供一个通用人工智能框架的概述以供参考，并在你将人工智能工作提升到下一个水平时给你一些建议。你已经走了很长一段路，未来你还可以继续学习人工智能！</p>
+
+			<h2 class="title" xml:lang="en-GB" id="sigil_toc_id_229" lang="en-GB"><a id="_idTextAnchor315"/>概述——通用人工智能框架/蓝图</h2>
+
+			<p class="normal">让我们回顾并提供整个 AI 蓝图，以便您在需要时随时参考。你甚至可以打印出来贴在墙上！</p>
+
+			<p class="normal"><strong class="bold">第一步——构建环境</strong></p>
+
+			<ol>
+
+				<li class="list"><strong class="bold">步骤 1-1 </strong>:引入并初始化环境的所有<a id="_idIndexMarker622"/>参数和变量。</li>
+
+				<li class="list"><strong class="bold">步骤 1-2 </strong>:制作一个方法，在 AI 播放动作后立即更新环境。</li>
+
+				<li class="list"><strong class="bold">步骤 1-3 </strong>:制作重置环境的方法。</li>
+
+				<li class="list"><strong class="bold">步骤 1-4 </strong>:做一个方法，随时给我们当前的状态，最后获得的奖励，游戏是否结束。</li>
+
+			</ol>
+
+			<p class="normal"><strong class="bold">第二步——打造大脑</strong></p>
+
+			<ol>
+
+				<li class="list" value="1"><strong class="bold">步骤 2-1 </strong>:建立由输入状态组成的输入层。</li>
+
+				<li class="list"><strong class="bold">步骤 2-2 </strong>:用选定数量的这些层和每个层内的神经元构建隐藏层，完全连接到输入层并在彼此之间。</li>
+
+				<li class="list"><strong class="bold">步骤 2-3 </strong>:建立输出层，完全连接到最后一个隐藏层。</li>
+
+				<li class="list"><strong class="bold">步骤 2-4 </strong>:在模型对象内部组装完整的架构。</li>
+
+				<li class="list"><strong class="bold">步骤 2-5 </strong>:用均方误差损失函数和选择的优化器编译模型。</li>
+
+			</ol>
+
+			<p class="normal"><strong class="bold">步骤 3–实施深度强化学习算法</strong></p>
+
+			<ol>
+
+				<li class="list" value="1"><strong class="bold">步骤 3-1 </strong>:引入<a id="_idIndexMarker623"/>，初始化深度 Q 学习神经网络(DQN)模型的所有参数和变量。</li>
+
+				<li class="list"><strong class="bold">步骤 3-2 </strong>:制定在体验回放中建立记忆的方法。</li>
+
+				<li class="list"><strong class="bold">步骤 3-3 </strong>:创建一个方法，构建并返回两批输入和目标，每一批都有<code class="Code-In-Text--PACKT-">batch_size</code>个元素。</li>
+
+			</ol>
+
+			<p class="normal"><strong class="bold">步骤 4–训练人工智能</strong></p>
+
+			<ol>
+
+				<li class="list" value="1"><strong class="bold">步骤 4-1 </strong>:通过<a id="_idIndexMarker624"/>创建一个在步骤 1 中构建的<code class="Code-In-Text--PACKT-">Environment</code>类的对象来构建环境。</li>
+
+				<li class="list"><strong class="bold">步骤 4-2 </strong>:通过创建在步骤 2 中构建的<code class="Code-In-Text--PACKT-">Brain</code>类的对象来构建人工大脑。</li>
+
+				<li class="list"><strong class="bold">步骤 4-3 </strong>:通过创建在步骤 3 中构建的<code class="Code-In-Text--PACKT-">DQN</code>类的对象来构建 DQN 模型。</li>
+
+				<li class="list"><strong class="bold">步骤 4-4 </strong>:选择训练模式。</li>
+
+				<li class="list"><strong class="bold">步骤 4-5 </strong>:开始训练，在选定的次数内进行<code class="Code-In-Text--PACKT-">for</code>循环。</li>
+
+				<li class="list"><strong class="bold">步骤 4-6 </strong>:在每个时期，我们重复整个深度 Q 学习过程，同时也用 30%的时间做一些探索。</li>
+
+			</ol>
+
+			<p class="normal"><strong class="bold">步骤 5–测试人工智能</strong></p>
+
+			<ol>
+
+				<li class="list" value="1"><strong class="bold">步骤 5-1 </strong>:通过创建步骤 1 中构建的<code class="Code-In-Text--PACKT-">Environment</code>类的对象来构建一个<a id="_idIndexMarker625"/>新环境。</li>
+
+				<li class="list"><strong class="bold">步骤 5-2 </strong>:用之前训练的预训练权重加载人工大脑。</li>
+
+				<li class="list"><strong class="bold">步骤 5-3 </strong>:选择推理模式。</li>
+
+				<li class="list"><strong class="bold">步骤 5-4 </strong>:开始模拟。</li>
+
+				<li class="list"><strong class="bold">步骤 5-5 </strong>:在每一次迭代中(每一分钟)，我们的人工智能只扮演其预测产生的动作，而没有探索或深度 Q 学习训练正在发生。</li>
+
+			</ol>
+
+			<h2 class="title" xml:lang="en-GB" id="sigil_toc_id_230" lang="en-GB">探索人工智能的下一步</h2>
+
+			<p class="normal">你走了这么远的路！让我们后退最后一步，看看你获得了哪些知识，掌握了哪些技能:</p>
+
+			<ul>
+
+				<li class="list">你对强化学习有很强的直觉。</li>
+
+				<li class="list">你可以用它来解决现实世界的问题。</li>
+
+				<li class="list">你可以用一种让你与众不同的方式编程，让你站在人工智能的最前沿。</li>
+
+				<li class="list">您可以编写能够随着时间的推移不断学习和改进的系统。</li>
+
+				<li class="list">你有坚实的基础，让你在人工智能方面走得更远。</li>
+
+			</ul>
+
+			<p class="normal">说到更进一步，问题是:怎么做？你将如何应用你所学到的东西？接下来你会做什么？首先，你的下一步是:</p>
+
+			<h3 class="title" xml:lang="en-GB" id="sigil_toc_id_231" lang="en-GB"><a id="_idTextAnchor318"/>练习，练习，再练习</h3>
+
+			<p class="normal">有很多方法可以练习你的人工智能技能。你可以参加类似 Kaggle 上的人工智能竞赛，其中包含可以通过深度强化学习解决的问题。你可以建造一些新的人工智能，就像我们为自动驾驶汽车创造的那样。例如，你可以用 Kivy 构建一个玩乒乓游戏的 AI。有一个很棒的人工智能平台，叫做<strong class="bold"> OpenAI Gym </strong>，在这里你可以练习为许多类型的应用构建人工智能，包括:</p>
+
+			<ul>
+
+				<li class="list">一个玩雅达利游戏(突围，吃豆人，太空入侵者，等等)的 AI。</li>
+
+				<li class="list">一个玩赛车的 AI。</li>
+
+				<li class="list">玩毁灭战士游戏的人工智能。</li>
+
+				<li class="list">训练一个虚拟机器人如何行走和奔跑。</li>
+
+			</ul>
+
+			<p class="normal">我真的建议你去看看开放的人工智能健身房网站，那里有你可以工作和练习的所有这些神奇的应用程序。</p>
+
+			<p class="normal">更进一步，你下一步要做什么来影响这个世界？还记得我们在介绍中确定并解释的 AI 的 10 个应用领域吗？随便挑你喜欢的！挑一个最能引起你共鸣的。让我们提醒您它们是什么:</p>
+
+			<ol>
+
+				<li class="list" value="1">活力</li>
+
+				<li class="list">卫生保健</li>
+
+				<li class="list">运输和物流</li>
+
+				<li class="list">教育</li>
+
+				<li class="list">安全性</li>
+
+				<li class="list">雇用</li>
+
+				<li class="list">智能家居和机器人</li>
+
+				<li class="list">娱乐和快乐</li>
+
+				<li class="list">环境</li>
+
+				<li class="list">经济和商业</li>
+
+			</ol>
+
+			<p class="normal">如果你对其中一个领域感兴趣或有<a id="_idIndexMarker628"/>热情，或者更好的一些领域知识，你可以将这些与你新的人工智能技能结合起来，解决这些行业的一些问题。你可以通过与一些科技公司合作或在其中工作，或者建立自己的公司来增加自己的影响力。在这些领域中的每一个领域，对人工智能的需求都将是巨大的，这将为你打开许多大门。</p>
+
+			<p class="normal">说到门户开放，这让我想到了我向你们推荐的另一个步骤。</p>
+
+			<h3 class="title" xml:lang="en-GB" id="sigil_toc_id_232" lang="en-GB"><a id="_idTextAnchor319"/>联网</h3>
+
+			<p class="normal">练习是必须的，但是用 AI 在这个世界上产生影响肯定是不够的。你还必须建立关系网。无论是为一家科技公司工作，还是为一家拥有人工智能团队的其他行业的公司工作，还是为自己的企业工作，你都应该建立关系网。这将打开新的大门，播种新的机会，增加你成功的机会。</p>
+
+			<p class="normal">今天的网络很容易。有很多 AI 的活动和会议你都可以去参加，最近的一个永远不会离你的地方太远。如果你不能参加，你可以自己组织一些人工智能聚会和下班后会议，在那里你可以与其他热情的人讨论人工智能。你也可以使用社交媒体创建小组，在那里你可以交换想法，集思广益解决人工智能问题，也许还可以建立新的联系，通过这些联系你可以形成协同作用。同样，你建立的网络越多，你获得的好处就越多:联系、产生的想法、协同作用、机会、敞开的大门和人工智能之旅。</p>
+
+			<p class="normal">我想通过给你的职业生涯提些建议来结束这本书。最后我想给你的推荐如下。</p>
+
+			<h3 class="title" xml:lang="en-GB" id="sigil_toc_id_233" lang="en-GB">永远不要停止学习</h3>
+
+			<p class="normal">人工智能是一个快速发展的世界，所以你必须跟上最新的最先进的功能。这本书没有涵盖人工智能的最新突破，但给了你正确的基础和直觉，让你充满信心地接近人工智能的最新发展。</p>
+
+			<p class="normal">正确的基础知识是必要的，但还不足以让你长期坚持下去。你必须做的是永远不要停止学习。好消息是，今天继续学习很容易！有许多很棒的 MOOCs，涵盖了人工智能的最新先进模型，以及文章、研究论文、博客，更不用说 YouTube 视频了，在那里你可以找到从零开始到最先进模型的整个人工智能理论。你有很多选择来用最新的人工智能知识填充你的大脑。只要保证不挑评论最差的内容就行了。</p>
+
+			<p class="normal">让我们回顾一下。在这本书之后你的下一步是什么？</p>
+
+			<ol>
+
+				<li class="list" value="1">练习，练习，再练习。</li>
+
+				<li class="list">将你的人工智能技能与最能引起你共鸣的应用领域交叉。</li>
+
+				<li class="list">网络。</li>
+
+				<li class="list">永不停止<a id="_idTextAnchor321"/>学习。</li>
+
+				<li class="list">当然，还要继续努力！</li>
+
+			</ol>
+
+			<p class="normal">是的，努力工作总是必不可少的。记住这个。成功只是冰山一角，在它下面隐藏着大量的艰苦工作。但是不用担心；一旦你对你的工作和你追求的目标充满激情，工作就不会太难。事实上，这感觉起来毫不费力。这就是为什么我的第二条建议非常重要:如果你设法选择了一个与你的目标产生共鸣的领域，那么你就找到了用激情产生影响的方法。如果你的激情是纯 AI，那就更好了！然后，你可以利用它来解决问题，应对几个应用领域的挑战，这给了你一个拥有多元化职业生涯的绝佳机会。</p>
+
+			<p class="normal">在这方面，我想祝你有一个了不起的和非常成功的职业生涯。为你写这本书是一大乐事；我的目的是使人工智能民主化，并提高每个人的意识，即人工智能是一种可以实现的技术，可以让这个世界变得更好。非常感谢，享受 AI！</p>
+
+
+
+</body></html>

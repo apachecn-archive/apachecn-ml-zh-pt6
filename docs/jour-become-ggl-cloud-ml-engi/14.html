@@ -1,0 +1,637 @@
+<html><head/><body>
+
+
+
+
+
+
+
+
+
+<title>Chapter 10: Achieving the GCP ML Certification</title>
+
+
+
+
+
+
+
+<div><div><h1 class="chapter-number" id="_idParaDest-178"><a id="_idTextAnchor179"/> 10</h1>
+
+<h1 id="_idParaDest-179"><a id="_idTextAnchor180"/>获得 GCP ML 认证</h1>
+
+<p>恭喜你！到目前为止，你已经阅读了所有章节，并为谷歌云中的<strong class="bold">机器学习</strong> ( <strong class="bold"> ML </strong>)建立了强大的知识库和技能组合。现在，是时候整合您目前所学的知识，参加 GCP ML 认证考试了，这是我们学习路线图的最后一部分。</p>
+
+<p>谷歌专业机器学习工程师认证考试是你成为谷歌云认证机器学习工程师之旅中非常重要的一部分。准备和通过考试，你必须复习这本书里的所有内容，并将其整合，以深入理解它们，并连接所有的点。</p>
+
+<p>我们建议您采取以下步骤准备并获得谷歌专业 ML 工程师认证:</p>
+
+<ol>
+
+<li>阅读官方谷歌 ML 认证考试指南。</li>
+
+<li>阅读这本书的所有章节。</li>
+
+<li>完成本书中的所有动手实验。</li>
+
+<li>练习并复习本章所有的练习题。</li>
+
+</ol>
+
+<p>为了让您有所准备，我们提供了一些 ML 认证考试的练习题，以及本章中的问题分析。确保你完全理解每一个问题和所有问题的答案，以及为什么正确的答案是正确的，错误的答案是错误的。请记住，这里设置的问题只是示例，我们旨在提供一个试点样本供您遵循。你需要在互联网上做更多的研究，以达到考试的综合水平。</p>
+
+<h1 id="_idParaDest-180"><a id="_idTextAnchor181"/> GCP ML 考试练习题</h1>
+
+<p>请仔细通读<a id="_idIndexMarker566"/>每道题，并完全理解。另外，请查看提供的参考链接中与问题相关的所有文档:</p>
+
+<ul>
+
+<li><strong class="bold">问题 1 </strong> : Space Y 正在发射第 100 颗卫星，以构建其星际网络。他们在现有 99 颗卫星轨道的基础上，为它设计了一个精确的轨道(发射速度/时间/等等)，以覆盖地球范围。在第一百次发射后，预测 100 颗卫星位置的最佳方案是什么？<ol><li>使用最大似然算法和训练最大似然模型进行预测</li>
+
+<li>使用神经网络训练模型进行预测</li>
+
+<li>使用物理定律和实际环境数据进行建模和预测</li>
+
+<li>使用线性回归模型进行预测</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">解析</strong>:这是一个 ML 问题框架问题。为了决定最大似然法是否是解决问题的最佳方法，我们需要看看传统的科学建模是否很难或不可能解决问题，以及是否存在大量的数据。当我们开始时，科学建模将是我们的首选，因为它建立了基于科学和自然规律的最准确的模型。比如，给定一个物体的初始位置和速度，以及它的质量和作用在它上面的力，我们可以精确地预测它在任何时候的位置。对于这种情况，数学模型比任何 ML 模型都要好得多！</p>
+
+<p>要预测第一百颗卫星的轨道，这里答案 C 是最佳选择。</p>
+
+<p><strong class="bold">参考</strong>:第<em class="italic">节 ML 是不是最佳方案？</em>在<a href="B18333_03.xhtml#_idTextAnchor072"> <em class="italic">第三章</em> </a>，<em class="italic">为 ML 开发做准备</em></p>
+
+<ul>
+
+<li><strong class="bold">问题 2 </strong>:一家金融公司正在构建一个 ML 模型，根据他们的历史数据集来检测信用卡欺诈，该数据集包含 20 个肯定项和 4，990 个否定项。</li>
+
+</ul>
+
+<p>由于不均衡的课程，模型训练没有按预期进行。解决这个问题的最好方法是什么？</p>
+
+<ol>
+
+<li value="1">数据扩充</li>
+
+<li>提前停止</li>
+
+<li>向下采样和向上加权</li>
+
+<li>正规化</li>
+
+</ol>
+
+<p><strong class="bold">分析</strong>:这个问题是关于分类问题准备数据时的类不平衡问题。当数据不平衡时，训练 ML 模型并获得良好的预测将是非常困难的。我们需要用<em class="italic">下采样和上加权</em>来平衡类，所以答案是 c。</p>
+
+<p><strong class="bold">参考</strong>:第三章 、<em class="italic">为 ML 开发做准备</em>中的<em class="italic">节</em></p>
+
+<ul>
+
+<li><strong class="bold">问题 3 </strong>:一家化学品制造商正在使用 GCP ML 管道，通过对输入进行排队并分析和可视化数据来检测实时传感器异常。你会选择哪一个做管道？<ol><li value="1">Dataproc |人工智能平台| BQ</li>
+
+<li>数据流|自动|云 SQL</li>
+
+<li>数据流|人工智能平台| BQ</li>
+
+<li>Dataproc | AutoML | Bigtable</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">分析</strong>:这是一个 ML 管道问题。我们需要理解 Dataflow 和 Dataproc、AI 平台和 AutoML 之间的区别，以及各种 GCP 数据库:Cloud SQL、Bigtable 和 BQ。</p>
+
+<p>Dataproc 和 Dataflow 是 GCP 数据处理服务，都可以处理批处理或流数据。但是，Dataproc 被设计为在集群上运行与 MapReduce 兼容的作业(Apache Hadoop、Hive 和 Spark)。数据流基于并行数据处理，如果您的数据没有 Spark 或 Hadoop 的实现，它会工作得更好。</p>
+
+<p>人工智能平台涉及“人类执行的”ML 训练——使用你自己的数据和模型。AutoML 是用 Google 的模型和你自己的数据“自动化”的 ML 训练，没有编码。</p>
+
+<p>在 GCP 的数据库/仓库产品中，云 SQL 用于关系数据在线事务处理，Bigtable 更多地用于 NoSQL 事务处理，BQ 非常适合分析和可视化数据(与 Data Studio 集成)。</p>
+
+<p>基于此，我们会选择 C 作为答案。</p>
+
+<ul>
+
+<li>问题 4 :一家名为 Zeellow 的房地产公司在美国做了大量买卖房产的生意。在过去的几年里，他们为美国房屋积累了大量的历史资料。</li>
+
+</ul>
+
+<p>Zeellow 正在使用 ML 训练来预测房价，他们每个月都会通过整合新数据来重新训练模型。公司不想在 ML 过程中写任何代码。什么方法最适合他们的需求？</p>
+
+<ol>
+
+<li value="1">AutoML 表格</li>
+
+<li>大查询 ML</li>
+
+<li>人工智能平台</li>
+
+<li>自动分类</li>
+
+</ol>
+
+<p><strong class="bold">分析</strong>:这个问题也是关于 AutoML 和 AI 平台的区别，以及回归和分类的区别。由于 AutoML 服务于 ML 过程中不编码的目的，而这是一个结构化数据 ML 问题，正确答案是 a。</p>
+
+<ul>
+
+<li><strong class="bold">问题 5 </strong>:数据科学家团队正在为一家大型<strong class="bold">企业资源规划</strong> ( <strong class="bold"> ERP </strong>)公司的客户<a id="_idIndexMarker567"/>支持中心建立深度学习模型，该公司拥有许多 ERP 产品和模块。DL 模型将输入客户的聊天文本，并将它们归类到产品中，然后将它们发送给相应的团队。该公司希望最小化模型开发时间和数据预处理时间。他们应该选择什么策略/平台？<ol><li value="1">人工智能平台</li>
+
+<li>自动 ML</li>
+
+<li>NLP API</li>
+
+<li>顶点人工智能定制笔记本</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">分析</strong>:这里的重点是<em class="italic">公司希望最大限度地减少模型开发时间和数据预处理时间。</em> AutoML 是最佳选择，所以正确答案是 b。</p>
+
+<ul>
+
+<li><strong class="bold">问题 6 </strong>:一家名为 Zeellow 的房地产公司在美国做了大量买卖房产的生意。在过去的几年里，他们为美国房屋积累了大量的历史资料。</li>
+
+</ul>
+
+<p>Zeellow 希望利用 ML 的历史销售数据来预测未来的销售。历史数据存储在云存储中。你想快速试验所有可用的数据。你应该如何建立和训练你的模型？</p>
+
+<ol>
+
+<li value="1">将数据加载到 BigQuery 并使用 BigQuery ML</li>
+
+<li>将数据转换成 CSV 格式并使用 AutoML 表格</li>
+
+<li>将数据转换为 TFRecords 并使用 TensorFlow</li>
+
+<li>将数据转换并重构为 CSV 格式，并使用内置的 XGBoost 库</li>
+
+</ol>
+
+<p><strong class="bold">分析</strong>:这里的关键点是，我们需要对云存储中存储的所有结构化数据集进行快速实验。BQ 和 BQML 是这里的最佳选择，因为所有其他的都需要很长时间来构建和训练模型。因此，正确答案是 a。</p>
+
+<ul>
+
+<li><strong class="bold">问题 7 </strong>:房地产公司 Zeellow 利用 ML 的历史数据来预测未来的销售。每周都会有新的数据进来，Zeellow 需要确保模型不断得到重新训练，以反映市场趋势。他们应该如何处理历史数据和新数据？<ol><li value="1">仅使用新数据进行再培训</li>
+
+<li>每周用新数据更新数据集</li>
+
+<li>当模型评估指标不符合要求的标准时，用新数据更新数据集</li>
+
+<li>每月用新数据更新数据集</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">分析</strong>:模特再培训是这里的关键词。由于数据会随着时间的推移而变化，并导致已训练的模型变得过时，因此模型再训练是 ML 过程中的规范。在这种情况下，我们什么时候需要重新训练模型？答案是当性能指标不满足需求时。我们如何重新训练模型？答案是使用集成的数据集，包括现有的和新的数据。因此，正确答案是 c。</p>
+
+<ul>
+
+<li><strong class="bold">问题 8 </strong>:房地产公司 Zeellow 利用 ML 的历史数据来预测未来的销售。半年前，他们的数据科学团队在生产中培训和部署了一个 DL 模型。最近，由于数据分布的变化，该模型遇到了性能问题。</li>
+
+</ul>
+
+<p>该团队正在研究模特再培训的策略。你的建议是什么？</p>
+
+<ol>
+
+<li value="1">监控数据偏差并重新训练模型</li>
+
+<li>用较少的模型特征重新训练模型</li>
+
+<li>重新训练模型以修复过度拟合</li>
+
+<li>每月用新数据重新训练模型</li>
+
+</ol>
+
+<p><strong class="bold">分析</strong>:模型再训练基于数据值偏斜，即数据的统计属性发生显著变化。当检测到数据倾斜时，这意味着数据模式正在发生变化，我们需要重新训练模型来捕捉这些变化。这个问题没有提到任何过度拟合的问题，也没有提到特征减少。再训练策略将监控数据偏差，并用新的输入对模型进行再训练。因此，正确答案是 a。</p>
+
+<p><strong class="bold">参考</strong>:<a href="https://developers.google.com/machine-learning/guides/rules-of-ml/#rule_37_measure_trainingserving_skew">https://developers . Google . com/machine-learning/guides/rules-of-ml/# rule _ 37 _ measure _ training serving _ skew</a>。</p>
+
+<ul>
+
+<li><strong class="bold">问题 9 </strong>:最近的研究表明，当某种癌症<em class="italic"> X </em>在人类肝脏中发展时，通常还有其他症状可以从 CT 扫描图像中识别为对象<em class="italic"> Y </em>和<em class="italic"> Z </em>。一家医院正在利用这项研究，用 CT 图像上的(<em class="italic"> X </em>，<em class="italic"> Y </em>，<em class="italic"> Z </em>)标签图训练 ML 模型。在这种情况下，应该使用什么成本函数？<ol><li value="1">二元交叉熵</li>
+
+<li>范畴交叉熵</li>
+
+<li>稀疏分类交叉熵</li>
+
+<li>稠密分类交叉熵</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">解析</strong>:正确答案是 b</p>
+
+<p>在<a href="B18333_05.xhtml#_idTextAnchor116"> <em class="italic">第 5 章</em> </a>、<em class="italic">了解神经网络和深度学习</em>、<em class="italic">成本函数</em>部分，我们讨论了不同成本函数的使用案例。二元交叉熵用于二元分类问题。当您想要防止模型对某个类给予更多的重要性时，使用分类熵更好——这与一次性编码的想法相同。当您的类相互排斥时(例如，当每个样本恰好属于一个类时)，稀疏分类熵更好。</p>
+
+<ul>
+
+<li><strong class="bold">问题 10 </strong>:贵公司的数据科学团队已经建立了一个 DNN 模型，根据历史数据来预测一家汽车公司的销售价值。作为一名 Google ML 工程师，你需要验证所选择的特性对于 ML 模型来说足够好。<ol><li value="1">使用 L1 正则化训练模型，并验证损失是恒定的</li>
+
+<li>在没有正则化的情况下训练模型，并验证损失是恒定的</li>
+
+<li>使用 L2 正则化训练模型，并验证损失正在减少</li>
+
+<li>在没有正则化的情况下训练模型，并验证损失接近于零</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">解析</strong>:正确答案是 d。</p>
+
+<p>损失函数是模型预测准确性的度量，并用作 ML 训练过程的指标。为了验证已经建立的模型具有足够的特征，我们需要确保在不使用正则化时损失函数接近于零。</p>
+
+<p><strong class="bold">参考</strong>:第四章<em class="italic">中的<em class="italic">正规化</em>章节</em></p>
+
+<ul>
+
+<li><strong class="bold">问题 11 </strong>:贵公司的数据科学团队已经建立了一个 DNN 模型，根据历史数据来预测一家房地产公司的销售价值。作为一名 Google ML 工程师，您发现模型有超过 300 个特性，并且您希望删除一些对目标没有贡献的特性。你会怎么做？<ol><li value="1">使用可解释的 AI 来理解功能贡献，减少无贡献的。</li>
+
+<li>使用 L1 正则化减少要素。</li>
+
+<li>使用 L2 正则化减少要素。</li>
+
+<li>一次删除一个特征，训练模型，并验证它不会降低模型的性能。移除这些功能。</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">解析</strong>:正确答案是 a，这个问题是在讨论特征选择，可解释的 AI 是了解哪些特征有贡献，哪些没有贡献的方法之一。理解 L1 和 L2 是解决模型过度拟合问题的方法，而不是数据工程中的特征选择，这一点很重要。</p>
+
+<ul>
+
+<li><strong class="bold">问题 12 </strong>:贵公司的数据科学团队已经建立了一个 DNN 模型，根据历史数据来预测一家房地产公司的销售价值。他们发现该模型非常适合训练数据集，但不适合验证数据集。你会如何改进这个模型？<ol><li value="1">应用辍学参数 0.3，并将学习率降低 10 倍</li>
+
+<li>应用 L2 正则化参数 0.3，并将学习率降低 10 倍</li>
+
+<li>应用 0.3 的 L1 正则化参数，并将学习率提高 10 倍</li>
+
+<li>调整超参数以优化 L2 正则化和丢失参数</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">解析</strong>:正确答案是 d。</p>
+
+<p>这个问题讨论的是避免模型过度拟合的技巧。虽然 L1/L2 正则化、辍学参数和学习率都是有帮助的方法，但我们必须调整超参数并找到优化的值。这里的一个提示是，正确的答案将符合一般情况，因此不会有具体的数字，如 0.3，10，等等。</p>
+
+<ul>
+
+<li><strong class="bold">问题 13 </strong>:你正在为一个客户服务中心建立一个 DL 模型。该模型将输入客户的聊天文本，并分析他们的情绪。模型应该使用什么算法？<ol><li value="1">MLP</li>
+
+<li>回归</li>
+
+<li>美国有线新闻网；卷积神经网络</li>
+
+<li>RNN</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">解析</strong>:正确答案是 d</p>
+
+<p>这个问题测试用于 ML/DL 的不同算法。由于用于情感分析的文本处理<a id="_idIndexMarker568"/>需要处理序列数据(时间序列)，所以最好的选择是<strong class="bold">递归神经网络</strong> ( <strong class="bold"> RNNs </strong>)。</p>
+
+<ul>
+
+<li><strong class="bold">问题 14 </strong>:一家健康保险公司扫描客户手工填写的理赔表格，并实时存储在谷歌云存储桶中。他们使用 ML 模型<a id="_idIndexMarker569"/>来识别手写文本。由于声明可能包含个人身份信息，公司政策要求只有授权人员才能访问这些信息。存储和处理这些流数据的最佳方式是什么？<ol><li value="1">创建两个存储桶，并将它们标记为敏感和非敏感。首先将数据存储在非敏感存储桶中。使用 DLP API 定期扫描它，并将敏感数据移动到敏感存储桶。</li>
+
+<li>创建一个存储桶来存储数据。只允许 ML 服务帐户访问它。</li>
+
+<li>创建三个存储桶-隔离、敏感和非敏感。首先将所有数据存储在隔离桶中。然后，使用 DLP API 定期扫描数据，并将数据移动到敏感或非敏感存储桶。</li>
+
+<li>创建三个存储桶-隔离、敏感和非敏感。首先将所有数据存储在隔离桶中。然后，上传文件后，触发 DLP API 对其进行扫描，并将数据移动到敏感或非敏感存储桶。</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">解析</strong>:正确答案是 d。</p>
+
+<p>这是 PII/私有数据存储和处理的业务使用案例，典型的解决方案是创建三个存储桶，利用 DLP 进行扫描，然后将原始数据移动到不同的存储桶中，并控制它们的访问。</p>
+
+<ul>
+
+<li><strong class="bold">问题 15 </strong>:房地产公司 Zeellow 利用他们的历史数据，使用 ML 来预测未来的销售。最近的模型训练能够实现预期的预测准确性目标，但这花费了数据科学团队很长时间。他们希望在不影响模型精度的情况下减少训练时间。团队应该调整什么超参数？<ol><li value="1">学习率</li>
+
+<li>纪元</li>
+
+<li>规模层</li>
+
+<li>批量</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">分析</strong>:正确答案是 C，因为改变其他三个参数会改变模型的预测精度。</p>
+
+<ul>
+
+<li><strong class="bold">问题 16 </strong>:数据科学团队已经建立了一个 DNN 模型，使用一家汽车制造公司装配线上的图像来监控和检测缺陷产品。作为 Google ML 工程师，您需要为测试数据集/图像测量 ML 模型的性能。你会选择以下哪一项？<ol><li value="1">AUC 值</li>
+
+<li>召回价值</li>
+
+<li>精度值</li>
+
+<li>TP 值</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">分析</strong>:正确答案是 A，因为它衡量的是预测的排名，而不是它们的绝对值。它是分类阈值不变量，因此是衡量模型性能的最佳方式。</p>
+
+<ul>
+
+<li><strong class="bold">问题 17 </strong>:数据科学团队利用一家汽车制造公司装配线上的图像构建了一个 DL 模型来监控和检测缺陷产品。随着时间的推移，团队已经在 AI 平台中构建了多个模型版本。作为 Google ML 工程师，你会如何比较模型版本？<ol><li value="1">比较模型版本的平均精度</li>
+
+<li>比较训练数据集上的模型损失函数</li>
+
+<li>比较验证数据集上的模型损失函数</li>
+
+<li>比较测试数据集上的模型损失函数</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">分析</strong>:正确答案是 A，因为它衡量不同模型版本随着时间的推移表现如何:将您的模型部署为模型版本，然后为该版本创建评估作业。通过比较模型版本的平均精度，您可以找到最佳的表现。</p>
+
+<p><strong class="bold">参考资料</strong>:<a href="https://cloud.google.com/ai-platform/prediction/docs/continuous-evaluation/view-metrics#compare_mean_average_precision_across_models">https://cloud . Google . com/ai-platform/prediction/docs/continuous-evaluation/view-metrics # compare _ mean _ average _ precision _ cross _ models</a>。</p>
+
+<ul>
+
+<li><strong class="bold">问题 18 </strong>:数据科学团队正在为一家电子商务网站构建推荐引擎，该网站基于用户的相似性，使用 ML 模型来增加其业务收入。你会选择什么型号？<ol><li value="1">协同过滤</li>
+
+<li>回归</li>
+
+<li>分类</li>
+
+<li>基于内容的过滤</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">解析</strong>:对于这个推荐引擎问题，正确答案是 a。</p>
+
+<p>基于内容的过滤使用项目之间的相似性来推荐与用户喜欢的项目相似的项目。协同过滤利用用户之间的相似性来提供推荐。问题指定“基于用户的相似性。"</p>
+
+<p><strong class="bold">参考资料</strong>:<a href="https://developers.google.com/machine-learning/recommendation/overview/candidate-generation">https://developers . Google . com/machine-learning/recommendation/overview/candidate-generation</a>。</p>
+
+<ul>
+
+<li><strong class="bold">问题 19 </strong>:数据科学团队正在为一家信用卡公司构建一个欺诈检测模型，其目标是检测尽可能多的欺诈并避免尽可能多的误报。对于这种模型性能评估，您会最大化什么样的混淆矩阵指数？<ol><li value="1">精确</li>
+
+<li>回忆</li>
+
+<li>PR 曲线下的面积</li>
+
+<li>ROC 曲线下的面积</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">分析</strong>:在这个欺诈检测问题中，要求你重点检测欺诈交易——最大化真阳性率，最小化假阴性——最大化召回率(<em class="italic">召回=真阳性/(真阳性+假阴性)</em>)。它还要求您最小化错误警报(假阳性)-最大化精度(<em class="italic">精度=真阳性/(真阳性+假阳性)</em>)。</p>
+
+<p>所以，既然你想同时最大化精度和召回率，那么正确答案就是 C(最大化 PR 曲线下的面积)。</p>
+
+<p><strong class="bold">参考文献</strong>:<a href="https://machinelearningmastery.com/roc-curves-and-precision-recall-curves-for-imbalanced-classification/">https://machine learning mastery . com/roc-curves-and-precision-recall-curves-for-unbalanced-class ification/</a>。</p>
+
+<ul>
+
+<li><strong class="bold">问题 20 </strong>:数据科学团队正在为一家汽车制造公司构建数据管道，该公司的目标是通过一个无代码的数据 ETL 接口集成其内部设施中存在的所有数据源。你将使用什么 GCP 服务？<ol><li value="1">Dataproc</li>
+
+<li>数据流</li>
+
+<li>数据准备</li>
+
+<li>数据融合</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">分析</strong>:既然问题要求用无代码接口进行数据集成，那么数据融合就是这里的最佳选择。因此，正确答案是 d。</p>
+
+<p><strong class="bold">参考文献</strong>:<a href="https://cloud.google.com/data-fusion/docs/concepts/overview#using_the_code-free_web_ui">https://cloud . Google . com/data-fusion/docs/concepts/overview # using _ the _ code-free _ web _ ui</a>。</p>
+
+<ul>
+
+<li><strong class="bold">问题 21 </strong>:数据科学团队在 BigQuery 中为一家房地产公司构建了一个 TensorFlow 模型，其目标是将他们所有的数据模型集成到新的 Google Vertex AI 平台中。最佳策略是什么？<ol><li value="1">从 BigQuery ML 导出模型</li>
+
+<li>将 BQML 模型注册到顶点 AI</li>
+
+<li>将模型导入顶点人工智能</li>
+
+<li>使用 AI 平台作为中间阶段</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">解析</strong>:由于问题要求用 Vertex AI 进行模型集成，允许你在其中注册一个 BQML 模型，所以正确答案是 b。</p>
+
+<p><strong class="bold">参考文献</strong>:https://cloud . Google . com/big query-ml/docs/managing-models-vertex。</p>
+
+<ul>
+
+<li><strong class="bold">问题 22 </strong>:房地产公司 Zeellow 利用他们的历史数据，使用 ML 来预测未来的房屋销售价格。数据科学团队需要构建一个模型，根据房屋位置(特定于美国城市)和房屋类型来预测美国房屋销售价格。在这种情况下，什么策略对于特征工程是最好的？<ol><li value="1">一个特征交叉:[纬度 X 经度 X 房屋类型]</li>
+
+<li>两个特征交叉:[装箱的纬度 X 装箱的房屋类型]和[装箱的经度 X 装箱的房屋类型]</li>
+
+<li>三个独立的入库要素:[入库纬度]、[入库经度]、[入库房屋类型]</li>
+
+<li>一个要素交叉:[入库纬度 X 入库经度 X 入库房屋类型]</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">分析</strong>:将分箱的纬度与分箱的经度交叉，使模型能够了解城市对房屋类型的特定影响。它防止纬度变化产生与经度变化相同的结果。根据垃圾箱的粒度，这种特征交叉可以学习特定城市的住房效应。所以，正确答案是 d。</p>
+
+<p><strong class="bold">参考资料</strong>:<a href="https://developers.google.com/machine-learning/crash-course/feature-crosses/check-your-understanding">https://developers . Google . com/machine-learning/crash-course/feature-crosses/check-you-understanding</a>。</p>
+
+<ul>
+
+<li><strong class="bold">问题 23 </strong>:一家健康保险公司扫描客户手工填写的索赔表格，并实时存储在谷歌云存储桶中。数据科学家团队开发了一种人工智能文档模型来数字化图像。每天结束时，需要自动处理提交的表单。模型已经可以部署了。团队应该使用什么策略来处理表单？<ol><li value="1">顶点人工智能批量预测</li>
+
+<li>顶点人工智能在线预测</li>
+
+<li>顶点 AI ML 流水线预测</li>
+
+<li>云运行触发预测</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">分析</strong>:如题中所述，我们需要在每天结束时运行流程，这暗示了使用 AI 平台或 Vertex AI 进行批处理。正确答案是 a。</p>
+
+<ul>
+
+<li>房地产公司 Zeellow 利用 GCP ML 公司的历史数据来预测未来的房屋销售价格。他们的数据科学团队大约有 30 名成员，每个成员都使用 Vertex AI 客户笔记本开发了多个版本的模型。管理团队成员开发的这些不同模型和不同版本的最佳策略是什么？<ol><li value="1">设置 IAM 权限以允许每个成员访问他们的笔记本、模型和版本</li>
+
+<li>为每个成员创建一个清洁管理的 GCP 项目</li>
+
+<li>使用 BQ 创建每个成员到其 GCP 资源的映射</li>
+
+<li>为可扩展的库存/成本/访问管理创建资源时，为其应用标签/标记</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">分析</strong>:资源标记/标注是中/大数据科学团队管理 ML 资源的最佳方式。最佳答案是 d。</p>
+
+<p><strong class="bold">资源</strong>:https://cloud . Google . com/Resource-manager/docs/tags/tags-creating-and-managing。</p>
+
+<ul>
+
+<li><strong class="bold">问题 25 </strong>:星巴克是一家国际咖啡店，在不同的商店销售多种产品 A、B、C …( 1、2、3……使用一次性编码和宁滨的位置)。他们正在建设商店，并希望利用 ML 模型根据历史数据预测产品销售(A1 是商店 1 中产品 A 的销售数据)。按照将数据分为训练子集、验证子集和测试子集的最佳实践，应该如何将数据分布到这些子集？<ol><li value="1">在子集间随机分布数据:<ul><li>训练集:[A1，B2，F1，E2，...]</li>
+
+<li>测试集:[A2，C3，D2，F4，...]</li>
+
+<li>验证集:[B1，C1，D9，C2...]</li>
+
+</ul></li>
+
+<li>在子集间随机分发产品:<ul><li>训练集:[A1，A2，A3，E1，E2，...]</li>
+
+<li>测试集:[B1，B2，C1，C2，C3，...]</li>
+
+<li>验证集:[D1，D2，F1，F2，F3，...]</li>
+
+</ul></li>
+
+<li>在子集间随机分配商店:<ul><li>训练集:[A1，B1，C1，...]</li>
+
+<li>测试集:[A2，C2，F2，...]</li>
+
+<li>验证集:[D3，A3，C3，...]</li>
+
+</ul></li>
+
+<li>按分配商店的城市聚集数据组，并在子集间随机分布城市</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">分析</strong>:这个问题是关于数据集拆分，避免数据泄露。如果我们将数据随机分配到训练集、验证集和测试集中，模型将能够了解产品的具体质量。如果我们在产品级别上进行划分，使得给定的产品仅在训练子集、验证子集或测试子集中，那么模型会发现很难在验证上获得高精度，因为它需要关注产品特性/质量。因此，正确答案是 b。</p>
+
+<p><strong class="bold">参考</strong>:https://developers . Google . com/machine-learning/crash-course/18 世纪文学。</p>
+
+<ul>
+
+<li><strong class="bold">问题 26 </strong>:你正在用 Keras 构建一个 DL 模型，如下所示:<pre>model = tf.keras.sequential model.add(df.keras.layers.Dense(128,activation='relu',input_shape=(200, ))) model.add(df.keras.layers.Dropout(rate=0.25)) model.add(df.keras.layers.Dense(4,activation='relu')) model.add(df.keras.layers.Dropout(rate=0.25)) model.add(Dense(2))</pre></li>
+
+</ul>
+
+<p>这个模型有多少可训练的重量？</p>
+
+<ol>
+
+<li value="1">200x128+128x4+4x2</li>
+
+<li>200x128+128x4+2</li>
+
+<li>200x128+129x4+5x2</li>
+
+<li>200x128x0.25+128x4x0.25+4x2</li>
+
+</ol>
+
+<p><strong class="bold">分析</strong>:这个问题是测试 Keras 模型中可训练重量的概念。如你所见，正确答案是 d。</p>
+
+<ul>
+
+<li><strong class="bold">问题 27 </strong>:数据科学团队正在为一家大型 ERP 公司的客户支持中心建立 DL 模型，该公司有很多 ERP 产品和模块。该公司每天收到超过一百万个客户服务电话，并将它们存储在 GCS 中。呼叫数据不得离开发起呼叫的区域，并且不能存储/分析任何 PII。该模型将分析客户情感需求。您应该如何为呼叫处理、分析和可视化设计数据管道？<ol><li value="1">GCS-&gt; speech 2 text-&gt; DLP-&gt; big query</li>
+
+<li>GCS -&gt;发布/订阅-&gt;语音 2 文本-&gt; DLP -&gt;数据存储</li>
+
+<li>GCS-&gt; speech 2 text-&gt; DLP-&gt; BigTable</li>
+
+<li>GCS -&gt; Speech2Text -&gt; DLP -&gt;云 SQL</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">分析</strong>:既然问题要求一个数据管道来处理、分析、可视化，那么最好的答案就是 a，BigQuery 就是这里分析、可视化的最好工具。</p>
+
+<ul>
+
+<li><strong class="bold">问题 28 </strong>:数据科学团队正在构建一个 ML 模型，使用一家汽车制造公司装配线上的图像来监控和检测缺陷产品，该公司装配线附近没有可靠的 Wi-Fi。作为一名 Google ML 工程师，您需要利用该模型的快速缺陷检测来减少质量控制检查员花费的时间。贵公司希望尽快实施新的 ML 模式。您应该使用哪种型号？<ol><li value="1">自动视觉</li>
+
+<li>AutoML Vision Edge mobile-多功能-1</li>
+
+<li>AutoML Vision Edge mobile-低延迟-1</li>
+
+<li>AutoML Vision Edge mobile-高精度-1</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">解析:</strong>由于问题要求快速检查时间，并优先考虑降低延迟，正确答案为 c</p>
+
+<p><strong class="bold">参考</strong>:<a href="https://cloud.google.com/vision/automl/docs/train-edge">https://cloud.google.com/vision/automl/docs/train-edge</a>。</p>
+
+<ul>
+
+<li><strong class="bold">问题 29 </strong>:一家国家医院正在利用谷歌云和一款手机应用建立一个 ML 模型，根据年龄、性别、锻炼、心率、血压等预测心脏病发作。由于健康数据是高度敏感的个人信息，无法存储在云数据库中，您应该如何训练和部署 ML 模型？<ol><li value="1">带数据加密的物联网</li>
+
+<li>联合学习</li>
+
+<li>加密 BQML</li>
+
+<li>DLP API</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">分析</strong>:由于受到限制，联合学习是这里的最佳选择。通过联邦学习，所有数据都被收集起来，模型通过算法在多个分散的边缘设备(如手机或网站)上进行训练，而无需交换它们。所以，最佳答案是 b。</p>
+
+<ul>
+
+<li><strong class="bold">问题 30 </strong>:你是一家传媒公司的 ML 工程师。您需要建立一个 ML 模型来逐帧分析视频内容，识别对象，并在有不适当的内容时提醒用户。你应该使用哪些谷歌云产品来构建这个项目？<ol><li value="1">发布/订阅、云功能和云视觉 API</li>
+
+<li>发布/订阅、云物联网、数据流、云视觉 API 和云日志记录</li>
+
+<li>发布/订阅、云功能、视频智能 API 和云日志</li>
+
+<li>发布/订阅、云功能、自动视频智能和云日志</li>
+
+</ol></li>
+
+</ul>
+
+<p><strong class="bold">分析</strong>:由于这个问题涉及视频分析，这就排除了 A 和 b，AutoML video intelligence 是针对你希望用 Google 的模型和你的数据定制模型的情况。因此，C 是正确答案，因为视频智能 API 可用于满足要求。</p>
+
+<h1 id="_idParaDest-181"><a id="_idTextAnchor182"/>摘要</h1>
+
+<p>在本章中，我们讨论了 Google Cloud 专业机器学习工程师认证考试和一些练习题。由于 GCP ML 是一个不断变化的领域，在本书撰写期间，Google 已经开发并发布了许多新的服务。这本书并没有涵盖这个领域的所有考试题目。您需要参考谷歌认证页面，获取认证考试指南和更新。</p>
+
+<p>这一章结束了本书的第四部分。在本书的第五部分的附录中，我们将提供一些实验和演示来练习你的动手技能。建议您通读每个附录，并逐步练习实验。</p>
+
+</div>
+
+</div>
+
+
+
+</body></html>

@@ -1,0 +1,396 @@
+<html><head/><body>
+
+
+	
+		<title>B17447_03_ePub_RK</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-44"><em class="italic"> <a id="_idTextAnchor043"/>第 3 章</em>:使用 SageMaker Data Wrangler 进行数据准备</h1>
+			<p>借助 SageMaker Data Wrangler，您可以通过点击体验为 ML 建模执行探索性数据分析和数据预处理。您将能够快速迭代数据转换和快速建模，以查看您的转换方法是否提高了模型性能，了解数据中是否存在针对敏感群体的隐含偏差，并清楚地记录对已处理的数据进行了哪些转换。</p>
+			<p>在本章中，我们将在以下章节中学习如何使用<strong class="bold"> SageMaker Data Wrangler </strong>:</p>
+			<ul>
+				<li>开始使用 SageMaker Data Wrangler 进行客户流失预测</li>
+				<li>从源导入数据</li>
+				<li>通过可视化探索数据</li>
+				<li>应用变换</li>
+				<li>为 ML 培训导出数据</li>
+			</ul>
+			<h1 id="_idParaDest-45"><a id="_idTextAnchor044"/>技术要求</h1>
+			<p>对于本章，您需要访问<a href="https://github.com/PacktPublishing/Getting-Started-with-Amazon-SageMaker-Studio/tree/main/chapter03">https://github . com/packt publishing/Getting-Started-with-Amazon-sage maker-Studio/tree/main/chapter 03</a>中的资料。您需要确保您的 IAM 执行角色具有 AmazonAthenaFullAccess 策略。</p>
+			<h1 id="_idParaDest-46">【SageMaker Data Wrangler 客户流失预测入门</h1>
+			<p>客户流失是企业面临的一个严重问题。如果你是一个企业主，失去一个客户绝对不是你想看到的事情。你希望你的顾客对你的产品或服务满意，并继续使用他们，嗯，永远。客户流失总是会发生，但能够了解客户如何以及为什么离开服务，或者为什么客户不再购买你的产品，对你的业务至关重要。能够提前预测就更好了。</p>
+			<p>在本章中，我们将<a id="_idIndexMarker178"/>使用 SageMaker Data Wrangler 执行探索性数据分析和数据转换，在本章的最后，我们将使用<strong class="bold"> XGBoost 算法</strong>对争论的数据训练一个 ML 模型。</p>
+			<h2 id="_idParaDest-47"><a id="_idTextAnchor046"/>准备用例</h2>
+			<p>我们将<a id="_idIndexMarker179"/>拿一个合成的<code>chapter03/1-prepare_data.ipynb</code>笔记本并执行它。您将获得数据的副本，然后执行以下步骤:</p>
+			<ol>
+				<li>将数据分成三个数据框，<code>customer_info</code>、<code>account_info</code>和<code>utility</code>，这样我们就可以演示如何加入 SageMaker Data Wrangler。</li>
+				<li>随机屏蔽数值，造成数据缺失，以便展示 SageMaker Data Wrangler 的功能。</li>
+				<li>将三个数据框保存在一个 S3 桶中，并在 Amazon Athena 中提供<code>utility</code>,这样我们就可以模拟从多个来源导入数据。</li>
+			</ol>
+			<h2 id="_idParaDest-48"><a id="_idTextAnchor047"/>推出 SageMaker Data Wrangler</h2>
+			<p>您可以通过以下任何方式访问 SageMaker Data Wrangler:</p>
+			<ul>
+				<li>点击浏览<strong class="bold">文件</strong> | <strong class="bold">新增</strong> | <strong class="bold">数据牧马人流程</strong> ( <em class="italic">图 3.1 </em>)。</li>
+				<li>从<a id="_idIndexMarker182"/>启动器中，点击<strong class="bold">新数据流</strong> ( <em class="italic">图 3.1 </em>)。</li>
+			</ul>
+			<div><div><img src="img/B17447_03_01.jpg" alt="Figure 3.1 – Creating a new Data Wrangler flow&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.1–创建新的数据角力流</p>
+			<ul>
+				<li>从左侧栏<strong class="bold"> SageMaker resources </strong>，在下拉菜单中选择 Data Wrangler，点击<strong class="bold"> New flow </strong> ( <em class="italic">图 3.2 </em>)。</li>
+			</ul>
+			<div><div><img src="img/B17447_03_02.jpg" alt="Figure 3.2 – Creating a new Data Wrangler flow file from the registry. You can find all the flow files you have here too&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.2–从注册表创建新的 Data Wrangler 流文件。你也可以在这里找到所有的流文件</p>
+			<p>值得注意的是，从<code>untitled.flow</code>开始，在当前工作目录下创建。扩展名为<code>.flow</code>的<em class="italic">数据流文件</em>是一个记录您从 UI 使用 SageMaker Data Wrangler 执行的所有步骤的文件。这是一个基于 JSON 的文件，可以很容易地传输和重用。SageMaker Studio 和 Data Wrangler 可以解释 JSON 文件的内容，并呈现您对数据集所做的转换和分析。在这段等待时间内，幕后发生的事情是 SageMaker Studio 推出了一个数据牧马人<em class="italic"> KernelGateway </em>应用程序，该应用程序具有一个专用的<em class="italic"> ml.m5.4xlarge </em>实例，以支持我们将在 SageMaker 数据牧马人<a id="_idIndexMarker184"/>中执行的活动，并避免与其他笔记本内核发生争用。准备就绪后，您应该会看到<em class="italic">图 3.3 </em>中的视图。</p>
+			<div><div><img src="img/B17447_03_03.jpg" alt="Figure 3.3 – Starting point of a data wrangling journey with SageMaker Data Wrangler&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.3–sage maker Data Wrangler 数据争论之旅的起点</p>
+			<p>在我们继续之前，让我们在文件资源管理器中右击文件并选择<strong class="bold"> Rename </strong>，将流文件重命名为<code>wrangling-customer-churn.flow</code>或您喜欢的名称。</p>
+			<p>现在让我们开始使用 SageMaker Data Wrangler。</p>
+			<h1 id="_idParaDest-49"><a id="_idTextAnchor048"/>从源导入数据</h1>
+			<p>数据准备过程的第一步是从数据源导入数据。有四个<a id="_idIndexMarker185"/>选项可以导入数据:<code>chapter03/1-prepare_data.ipynb</code>笔记本。</p>
+			<h2 id="_idParaDest-50"><a id="_idTextAnchor049"/>从 S3 进口</h2>
+			<p>请<a id="_idIndexMarker187"/>按照以下步骤将 CSV 文件导入<a id="_idIndexMarker188"/>S3 存储桶。我们想要加载<code>customer_info</code>和<code>account_info</code>表:</p>
+			<ol>
+				<li value="1">从<em class="italic">图 3.3 </em>的视图中，选择<strong class="bold">亚马逊 S3 </strong>作为来源。你应该看到一个 S3 水桶的列表。</li>
+				<li>沿着具有命名约定<code>sagemaker-&lt;region&gt;-&lt;accountid&gt;</code>的 SageMaker 默认存储桶的路径定位数据。然后进入<code>sagemaker-studio-book/chapter03/data/</code>文件夹找到 CSV 文件。</li>
+				<li>选择<code>telco_churn_customer_info.csv</code>并检查数据。确保文件类型是 CSV 和带有 16 个 vCPUs 和 64 GiB 内存的<code>ml.m5.4xlarge</code>实例。当数据集很大时，采样有助于确保数据集适合内存。点击<strong class="bold">导入</strong>。</li>
+				<li>对<code>telco_churn_account_info.csv</code>重复步骤 1-3。</li>
+			</ol>
+			<div><div><img src="img/B17447_03_04.jpg" alt="Figure 3.4 – Data flow after two CSV files are imported&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.4–导入两个 CSV 文件后的数据流</p>
+			<p>一旦加载了<a id="_idIndexMarker189"/>两个 CSV 文件，您应该会看到<code>utility</code>中<em class="italic">图 3.4 </em>中的<a id="_idIndexMarker190"/>视图。</p>
+			<h2 id="_idParaDest-51"><a id="_idTextAnchor050"/>从雅典娜进口</h2>
+			<p>由于我们的<code>utility</code>表<a id="_idIndexMarker191"/>被注册为 Amazon <a id="_idIndexMarker192"/> Athena 表，我们可以通过以下步骤从 Athena 导入它:</p>
+			<ol>
+				<li value="1">点击<strong class="bold">导入</strong>选项卡，选择<strong class="bold"> Amazon Athena </strong>作为源。您应该会看到图 3.5 中所示的视图。</li>
+				<li>对于两个下拉选项，为<strong class="bold">数据目录</strong>选择<strong class="bold"> AwsDataCatalog </strong>，为<strong class="bold">数据库</strong>选择<strong class="bold"> telco_db </strong>。并且对于<strong class="bold">高级配置</strong>，可以<a id="_idIndexMarker193"/>勾选/取消勾选<strong class="bold">启用采样</strong>。如<strong class="bold">查询结果位置</strong>所示<a id="_idIndexMarker194"/>，可以在该位置找到查询的输出。</li>
+			</ol>
+			<div><div><img src="img/B17447_03_05.jpg" alt="Figure 3.5 – Importing data from Amazon Athena&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.5–从 Amazon Athena 导入数据</p>
+			<ol>
+				<li value="3">选择数据库后，您将在 Amazon Athena 数据库的<code>telco_churn_utility</code>表的右侧看到可用的表。你可以点击眼睛图标来预览表格，这样我们就知道表格是什么样子，如图<em class="italic">图 3.6 </em>所示，以及如何形成一个更复杂的查询。</li>
+			</ol>
+			<div><div><img src="img/B17447_03_06.jpg" alt="Figure 3.6 – Previewing the table&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.6–预览表格</p>
+			<ol>
+				<li value="4">让我们通过一个查询得到所有的数据。请<a id="_idIndexMarker196"/>将以下查询语句放入查询框。然后点击<strong class="bold">运行</strong> : <pre>select * from telco_churn_utility</pre></li>
+				<li>您将在查询框下方找到查询结果。我们用前面的语句得到所有的行和列。检查数据并点击顶部的<strong class="bold">导入</strong>按钮。</li>
+				<li>提供数据集名称，如<code>telco_churn_utility</code>。</li>
+			</ol>
+			<p>在<strong class="bold">数据流</strong>选项卡中，您应该看到所有三个表都被加载到数据流中。当您将鼠标悬停在任何最右边的节点上时，通过单击加号，您将看到您可以在这些表上执行的操作，如图<em class="italic">图 3.7 </em>所示。</p>
+			<div><div><img src="img/B17447_03_07.jpg" alt="Figure 3.7 – Actions after tables are imported&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.7-导入表格后的操作</p>
+			<p>接下来，我们<a id="_idIndexMarker197"/>应该检查数据类型，或者表的模式<a id="_idIndexMarker198"/>，以确保它们在导入过程中被正确地推断出来。</p>
+			<h2 id="_idParaDest-52"><a id="_idTextAnchor051"/>编辑数据类型</h2>
+			<p>数据类型决定了每个数据列如何被 Data Wrangler 读取以及如何被<a id="_idIndexMarker199"/>处理。数据牧马人中有<strong class="bold">长型</strong>、<strong class="bold">浮点型</strong>、<strong class="bold">布尔型</strong>、<strong class="bold">字符串型</strong>、<strong class="bold">日期型</strong>类型。<strong class="bold"> Long </strong>保存整数形式的<a id="_idIndexMarker200"/>数据。<strong class="bold">浮点</strong>允许<a id="_idIndexMarker201"/>浮点<a id="_idIndexMarker202"/>数据。<strong class="bold">布尔型</strong>表示二进制值，如<em class="italic"> 0/1 </em>和<em class="italic">是/否</em>。<strong class="bold">字符串</strong>使数据成为基于文本的条目。<strong class="bold">日期</strong>保存文本形式的<a id="_idIndexMarker203"/>数据(<em class="italic"> dd-MM-yyyy </em>)，但被解释为日期而不是字符串，并允许与日期相关的操作和比较。</p>
+			<p>可应用于数据的转换类型取决于数据类型。例如，您只能对<code>Long</code>和<code>Float</code>类型的列应用数值运算。因此，即使 Data Wrangler 在导入时会推断数据类型，在继续之前正确定义数据类型也很重要。</p>
+			<p>因此，让我们在 Data Wrangler 中检查和编辑导入表的数据类型:</p>
+			<ol>
+				<li value="1">在图 3.7 的<em class="italic">视图中，点击<code>telco_churn_account_info.csv</code>旁边的加号，选择<strong class="bold">编辑数据类型</strong>。</em></li>
+				<li>如图 3.8<em class="italic">所示</em>，<code>Long</code>整数型。要更改它，在右侧面板的<strong class="bold">配置类型</strong>中，点击<strong class="bold">账户长度</strong>栏的<strong class="bold">类型</strong>，选择<strong class="bold">长</strong>。</li>
+				<li><code>String</code>。但是它们应该是布尔类型的以节省内存。通过选择<strong class="bold">配置类型</strong>中的<code>Boolean</code>将其更改为<code>Boolean</code>。</li>
+				<li>点击<strong class="bold">预览</strong>查看数据类型改变后的数据。参见<em class="italic">图 3.8 </em>。</li>
+			</ol>
+			<div><div><img src="img/B17447_03_08.jpg" alt="Figure 3.8 – Editing data types in Data Wrangler&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.8–在 Data Wrangler 中编辑数据类型</p>
+			<p>我们可以<a id="_idIndexMarker204"/>看到<strong class="bold">账户长度</strong>现在是<strong class="bold"> Long </strong>类型，整数值保持不变，并且<strong class="bold">国际计划</strong>和<strong class="bold"> Vmail 计划</strong>是<strong class="bold">布尔型</strong>，yes/no 转换为 true/false，如下表所示。数据类型转换不会导致数据丢失或任何事情，所以我们可以继续应用编辑。</p>
+			<ol>
+				<li value="5">点击<code>String</code>类型到<code>Boolean</code>类型。这是因为期，<strong class="bold">。</strong>，在数值中会使转换无效。您可以尝试更改它并预览更改。您将看到整列被擦除。我们将在后面用转换来处理这个专栏。</li>
+			</ol>
+			<p>我们已经<a id="_idIndexMarker205"/>更改并确认了第一个表的数据类型。我们应该对其他两个表进行同样的操作:</p>
+			<ol>
+				<li value="1">点击<strong class="bold">返回数据流</strong>返回数据流。</li>
+				<li>点击<code>telco_churn_customer_info.csv</code>旁边的加号，并选择<strong class="bold">编辑数据类型</strong>。</li>
+				<li>将<code>Long</code>改为<code>String</code>。尽管该列有整数值，但它们应该被视为<code>locality</code>而不是数字特征。</li>
+				<li>点击<strong class="bold">预览</strong>，然后<strong class="bold">应用</strong>。</li>
+				<li>点击<strong class="bold">返回数据流</strong>返回数据流。</li>
+				<li>点击最后一个表格<code>telco_churn_utility</code>旁边的加号，然后选择<strong class="bold">编辑数据类型</strong>。</li>
+				<li>将<code>cust_serv_calls</code>从<code>Float</code>改为<code>Long</code>。</li>
+				<li>点击<strong class="bold">预览</strong>，然后<strong class="bold">应用</strong>。</li>
+				<li>点击<strong class="bold">返回数据流</strong>返回数据流。</li>
+			</ol>
+			<p>我们已经验证并修复了三个表的数据类型。现在是时候将它们连接成一张桌子了。</p>
+			<h2 id="_idParaDest-53"><a id="_idTextAnchor052"/>连接表格</h2>
+			<p>连接表是<a id="_idIndexMarker206"/>当你处理多个数据源时最常见的步骤之一，也是当你构建 ML 模型时丰富你的特性的最重要的步骤。想想关系数据库术语。您的表保持某种关系，允许您将它们放在一起以获得一幅大图。我们将使用 Data Wrangler 通过<code>customerID</code>列连接三个表。请遵循<a id="_idIndexMarker207"/>接下来的步骤:</p>
+			<ol>
+				<li value="1">点击<code>telco_churn_account_info.csv</code>旁边的加号，并选择<strong class="bold">加入</strong>。您应该会看到图 3.9 中的视图。</li>
+			</ol>
+			<div><div><img src="img/B17447_03_09.jpg" alt="Figure 3.9 – Joining tables in SageMaker Data Wrangler&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.9–在 SageMaker Data Wrangler 中连接表</p>
+			<ol>
+				<li value="2"><code>telco_churn_account_info.csv</code>被选为<code>telco_churn_customer_info.csv</code>为<strong class="bold">右</strong>。您应该会看到两个表之间的链接，如图<em class="italic">图 3.10 </em>所示。</li>
+			</ol>
+			<div><div><img src="img/B17447_03_10.jpg" alt="Figure 3.10 – Joining tables &#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.10–连接表格</p>
+			<ol>
+				<li value="3">点击<strong class="bold">配置</strong>继续。</li>
+				<li>如<em class="italic">图 3.11 </em>所示<a id="_idIndexMarker208"/>，选择我们期望得到所有数据的<code>join</code>类型，然后选择<strong class="bold">左</strong>和<strong class="bold">右</strong>的<strong class="bold"> CustomerID </strong>作为连接键。</li>
+			</ol>
+			<div><div><img src="img/B17447_03_11.jpg" alt="Figure 3.11 – Joining tables with Full outer and select keys&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.11-用全外部和选择键连接表</p>
+			<ol>
+				<li value="5">点击<code>CustomerID_0</code>和<code>CustomerID_1</code>。我们将在后面的<em class="italic">应用转换</em>部分处理这个问题。</li>
+				<li>点击右上角的<strong class="bold">添加</strong>完成加入。</li>
+				<li>现在我们需要连接最后一个表。点击连接表旁边的加号，并选择<strong class="bold">连接</strong>。</li>
+				<li>选择<code>telco_churn_utility</code>为<strong class="bold">右</strong>，然后点击<strong class="bold">配置</strong>。</li>
+				<li>再次选择<code>CustomerID_0</code>为<code>customer_id</code>为<strong class="bold">右</strong>加入。</li>
+				<li>点击<strong class="bold">应用</strong>预览连接的数据集。是的，这些表是连接的，但是键是重复的，这可以在后面的<em class="italic">应用转换</em>部分解决。别担心。</li>
+				<li>点击<a id="_idIndexMarker210"/>右上角的<strong class="bold">添加</strong>完成连接。你将被带回到数据流。你应该看到流程，如图<em class="italic">图 3.12 </em>所示。</li>
+			</ol>
+			<div><div><img src="img/B17447_03_12.jpg" alt="Figure 3.12 – Data flow after joining three tables&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.12-连接三个表后的数据流</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">如果您发现做错了什么，不要担心，只需点击有错误的节点上的加号，并选择<strong class="bold">删除</strong>来删除该节点。但是请记住，如果您删除不是最后一个节点的节点，所有下游节点也会被删除。</p>
+			<p>我们准备进入下一阶段:探索数据集！</p>
+			<h1 id="_idParaDest-54"><a id="_idTextAnchor053"/>通过可视化探索数据</h1>
+			<p><strong class="bold">探索性数据分析</strong> ( <strong class="bold"> EDA </strong>)提供对手头数据的<a id="_idIndexMarker211"/>洞察，并帮助我们制定数据转换策略，以便 ML 建模能够<a id="_idIndexMarker212"/>发挥最大性能。用编程来分析和可视化数据是健壮的和可扩展的，但是它需要大量的编码和开发。使用 SageMaker Data Wrangler，您可以在 UI 中轻松创建图表和数字。目前，SageMaker Data Wrangler 支持以下不需要编码的图表和分析类型:<strong class="bold">直方图</strong>，<strong class="bold">散点图</strong>，<strong class="bold">偏差报告</strong>，<strong class="bold">多重共线性</strong>，<strong class="bold">快速模型</strong>，<strong class="bold">目标泄漏</strong>，<strong class="bold">表格汇总</strong>。让我们一个一个来看看它们是如何工作的。</p>
+			<h2 id="_idParaDest-55"><a id="_idTextAnchor054"/>用直方图了解频率分布</h2>
+			<p>直方图有助于我们理解变量的频率分布，变量的值用条形图分成离散的区间。例如，我们可以使用 SageMaker Data Wrangler 中的直方图功能来查看呼叫者在白天打电话的时间。为此，请遵循以下步骤:</p>
+			<ol>
+				<li value="1">点击<strong class="bold">第二连接</strong>节点旁边的加号，选择<strong class="bold">添加分析</strong>。您应该会看到图 3.13 中的视图。</li>
+			</ol>
+			<div><div><img src="img/B17447_03_13.jpg" alt="Figure 3.13 – Adding an analysis in SageMaker Data Wrangler&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.13–在 SageMaker Data Wrangler 中添加分析</p>
+			<ol>
+				<li value="2">在<code>day_mins_histogram</code>中填写<a id="_idIndexMarker216"/>一个分析名称。</li>
+				<li>为<strong class="bold"> X 轴</strong>选择<strong class="bold">日分</strong>。</li>
+				<li>点击<strong class="bold">预览</strong>查看图表，如图<em class="italic">图 3.14 </em>所示。</li>
+			</ol>
+			<div><div><img src="img/B17447_03_14.jpg" alt="Figure 3.14 – Histogram of minutes of call time in the daytime&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.14-白天通话时间分钟直方图</p>
+			<p>这太棒了！您在 SageMaker Data Wrangler 中创建了第一个可视化工具，用于查看所有客户白天通话时间<a id="_idIndexMarker219"/>的<a id="_idIndexMarker218"/>频率分布。我们看到，大多数客户的通话时间短于 8 分钟，很少有通话时间超过 12 分钟。但这是全局观。作为一名数据科学家，您可能想知道离开服务的客户与继续使用服务的客户的行为有何不同。我们应该根据目标状态对数据进行切片和切块:<strong class="bold">流失？</strong>。我们可以通过选项通过<strong class="bold">方面来完成。我们将继续修改图表，但不保存当前图表。</strong></p>
+			<ol>
+				<li value="5">选择<strong class="bold">搅动？通过</strong>对<strong class="bold">刻面</strong>并点击<strong class="bold">预览</strong>。您应该会看到一个更新的图表，如图<em class="italic">图 3.15 </em>所示。</li>
+			</ol>
+			<div><div><img src="img/B17447_03_15.jpg" alt="Figure 3.15 – Histogram of the day_mins variable by target &#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.15–按目标划分的 day_mins 变量直方图</p>
+			<p>我们可以<a id="_idIndexMarker220"/>断定<a id="_idIndexMarker221"/>离开服务的客户<strong class="bold">属实。</strong>图表)最常打电话的时间约为 6-10 分钟，而使用该服务的客户(<strong class="bold">错误。</strong>图表)通话时少说话。多么有趣的观察。让我们保存分析。</p>
+			<ol>
+				<li value="6">点击<strong class="bold">保存</strong>保存并返回保存所有分析的页面。</li>
+			</ol>
+			<p>在<strong class="bold"> All Analyses </strong>视图中，您可以看到您为任何给定状态下的每个节点创建的图表和分析。我们已经创建了一个直方图。让我们继续创建另一个图表。</p>
+			<h2 id="_idParaDest-56"><a id="_idTextAnchor055"/>散布图</h2>
+			<p>一位数据科学家可能想知道白天打电话多的客户是否也经常在晚上打电话。或者您可能想知道客户的账户长度和通话时间之间是否存在关联。您可以使用<strong class="bold">散点图</strong>来形象化这一特征。让我们为数据创建一个散点图:</p>
+			<ol>
+				<li value="1">在<strong class="bold">分析</strong>页面，点击右上角的<strong class="bold">创建新分析</strong>。</li>
+				<li>选择<code>AccountLength_CallTime_Scatter</code>。</li>
+				<li>选择<strong class="bold">X 轴<strong class="bold">的帐长</strong>和<strong class="bold">Y 轴</strong>的日分钟数</strong>。</li>
+				<li>点击<strong class="bold">预览</strong>。你应该<a id="_idIndexMarker223"/>看到一个图表，如图<em class="italic">图 3.16 </em>所示。</li>
+			</ol>
+			<div><div><img src="img/B17447_03_16.jpg" alt="Figure 3.16 – Scatter plot of Account Length versus day_mins&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.16–账户时长与日分钟数的散点图</p>
+			<p>这两个变量之间似乎没有任何视觉上的关联。</p>
+			<p>直方图和散点图是您可能熟悉的两种最常用的 EDA 工具。借助 SageMaker Data Wrangler，您可以使用快速模型等面向 ML 的分析来帮助您确定数据转换策略。</p>
+			<h2 id="_idParaDest-57"><a id="_idTextAnchor056"/>使用快速模型预览 ML 模型性能</h2>
+			<p>快速<a id="_idIndexMarker224"/>模型<a id="_idIndexMarker225"/>是另一个<a id="_idIndexMarker226"/>工具，它可以帮助您快速判断您的数据是否对数据中呈现的变量提供了任何预测能力。这个工具很有用，可以经常使用。让我们看看它是如何工作的:</p>
+			<ol>
+				<li value="1">在<strong class="bold">分析</strong>页面，点击右上角的<strong class="bold">创建新分析</strong>。</li>
+				<li><strong class="bold">分析类型</strong>选择<strong class="bold">快速模型</strong>。</li>
+				<li>在<code>first_quickmodel</code>中添加一个名字。</li>
+				<li>选择<strong class="bold">搅动？</strong>为<strong class="bold">标注</strong>并点击<strong class="bold">预览</strong>。</li>
+			</ol>
+			<div><div><img src="img/B17447_03_17.jpg" alt="Figure 3.17 – Quick Model result that shows the F1 score of the model performance on a test set and feature importance&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.17–快速模型结果，显示了测试集上模型性能的 F1 分数和特性重要性</p>
+			<p>SageMaker <a id="_idIndexMarker227"/> Data Wrangler 需要<a id="_idIndexMarker228"/>一分钟左右的时间，并返回一个条形图，如图<em class="italic">图 3.17 </em>所示，显示了特性重要性和来自给定数据集的随机分割测试集的 F1 分数。我们没有应用任何转换或数据清理，正如您在下面的数据表中看到的。SageMaker <a id="_idIndexMarker229"/> Data Wrangler 采用了一种叫做<strong class="bold">随机森林分类</strong>的流行算法来训练一个模型，并在一个保留测试集上进行测试。我们可以看到一个 0.851 F1 分数的初步结果，其中<strong class="bold"> night_charge </strong>是预测客户流失状态的最重要特征。我们还可以看到，有些功能并没有提供太多的预测能力，例如<strong class="bold">国际计划</strong>和<strong class="bold"> VMail 计划</strong>。此外，还有一些多余的功能，如<strong class="bold"> CustomerID_* </strong>，它们本不应该包含在建模中。这给了我们一些提示，以确保在实际建模中包含<strong class="bold"> night_charge </strong>和其他高重要性的功能，并且如果我们受到可以使用的功能数量的限制，我们可以省略<strong class="bold"> Int'l Plan </strong>和<strong class="bold"> VMail Plan </strong>。让我们把分析写在纸上。</p>
+			<ol>
+				<li value="5">点击<strong class="bold">保存</strong>保存分析。</li>
+			</ol>
+			<p>因为我们<a id="_idIndexMarker230"/>刚刚进行了我们的第一次快速建模，为了让<a id="_idIndexMarker231"/>了解我们正在获得的模型性能，测试我们是否遇到任何数据泄漏或目标泄漏问题也是一个好主意。</p>
+			<h2 id="_idParaDest-58"><a id="_idTextAnchor057"/>泄露目标</h2>
+			<p>目标泄漏意味着<a id="_idIndexMarker232"/>数据中存在高度相关的特征，或者基本上是目标变量的代理表示。例如，如果我们的数据集包含一个记录每个客户离职日期的列，那么这个列将包含那些客户，如果我们将它包含在建模中，就会产生极高的建模准确性。这个例子中的问题是，在现实世界中，当模型的工作是预测未来的变动时，很可能没有终止日期。让我们看看我们的数据集是否包含任何目标泄漏:</p>
+			<ol>
+				<li value="1">在<strong class="bold">分析</strong>页面，点击右上角的<strong class="bold">创建新分析</strong>。</li>
+				<li>为<strong class="bold">分析类型</strong>选择<strong class="bold">目标泄漏</strong>。</li>
+				<li>在<code>churn_target_leakage</code>中添加一个名字。</li>
+				<li><strong class="bold"> Max 特性</strong>的输入<code>25</code>，因为我们在表中有 24 列。</li>
+				<li>选择<strong class="bold">分类</strong>为<strong class="bold">问题类型</strong>。</li>
+				<li>选择<strong class="bold">搅动？</strong>为<strong class="bold">目标</strong>并点击<strong class="bold">预览</strong>。</li>
+			</ol>
+			<div><div><img src="img/B17447_03_18.jpg" alt="Figure 3.18 – Target leakage result showing features that are safe and that are possibly redundant (color-coded with a legend to the right of the chart)&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.18-目标泄漏结果，显示了安全和可能冗余的特征(图表右侧用图例进行颜色编码)</p>
+			<p>目标泄漏<a id="_idIndexMarker233"/>分析计算 ROC 下每个单独特征相对于目标的交叉验证面积，如<em class="italic">图 3.18 </em>中图表上方的文字所述。该分析表明，没有特征被确定为潜在的目标泄漏，这是一个好迹象。该结果也证实了我们从快速建模练习中学到的结论:</p>
+			<p>a) <code>night_charge</code>在预测流失方面很重要，提供了高水平的预测能力。</p>
+			<p>b) <code>VMail Plan</code>提供的预测能力很少。</p>
+			<p>c) <code>CustomerID_*</code>在数据集中是冗余的。</p>
+			<p>让我们保存分析。</p>
+			<ol>
+				<li value="7">点击<strong class="bold">保存</strong>保存分析。</li>
+			</ol>
+			<p>通过上两次分析，我们了解了特征预测能力。我们还应该看看如何使用 SageMaker Data Wrangler 创建自定义可视化。</p>
+			<h2 id="_idParaDest-59"><a id="_idTextAnchor058"/>创建自定义可视化</h2>
+			<p>SageMaker Data Wrangler 使用<strong class="bold">Altair</strong>(<a href="https://altair-viz.github.io/">https://altair-viz.github.io/</a>)以编程方式创建可视化<a id="_idIndexMarker234"/>。我们可以使用 SageMaker Data Wrangler 中的代码创建任何自定义可视化，以获得更大的灵活性。例如，我们可以通过<strong class="bold">搅动为<strong class="bold"> night_charge </strong>创建一个箱线图？</strong>了解两组的统计分布状态:</p>
+			<ol>
+				<li value="1">在<strong class="bold">所有分析</strong>页面，点击右上角的<strong class="bold">创建新分析</strong>。</li>
+				<li>点击<strong class="bold">配置</strong>旁边的<strong class="bold">代码</strong>标签。</li>
+				<li>添加一个名字，比如<code>boxplot_night_charge_by_churn</code>。</li>
+				<li>在编码区输入以下代码。确保导入<code>altair</code>库:<pre># Table is available as variable 'df' of pandas dataframe # Output Altair chart is available as variable 'chart' import altair as alt chart=alt.Chart(df).mark_boxplot().encode(     x='Churn?',     y='night_charge')</pre></li>
+				<li>点击<strong class="bold">预览</strong>。</li>
+			</ol>
+			<p>你会看到一个代表<code>Churn?</code>状态分布的方框图，如图<em class="italic">图 3.19 </em>所示。如果将鼠标悬停在箱线图上，可以看到数据的描述性统计数据。</p>
+			<div><div><img src="img/B17447_03_19.jpg" alt="Figure 3.19 – Creating a custom boxplot using the Altair library&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.19–使用 Altair 库创建自定义箱线图</p>
+			<ol>
+				<li value="6">点击<strong class="bold">保存</strong>保存自定义可视化。</li>
+			</ol>
+			<p>值得注意的是，这些分析和可视化被保存为流文件的一部分，这样您就可以完全了解如何处理数据。</p>
+			<p>通过这些分析，我们现在很好地理解了应该如何转换和处理数据。</p>
+			<h1 id="_idParaDest-60"><a id="_idTextAnchor059"/>应用变换</h1>
+			<p>您可以使用 SageMaker Data Wrangler 轻松应用数据转换，因为无需任何编码，您就可以开箱即用大量的<a id="_idIndexMarker236"/>内置转换。到目前为止，我们已经从分析中观察到以下内容，接下来我们需要处理这些内容以构建 ML 数据集:</p>
+			<ul>
+				<li>某些功能中缺少数据。</li>
+				<li><code>Churn?</code>列现在是字符串格式，值为<code>True.</code>和<code>False.</code>。</li>
+				<li>连接后冗余的<code>CustomerID_*</code>列。</li>
+				<li>不提供预测能力的特性，包括但不限于<code>Phone</code>、<code>VMail Plan</code>和<code>Int'l Plan</code>。</li>
+			</ul>
+			<p>出于 ML 的目的，我们还希望执行以下转换，因为我们希望训练一个 XGBoost 模型来预测之后的<code>Churn?</code>状态。</p>
+			<ul>
+				<li>编码分类变量，即<code>State</code>和<code>Area Code</code>特征。</li>
+			</ul>
+			<p>让我们<a id="_idIndexMarker237"/>开始吧:</p>
+			<ol>
+				<li value="1">在<strong class="bold">数据流</strong>选项卡中，点击<strong class="bold">第二连接</strong>节点旁边的加号，选择<strong class="bold">添加转换</strong>。你应该看到如图<em class="italic">图 3.20 所示的视图，左边是一个表格，右边是一个转换列表。</em></li>
+			</ol>
+			<div><div><img src="img/B17447_03_20.jpg" alt="Figure 3.20 – A workspace to transform your data. You can expand each transform on the right side to see options&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.20–转换数据的工作空间。您可以展开右侧的每个转换来查看选项</p>
+			<ol>
+				<li value="2">要删除<strong class="bold"> CustomerID_* </strong>，单击<strong class="bold">管理列</strong>展开转换，在<strong class="bold">转换</strong>中选择<strong class="bold">删除列</strong>，选择<strong class="bold"> CustomerID_0 </strong>删除<strong class="bold">列</strong>。</li>
+				<li>点击<code>CustomerID_0</code>现在没有了，如图<em class="italic">图 3.21 </em>所示。</li>
+			</ol>
+			<div><div><img src="img/B17447_03_21.jpg" alt="Figure 3.21 – Dropping columns in SageMaker Data Wrangler&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.21–在 SageMaker Data Wrangler 中删除列</p>
+			<ol>
+				<li value="4">点击<strong class="bold">添加</strong>使转换生效。</li>
+				<li>重复步骤 2-4 以放下<code>CustomerID_1</code>和<code>customer_id</code>。</li>
+			</ol>
+			<p>如果操作正确，您应该看到右侧的<strong class="bold">先前步骤</strong>选项卡上应用了四个步骤，如图<em class="italic">图 3.22 </em>所示。</p>
+			<div><div><img src="img/B17447_03_22.jpg" alt="Figure 3.22 – Reviewing previous steps in the Previous steps tab&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.22–查看“先前步骤”选项卡中的先前步骤</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">如果您意识到您做错了什么，并且想要恢复到先前的转换，您可以<strong class="bold">从最后一个步骤中删除</strong>步骤，一次一个，如图<em class="italic">图 3.22 </em>所示。</p>
+			<ol>
+				<li value="6">转到<a id="_idIndexMarker239"/>处理<code>cust_serv_calls</code>中的缺失数据，展开<strong class="bold">输入栏</strong>的<code>Account Length</code>，展开<strong class="bold">输入策略</strong>的<strong class="bold">近似中值</strong>。我们可以将<strong class="bold">输出列</strong>留空，以指示 SageMaker Data Wrangler 覆盖现有列。</li>
+				<li>点击<code>102,</code>如图<em class="italic">图 3.23 </em>所示。</li>
+			</ol>
+			<div><div><img src="img/B17447_03_23.jpg" alt="Figure 3.23 – Account Length is filled with the median value, 102&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.23–账户长度用中间值 102 填充</p>
+			<ol>
+				<li value="8">点击<strong class="bold">添加</strong>使<a id="_idIndexMarker240"/>转换生效。</li>
+				<li>对<code>cust_serv_calls</code>重复步骤 6-8。</li>
+			</ol>
+			<p>基于快速模型和目标泄漏分析，有些功能不能提供太多的预测能力，也值得放弃。<code>Phone</code>是显示包含很少或没有有用信息的特征之一。此外，众所周知，当你注册一项服务时，电话号码通常是随机分配的。另一方面，尽管<code>VMail Plan</code>和<code>Int'l Plan</code>不提供预测信息，但它们属于简单的<code>Boolean</code>类型，确实有实际意义。将这些特性带入建模可能没什么坏处。所以，让我们放弃<code>Phone</code>特性。</p>
+			<ol>
+				<li value="10">重复步骤 2-4 以放下<code>Phone</code>。</li>
+			</ol>
+			<p>继续转换分类特征，我们有代表客户位置的<code>State</code>和<code>Area Code</code>。我们可以应用一键编码来转换它们。然而，我们可能会冒<code>Area Code</code>号的风险，退而求其次的行动就是放弃它。让我们对<code>State</code>执行一键编码，并删除<code>Area Code</code>。</p>
+			<ol>
+				<li value="11">展开<strong class="bold">编码分类</strong>，为<strong class="bold">变换</strong>选择<strong class="bold">一键编码</strong>，为<strong class="bold">输入列</strong>选择<strong class="bold">状态</strong>，为<strong class="bold">输出样式</strong>选择<strong class="bold">列</strong>，其他选项保留默认值。</li>
+				<li>点击<code>State</code>列被替换为<code>State_*</code>稀疏特征，每个稀疏特征代表客户是否处于特定状态(0 代表假，1 代表真)。</li>
+				<li>点击<strong class="bold">添加</strong>使转换生效。</li>
+				<li>重复步骤 2-4 以放下<code>Area Code</code>。</li>
+			</ol>
+			<p>最后但同样重要的是，目标特性<code>Churn?,</code>需要一些争论。它有一个奇怪的时期，打乱了以前的数据类型转换。此外，我们稍后将用于建模的 SageMaker 内置 XGBoost 算法要求目标特性在第一列中。让我们应用文本操作并移动列。</p>
+			<ol>
+				<li value="15">展开<code>.</code>的<code>Churn?</code>(一个句号)为<strong class="bold">符号</strong>。</li>
+				<li>点击<code>Churn?</code>已移除，如图<em class="italic">图 3.24 </em>所示。点击<strong class="bold">添加</strong>使转换生效。</li>
+			</ol>
+			<div><div><img src="img/B17447_03_24.jpg" alt="Figure 3.24 – Ending period removed in the Churn? column&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.24–流失中删除的期末？圆柱</p>
+			<ol>
+				<li value="17">我们现在可以使用数据类型解析器将真/假转换成布尔表示。展开<strong class="bold">解析列为类型</strong>，选择<strong class="bold"> Churn？</strong>为<strong class="bold">列</strong>，并在<strong class="bold">到</strong>下拉菜单中选择<strong class="bold">布尔</strong>。</li>
+				<li>点击<code>Boolean</code>类型。点击<strong class="bold">添加</strong>使转换生效。</li>
+				<li>移动<strong class="bold">搅乳器？</strong>到前面，展开<strong class="bold">管理列</strong>，选择<strong class="bold">变换</strong>的<strong class="bold">移动列</strong>，选择<strong class="bold">移动开始</strong>移动类型，选择<strong class="bold">搅动？</strong>为<strong class="bold">柱移动</strong>。</li>
+				<li>点击<strong class="bold">预览</strong>查看转换。现在的<strong class="bold">流失？</strong>列成为第一特征。点击<strong class="bold">添加</strong>使转换生效。</li>
+			</ol>
+			<p>我们刚刚对数据集应用了 11 个变换。我们可以运行一个快速的建模分析，以确保我们在建模方面处于正确的轨道上。</p>
+			<h2 id="_idParaDest-61"><a id="_idTextAnchor060"/>在争论中探索性能</h2>
+			<p>在 SageMaker <a id="_idIndexMarker243"/> Data Wrangler 中处理数据时，您可以随时添加分析。这允许您在密钥转换后分析数据，并使用快速模型验证预测能力。让我们为争论的数据添加一个分析:</p>
+			<ol>
+				<li value="1">点击<strong class="bold">分析</strong>选项卡。</li>
+				<li><strong class="bold">分析类型</strong>选择<strong class="bold">快速模型</strong>，在<strong class="bold">分析名称</strong>中添加一个名称，选择<strong class="bold">流失？</strong>为<strong class="bold">标注</strong>。</li>
+				<li>点击<strong class="bold">预览</strong>查看建模结果，如图<em class="italic">图 3.25 </em>所示。该车型 F1 成绩从<em class="italic"> 0.851 </em>提升到<em class="italic"> 0.871 </em>。我们走在正确的道路上。</li>
+			</ol>
+			<div><div><img src="img/B17447_03_25.jpg" alt="Figure 3.25 – Quick modeling after all transformations&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图 3.25–所有转换后的快速建模</p>
+			<ol>
+				<li value="4">点击<strong class="bold">添加</strong>将分析放到画布上。</li>
+			</ol>
+			<p>到目前为止，我们已经使用 SageMaker Data Wrangler 深入分析了电信客户流失数据集，并根据分析结果对数据进行了辩论。快速模型显示，在预测客户流失方面，F1 得分有所提高。我们应该继续前进，看看这项工作有什么选择。</p>
+			<h1 id="_idParaDest-62"><a id="_idTextAnchor061"/>为 ML 训练导出数据</h1>
+			<p>SageMaker Data Wrangler 支持以下导出选项:<strong class="bold">保存到 S3 </strong>、<strong class="bold">管道</strong>、<strong class="bold"> Python 代码</strong>、<strong class="bold">特征存储</strong>。到目前为止，我们应用的数据转换还没有真正应用到数据上。需要执行转换步骤<a id="_idIndexMarker245"/>以获得最终的转换数据。当我们使用上述选项导出流文件时，SageMaker Data Wrangler 会自动生成代码和笔记本来指导您完成执行过程，因此我们无需编写任何代码，但它为我们定制代码留下了灵活性。</p>
+			<p>这四个导出选项满足许多用例。<strong class="bold">保存到 S3 </strong>是一个显而易见的选择，提供了很大的灵活性。如果您想在 S3 桶中获得转换后的数据，以便可以在 Amazon SageMaker 中训练 ML 模型，您也可以从 S3 本地下载它，并在需要时将其导入其他工具。<strong class="bold">管道</strong>选项创建了一个 SageMaker 管道，可以很容易地称为可重复工作流。此类工作流可以配置为事件触发或时间触发，以便您可以将数据转换作为一个管道来自动化。我们将在第 10 章 、<em class="italic">使用 SageMaker 模型监控器</em>监控生产中的 ML 模型中了解更多关于 SageMaker 管道的信息。Python 代码提供了最大的可见性和灵活性。您可以看到 Amazon SageMaker 如何实现每个转换，在 Spark 环境中运行代码，并处理数据。使用<strong class="bold">特性存储</strong>选项，您将获得一个自动生成的 Jupyter 笔记本，它将处理数据并在 SageMaker 特性存储中创建一个特性组。我们将在<a href="B17447_05_ePub_RK.xhtml#_idTextAnchor077"> <em class="italic">第五章</em> </a>、<em class="italic">用 SageMaker Studio IDE </em>构建和训练 ML 模型中了解更多关于 SageMaker 特征库的内容。</p>
+			<p>在本例中，我将向您展示选项<strong class="bold">保存到 S3 </strong>，它包括自动生成的笔记本中的 ML 培训:</p>
+			<ol>
+				<li value="1">首先，保存流文件，以便导出的资源将获得最新的更改。在菜单栏中选择<strong class="bold">文件</strong>-&gt;-<strong class="bold">保存数据牧马人流程</strong>。</li>
+				<li>点击<strong class="bold">导出</strong>选项卡，点击<strong class="bold">步骤</strong>节点，在转换列表中选择最后一个步骤<strong class="bold">移动列</strong>。通过单击一个步骤，将会选择导致所选步骤的所有步骤。</li>
+				<li>点击右上角的<strong class="bold">导出步骤</strong>，点击<strong class="bold">保存到 S3 </strong>。</li>
+			</ol>
+			<p>一个新的 Python <a id="_idIndexMarker246"/> Jupyter 笔记本应该会弹出来。本笔记本包含使用 SageMaker 处理来处理 SageMaker Data Wrangler 流文件并将处理后的数据保存在 S3 的代码。这是我们第一次接触 SageMaker 加工。简而言之，它允许我们使用适当的计算资源来执行数据处理、模型评估和统计分析。有了 SageMaker 处理，您不再受 Studio 笔记本环境中本地可用计算资源的限制；相反，处理脚本和 Data Wrangler 流文件可以在大小合适的计算实例上运行。您可以在下面的步骤中看到实际情况。</p>
+			<ol>
+				<li value="4">Please execute all the cells before <strong class="bold">(Optional) Next Steps</strong> section.<p class="callout-heading">注意</p><p class="callout">您可以在您看到的部分配置笔记本电脑💡<strong class="bold">可配置设置</strong>。</p></li>
+			</ol>
+			<p>SageMaker 处理作业可能需要几分钟时间。在处理作业结束时，已处理的数据在 S3 存储桶中可用。您应该会看到该单元的以下输出:</p>
+			<pre><strong class="bold">Job results are saved to S3 path: </strong>s3://sagemaker-us-west-2-&lt;account-id&gt;/export-flow-04-01-52-59-xxxxxx/output/data-wrangler-flow-processing-04-01-52-59-xxxxxx</pre>
+			<p>下面的可选部分是有趣的建模部分。让我们运行这些步骤来训练一个 ML 模型，使用 SageMaker 的内置 XGBoost 算法来预测流失。</p>
+			<ol>
+				<li value="5">将<code>run_optional_steps</code>的值重新分配给<code>True</code> : <pre>run_optional_steps = True</pre></li>
+				<li>XGBoost 的默认<a id="_idIndexMarker247"/>目标度量<code>reg:squarederror</code>是针对回归用例的。将其改为<code>binary:logistic</code>，因为我们有一个二进制分类用例:<pre>hyperparameters = {     "max_depth":"5",     "objective": "binary:logistic",     "num_round": "10", }</pre></li>
+				<li>执行笔记本中所有剩余的单元格，开始训练作业。</li>
+			</ol>
+			<p>培训工作需要一两分钟才能完成。您可以在最后一个单元格中看到作为输出打印出来的幕后操作。我们将在第五章  <em class="italic">【用 SageMaker Studio IDE </em>构建和训练 ML 模型】中了解更多关于 SageMaker 训练和训练算法的内容。一旦完成，模型也保存在 S3，可以在 Amazon SageMaker 的主机中使用，也可以在本地使用。我们将在<a href="B17447_07_ePub_RK.xhtml#_idTextAnchor099"> <em class="italic">第 7 章</em> </a>、<em class="italic">云中托管 ML 模型:最佳实践</em>中了解更多关于托管选项的内容</p>
+			<h1 id="_idParaDest-63"><a id="_idTextAnchor062"/>摘要</h1>
+			<p>在本章中，我们展示了如何通过电信客户流失数据集使用 SageMaker Data Wrangler。我们学习了如何从各种来源导入数据、连接表、使用基于 ML 的高级分析进行分析，以及使用 SageMaker Data Wrangler 创建可视化。然后，我们使用 SageMaker Data Wrangler 的内置转换功能轻松应用转换，无需任何代码。在本章的最后，我们展示了如何将转换后的数据导出到 S3 桶，以及如何使用自动生成的笔记本轻松训练 ML 模型。</p>
+			<p>在下一章中，我们将学习机器学习项目中特征库的概念，以及如何使用<strong class="bold"> SageMaker 特征库</strong>建立特征库。SageMaker 特性库统一了跨团队的特性，因此团队可以删除冗余的特性工程管道。它还充当模型训练和模型服务用例的中央存储库，因为其独特的设计模式具有用于选择训练数据集的简单查询的离线存储和用于模型服务环境中所需的低延迟事务的在线存储。</p>
+		</div>
+	
+
+</body></html>
