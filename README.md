@@ -1,39 +1,5 @@
-<!--
-    需要填充的占位符：
-    
-    README.md
-    
-        ApacheCN 机器学习译文集（六）：文档中文名
-        {nameEn}：文档英文名
-        {urlEn}：文档原始链接
-        ml6：域名前缀
-        飞龙：负责人名称
-        wizardforcel：负责人 Github 用户名
-        562826179：负责人 QQ
-        apachecn-ml-zh-pt6：ApacheCN 的 Github 仓库名称
-        apachecn-ml-zh-pt6：DockerHub 仓库名称
-        apachecn-ml-zh-pt6：PYPI 包名称
-        apachecn-ml-zh-pt6：NPM 包名称
-    
-    CNAME
-    
-        ml6：域名前缀
-
-    index.html
-    
-        ApacheCN 机器学习译文集（六）：文档中文名
-        #1E90FF：显示颜色
-        apachecn-ml-zh-pt6：ApacheCN 的 Github 仓库名称
-
-    asset/docsify-apachecn-footer.js
-    
-        apachecn-ml-zh-pt6：ApacheCN 的 Github 仓库名称
--->
-
 # ApacheCN 机器学习译文集（六）
 
-> 原文：[{nameEn}]({urlEn})
-> 
 > 协议：[CC BY-NC-SA 4.0](http://creativecommons.org/licenses/by-nc-sa/4.0/)
 > 
 > 阶段：机翻（1）
