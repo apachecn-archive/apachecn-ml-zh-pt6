@@ -1,0 +1,142 @@
+<html><head/><body>
+
+
+	
+		<title>B16783_11_Final_SB_epub</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-138"><em class="italic"> <a id="_idTextAnchor161"/>第十一章</em>:性能监控</h1>
+			<p>在本章中，你将了解到<strong class="bold">机器学习(ML) </strong>操作的重要和相关领域，以及如何使用该领域的最佳实践和已知的操作模式，确保本书迄今为止开发的生产系统平稳运行。我们将理解ML中操作的概念，并查看ML系统中监控数据质量的度量标准。</p>
+			<p>具体来说，我们将了解本章的以下部分:</p>
+			<ul>
+				<li>ML模型的性能监控概述</li>
+				<li>监控数据漂移和模型性能</li>
+				<li>监控目标漂移</li>
+				<li>基础设施监控和警报</li>
+			</ul>
+			<p>我们将介绍一些实用的参考工具，用于监控ML系统的性能和可靠性。</p>
+			<h1 id="_idParaDest-139"><a id="_idTextAnchor162"/>技术要求</h1>
+			<p>对于本章，您将需要以下先决条件:</p>
+			<ul>
+				<li>最新版本的Docker安装在您的机器上。如果你还没有安装，请按照<a href="https://docs.docker.com/get-docker/">https://docs.docker.com/get-docker/</a>的说明进行操作。</li>
+				<li>安装了最新版本的<code>docker-compose</code>。为此，请遵循https://docs.docker.com/compose/install/.的指示</li>
+				<li>在命令行访问Git，可以按照<a href="https://git-scm.com/book/en/v2/Getting-Started-Installing-Git">https://Git-SCM . com/book/en/v2/Getting-Started-Installing-Git</a>中的描述进行安装。</li>
+				<li>访问Bash终端(Linux或Windows)。</li>
+				<li>访问浏览器。</li>
+				<li>Python 3.8+已安装。</li>
+				<li>如第3章  <em class="italic">、您的数据科学工作台</em>中所述，本地安装您的ML平台的最新版本。</li>
+				<li>配置为运行MLflow模型的AWS帐户。</li>
+			</ul>
+			<h1 id="_idParaDest-140"><a id="_idTextAnchor163"/>机器学习模型的性能监控概述</h1>
+			<p>监控是可靠的ML系统的基石，能够持续释放数据的价值，并为改进提供关键反馈。</p>
+			<p>在ML模型<a id="_idIndexMarker388"/>的监控方面，有多个利益相关方，我们应该从所涉及的不同利益相关方获取监控需求<a id="_idIndexMarker389"/>。典型利益相关方<a id="_idIndexMarker390"/>的一个例子如下:</p>
+			<ul>
+				<li><strong class="bold">数据科学家</strong>:他们在监控方面的重点是评估模型性能和可能对性能产生负面影响的数据漂移<a id="_idIndexMarker391"/>。</li>
+				<li>软件工程师:这些利益相关者想要确保他们有评估他们的产品是否可靠和正确地访问服务于模型的API的度量标准。</li>
+				<li><strong class="bold">数据工程师</strong>:他们希望确保数据<a id="_idIndexMarker393"/>管道是可靠的，以正确的速度可靠地推送数据，并符合正确的模式。</li>
+				<li><strong class="bold">业务/产品利益相关方</strong>:这些利益相关方对整体解决方案对其客户群的核心影响感兴趣<a id="_idIndexMarker394"/>。例如，在一个交易平台中，他们可能最关心整体解决方案给公司带来的利润风险比。如果市场处于非常高的波动性的一天或者处于非典型的情况，断路器可能被添加到算法中。</li>
+			</ul>
+			<p>ML行业中最广泛使用的监控维度<a id="_idIndexMarker395"/>如下:</p>
+			<ul>
+				<li><strong class="bold">数据漂移</strong>:这对应于模型中用于训练或推理<a id="_idIndexMarker396"/>的输入数据的显著变化。它可能表明现实世界中建模前提的变化，这将要求重新训练、重新开发模型，或者甚至在模型不再适合时将其存档。这可以通过监控用于训练模型的数据与用于评分或推断的数据随时间的分布<a id="_idIndexMarker397"/>来轻松检测。</li>
+				<li><strong class="bold">目标漂移</strong>:随着输入数据中方案的变化，我们经常看到在一段时间内模型结果的分布<a id="_idIndexMarker398"/>也发生同样的变化。常见的周期是几个月、几周或几天，可能表示环境中的重大变化，这需要模型的重新开发和调整。</li>
+				<li><strong class="bold">性能漂移</strong>:这涉及到查看<a id="_idIndexMarker399"/>性能指标<a id="_idIndexMarker400"/>是否随着时间的推移而逐渐恶化，比如分类问题的准确性，或者均方根误差。这表明模型存在问题，需要模型开发人员或维护人员进行调查并采取行动。</li>
+				<li><strong class="bold">平台和基础设施度量</strong>:这种类型的度量<a id="_idIndexMarker401"/>不直接与建模相关，而是与包含模型的系统基础设施相关。它意味着异常的CPU、内存、网络或磁盘使用，这肯定会影响模型向业务交付价值的能力。</li>
+				<li><strong class="bold">业务度量</strong>:非常关键的业务度量<a id="_idIndexMarker402"/>，例如模型的盈利能力，在某些情况下应该被添加到模型操作中，以便<a id="_idIndexMarker403"/>确保负责模型的团队能够监控模型交付其业务<a id="_idIndexMarker405"/>前提的<a id="_idIndexMarker404"/>能力。</li>
+			</ul>
+			<p>在下一节中，我们将看看如何使用一个工具，它可以与<strong class="bold"> MLflow </strong>集成，以监控<a id="_idIndexMarker406"/>的数据漂移并检查模型的性能。</p>
+			<h1 id="_idParaDest-141"><a id="_idTextAnchor164"/>监控数据漂移和模型性能</h1>
+			<p>在这一节中，我们将浏览一个示例，您可以在笔记本中查看该包代码的<strong class="bold"> GitHub </strong>资源库(位于https://GitHub . com/packt publishing/Machine-Learning-Engineering-with-ml flow/tree/master/chapter 11/model _ performance _ drifts)中提供的示例。我们将介绍计算不同类型漂移的过程，并探索其与MLflow的集成。</p>
+			<p>在监控<a id="_idIndexMarker407"/>模型性能<a id="_idIndexMarker408"/>领域，一个新兴的开源工具叫做<code>pandas</code>、JSON和CSV。它允许我们监控ML模型中的多个漂移及其性能。的GitHub库显然可以在https://github.com/evidentlyai/evidently/获得。</p>
+			<p>在本节中，我们将探索显然与MLflow的组合，以便在下一节中监控数据漂移和模型性能。</p>
+			<h2 id="_idParaDest-142"><a id="_idTextAnchor165"/>监控数据漂移</h2>
+			<p>在这一小节中，我们将在我们的环境中设置<strong class="bold">和</strong>，并了解如何集成<a id="_idIndexMarker410"/>。遵循GitHub库中的这些步骤(更多细节请参考<em class="italic">技术需求</em>部分):</p>
+			<ol>
+				<li>安装<code>evidently</code> : <pre>pip install evidently==0.1.17.dev0</pre></li>
+				<li>导入相关库:<pre>import pandas as pd import numpy as np from sklearn import datasets from sklearn.model_selection import train_test_split from evidently.dashboard import Dashboard from evidently.tabs import DataDriftTab, NumTargetDriftTab,CatTargetDriftTab</pre></li>
+				<li>Get a reference dataset, basically a training dataset. We will add a set of features<a id="_idIndexMarker411"/> to the <code>pandas</code> DataFrame so <code>evidently</code> will be able to use the feature names in the drift reports:<pre>reference_data = \
+pd.read_csv("training_data.csv", header=None,
+            names=[ "day{}".format(i) for i in \
+                    range(0,14) ]+["target"] )</pre><p>下图<em class="italic">图11.1 </em>表示我们将用作参考数据集的训练数据的数据结构:</p><div><img src="img/image0017.jpg" alt="Figure 11.1 – Sample of the dataset to be used"/></div><p class="figure-caption">图11.1–要使用的数据集样本</p></li>
+				<li>在这一步，我们加载<code>to_score_input_data.csv</code>文件。这是要评分的文件。在本练习的后面，我们的目的是计算参考训练集中的数据和要评分的数据之间的分布差异:<pre>latest_input_data = \ pd.read_csv("to_score_input_data.csv", header=None,              names=[ "day{}".format(i) for i in \                      range(0,14) ] )</pre></li>
+				<li>执行数据漂移<a id="_idIndexMarker412"/>报告生成并记录到MLflow运行中。基本上，在下面的代码摘录中发生的事情是用引用数据和最新的输入数据生成一个明显的仪表板。计算漂移报告并将其加载到MLflow运行中，以便在后续步骤中进行操作和审查:<pre>EXPERIMENT_NAME="./reports_data_drift" mlflow.set_experiment(EXPERIMENT_NAME) with mlflow.start_run():     drift_dashboard = Dashboard(tabs=[DataDriftTab])     drift_dashboard.calculate(reference_data,                               latest_input_data)     drift_dashboard.save(EXPERIMENT_NAME+"/input_data_drift.html")     drift_dashboard._save_to_json(EXPERIMENT_NAME+"/input_data_drift.json")     mlflow.log_artifacts(EXPERIMENT_NAME)</pre></li>
+				<li>现在，您可以运行先前单元格的笔记本代码(在<code>monitoring_data_drift_performance.ipynb</code>文件上),并在MLflow UI中通过MLflow <a id="_idIndexMarker413"/>运行的工件组件探索您的数据漂移报告。<em class="italic">图11.2 </em>显示该工具未检测到14个特征之间的任何漂移，分布情况如下所示:</li>
+			</ol>
+			<div><div><img src="img/image0028.jpg" alt="Figure 11.2 – Sample of the dataset to be used"/>
+				</div>
+			</div>
+			<p class="figure-caption">图11.2–要使用的数据集样本</p>
+			<p>与数据漂移类似，我们现在将在下一小节中研究目标漂移，以揭示我们的模型中其他可能的问题。</p>
+			<h2 id="_idParaDest-143"><a id="_idTextAnchor166"/>监控目标漂移</h2>
+			<p>我们现在将比较评分输出和参考训练<a id="_idIndexMarker414"/>输出，以寻找可能的目标漂移:</p>
+			<ol>
+				<li value="1">获取最近评分的数据集:<pre>production_scored_data = \ pd.read_csv("scored_data.csv", header=None,             names=[ "day{}".format(i) for i in \                     range(0,14) ]+["target"] ) bcancer_data_and_target_drift = \ Dashboard(reference_data, production_scored_data,           tabs=[ CatTargetDriftTab]) bcancer_data_and_target_drift.save('reports/target_drift.html')</pre></li>
+				<li>执行数据漂移报告生成，并将结果记录在MLflow中:<pre>EXPERIMENT_NAME="./reports_target_drift" mlflow.set_experiment(EXPERIMENT_NAME) with mlflow.start_run():     model_target_drift = \     Dashboard(reference_data, production_scored_data,               tabs=[CatTargetDriftTab])     model_target_drift.save(EXPERIMENT_NAME+"/target_drift.html")     drift_dashboard._save_to_json(EXPERIMENT_NAME+"/target_drift.json")     mlflow.log_artifacts(EXPERIMENT_NAME)</pre></li>
+				<li>Explore the target<a id="_idIndexMarker415"/> drift reports on your target. As can be seen in <em class="italic">Figure 11.3</em>, no statistically significant figure on this run was found for target drift. In detecting drift, Evidently does statistical tests using the probability of the data<a id="_idIndexMarker416"/> being from a different distribution represented by the <strong class="bold">p-value</strong> (more details<a id="_idIndexMarker417"/> on this can be found at <a href="https://en.wikipedia.org/wiki/P-value">https://en.wikipedia.org/wiki/P-value</a>). It compares the results between the reference and the current data:<div><img src="img/image0037.jpg" alt=""/></div><p class="figure-caption">图11.3–目标的目标数据漂移</p></li>
+				<li>如图<em class="italic">图11.4 </em>所示，您可以在特定特征上进一步深入目标漂移；在这种情况下，一个特定的<a id="_idIndexMarker418"/>前一个<strong class="bold">日的</strong>预测股票价格:</li>
+			</ol>
+			<div><div><img src="img/image0048.jpg" alt="Figure 11.4 – Target data drift for our target"/>
+				</div>
+			</div>
+			<p class="figure-caption">图11.4–我们目标的目标数据漂移</p>
+			<p>在了解了<a id="_idIndexMarker419"/>如何检测输入数据的漂移后，我们现在将了解如何使用来监控模型中的漂移。</p>
+			<h2 id="_idParaDest-144"><a id="_idTextAnchor167"/>监控模型漂移</h2>
+			<p>监控模型漂移<a id="_idIndexMarker420"/>对于确保您的模型仍以最佳性能水平交付极其重要。通过这种分析，您可以决定是否重新训练您的模型，甚至从头开发一个新的模型。</p>
+			<p>我们现在将监控模型漂移。为此，您需要执行以下步骤:</p>
+			<ol>
+				<li value="1">导入相关库:<pre>import xgboost as xgb import mlflow from evidently.tabs import ClassificationPerformanceTab</pre></li>
+				<li>获取参考数据集:<pre>X=reference_data.iloc[:,:-1] Y=reference_data.iloc[:,-1] reference, production, y_train, y_test = \ train_test_split(X, Y, test_size=0.33,                  random_state=4284, stratify=Y) reference_train = xgb.DMatrix(reference,label=y_train) dproduction= xgb.DMatrix(production) dreference=xgb.DMatrix(reference)</pre></li>
+				<li>训练你的模型:<pre>mlflow.xgboost.autolog() EXPERIMENT_NAME="reports_model_performance" mlflow.set_experiment(EXPERIMENT_NAME) with mlflow.start_run() as run:     model=xgb.train(dtrain=reference_train,params={})</pre></li>
+				<li>创建参考预测<a id="_idIndexMarker421"/>和训练预测:<pre>    train_proba_predict = model.predict(dreference)     test_proba_predict = model.predict(dproduction)     test_predictions = [1. if y_cont &gt; threshold else 0. for y_cont in test_proba_predict]     train_predictions = [1. if y_cont &gt; threshold else 0. for y_cont in train_proba_predict]     reference['target'] = y_train     reference['prediction'] = train_predictions     production['target'] = y_test     production['prediction'] = test_predictions</pre></li>
+				<li>生成绩效报告并将其附加到您的执行中:<pre>    classification_performance = Dashboard(                    tabs=[ClassificationPerformanceTab])     classification_performance.calculate(reference,                                          production)     classification_performance.save('.reports/'+EXPERIMENT_NAME+'.html')     mlflow.log_artifact('.reports/'+EXPERIMENT_NAME+'.html')</pre></li>
+				<li>浏览您的MLflow性能指标报告。通过查看生成的报告，您可以检查<strong class="bold">参考</strong>指标，即<strong class="bold">准确度</strong>、<strong class="bold">精度</strong>、<strong class="bold">召回</strong>和<strong class="bold"> F1指标</strong>，它们被认为是基于训练数据的参考指标，具有最大值<strong class="bold"> 1 </strong>。当我们测试测试数据的子集时，下面一行的当前状态肯定是降级的。这可以帮助您判断该车型以当前<strong class="bold"> F1 </strong>值继续生产<a id="_idIndexMarker422"/>是否合理:</li>
+			</ol>
+			<div><div><img src="img/image0056.jpg" alt="Figure 11.5 – Target data drift for target"/>
+				</div>
+			</div>
+			<p class="figure-caption">图11.5–目标的目标数据漂移</p>
+			<p>在深入研究了数据漂移、目标漂移和模型性能监控的细节以及如何将这些功能与MLflow集成之后，我们现在将了解监控基础架构的基本原理，包括监控和警报。</p>
+			<h1 id="_idParaDest-145">基础设施监控和警报</h1>
+			<p>从基础设施的角度来看，ML系统中监控的主要方面与传统软件系统没有什么不同。</p>
+			<p>为了说明这个确切的问题，我们将利用<strong class="bold"> AWS CloudWatch </strong>和<strong class="bold"> SageMaker </strong>中可用的<a id="_idIndexMarker423"/>监控和警报工具来说明<a id="_idIndexMarker424"/>设置监控和警报基础设施的示例。可以使用Grafana/Prometheus等工具为内部部署和云部署设置相同的机制。这些监控工具实现了相似的目标并提供了相似的功能，因此您应该根据您的环境和云提供商选择最合适的工具。</p>
+			<p><strong class="bold"> AWS CloudWatch </strong>提供监控<a id="_idIndexMarker425"/>和可观测性解决方案。它允许您监控您的应用程序，响应系统范围的性能变化，优化资源使用，并获得运行状况的单一视图。</p>
+			<p>在更高层次上，我们可以将基础架构<a id="_idIndexMarker426"/>监控和警报组件分为以下三项:</p>
+			<ul>
+				<li><strong class="bold">Resource metrics</strong>: This refers to metrics<a id="_idIndexMarker427"/> regarding the hardware infrastructure where the system is deployed. The main metrics in this case would be the following:<p>a.<strong class="bold"> CPU利用率</strong>:这基本上是您的处理器的利用率单位<a id="_idIndexMarker428"/>的百分比值。这是可用的通用指标，应该进行监控。</p><p>b.<strong class="bold">内存利用率</strong>:您的计算系统目前正在使用的内存<a id="_idIndexMarker429"/>的百分比。</p><p>c.<strong class="bold">网络数据传输</strong>:网络数据传输<a id="_idIndexMarker430"/>是指进出特定计算节点的流量。它通常以Mb/s为单位。异常可能意味着您需要向系统添加更多节点或增加容量。</p><p>d.<strong class="bold">磁盘I/O </strong>:这是用磁盘读写吞吐量<a id="_idIndexMarker431"/>来衡量的；它可能指向一个处于压力下的系统，该系统需要进行扩展或对其性能进行调查:</p></li>
+			</ul>
+			<div><div><img src="img/image0065.jpg" alt="Figure 11.6 – SageMaker infrastructure metric examples&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图11.6–sage maker基础设施指标示例</p>
+			<ul>
+				<li><strong class="bold">System metrics</strong>: The second pillar of infrastructure monitoring and alerting components refers<a id="_idIndexMarker432"/> to metrics<a id="_idIndexMarker433"/> regarding the system infrastructure where the system is deployed. The main metrics in this case would be the following:<p>a.<strong class="bold">请求吞吐量</strong>:一秒钟内提供的预测数量<a id="_idIndexMarker434"/></p><p>b.<strong class="bold">错误率</strong>:每次预测的错误数<a id="_idIndexMarker435"/></p><p>c.<strong class="bold">请求等待时间</strong>:服务于预测所花费的端到端时间<a id="_idIndexMarker436"/></p><p>d.<strong class="bold">验证度量</strong>:请求输入数据的错误度量<a id="_idIndexMarker437"/></p><p>SageMaker等生产系统将系统指标推入AWS CloudWatch，以提供实时系统指标监控。AWS CloudWatch有一套完整的功能集来管理、存储和监控指标和仪表板:</p></li>
+			</ul>
+			<div><div><img src="img/image0074.jpg" alt="Figure 11.7 – Specify an alarm in AWS CloudWatch"/>
+				</div>
+			</div>
+			<p class="figure-caption">图11.7–在AWS CloudWatch中指定警报</p>
+			<ul>
+				<li><strong class="bold">警报</strong>:对于警报，我们使用前面部分计算的任何指标，并设置<a id="_idIndexMarker438"/>一个我们认为可接受的阈值。AWS CloudWatch接口允许您轻松设置默认服务指标和自定义指标的警报。负责可靠性的团队通过CloudWatch向企业聊天/Slack、<a id="_idTextAnchor169"/>电子邮件地址或移动电话发送消息得到提醒，以允许团队解决或缓解事故:</li>
+			</ul>
+			<div><div><img src="img/image0084.jpg" alt="Figure 11.8 – Specify an alarm in AWS CloudWatch"/>
+				</div>
+			</div>
+			<p class="figure-caption">图11.8–在AWS CloudWatch中指定警报</p>
+			<p>您可以使用相同的监控<a id="_idIndexMarker439"/>工具来记录和监控与您的ML系统相关的所有其他指标。例如，一个ML模型的每周利润警报是一个业务指标，应该与系统的核心系统指标一起部署。</p>
+			<p>在了解了AWS CloudWatch作为在生产中为您的ML系统实施指标监控和警报的工具示例之后，我们将在本书的最后一章中探讨MLflow的高级概念。</p>
+			<h1 id="_idParaDest-146"><a id="_idTextAnchor170"/>总结</h1>
+			<p>在本章中，我们介绍了数据漂移和目标漂移的概念，并研究了ML系统中性能监控的不同方法。</p>
+			<p>我们首先介绍了性能和监控领域的重要概念、要监控的不同类型的漂移和业务指标，以及使用AWS CloudWatch作为工具在实时系统中实施监控和警报。</p>
+			<p>性能和监控是我们架构的重要组成部分，它将允许我们总结我们的ML系统架构的重要层。现在让我们深入下一章MLflow中的高级主题。</p>
+			<h1 id="_idParaDest-147"><a id="_idTextAnchor171"/>延伸阅读</h1>
+			<p>为了加深您的知识，您可以参考以下链接中的文档:</p>
+			<ul>
+				<li><a href="https://www.mlflow.org/docs/latest/projects.html">https://www.mlflow.org/docs/latest/projects.html</a></li>
+				<li><a href="https://evidentlyai.com/">https://evidentlyai.com/</a></li>
+				<li><a href="https://aws.amazon.com/cloudwatch/">https://aws.amazon.com/cloudwatch/</a></li>
+			</ul>
+		</div>
+	
+
+</body></html>

@@ -1,0 +1,409 @@
+<html><head/><body>
+	
+		<title>B17761_02_Final_JM_ePub</title>
+		
+	
+<!-- kobo-style -->
+
+<style type="text/css" id="koboSpanStyle">.koboSpan { -webkit-text-combine: inherit; }</style>
+
+
+	
+		<div><h1 id="_idParaDest-23"><a id="_idTextAnchor023"/>第2章:Python和命令行简介</h1>
+			<p>当走进一家咖啡店时，你几乎会立即注意到三种类型的人:与他人交往的人、从事项目的人和编码的人。程序员很容易被他们电脑屏幕上的黑色背景和白色字母认出来——这就是所谓的<strong class="bold">命令行</strong>。对许多人来说，命令行可能看起来很激烈和吓人，但对其他人来说，它是一种生活方式。</p>
+			<p>进行任何类型的数据科学项目的最重要的部分之一是通过终端命令行有效地导航目录和执行命令的能力。命令行允许用户以高效简洁的方式查找文件、安装库、定位包、访问数据和执行命令。本章绝不是对命令行所有功能的全面概述，但它涵盖了每个数据科学家都应该知道的基本命令的一般列表。</p>
+			<p>在本章中，我们将讨论以下具体主题:</p>
+			<ul>
+				<li>命令行简介</li>
+				<li>发现<strong class="bold"> Python </strong>语言</li>
+				<li>教程Python入门</li>
+				<li>教程–使用Rdkit和BioPython</li>
+			</ul>
+			<h1 id="_idParaDest-24"><a id="_idTextAnchor024"/>技术要求</h1>
+			<p>本章我们将使用<code>Applications</code>文件夹(<strong class="bold"> macOS </strong>，或者<strong class="bold">命令提示符</strong>，可以在开始菜单中找到(<strong class="bold">Windows</strong>T23】PC)。尽管这两者在功能上是等同的，但是某些命令背后的语法会有所不同。如果你使用的是PC，建议你下载<strong class="bold">Git for Windows</strong>(<a href="https://git-scm.com/download/win">https://git-scm.com/download/win</a>)，这将允许你使用<strong class="bold"> Bash </strong>命令行。当我们开始在命令行中编辑文件时，我们将需要一个名为<strong class="bold"> Vim </strong>的编辑器。大多数Mac用户会在他们的系统中预装Vim。鼓励个人电脑用户从他们的网站(<a href="https://www.vim.org/download.php">https://www.vim.org/download.php</a>)下载Vim。</p>
+			<p>此外，我们将使用<strong class="bold"> Anaconda </strong>发行版探索Python。我们很快会把它下载到你的系统上。Mac和PC用户安装Anaconda的过程几乎是一样的，Python代码的执行也几乎是一样的。</p>
+			<p>在这本书里，你看到的代码也可以在GitHub上找到。我们可以将GitHub视为一个代码可以生存的空间，允许我们维护版本，进行编辑，并与其他人共享我们的工作。在您阅读本章时，我们鼓励您参考相关的GitHub资源库，该资源库可以在<a href="https://github.com/PacktPublishing/Machine-Learning-in-Biotechnology-and-Life-Sciences">https://GitHub . com/packt publishing/Machine-Learning-in-Biotechnology-and-Life-Sciences</a>找到。</p>
+			<h1 id="_idParaDest-25"><a id="_idTextAnchor025"/>命令行介绍</h1>
+			<p>命令行适用于<strong class="bold"> Mac </strong>、<strong class="bold"> PC </strong>和<strong class="bold"> Linux </strong>。虽然下面的例子<a id="_idIndexMarker025"/>是在Mac上执行的，但非常相似的功能也适用于PC，只是语法略有不同。</p>
+			<p>您可以通过打开命令行(称为<code>@</code>符号)来开始这个过程。让我们看看一些基本的命令。</p>
+			<p>为了识别你当前(工作)目录的路径，你可以使用<code>pwd</code>命令:</p>
+			<pre>  $ pwd</pre>
+			<p>这将返回您当前所在的确切目录。在我的系统中，返回的路径如下:</p>
+			<pre>Users/alkhalifas</pre>
+			<p>为了识别这个特定目录中的内容，您可以使用<code>ls</code>命令，它将返回一个目录和文件列表:</p>
+			<pre>  $ ls</pre>
+			<p>您可以在命令行中使用<code>mkdir</code>命令创建一个新目录，后跟您想要创建的目录的名称。例如，您可以使用以下命令创建<code>machine-learning-practice</code>目录:</p>
+			<pre>  $ mkdir machine-learning-biotech</pre>
+			<p>如果使用<code>ls</code>命令再次列出该目录中的内容，新目录将出现在该列表中。您可以使用<code>cd</code>(即<em class="italic">更改目录</em>)命令导航到该目录:</p>
+			<pre>  $ cd machine-learning-practice</pre>
+			<p>您可以再次使用<code>pwd</code>命令来检查您的新路径:</p>
+			<pre>  $ pwd
+Users/alkhalifas/machine-learning-biotech</pre>
+			<p>为了返回到上一个目录，可以使用<code>cd</code>命令，后跟一个空格和两个句点(<code> ..</code>):</p>
+			<pre>  $ cd ..</pre>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">值得一提的是，根据您使用的命令行，目录名可以区分大小写。例如，输入<code>Downloads</code>而不是<code>downloads</code>可能会被解释为不同的位置，因此这可能会返回错误。保持文件名和目录名的一致性是成功使用命令行的关键。</p>
+			<h2 id="_idParaDest-26"><a id="_idTextAnchor026"/>创建和运行Python脚本</h2>
+			<p>现在你已经学习了一些基础知识，让我们继续使用命令行创建我们的第一个Python应用程序<a id="_idIndexMarker028"/>。我们可以使用<code>vim</code>命令创建<a id="_idIndexMarker029"/>并编辑一个新文件，后跟您希望创建和编辑的文件名:</p>
+			<pre>  $ vim myscript.py</pre>
+			<p>这将在命令行的Vim编辑器中打开一个空文件，您可以在其中编写或粘贴代码。默认情况下，您将从<em class="italic">视图</em>模式开始。您可以通过按键盘上的<em class="italic"> I </em>键切换到<em class="italic">编辑</em>模式。您会注意到Vim窗口底部的状态已经变成了<strong class="bold"> - - INSERT - - </strong>，这意味着您现在可以向这个fil <a id="_idTextAnchor027"/> e:</p>
+			<div><div><img src="img/B17761_02_001.jpg" alt="Figure 2.1 – The Vim window&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图2.1–Vim窗口</p>
+			<p>将下面几行Python代码键入(或复制粘贴)到文件中，然后点击<em class="italic"> Esc </em>键。您会注意到状态不再是<code>:wq</code>并按下<em class="italic">进入</em>。<em class="italic"> w </em>键将写入文件，而<em class="italic"> q </em>键将退出编辑器。有关其他Vim命令的更多详细信息，请访问Vim网站<a href="https://www.vim.org/">https://www.vim.org/</a>:</p>
+			<pre># myscript.py
+import datetime
+now = datetime.datetime.now()
+print("Hello Biotech World")
+print ("The current date and time is:")
+print (now.strftime("%Y-%m-%d %H:%M:%S"))</pre>
+			<p>至此，您已经编写了第一个Python脚本。我们可以使用您之前安装的Python解释器继续执行<a id="_idIndexMarker030"/>这个脚本。在我们这样做之前，让我们讨论一下这个脚本将会做什么。从第一行的<a id="_idIndexMarker031"/>开始，我们将导入一个名为<code>datetime</code>的库，这将允许我们确定系统的当前日期和时间。接下来，我们将<code>datetime</code>对象赋给一个我们称之为<code>now</code>的变量。我们将在下一节中讨论对象和变量，但是现在，把它们看作可以用日期或数字之类的值填充的变量。最后，我们将打印一个短语<code>Hello Biotech World!</code>，后面跟着一个当前时间的声明。</p>
+			<p>让我们试一试:</p>
+			<pre>  $ python3 myscript.py</pre>
+			<p>执行此文件后，屏幕上将出现以下结果:</p>
+			<pre>Hello Biotech World!
+The current date and time is:
+2021-05-23 18:40:21</pre>
+			<p>在这个例子中，我们使用了一个名为<code>datetime</code>的库，它是在您安装Anaconda发行版时默认安装的。还有许多其他的也安装了，还有许多没有安装。随着我们在这些项目中的进展，我们将使用许多其他的库，我们可以使用<code>pip</code>来安装这些库。</p>
+			<p>前面的例子没有任何错误。然而，当涉及到编程时，这种情况很少出现。有时，缺少句点或<a id="_idIndexMarker032"/>未关闭的括号会导致错误。在其他情况下，程序会无限期运行——可能在你不知情的情况下在后台运行。关闭终端命令行通常会停止正在运行的应用程序。但是，有时关闭命令行窗口并不是一个选项。要识别在后台运行的进程，可以使用<code>ps</code>(即<code>process</code>)命令:</p>
+			<pre>  $ ps -ef</pre>
+			<p>这将显示所有正在运行的进程的列表。第一列<code>UID</code>是用户ID，后面是<code>PID</code>(进程ID)列。再往右几列，您可以看到当前活动和运行的文件(如果有)的具体名称。您可以使用<code>grep</code>命令缩小列表，找到所有与Python相关的内容:</p>
+			<pre>  $ ps -ef | grep python</pre>
+			<p>如果Python脚本(例如，<code>someScript.py</code>)在后台持续运行，您可以使用<code>grep</code>命令轻松确定进程ID，这意味着您可以随后使用<code>pkill</code>命令终止该进程:</p>
+			<pre>  $ pkill -9 -f someScript.py</pre>
+			<p>这将终止脚本，并为其他任务释放电脑内存。</p>
+			<h2 id="_idParaDest-27"><a id="_idTextAnchor028"/>使用pip安装软件包</h2>
+			<p>管理<a id="_idIndexMarker035"/> Python库的最佳资源之一是<code>sklearn</code>，我们可以在终端命令行中直接使用<code>pip install</code>命令来安装它:</p>
+			<pre>  $ pip install sklearn</pre>
+			<p>包管理器会打印一些反馈信息，提醒你安装的状态。在某些情况下，安装会成功，而在其他情况下，可能不会成功。您在此收到的反馈将有助于确定需要采取的后续步骤(如果有)。</p>
+			<p>在某些情况下，一个库需要另一个库才能运行——这就是所谓的,<code>pip</code>会自动为你处理依赖关系，但情况并不总是这样。</p>
+			<p>要识别一个库的依赖关系，您可以使用<code>pip show</code>命令:</p>
+			<pre>  $ pip show sklearn</pre>
+			<p>然后，命令行将打印名称、版本、URL和与给定库相关的许多其他属性。在某些情况下，显示的版本可能已经过时，或者根本不是您需要的版本。您可以再次使用<code>pip install</code>命令将库更新到一个更新的版本，或者您可以通过在库名称后指定来选择一个特定的版本:</p>
+			<pre>  $ pip install sklearn==0.15.2</pre>
+			<p>随着您安装的软件包数量开始增加，记住名称和相关版本将变得越来越困难。为了生成给定环境中的包列表，您可以使用<code>pip freeze</code>命令:</p>
+			<pre>  $ pip freeze &gt; requirements.txt</pre>
+			<p>这个<a id="_idIndexMarker039"/>命令将<em class="italic">冻结</em>一系列库<a id="_idIndexMarker040"/>及其相关版本，然后将它们写入一个名为<code>requirements.txt</code>的文件。当将代码从一台计算机迁移到另一台计算机时，这种做法在团队中很常见。</p>
+			<h2 id="_idParaDest-28"><a id="_idTextAnchor029"/>当事情不顺利时…</h2>
+			<p>通常，代码会失败，命令会出错，并且会出现无法立即找到解决方案的问题。不要让这些情况使你气馁。当您开始探索命令行、Python和大多数其他基于代码的工作时，您可能会遇到无法解决的错误和问题。但是，很可能别人已经解决了你的问题。可用于搜索和诊断代码相关问题的<a id="_idIndexMarker041"/>最佳资源之一是<strong class="bold">Stack Overflow</strong>——一个主要的协作和知识共享平台，供个人和公司提出问题并找到与所有类型的代码相关的问题的解决方案。强烈建议您利用这一美好的资源。</p>
+			<p>现在我们已经很好地了解了命令行及其无穷的功能，让我们开始更详细地探索Python。</p>
+			<h1 id="_idParaDest-29"><a id="_idTextAnchor030"/>发现Python语言</h1>
+			<p>当今世界上有许多不同的计算机语言。<strong class="bold"> Python </strong>，<strong class="bold"> R </strong>，<strong class="bold"> SQL </strong>，<strong class="bold"> Java </strong>，<strong class="bold"> JavaScript </strong>，<strong class="bold"> C++ </strong>，<strong class="bold"> C </strong>，<strong class="bold"> C# </strong>只是几个例子。虽然这些语言的语法和应用各不相同，但它们可以分为两大类:<em class="italic">低级</em>和<em class="italic">高级</em>语言。低级语言——如C和c++——是在机器级别运行的计算机语言。他们关心的是非常具体的任务，比如将比特从一个位置移动到另一个位置。另一方面，<strong class="bold">高级语言——比如R和Python——关心更抽象的过程，比如对列表中的数字求平方。他们完全忽略了机器层面发生的事情。</strong></p>
+			<p>在我们更详细地讨论Python之前，我们先来谈谈编译程序的想法。大多数程序——比如用C++和Java编写的程序——需要所谓的<a id="_idIndexMarker043"/>T42编译器。把编译器想象成一个软件，它在程序<a id="_idIndexMarker044"/>启动或执行之前把人类可读的代码转换成机器可读的代码。虽然大多数语言都需要编译器，但Python等语言不需要编译器。Python需要所谓的<strong class="bold">解释器</strong>，它在结构上与编译器<a id="_idIndexMarker045"/>本质上相似，但它会立即执行命令，而不是将它们翻译成机器可读的代码。考虑到这一点，我们将Python定义为一种<em class="italic">高级</em>、<em class="italic">通用</em>、<em class="italic">解释型</em>编程语言。Python通常用于统计工作、机器学习应用，甚至游戏和网站开发。因为Python是一种解释型语言，所以它既可以在IDE中使用，也可以直接在终端命令行中使用:</p>
+			<pre>  $ python</pre>
+			<p>接下来我们就来说说IDEs。</p>
+			<h2 id="_idParaDest-30"><a id="_idTextAnchor031"/>选择一个IDE</h2>
+			<p>Python代码<a id="_idIndexMarker046"/>可以用几种不同的方式准备。例如，我们可以使用Vim文本编辑器通过终端命令行来准备它，如前一节所演示的。虽然这种方法非常有效，但是在构建文件、组织目录和执行代码时，您通常会遇到冗余。或者，大多数数据科学家默认使用更图形化的编辑器，称为<strong class="bold">集成开发环境</strong>(<strong class="bold">ide</strong>)。有很多ide是<a id="_idIndexMarker047"/>免费的，可以下载，比如<strong class="bold"> Spyder </strong>、<strong class="bold"> PyCharm </strong>、<strong class="bold"> Visual Studio </strong>或者<strong class="bold"> Jupyter Lab </strong>。</p>
+			<p>每个IDE <a id="_idIndexMarker048"/>都有各自的优点和缺点，而那些<a id="_idIndexMarker049"/>高度依赖于用户的用例和工作流。大多数<a id="_idIndexMarker050"/>新数据科学家在入门时一般会默认<strong class="bold"> Jupyter笔记本</strong>和/或<strong class="bold"> Jupyter实验室</strong>。出于本书的目的，所有代码<a id="_idIndexMarker051"/>都将使用Jupyter <a id="_idIndexMarker052"/>笔记本来编写和共享。假设在前一章中正确遵循了Anaconda <a id="_idIndexMarker053"/>的安装说明，Jupyter Notebook应该已经安装在您的本地机器上了。您可以通过打开<strong class="bold"> Anaconda Navigator </strong>并选择<strong class="bold"> Jupyter Notebook </strong>来启动应用程序:</p>
+			<p class="figure-caption"><img src="img/B17761_02_002.png" alt="Figure 2.2 – The Anaconda Navigator window&#10;&#10;"/></p>
+			<p class="figure-caption">图2.2–Anaconda导航窗口</p>
+			<p>或者，您也可以通过键入以下命令，使用终端命令行启动Jupyter笔记本应用程序:</p>
+			<pre>  $ jupyter notebook</pre>
+			<p>按下<a id="_idIndexMarker055"/>键后，我们之前看到的那个Jupyter笔记本应用程序应该会出现在你的屏幕上。这只是一个更快的打开Jupyter笔记本的方法。</p>
+			<h2 id="_idParaDest-31"><a id="_idTextAnchor032"/>数据类型</h2>
+			<p>Python能够处理许多不同类型的数据。这些一般可以分为两个<a id="_idIndexMarker058"/>主要类别:<strong class="bold">原语</strong>和<strong class="bold">集合</strong>，如下图<a id="_idIndexMarker059"/>所示:</p>
+			<div><div><img src="img/B17761_02_003.jpg" alt="Figure 2.3 – A diagram showing Python datatypes&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图2.3–显示Python数据类型的图表</p>
+			<p>第一个数据类型类别是原始值。顾名思义，这些数据类型是Python中最基本的构建块。以下是其中的几个例子:</p>
+			<div><div><img src="img/B17761_02_004.jpg" alt="Figure 2.4 – A table of primitive data types&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图2.4-原始数据类型表</p>
+			<p>第二个<a id="_idIndexMarker060"/>数据类型类别是集合。集合<a id="_idIndexMarker061"/>由一个或多个原始值组合而成。每种类型的集合都有与之相关的特定属性，在某些情况下会产生不同的优点和缺点。以下是其中的几个例子:</p>
+			<div><div><img src="img/B17761_02_005.jpg" alt="Figure 2.5 – A table showing different kinds of data type collections&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图2.5-显示不同种类的数据类型集合的表格</p>
+			<p>作为科学家，我们自然倾向于尽可能好地组织信息。我们之前根据数据类型的原始性和集体性对它们进行了分类。然而，我们也可以根据一个叫做<strong class="bold">可变性</strong>的概念来对数据类型进行分类。可变性<a id="_idIndexMarker062"/>也可以被认为是<em class="italic">删除能力</em>。变量，比如那些表示列表的变量，包含了该类型的一个实例。当对象被创建或实例化时，它被分配一个唯一的ID。通常情况下，该对象的类型在运行时定义后不能<a id="_idIndexMarker063"/>更改，但是，如果认为<em class="italic">可变</em>，则可以<a id="_idIndexMarker064"/>更改。像整数、浮点数和布尔值这样的对象被认为是不可变的<em class="italic">因此在被创建后不能被改变。另一方面，列表、字典和集合等对象是可变对象，可以被改变。因此，它们被认为是可变的，正如您从<em class="italic">图2.6 </em>中看到的:</em></p>
+			<div><div><img src="img/B17761_02_006.jpg" alt="Figure 2.6 – Python data types according to their mutability&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图2.6–根据可变性划分的Python数据类型</p>
+			<p>现在我们已经了解了一些基础知识，让我们来探索Python语言中一些更令人兴奋的领域。</p>
+			<h1 id="_idParaDest-32"><a id="_idTextAnchor033"/>教程–Python入门</h1>
+			<p>Python是一种广泛的语言，任何试图用不到10页的篇幅来总结它的能力的尝试都会受到限制。虽然这本书并不打算作为Python的全面指南，但我们将讨论每个数据科学家都应该知道的一些<em class="italic">必须知道的</em>命令和功能。我们将在接下来的教程中看到这些命令中的绝大多数。</p>
+			<h2 id="_idParaDest-33"><a id="_idTextAnchor034"/>创建变量</h2>
+			<p>Python中的核心概念之一是变量的概念。<code>+</code>)或减法(<code>-</code>)可以和变量组合起来创建<code>5</code>会赋给<code>x</code>变量，然后<code>10</code>的一个值会赋给<code>y</code>变量。现在表示数值的两个变量(<code>x</code>和<code>y</code>)被认为是<code>z</code>，可以被创建来表示<code>x</code>和<code>y</code>的和:</p>
+			<pre>     $ python
+  &gt;&gt;&gt; x = 5
+  &gt;&gt;&gt; y = 10
+  &gt;&gt;&gt; z = x + y
+  &gt;&gt;&gt; print(z)
+  15</pre>
+			<p>变量可以采用多种数据类型。除了上述代码中显示的整数值之外，变量还可以被赋值为字符串、浮点甚至布尔值:</p>
+			<pre>  &gt;&gt;&gt; x = "biotechnology"
+  &gt;&gt;&gt; x = 3.14159
+  &gt;&gt;&gt; x = True</pre>
+			<p>变量的具体数据类型可以使用<code>type()</code>函数确定:</p>
+			<pre>  &gt;&gt;&gt; x = 55
+  &gt;&gt;&gt; type(x)
+      int</pre>
+			<p>数据类型<a id="_idIndexMarker068"/>不需要在Python中显式声明(不像C++或Java等其他语言)。其实Python也允许<a id="_idIndexMarker069"/>变量被<strong class="bold"> cast </strong>成其他类型。例如，我们可以将整数转换为字符串:</p>
+			<pre>  &gt;&gt;&gt; x = 55
+  &gt;&gt;&gt; x = str(x)
+  &gt;&gt;&gt; type(x)
+      str</pre>
+			<p>我们可以从返回的内容中看到，数据现在是字符串类型！</p>
+			<h2 id="_idParaDest-34"><a id="_idTextAnchor035"/>导入已安装的库</h2>
+			<p>安装完一个库后，您可以使用<code>import</code>函数将该库导入到您的Python脚本或<a id="_idIndexMarker070"/> Jupyter笔记本中。您可以通过以下方式整体导入库:</p>
+			<pre>&gt;&gt;&gt; import statistics</pre>
+			<p>或者，我们可以从库中显式导入所有类:</p>
+			<pre>&gt;&gt;&gt; from statistics import *</pre>
+			<p>导入任何库的最佳方式是只导入您计划使用的类。我们可以想到<code>statistics</code>图书馆:</p>
+			<pre>&gt;&gt;&gt; from statistics import mean</pre>
+			<p>随着您进一步涉足数据科学领域，安装和导入库将成为您的第二天性。下表显示了任何新数据科学家都应该知道的一些最常见和最有用的库。虽然不是所有这些都将在本书的范围内涵盖，但了解它们是有用的。</p>
+			<div><div><img src="img/B17761_02_007.jpg" alt="Figure 2.7 – A table showing some of the most common Python libraries&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图2.7-显示一些最常见的Python库的表格</p>
+			<p>上表中包含的库是您在开始数据科学之旅时会遇到的一些最常见的库。在下一节中，我们将重点关注运行一些计算的<code>math</code>库。</p>
+			<h2 id="_idParaDest-35"><a id="_idTextAnchor036"/>一般计算</h2>
+			<p>在Python语言中，我们可以创建变量并赋予它们特定的值，正如我们之前观察到的。接下来，我们可以使用这些变量中的值来形成表达式并进行数学计算。例如，<em class="italic">阿伦尼乌斯方程</em>，通常用于预测分子稳定性和计算反应速率的温度依赖性。这个等式通常在R &amp; D中用于两个主要目的:</p>
+			<ul>
+				<li>优化反应条件以最大化合成制造过程中的产量</li>
+				<li>在温度和湿度变化的情况下预测片剂和丸剂的长期稳定性</li>
+			</ul>
+			<p>该等式可以表示如下:</p>
+			<div><div><img src="img/011.jpg" alt=""/>
+				</div>
+			</div>
+			<p>在这种情况下，<em class="italic"> k </em>是速率常数，<em class="italic"> A </em>是频率因子，<em class="italic"> EA </em>是活化能，<em class="italic"> R </em>是理想气体常数，<em class="italic"> T </em>是<strong class="bold">开尔文</strong> ( <strong class="bold"> K </strong>中的温度。我们可以用这个方程来计算温度的变化如何影响速率常数。让我们假设当前需要预测如果温度从293 K变到303 K会发生什么。首先，我们需要定义一些变量:</p>
+			<pre>     &gt;&gt;&gt; from math import exp
+     &gt;&gt;&gt; EA = 50000
+     &gt;&gt;&gt; R = 8.31
+     &gt;&gt;&gt; T1 = 293
+  
+     &gt;&gt;&gt; exp(-EA / (R*T1))
+  1.2067e-09</pre>
+			<p>我们现在可以<a id="_idIndexMarker075"/>重新分配温度变量另一个值并重新计算:</p>
+			<pre>     &gt;&gt;&gt; T2 = 303
+     &gt;&gt;&gt; exp(-EA / (R*T2))
+  2.3766e-09</pre>
+			<p>总之，这表明一个简单的温度变化几乎使该派别翻倍！</p>
+			<h2 id="_idParaDest-36"><a id="_idTextAnchor037"/>列表和词典</h2>
+			<p><strong class="bold">列表</strong>和<strong class="bold">字典</strong>是Python中最常见和最基本的<a id="_idIndexMarker077"/>数据类型中的两种<a id="_idIndexMarker076"/>。列表<a id="_idIndexMarker078"/>是简单的<a id="_idIndexMarker079"/>元素有序集合(类似于数组),可以保存相同类型或不同类型的元素:</p>
+			<pre>   &gt;&gt;&gt; homogenousList = ["toluene", "methanol", "ethanol"]
+  &gt;&gt;&gt; heterogenousList = ["dichloromethane", 3.14, True]</pre>
+			<p>任何给定列表的长度都可以使用<code>len()</code>函数捕获:</p>
+			<pre>  &gt;&gt;&gt; len(heterogenousList)
+  3</pre>
+			<p>可以使用列表元素的索引位置来检索它们。请记住，Python中的所有索引都从<code>0</code>开始，因此，这个列表的第一个元素应该在<code>0</code>索引处:</p>
+			<pre>  &gt;&gt;&gt; heterogenousList[0]
+  dichloromethane
+  &gt;&gt;&gt; heterogenousList[1]
+  3.14</pre>
+			<p>与它们的原始对应物不同，列表是可变的，因为它们可以在创建后被修改。我们可以使用<code>append()</code>函数向列表中添加另一个<a id="_idIndexMarker082"/>元素:</p>
+			<pre>  &gt;&gt;&gt; len(homogenousList)
+  3
+  &gt;&gt;&gt; homogenousList.append("acetonitrile")
+  &gt;&gt;&gt; len(homogenousList)
+  4</pre>
+			<p>另一方面，字典经常被用来关联关键字和T21值。给定一个字典，您可以指定一个<em class="italic">键</em>的名称及其对应的<em class="italic">值</em>。例如，包含化学品名称及其有效期的化学品清单在标准Python列表中就不太适用。在这个地层中，化学名称和它们的日期很难联系在一起。</p>
+			<p>然而，字典是建立这种联系的最佳方式:</p>
+			<pre>  &gt;&gt;&gt; singleChemical = {"name" : "acetonitrile",
+          "exp_date" : "5/26/2021"}</pre>
+			<p>这本字典现在代表了一种化学物质的元素，也就是说，它有一个对应名称的关键字，还有一个对应有效期的关键字。您可以通过指定键来检索字典中的特定值:</p>
+			<pre>&gt;&gt;&gt; singleChemical["name"]
+  acetonitrile</pre>
+			<p>为了构建<a id="_idIndexMarker084"/>化学品的完整库存<a id="_idIndexMarker085"/>，您将<a id="_idIndexMarker086"/>需要<a id="_idIndexMarker087"/>创建多个字典，每个字典对应<a id="_idIndexMarker088"/>一种化学品，并将它们全部添加到一个列表中。这种格式被称为<strong class="bold"> JSON </strong>，我们将在本章后面更详细地探讨它。</p>
+			<h2 id="_idParaDest-37"><a id="_idTextAnchor038"/>阵列</h2>
+			<p>Python <a id="_idIndexMarker089"/>中的<strong class="bold">数组</strong>在某种意义上类似于列表，它们可以<a id="_idIndexMarker090"/>包含不同类型的元素，它们可以有多个副本，并且它们可以随着时间的推移而改变和变异。使用简单的函数可以很容易地对数组进行扩展、追加、清除、复制、计数、索引、反转或排序。以下面这个为例:</p>
+			<ol>
+				<li>让我们继续使用<code>numpy</code> : <pre>import numpy as np newArray = np.array([1,2,3,4,5,6,7,8,9,10])</pre>创建一个数组</li>
+				<li>您可以使用<code>append()</code>函数将另一个元素添加到列表的末尾:<pre><strong class="bold">  &gt;&gt;&gt; newArray= np.append(newArray,25)</strong> <strong class="bold">  &gt;&gt;&gt; newArray</strong> <strong class="bold">   [1,2,3,4,5,6,7,8,9,10,25]</strong></pre></li>
+				<li>使用<code>len()</code>函数可以确定数组的长度:<pre><strong class="bold">  &gt;&gt;&gt; len(newArray)</strong> <strong class="bold">   11</strong></pre></li>
+				<li>数组也可以用括号分割，并赋给新的变量。例如，下面的代码采用列表的前五个元素:<pre><strong class="bold">  &gt;&gt;&gt; firstHalf = newArray[:5]</strong> <strong class="bold">  &gt;&gt;&gt; firstHalf</strong> <strong class="bold">   [1,2,3,4,5]</strong></pre></li>
+			</ol>
+			<p>现在<a id="_idIndexMarker091"/>我们已经掌握了一些关于<a id="_idIndexMarker092"/>Python的基础知识，让我们深入到更复杂的话题<em class="italic">函数</em>。</p>
+			<h2 id="_idParaDest-38"><a id="_idTextAnchor039"/>创建功能</h2>
+			<p>Python <a id="_idIndexMarker093"/>中的<strong class="bold">函数</strong>是一种组织代码和隔离<a id="_idIndexMarker094"/>进程的方式，允许您定义显式输入和显式输出。以一个平方数字的函数为例:</p>
+			<pre>def squaring_function(x):
+  # A function that squares the input
+  return x * x</pre>
+			<p>函数是第一类<em class="italic"/>,因为它们可以被分配给变量或随后传递给其他函数:</p>
+			<pre>  &gt;&gt;&gt; num = squaring_function(5)
+  &gt;&gt;&gt; print(num)
+  <strong class="bold">25</strong></pre>
+			<p>根据它们的用途，函数可以有多个输入和输出。人们普遍认为一个功能应该服务于一个特定的目的，仅此而已。</p>
+			<h2 id="_idParaDest-39"><a id="_idTextAnchor040"/>迭代和循环</h2>
+			<p>在许多情况下，任务必须以重复或迭代的方式进行。在前面的例子中，一个值被平方，然而，如果有10个值需要被平方呢？你可以<a id="_idIndexMarker096"/>手动反复运行这个函数，或者<a id="_idIndexMarker097"/>用<code>for</code>循环和<code>while</code>循环迭代它。当迭代次数<a id="_idIndexMarker098"/>已知时，通常使用<code>for</code>循环。另一方面，当根据给定条件需要中断循环时，通常使用<code>while</code>循环。让我们来看一个<code>for</code>循环的例子:</p>
+			<pre>input_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+output_list = []
+for val in input_list:
+    squared_val = squaring_function(val)
+    output_list.append(squared_val)
+    print(val, " squared is: ", squared_val)</pre>
+			<p>首先，定义一个值列表。然后创建一个空列表——平方值将被写入其中。然后，我们遍历列表，计算值的平方，将其追加(添加)到新列表中，然后打印值。虽然<code>for</code>循环对于迭代来说很棒，但是在某些情况下，当处理较大的数据集时，它们会非常慢。</p>
+			<p>然而，<code>while</code>循环也可以用于各种类型的迭代，特别是当满足一个条件时迭代停止。让我们来看一个<code>while</code>循环的例子:</p>
+			<pre>current_val = 0
+while current_val &lt; 10:
+    print(current_val)
+    current_val += 1</pre>
+			<p>现在<a id="_idIndexMarker099"/>我们已经对循环<a id="_idIndexMarker100"/>以及如何使用它们有了更深的理解，让我们探索一种更高级的<a id="_idIndexMarker102"/>形式的迭代，称为<em class="italic">列表理解</em>。</p>
+			<h2 id="_idParaDest-40"><a id="_idTextAnchor041"/>列举感悟</h2>
+			<p>像<code>for</code>循环一样，<strong class="bold">列表理解</strong>允许使用强大的<a id="_idIndexMarker103"/>单行代码进行流程迭代。我们可以用这一行复制前面的平方值的例子:</p>
+			<pre>   &gt;&gt;&gt; my_squared_list = [squaring_function(val) for val in  input_list]</pre>
+			<p>你应该使用列表理解的三个主要原因是:</p>
+			<ul>
+				<li>它可以将几行代码减少到一行，使您的代码更加整洁。</li>
+				<li>它可以明显快于它的<code>for</code>环路同行。</li>
+				<li>这是一个非常好的关于编写高效代码的面试问题。提示提示。</li>
+			</ul>
+			<h2 id="_idParaDest-41"><a id="_idTextAnchor042"/>数据帧</h2>
+			<p><code>pandas</code>库可以说是Python数据科学领域中最常见的对象<a id="_idIndexMarker106"/>。数据帧<a id="_idIndexMarker107"/>类似于结构化的表格(想象一个<code>DataFrame</code>对象可以被构造如下:</p>
+			<pre>&gt;&gt;&gt; import pandas as pd
+&gt;&gt;&gt; 
+ df = pd.DataFrame([[1,2,3],[4,5,6],[7,8,9]],columns = ['col1','col2', 'col3'])
+&gt;&gt;&gt; print(df)</pre>
+			<p>这将产生以下输出:</p>
+			<div><div><img src="img/B17761_02_008.jpg" alt="Figure 2.8 – A table showing the results of the DataFrame object&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图2.8-显示DataFrame对象结果的表格</p>
+			<p>一个<code>DataFrame</code>对象<a id="_idIndexMarker109"/>中的几乎每个<a id="_idIndexMarker108"/>参数都可以被改变，以适应其中的数据。例如，可以用完整的单词重新标记这些列:</p>
+			<pre>&gt;&gt;&gt; df.columns = ["ColumnA", "ColumnB", "ColumnC"]</pre>
+			<p>可以创建表示数学函数输出的新列。例如，可以准备表示<code>ColumnC</code>的平方值的列:</p>
+			<pre>&gt;&gt;&gt; df["ColumnC_Squared"] = df["ColumnC"] ** 2
+&gt;&gt;&gt; print(df)</pre>
+			<p>其输出如下所示:</p>
+			<div><div><img src="img/B17761_02_009.jpg" alt="Figure 2.9 – A table showing the results of the DataFrame object&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图2.9-显示DataFrame对象结果的表格</p>
+			<p>或者，数据帧<a id="_idIndexMarker110"/>可以使用本地机器上已有的<a id="_idIndexMarker111"/> CSV文件准备。这可以通过使用<code>read_csv()</code>功能来完成:</p>
+			<pre>  &gt;&gt;&gt; import pandas as pd
+  &gt;&gt;&gt; df = pd.read_csv('dataset_lipophilicity_sd.csv')</pre>
+			<p>可以选择一组特定的列，而不是导入整个数据集:</p>
+			<pre>  &gt;&gt;&gt; df = df[["ID", "TPSA", "MolWt", "LogP"]]
+  &gt;&gt;&gt; df.head()</pre>
+			<p>其输出如下所示:</p>
+			<div><div><img src="img/B17761_02_010.jpg" alt="Figure 2.10 – A table showing the results of the DataFrame object&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图2.10-显示DataFrame对象结果的表格</p>
+			<p>或者，也可以使用<code>tail()</code>函数查看最后几行数据:</p>
+			<pre>  &gt;&gt;&gt; df.tail()</pre>
+			<p>数据帧是Python中最常见的数据处理和表示形式，因为它们类似于大多数人熟悉的标准2D表。处理大量数据的一个更有效的选择<a id="_idIndexMarker113"/>是使用<code>PySpark</code>库。</p>
+			<p>现在<a id="_idIndexMarker114"/>我们已经能够在我们的机器上本地管理和处理数据，让我们看看如何使用<em class="italic"> API请求</em>从外部来源检索数据。</p>
+			<h2 id="_idParaDest-42"><a id="_idTextAnchor043"/> API请求和JSON</h2>
+			<p>在某些情况下，数据在本地计算机上不可用，您将需要<a id="_idIndexMarker115"/>从远程位置检索数据。最常见的<a id="_idIndexMarker116"/>发送和接收数据的方式之一是以<strong class="bold">应用编程接口</strong> ( <strong class="bold"> API </strong>)的形式。API背后的主要思想是使用HTTP <a id="_idIndexMarker117"/>请求获取数据，通常<a id="_idIndexMarker118"/>以<strong class="bold"> JSON </strong>格式传递。让我们<a id="_idIndexMarker119"/>看一个例子:</p>
+			<pre>import requests
+r = requests.get('https://raw.githubusercontent.com/alkhalifas/node-api-books/master/services/books.json')
+data = r.json()</pre>
+			<p>可以把JSON想象成一个字典列表，其中每个字典都是一个元素。我们可以根据索引位置选择列表中的特定元素。在Python中，我们从<code>0</code>开始计数，因此，我们的字典列表中的第一项将具有索引位置<code>0</code>:</p>
+			<pre>  &gt;&gt;&gt; data[0]</pre>
+			<p>这为我们提供了以下信息:</p>
+			<div><div><img src="img/B17761_02_011.jpg" alt="Figure 2.11 – A sample of the results obtained from an HTTP request&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图2.11–从HTTP请求中获得的结果示例</p>
+			<p>使用相应的<em class="italic">键</em>可以访问<a id="_idIndexMarker120"/>字典中的<em class="italic">值</em>:</p>
+			<pre>  &gt;&gt;&gt; data[0]["type"]
+  HARD_COVER</pre>
+			<p>以类似于<a id="_idIndexMarker122"/> CSV文件的<a id="_idIndexMarker121"/>方式，JSON文件也可以使用<code>read_json()</code>功能导入<a id="_idIndexMarker123"/>到数据帧中。</p>
+			<h2 id="_idParaDest-43"><a id="_idTextAnchor044"/>解析pdf</h2>
+			<p>不像<a id="_idIndexMarker124"/>我们已经<a id="_idIndexMarker125"/>导入到Python中的许多结构化形式的数据，例如CSV和JSON文件，您经常会遇到非结构化形式的数据，例如文本文件或pdf。对于大多数使用<code>tika</code>的应用程序，这是开源社区中最流行的应用程序之一。我们可以从使用<code>pip</code>安装库开始:</p>
+			<pre>  alkhalifas@titanium ~ % pip install tika</pre>
+			<p>然后，我们可以继续阅读感兴趣的特定PDF文件:</p>
+			<pre>  from tika import parser
+   raw = parser.from_file("./datasets/COVID19-CDC.pdf")
+   print(raw['content'])</pre>
+			<p><code>raw['content']</code>中的数据<a id="_idIndexMarker127"/>将是<code>tika</code>库解析的PDF文件<a id="_idIndexMarker128"/>的文本。这些数据现在可以在后续的NLP应用程序中使用和预处理了。</p>
+			<h2 id="_idParaDest-44"><a id="_idTextAnchor045"/>酸洗文件</h2>
+			<p>到目前为止，我们处理的绝大多数文档都是保存在本地计算机上的文件，例如pdf、CSV和JSON文件。那么，我们如何保存一个Python对象呢？如果你有一个想要保存的项目的重要列表——也许是我们前面例子中的化学物质——你将需要一种方法把这些文件保存在本地以备后用。为此，大多数数据科学家使用<code>pickle</code>。<code>pickle</code>库允许您以<code>.pkl</code>文件的形式保存和存储Python对象供以后使用。这些文件稍后可以被导入回Python并用于新的任务。这是一个在Python中被称为<em class="italic">序列化</em>和<em class="italic">反序列化</em>对象的过程。让我们看一个使用<code>.pkl</code>文件的例子。我们首先导入<code>pickle</code>库，然后创建一个项目列表:</p>
+			<pre>&gt;&gt;&gt; import pickle
+&gt;&gt;&gt; cell_lines = ["COS", "MDCK", "L6", "HeLa", "H1", "H9"]</pre>
+			<p>为了将列表保存为<code>.pkl</code>文件，我们需要指定文件的保存位置。注意，我们将使用<code>wb</code>模式(即<em class="italic">写二进制码</em>模式)。然后我们将使用<code>dump()</code>功能保存内容:</p>
+			<pre>&gt;&gt;&gt; pickledList = open('./tmp/cellLineList.pkl', 'wb')
+&gt;&gt;&gt; pickle.dump(cell_lines, pickledList)</pre>
+			<p>无论文件是保存在本地还是与同事共享，都可以通过类似的方式使用<code>load()</code>命令将其加载回Python:</p>
+			<pre>&gt;&gt;&gt; pickledList = open('./tmp/cellLineList.pkl', 'rb')
+&gt;&gt;&gt; cell_lines_loaded = pickle.load(pickledList)
+&gt;&gt;&gt; print(cell_lines_loaded)
+["COS", "MDCK", "L6", "HeLa", "H1", "H9"]</pre>
+			<p>注意，在前面的例子中，我们根据任务在两个参数之间切换——<code>wb</code>(写二进制)和<code>rb</code>(读二进制)。这是<a id="_idIndexMarker131"/>可以选择加载和保存文件的两种模式。还有许多其他选项可以使用。这里应该注意的主要区别是使用了<em class="italic">二进制</em>格式。在Windows上，以二进制模式打开文件将处理文本文件中的行尾字符，这些字符通常出现在<code>ASCII</code>文件中。下表概述了一些最常见的模式:</p>
+			<div><div><img src="img/B17761_02_012.jpg" alt=" Figure 2.12 – A table showing the most common read/write modes&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图2.12–显示最常见读/写模式的表格</p>
+			<p>现在<a id="_idIndexMarker133"/>我们已经对API和我们可以对数据执行的操作有了基本的了解，让我们看看<strong class="bold">面向对象编程</strong> ( <strong class="bold"> OOP </strong>)的使用，因为它与Python有关。</p>
+			<h2 id="_idParaDest-45"><a id="_idTextAnchor046"/>面向对象编程</h2>
+			<p>类似于许多其他语言——如C++、Java和c#——OOP的概念也可以用在Python中。在OOP中，主要目的是使用<strong class="bold">类</strong>来组织和<strong class="bold">封装</strong>数据对象及其相关函数。</p>
+			<p>让我们<a id="_idIndexMarker135"/>在化学品库存管理的背景下探索OOP的一个例子。大多数现代生物技术公司都有广泛的库存系统来监控内部化学品的库存。库存系统允许公司确保供应不会耗尽，并充分监控到期日期，以及许多其他任务。现在，我们将使用我们当前的Python知识以及OOP的概念来构建一个库存管理系统:</p>
+			<ol>
+				<li value="1">我们从导入两个库开始，我们将需要管理我们的日期:<pre>import datetime from dateutil import parser</pre></li>
+				<li>接下来，我们使用下面的语法为这个类定义一个名称:<pre>class Chemical:</pre></li>
+				<li>We then construct a portion of code known as the constructor:<pre>class Chemical:
+        def __init__(self, name, symbol, exp_date, count):
+            self.name = name
+            self.symbol = symbol
+            self.exp_date = exp_date
+            self.count = count</pre><p><code>__init__</code>函数的目的是初始化或创建这个对象，我们使用<code>self</code>来引用一个类的特定实例。例如，如果我们创建了两个化学物体，<code>self.name</code>可能是一个物体的<code>acetonitrile</code>和另一个物体的<code>methanol</code>。</p></li>
+				<li>接下来，我们<a id="_idIndexMarker136"/>可以定义一些与我们的类相关的<a id="_idIndexMarker137"/>函数。这些函数是特定于类的，并且<em class="italic">与</em>绑定在一起，只有通过类才能访问它们。我们调用这些函数<code>self</code>作为参数，将函数与感兴趣的特定实例联系起来。在下面的例子中，我们将创建一个<code>isExpired()</code>函数，该函数将读取化学品的有效期，如果过期，将返回一个<code>True</code>值。我们首先确定今天的日期，然后使用<code>self.exp_date</code>参数检索对象的日期。然后我们返回一个布尔值，它是两个日期的比较结果:<pre>        def isExpired(self):             todays_date = datetime.datetime.today()             exp_date = parser.parse(self.exp_date)             return todays_date &gt; exp_date</pre></li>
+				<li>我们可以通过使用<code>Chemical</code>类<pre><strong class="bold">&gt;&gt;&gt; chem1 = Chemical(name="Toluene", symbol="TOL", exp_date="2019-05-20", count = 5)</strong></pre>创建一个新对象来测试这一点</li>
+				<li>就这样，我们构建了一个我们称之为<code>chem1</code>的化学物体。我们可以通过指定字段名称来检索<code>chem1</code>的字段或属性:<pre><code>name</code> field <a id="_idIndexMarker139"/>was not followed by parentheses in the way we have previously seen. This is because <code>name</code> is only a field that is associated with the class and not a function. </pre></li>
+				<li>我们可以通过类似的方式指定来使用我们的函数:<pre><code>self</code> argument.</pre></li>
+				<li>We can create many instances of our class, with each instance containing a different date:<pre><strong class="bold">&gt;&gt;&gt; chem2 = Chemical(name="Toluene", symbol="TOL", exp_date="2021-11-25", count = 4)</strong>
+<strong class="bold">&gt;&gt;&gt; chem3 = Chemical(name="Dichloromethane", symbol="DCM", exp_date="2020-05-13", count = 12)</strong>
+<strong class="bold">&gt;&gt;&gt; chem4 = Chemical(name="Methanol", symbol="MET",</strong> exp_date="2021-01-13", count = 5)</pre><p>当后面跟有字段或函数时，这些对象中的每一个都将返回它们各自的值。</p></li>
+				<li>我们<a id="_idIndexMarker140"/>还可以创建函数<a id="_idIndexMarker141"/>来汇总一个对象的特定实例中的数据:<pre>        def summarizer(self):             print("The chemical", self.name, "with the symbol (",self.symbol,") has the expiration date", self.exp_date)</pre></li>
+				<li>然后，我们可以对我们创建的任何化学对象调用<code>summarizer()</code>函数，以便检索其状态的人类可读摘要:<pre><strong class="bold">&gt;&gt;&gt; print(chem1.summarizer())</strong> The chemical Toluene with the symbol ( TOL ) has the expiration date 2019-05-20</pre></li>
+				<li>到目前为止，我们编写的函数没有采用任何额外的参数，只是为我们检索数据。化学品库存系统经常需要更新，以反映已经过期或被消耗的物品，从而改变计数。函数也可用于改变或更改对象内的数据:<pre>        def setCount(self, value):             self.count = value</pre></li>
+				<li>我们可以简单地添加<code>value</code>作为参数，将该实例的计数(由<code>self.count</code>表示)设置为相应的值。我们可以用我们的一个对象来测试这个:<pre><strong class="bold">&gt;&gt;&gt; chem1 = Chemical(name="Toluene", symbol="TOL", exp_date="2019-05-20", count = 5)</strong> <strong class="bold">&gt;&gt;&gt; chem1.count</strong> <strong class="bold">  5</strong> <strong class="bold">&gt;&gt;&gt; chem1.setCount(25)</strong> <strong class="bold">&gt;&gt;&gt; chem1.count</strong> 2<strong class="bold">5</strong></pre></li>
+			</ol>
+			<p>OOP还有许多其他的用途、应用和模式，它们超越了我们刚刚看到的例子。例如，库存系统不仅需要维护他们的库存，而且还需要管理每件商品的有效期，记录销售细节，并拥有编译和报告这些指标的方法和功能。如果你对Python内部的类开发感兴趣，请访问官方的<a id="_idIndexMarker144"/> Python文档来了解更多(<a href="https://docs.python.org/3/tutorial/classes.html">https://docs.python.org/3/tutorial/classes.html</a>)。</p>
+			<h1 id="_idParaDest-46"><a id="_idTextAnchor047"/>教程–使用Rdkit和BioPython</h1>
+			<p>在上一个教程中，我们看到了Python如何用于计算属性、组织数据、解析文件等等的各种例子。除了到目前为止我们已经合作过的库之外，在生物技术和生命科学领域，我们还需要特别关注另外两个库:<strong class="bold"> Rdkit </strong>和<strong class="bold"> BioPython </strong>。在接下来的几节中，我们将看看这些包中许多可用功能的几个例子。考虑到这一点，让我们开始吧！</p>
+			<h2 id="_idParaDest-47"><a id="_idTextAnchor048"/>使用小分子和Rdkit</h2>
+			<p>数据科学家在处理与小分子相关的数据时最常用的软件包之一是<code>rdkit</code>软件包，它包括许多不同的工具和功能，以至于我们需要一本完整的第二本书才能全部涵盖。下面突出显示了该软件包最常见的五种应用，如图<em class="italic">图2.13 </em>所示:</p>
+			<div><div><img src="img/B17761_02_013.jpg" alt="Figure 2.13 – Some of the main functionality in the rdkit package&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图2.13–rd kit包中的一些主要功能</p>
+			<p>让我们继续举例说明其中的一些功能，以便向我们介绍<code>rdkit</code>包。</p>
+			<h3>使用微笑表示</h3>
+			<p>类似于我们已经看到的一些包，<code>rdkit</code>是按类组织的。现在让我们利用<code>Chem</code>类，通过几个简单的步骤加载一个<code>SMILES</code>表示。</p>
+			<p>我们将从导入<code>Chem</code>类开始:</p>
+			<pre>from rdkit import Chem </pre>
+			<p>将2D分子结构从一个Python脚本转移到另一个脚本的最简单和最常见的方法之一是使用<code>SMILES</code>表示。例如，我们可以描述如下所示的<code>SMILES</code>表示:</p>
+			<pre>SMILES = "[Br-].[Br-].CCCCCCCCCCC[N+]1=CC=C(CCCC2=CC=[N+](CCCCCCCCCCC)C=C2)C=C1" </pre>
+			<p>我们可以使用<code>Chem</code>类中的<code>MolFromSmiles</code>函数将我们的<code>SMILES</code>表示加载到<code>rdkit</code>中:</p>
+			<pre>molecule = Chem.MolFromSmiles(SMILES) 
+molecule </pre>
+			<p>在打印我们上面分配的分子变量时，将返回一个分子的图形，如<em class="italic">图2.14 </em>所示:</p>
+			<div><div><img src="img/B17761_02_014.jpg" alt="Figure 2.14 – A 2D representation of the QAC using rdkit&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图2.14-使用rdkit的QAC的2D表示</p>
+			<p>请注意，我们不需要任何额外的包来打印该图，因为<code>rdkit</code>非常全面，拥有运行这些可视化所需的一切。在下一节中，我们将看到另一个关于相似性计算的例子<code>rdkit</code>。</p>
+			<p>现在加载结构，有许多不同的应用和计算可以做。最常用的方法之一是在分子中寻找亚结构。我们可以通过使用<code>rdkit</code>中的<code>MolFromSmarts</code>功能来实现这一点:</p>
+			<pre>tail_pattern = Chem.MolFromSmarts('CCCCCCCCCCC') 
+patter </pre>
+			<p>执行此操作后，我们得到下图，显示了感兴趣的子结构:</p>
+			<div><div><img src="img/B17761_02_015.jpg" alt="Figure 2.15 – A 2D substructure of interest&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图2.15–感兴趣的2D下部结构</p>
+			<p>感兴趣的主要分子和模式现在都已加载，我们可以使用<code>HasSubstructMatch</code>函数来确定子结构是否存在:</p>
+			<pre>molecule.HasSubstructMatch(tail_pattern) </pre>
+			<p>在执行这段代码时，将返回<code>True</code>的值，表明该结构确实存在。另一方面，如果运行另一个子结构，如苯酚，该值将返回<code>False</code>，因为该子结构不存在于主分子中。</p>
+			<p>此外，可以使用<code>rdkit</code>中的<code>DataStructs</code>类运行相似性计算。我们可以通过导入类，并输入两个感兴趣的分子:</p>
+			<pre>from rdkit import DataStructs 
+from rdkit.Chem import Draw 
+mol_sim = [Chem.MolFromSmiles('[Br-].[Br-].CCCCCC[N+]1=CC=C(CCCC2=CC=[N+](CCCCCC)C=C2)C=C1'), Chem.MolFromSmiles('[Br-].[Br-].CCCCCCCCCCC[N+]1=CC=C(CCCC2=CC=[N+](CCCCCCCCCCC)C=C2)C=C1')] </pre>
+			<p>如果我们使用之前看到的<code>MolFromSmiles</code>方法直观地比较这两个分子，我们可以看到这两个结构之间存在微小的差异，即其中一个分子的疏水尾部有双键。</p>
+			<p>接下来，我们可以使用<code>RDKFingerprint</code>函数来计算指纹:</p>
+			<pre>fps = [Chem.RDKFingerprint(x) for x in mol_sim] </pre>
+			<p>最后，我们可以使用<code>CosineSimilarity</code>度量来计算这两种结构的差异:</p>
+			<pre>DataStructs.FingerprintSimilarity(fps[0],fps[1], metric=DataStructs.CosineSimilarity) </pre>
+			<p>这一计算将产生大约99.14%的值，表明除了微小的差异之外，这些结构大部分是相同的。</p>
+			<h1 id="_idParaDest-48"><a id="_idTextAnchor049"/>总结</h1>
+			<p>Python是一种强大的语言，不管你的专业领域是什么，它都会很好地为你服务。在本章中，我们讨论了使用命令行时一些最重要的概念，例如创建目录、安装包以及创建和编辑Python脚本。我们还非常广泛地讨论了Python编程语言。我们回顾了一些最常用的ide、通用数据类型和计算。我们还回顾了一些更复杂的数据类型，比如列表、数据帧和JSON文件。我们还学习了API和HTTP请求的基础知识，并介绍了与Python类相关的OOP。我们在本章中探讨的所有示例都与数据科学领域中常见的应用程序相关，因此对它们有一个深刻的理解将非常有益。</p>
+			<p>尽管本章旨在向您介绍数据科学中一些最重要的概念(如变量、列表、JSON文件和字典)，但我们无法涵盖所有这些概念。还有许多其他的主题，比如元组、集合、计数器、排序、正则表达式以及我们没有讨论的OOP的许多方面。Python的文档——无论是印刷的还是在线的——都非常广泛，而且大部分都是免费的。我强烈建议你利用这些资源，尽可能多地从中学习。</p>
+			<p>在本章中，我们讨论了处理少量数据的多种方法，涉及到数据切片和运行基本计算。在企业层面，数据通常数量非常大，因此，我们需要合适的工具来处理它。那个工具就是<strong class="bold">结构化查询语言</strong> ( <strong class="bold"> SQL </strong>，我们将在下一章熟悉这个。</p>
+		</div>
+	
+</body></html>

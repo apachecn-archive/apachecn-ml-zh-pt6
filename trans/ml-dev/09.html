@@ -1,0 +1,580 @@
+<html><head/><body>
+
+
+    
+        <title>Software Installation and Configuration</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">软件安装和配置</h1>
+                
+            
+            
+                
+<p>所以，是时候开始我们的告别了！在这一章中，我们将详细介绍构建开发环境的所有说明。</p>
+<p>在本章中，您将了解:</p>
+<ul>
+<li>在Linux上安装Anaconda和pip环境</li>
+<li>在macOS上安装Anaconda和easy install environment</li>
+<li>在Windows上安装Anaconda环境</li>
+</ul>
+<p>所以，让我们从一步一步的说明开始，从Linux开始。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Linux installation</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">Linux安装</h1>
+                
+            
+            
+                
+<p>在我们看来，Linux是最灵活的平台，你可以在这个平台上从事机器学习项目。正如您可能知道的，在Linux领域有大量的替代产品，它们都有自己特定的包管理。</p>
+<p>考虑到编写所有这些发行版的操作说明会占用大量的页面，我们将决定为<strong> Ubuntu 16.04 </strong>发行版编写说明。</p>
+<p>Ubuntu无疑是最广泛的Linux发行版，在Ubuntu 16.04的特殊情况下，它是一个LTS版本，或长期支持。这意味着我们将在本书中运行的基础软件将支持到2021年。</p>
+<p>你会在https://wiki.ubuntu.com/LTS的<a href="https://wiki.ubuntu.com/LTS">找到更多关于LTS含义的信息。</a></p>
+<p>关于Ubuntu作为科学计算分发版的可行性，即使被很多人认为是面向新手的，但它对一个当前的机器学习环境所需要的所有技术都有必要的支持，并且拥有非常庞大的用户群。</p>
+<p>本章的说明与基于Debian的发行版非常相似；它们只需很少的改动，甚至不需要改动。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Initial distribution requirements</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">初始分配要求</h1>
+                
+            
+            
+                
+<p>对于Python环境的安装，您将需要以下东西:</p>
+<ul>
+<li>
+<p>支持AMD64指令的计算机(通常称为64位处理器)</p>
+</li>
+<li>
+<p>在云上运行的基于AMD64的映像</p>
+</li>
+</ul>
+<p>在AWS上，一个合适的<strong>亚马逊机器镜像</strong> ( <strong> AMI </strong>)是代码<a href="https://console.aws.amazon.com/ec2/home?region=us-east-1#launchAmi=ami-cf68e0d8"> ami-cf68e0d8 </a>。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Installing Anaconda on Linux</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">在Linux上安装Anaconda</h1>
+                
+            
+            
+                
+<p>安装Python发行版的一种非常流行的方式是通过软件包Anaconda。它包含一个完整的高性能Python、Scala和R生态系统，包括数据科学中使用的最知名的包。它还包括一系列通过<kbd>conda</kbd>可用的其他包，它是包的主要实用程序，管理环境、包和依赖项。</p>
+<p>Anaconda是由<strong>Continuum Analytics</strong>(<a href="http://continuum.io" target="_blank">Continuum . io</a>)构建和发布的，该公司也维护这些包及其依赖项。</p>
+<p>为了安装Anaconda，让我们首先下载安装包，在撰写本文时版本为4.2.0。</p>
+<p>你可以在https://www.anaconda.com/download/找到最新的软件包版本。</p>
+<p>看看在Linux上安装Anaconda的以下步骤:</p>
+<ol>
+<li>让我们运行以下命令:</li>
+</ol>
+<pre class="mce-root"><strong>      curl -O https://repo.continuum.io/archive/Anaconda3-4.2.0-Linux-<br/>      x86_64.sh</strong></pre>
+<p style="padding-left: 60px">前面的命令将生成以下输出:</p>
+<div><img src="img/f9ecc2fc-cffb-41b7-ba71-2a8a1901f31b.png"/></div>
+<ol start="2">
+<li>然后，我们需要使用校验和或SHA-256类型来验证包的数据完整性。执行该操作的Linux命令是<kbd>sha256sum</kbd>，如下所示:</li>
+</ol>
+<pre><strong>      sha256sum Anaconda3-4.4.0-Linux-x86_64.sh</strong></pre>
+<p style="padding-left: 60px">前面的命令将生成以下输出:</p>
+<div><img src="img/8f9680da-b793-4763-980a-bb3fea885145.png"/></div>
+<ol start="3">
+<li>然后，让我们使用<kbd>bash</kbd>解释器执行安装程序，如下所示:</li>
+</ol>
+<pre><strong>      bash Anaconda3-4.2.0-Linux-x86_64.sh</strong></pre>
+<p style="padding-left: 60px">上述命令会生成以下输出:</p>
+<div><img src="img/15fdc077-ea48-4654-9f3a-8f650c178541.png"/></div>
+<ol start="4">
+<li>按下<em>进入</em>后，我们会看到许可证，您可以在阅读后输入<kbd>yes</kbd>接受，如下截图所示:</li>
+</ol>
+<div><img src="img/94c7846b-7b6d-43d7-ba92-f74741ffb643.png"/></div>
+<ol start="5">
+<li>然后，是时候选择位置并开始安装所有的包了，如下面的截图所示:</li>
+</ol>
+<div><img height="178" width="366" src="img/eda4dc78-db54-4fab-a048-aadc550ece09.png"/></div>
+<ol start="6">
+<li>在这之后，我们将被要求将已安装的Anaconda安装添加到路径中，主要是将库和二进制文件，尤其是<kbd>conda</kbd>实用程序，集成到系统中。然后安装完成，如下图所示:</li>
+</ol>
+<div><img height="171" width="525" src="img/3ffce818-a4aa-41e5-91ef-a46014f6c266.png"/></div>
+<ol start="7">
+<li>然后，让我们通过运行以下命令来测试当前的Anaconda安装:</li>
+</ol>
+<pre><strong>      source ~/.bashrc</strong><br/><strong>      conda list</strong></pre>
+<p style="padding-left: 90px">前面的命令将生成以下输出:</p>
+<div><img height="207" width="506" src="img/afa99471-8cfa-4179-9a0a-a7110730d744.png"/></div>
+<ol start="8">
+<li>现在是时候通过运行以下命令来创建Python 3环境了:</li>
+</ol>
+<pre><strong>      conda create --name ml_env python=3</strong></pre>
+<p style="padding-left: 90px">前面的命令将生成以下输出:</p>
+<div><img src="img/6d5a3f8e-ab1a-421f-8dd1-67379ff25cfa.png"/></div>
+<ol start="9">
+<li>要激活这个新环境，让我们通过运行以下命令来使用<kbd>source</kbd>命令:</li>
+</ol>
+<pre><strong>      source activate ml_env</strong></pre>
+<p style="padding-left: 90px">前面的命令将生成以下输出:</p>
+<div><img height="26" width="319" src="img/0b187434-6244-4159-a6bc-c84ea9c33352.png"/></div>
+<ol start="10">
+<li>激活环境后，您的命令提示符前缀将发生如下变化:</li>
+</ol>
+<pre><strong>     python --version</strong></pre>
+<p style="padding-left: 90px">前面的命令将生成以下输出:</p>
+<div><img height="52" width="339" src="img/86996170-a062-4d53-90fd-3a8a25e59982.png"/></div>
+<ol start="11">
+<li>当您不想再使用该环境时，运行以下命令:</li>
+</ol>
+<pre><strong>      source deactivate</strong></pre>
+<p style="padding-left: 90px">前面的命令将生成以下输出:</p>
+<div><img height="33" width="338" src="img/540c362d-b3d4-4a04-b5eb-950ee316c299.png"/></div>
+<ol start="12">
+<li>如果您想要检查所有的conda环境，您可以使用下面的conda命令:</li>
+</ol>
+<pre><strong>      conda info --envs</strong></pre>
+<p style="padding-left: 90px">前面的命令将生成以下输出:</p>
+<div><img height="69" width="456" src="img/9d2ab586-5a3f-4854-a658-df9da237bab0.png"/></div>
+<p style="padding-left: 90px">星号(<kbd>*</kbd>)表示当前活动的环境。</p>
+<ol start="13">
+<li>通过运行以下命令安装其他软件包:</li>
+</ol>
+<pre><strong>      conda install --name ml_env numpy</strong></pre>
+<p style="padding-left: 60px">前面的命令将生成以下输出:</p>
+<div><img height="150" width="520" src="img/f0e6dbc5-14d2-45ef-91b5-9f3658a143b0.png"/></div>
+<ol start="14">
+<li>要删除环境，可以使用以下命令:</li>
+</ol>
+<pre><strong>      conda remove --name ml_env --all</strong></pre>
+<ol start="15">
+<li>添加剩余的库:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>conda install tensorflow<br/></strong><strong>conda install -c conda-forge keras</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>pip Linux installation method</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">pip Linux安装方法</h1>
+                
+            
+            
+                
+<p>在本节中，我们将使用pip ( <kbd>pip</kbd> installs packages)包管理器来安装项目所需的所有库。</p>
+<p>Pip是Python的默认包管理器，有非常多的可用库，包括几乎所有主要的机器学习框架。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Installing the Python 3 interpreter</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">安装Python 3解释器</h1>
+                
+            
+            
+                
+<p>Ubuntu 16.04的默认解释器是Python 2.7。因此，我们的第一步将是安装Python 3解释器和所需的库:</p>
+<pre><strong>sudo apt-get install python3</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Installing pip</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">安装pip</h1>
+                
+            
+            
+                
+<p>为了安装<kbd>pip</kbd>包管理器，我们将使用Ubuntu自带的<kbd>apt-get</kbd>包管理器安装<kbd>python3-pip</kbd>包:</p>
+<pre><strong>sudo apt-get install python3-pip</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Installing necessary libraries</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">安装必要的库</h1>
+                
+            
+            
+                
+<p>执行以下命令安装剩余的必要库。本书中的实际例子需要用到它们中的许多:</p>
+<pre class="mce-root"><strong>sudo pip3 install pandas<br/>sudo pip3 install tensorflow<br/>sudo pip3 install keras<br/>sudo pip3 install h5py<br/>sudo pip3 install seaborn<br/>sudo pip3 install jupyter<br/></strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>macOS X environment installation</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">macOS X环境安装</h1>
+                
+            
+            
+                
+<p>现在轮到macOS X安装了。安装过程与Linux非常相似，并且基于<strong> OS X高地</strong>版本。</p>
+<p>安装需要安装用户的<kbd>sudo</kbd>权限。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Anaconda installation</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">蟒蛇装置</h1>
+                
+            
+            
+                
+<p>Anaconda可以通过图形安装程序或基于控制台的安装程序来安装。在这一节中，我们将介绍图形安装程序。首先，我们将从<a href="https://www.anaconda.com/download/" target="_blank">https://www.anaconda.com/download/</a>下载安装包，并选择64位包:</p>
+<div><img height="337" width="506" src="img/8155c970-4f40-44d3-ad29-5ee459593f6a.png"/></div>
+<p>一旦我们下载了安装程序包，我们就执行安装程序，然后我们会看到一步一步的GUI:</p>
+<div><img height="364" width="512" src="img/6ab81a31-68bf-46a8-b4b4-67ea24b54d37.png"/></div>
+<p class="mce-root CDPAlignLeft CDPAlign">然后，我们选择安装位置(考虑到整个包需要差不多2 GB的磁盘来安装):</p>
+<div><img height="362" width="513" src="img/5d26e029-7776-4177-81dc-a25ad281f96a.png"/></div>
+<p>首先，在实际安装所有必需的文件之前，我们接受许可证:</p>
+<div><img height="363" width="514" src="img/7442551d-9d37-4ee3-80de-a12d0bda24b1.png"/></div>
+<p>在必要的文件解压缩和安装过程之后，我们就可以开始使用Anaconda实用程序了:</p>
+<div><img height="367" width="519" src="img/bf0a5885-9030-4a89-92de-aea0ea2bc8e9.png"/></div>
+<p>最后一步是用<kbd>conda</kbd>命令安装Anaconda发行版中缺少的包:</p>
+<div><pre><strong>conda install tensorflow<br/></strong><strong>conda install -c conda-forge keras</strong></pre></div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Installing pip</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">安装pip</h1>
+                
+            
+            
+                
+<p>在本节中，我们将安装<kbd>pip</kbd>包管理器，使用<kbd>setuptools</kbd> Python包中的<kbd>easy_install</kbd>包管理器，默认情况下包含在操作系统中。</p>
+<p>对于此过程，我们将在终端中执行以下命令:</p>
+<pre><strong>/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"</strong><br/><br/><strong>$ sudo brew install python3</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Installing remaining libraries via pip</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">通过pip安装剩余的库</h1>
+                
+            
+            
+                
+<p>然后轮到安装所有剩余的库:</p>
+<pre><strong>sudo pip3 install pandas</strong><br/><strong>sudo pip3 install tensorflow</strong><br/><strong>sudo pip3 install keras</strong><br/><strong>sudo pip3 install h5py</strong><br/><strong>sudo pip3 install seaborn</strong><br/><strong>sudo pip3 install jupyter</strong><br/><br/></pre>
+<p>这就结束了Mac的安装过程；让我们继续Windows安装过程。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Windows installation</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">Windows安装</h1>
+                
+            
+            
+                
+<p>Windows是Python可以毫无问题运行的平台。在这一节中，我们将介绍在Windows平台上安装Anaconda。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Anaconda Windows installation</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">Anaconda Windows安装</h1>
+                
+            
+            
+                
+<p>由于图形安装程序的原因，安装Anaconda的过程与macOS非常相似。让我们从从<a href="https://www.anaconda.com/download/" target="_blank">https://www.anaconda.com/download/</a>下载安装包并选择64位包开始:</p>
+<div><img height="290" width="464" src="img/9c2fac5d-3011-498a-9823-47bd81e473d1.png"/></div>
+<p>下载安装程序后，接受许可协议，并转到下一步:</p>
+<div><img height="381" width="489" src="img/3c8e29da-7aaf-4c54-97a2-6d427c76ebd3.png"/></div>
+<p>然后，您可以选择为当前用户或所有用户安装平台:</p>
+<div><img height="367" width="472" src="img/c27f3cd1-4a4b-4861-bbb0-55ad4142667b.png"/></div>
+<p>然后，为整个安装选择安装目录。请记住，这将需要将近2 GB的磁盘来安装:</p>
+<div><img height="382" width="492" src="img/f6610885-d291-4654-ba9d-10709c746403.png"/></div>
+<p>安装环境后，您将在Windows主菜单中找到Jupyter笔记本快捷方式:</p>
+<div><img height="446" width="462" src="img/5b58522a-c8a9-4c52-bfba-d5d1a3aab9b2.png"/></div>
+<p>为了使用Python命令和<kbd>conda</kbd>实用程序，有一个方便的Anaconda提示符，它将加载所需的路径和环境变量:</p>
+<div><img height="279" width="502" src="img/05f15f20-8380-4f86-bd50-0e6c6d601918.png"/></div>
+<p>最后一步是在Anaconda提示符下执行下面的<kbd>conda</kbd>命令来安装缺失的包:</p>
+<div><pre><strong>conda install tensorflow<br/></strong><strong>conda install -c conda-forge keras</strong></pre></div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Summary</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">摘要</h1>
+                
+            
+            
+                
+<p>恭喜你！你已经到了这个机器学习基本原理实用总结的结尾了。在最后一章中，我们介绍了许多帮助您构建机器学习计算环境的方法。</p>
+<p>我们想借此机会真诚地感谢您的认真阅读，我们希望您已经发现所提供的材料有趣且引人入胜。希望您现在已经准备好开始处理新的挑战性问题，借助我们提供的工具以及一直在开发的新工具，并利用我们努力提供的知识。</p>
+<p>对我们来说，写这本书并寻找以实用的方式帮助你理解概念的最佳方法是一件令人兴奋的事情。不要犹豫，将问题、建议或错误报告写给出版商提供的渠道。</p>
+<p>祝福你，学习愉快！</p>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+</body></html>

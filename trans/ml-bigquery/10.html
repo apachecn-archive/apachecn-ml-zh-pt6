@@ -1,0 +1,246 @@
+<html><head/><body>
+
+
+	
+		<title>B16722_07_Final_ASB_ePub</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-103"><em class="italic"> <a id="_idTextAnchor103"/>第七章</em>:使用K-Means算法聚类</h1>
+			<p>在本章中，我们将介绍无监督的机器学习，您将学习如何使用BigQuery ML来构建K-Means算法，以将相似的数据聚类到多个类别中。</p>
+			<p>当我们拥有没有任何标签的数据集，并且我们需要在没有任何初始知识的情况下推断数据的结构时，无监督机器学习特别有用。</p>
+			<p>在不同的行业中，根据一组特定的特征来识别相似的事件、对象和人是非常有价值的。K-Means聚类通常用于根据一组特定的特征来识别相似的客户、文档、产品、事件或项目。</p>
+			<p>在这一章中，我们将把注意力集中在K-Means聚类算法上，它被广泛用于揭示结构化和非结构化数据的相似性。我们将利用BigQuery ML，完成构建K-Means聚类模型所需的所有步骤。</p>
+			<p>通过渐进式方法，我们将了解以下主题:</p>
+			<ul>
+				<li>介绍业务场景</li>
+				<li>发现K-均值聚类</li>
+				<li>探索和理解数据集</li>
+				<li>训练K-均值聚类模型</li>
+				<li>评估K均值聚类模型</li>
+				<li>使用K均值聚类模型</li>
+				<li>得出商业结论</li>
+			</ul>
+			<h1 id="_idParaDest-104"><a id="_idTextAnchor104"/>技术要求</h1>
+			<p>本章要求您能够访问网络浏览器，并能够利用以下内容:</p>
+			<ul>
+				<li>一个<strong class="bold">谷歌云平台</strong> ( <strong class="bold"> GCP </strong>)账号，访问<strong class="bold"> GCP </strong>控制台</li>
+				<li>托管BigQuery数据集的GCP项目</li>
+			</ul>
+			<p>现在我们已经准备好了技术需求，让我们开始分析和开发我们的BigQuery ML集群模型。</p>
+			<p>看看下面的视频，看看代码是如何运行的:<a href="https://bit.ly/2Rx2Uk5">https://bit.ly/2Rx2Uk5</a></p>
+			<h1 id="_idParaDest-105"><a id="_idTextAnchor105"/>介绍业务场景</h1>
+			<p>假设你是一名商业分析师，在芝加哥的大型出租车公司工作。这些出租车公司每天进行数千次出行，以满足整个城市的公共交通需求。出租车司机的工作和行为是每天为公司创造收入和为所有顾客提供有效服务的基础。</p>
+			<p>对于我们的业务<a id="_idIndexMarker362"/>场景，让我们假设所有的出租车公司都想给表现最好的司机额外的奖励。这些公司的目标是根据产生的收入和驾驶速度将司机分成三个不同的类别。这三组可以描述如下:</p>
+			<ul>
+				<li><strong class="bold">最佳驱动者</strong>是全年收入和效率最高的员工。这一组将获得巨额额外奖励。</li>
+				<li><strong class="bold">好的车手</strong>是表现良好但并不出色的车手。该组不会获得任何奖励。</li>
+				<li><strong class="bold">中性驱动因素</strong>是在收入和效率方面具有中性或负面结果的驱动因素。</li>
+			</ul>
+			<p>识别集群的参数是未知的<em class="italic">先验的</em>，因为它们可以根据不同的因素而改变，例如盈利能力、速度和交通状况。有些年份比其他年份更有利可图，而且行驶速度可能会受到特定交通状况的影响。</p>
+			<p>作为一名业务分析师，你的<a id="_idIndexMarker363"/>工作是找到最佳算法，根据描述的类别对芝加哥出租车司机进行聚类，以便根据他们的表现将司机分为三类。</p>
+			<p>既然我们已经解释并理解了问题陈述，那么让我们来看看机器学习技术，我们可以用它来预测一个数值，例如旅行的持续时间。</p>
+			<h1 id="_idParaDest-106"><a id="_idTextAnchor106"/>发现K均值聚类</h1>
+			<p>在本节<a id="_idIndexMarker364"/>中，我们将了解什么是<strong class="bold">无监督学习</strong>，并且我们将学习<strong class="bold"> K-Means </strong>聚类技术的基础知识。</p>
+			<p><strong class="bold"> K-Means </strong>是解决聚类问题的<strong class="bold">无监督学习</strong>算法<a id="_idIndexMarker365"/>。这种技术用于将数据分类到一组类中。字母<em class="italic"> k </em>代表先验<em class="italic">固定的聚类数</em>。对于我们的业务场景，我们将使用三个不同的集群。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">虽然监督学习基于<a id="_idIndexMarker366"/>训练数据集中标签输出值的先验知识，但无监督学习<a id="_idIndexMarker367"/>不利用标签数据集。它的目标是在没有任何先验知识的情况下，推断训练数据集中的数据结构。</p>
+			<p>每个数据簇由一个<strong class="bold">质心</strong>表征<a id="_idIndexMarker368"/>。质心代表聚类的中点，并且在训练阶段根据模型的特征被识别。</p>
+			<p>在K-均值聚类模型的训练之后，每个实体可以与最近的质心相关联，并且被包括在<em class="italic"> k </em>个聚类之一中。</p>
+			<p>在下图中，您可以看到一个简单聚类模型的图形表示，该模型基于两个特征和一个值<em class="italic"> k </em>等于<code>3</code>:</p>
+			<div><div><img src="img/B16722_07_002.jpg" alt="Figure 7.1 – Graphical representation of K-Means clustering&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图7.1–K均值聚类的图形表示</p>
+			<p>在前面的<a id="_idIndexMarker369"/>笛卡尔图中，你可以看到一些用点表示的观察结果。该图由两个轴组成，这两个轴对应于用于训练K均值聚类机器学习模型的特征。</p>
+			<p>根据这两个特征的值，一些观察值比另一些更接近。假设我们需要将观察值分成三个不同的类，K-Means模型被训练来找出将观察值分成不同类的三个区域。</p>
+			<p>我们不会在本书中讨论K-Means聚类算法的所有细节，但是我们可以提到一些这种算法适用的用例。在现实生活中，我们可以找到许多可以用聚类模型解决的情况，例如:</p>
+			<ul>
+				<li><strong class="bold">客户细分</strong>:在公司的客户群中寻找相似的客户，以提高营销活动和促销的<a id="_idIndexMarker370"/>效果</li>
+				<li><strong class="bold">员工细分</strong>:识别表现最佳的员工<a id="_idIndexMarker371"/></li>
+				<li><strong class="bold">文档分类</strong>:根据标签、主题、作者和发布日期将文档<a id="_idIndexMarker372"/>聚类成多个类别</li>
+			</ul>
+			<p>在我们的业务场景中，我们将基于三个不同的聚类来训练K-Means聚类模型:<strong class="bold">顶级</strong>、<strong class="bold">良好</strong>和<strong class="bold">中立</strong>驾驶员。为了实现我们的目标，我们将使用关于每个出租车司机产生的收入<a id="_idIndexMarker373"/>和驾驶速度的信息，计算为行驶里程和每次乘坐花费的时间之间的比率。</p>
+			<p>我们已经学习了K-Means聚类的基础知识，所以现在是时候看看我们将用来构建机器学习模型的数据集了。</p>
+			<h1 id="_idParaDest-107"><a id="_idTextAnchor107"/>探索和理解数据集</h1>
+			<p>在<a id="_idIndexMarker374"/>深入机器学习实现之前，我们将<a id="_idIndexMarker375"/>开始分析将用于训练我们的机器学习模型的数据集。</p>
+			<p>对于这个用例，我们将使用我们已经在第5章 、<em class="italic">使用二元逻辑回归预测布尔值</em>中使用的BigQuery公共数据集。该数据集包含由芝加哥市收集的出租车乘坐信息，可在以下链接找到:<a href="https://console.cloud.google.com/marketplace/details/city-of-chicago-public-data/chicago-taxi-trips">https://console . cloud . Google . com/market place/details/City-of-Chicago-public-data/Chicago-taxi-trips</a>。</p>
+			<p>让我们首先清楚地了解数据集中的信息，以构建K-Means聚类模型。</p>
+			<h2 id="_idParaDest-108"><a id="_idTextAnchor108"/>了解数据</h2>
+			<p>在这一节中，我们将<a id="_idIndexMarker376"/>探索用于开发BigQuery ML模型的数据结构。</p>
+			<p>要开始研究数据，我们需要做以下工作:</p>
+			<ol>
+				<li value="1">登录GCP，从导航菜单访问<strong class="bold"> BigQuery </strong>用户界面。</li>
+				<li>在我们在<a href="B16722_02_Final_ASB_ePub.xhtml#_idTextAnchor039"> <em class="italic">第2章</em> </a>、<em class="italic">设置您的GCP和BigQuery环境</em>中创建的项目下创建一个新的数据集。对于这个用例，我们将创建一个带有默认选项的<code>07_chicago_taxi_drivers</code>数据集。</li>
+				<li>打开托管所有BigQuery公共数据集的<code>bigquery-public-data</code> GCP项目，浏览项目，直到找到<code>chicago_taxi_trips</code>数据集。在这个公共数据集中，我们<a id="_idIndexMarker377"/>只能看到一个BigQuery表:<code>taxi_trips</code>。该表包含芝加哥市发生的出租车乘坐的所有信息，我们将使用它来训练和测试我们的K-Means聚类模型。</li>
+			</ol>
+			<p>我们已经在第5章<em class="italic">中使用了相同的数据，使用二元逻辑回归</em>预测布尔值。因此，我们已经知道了<code>taxi_trips</code>表及其字段的总体模式。</p>
+			<p>在下面的截图中，您可以看到属于<code>taxi_trips</code>表的字段的完整列表:</p>
+			<div><div><img src="img/B16722_07_003.jpg" alt="Figure 7.2 – The list of fields belonging to the taxi_trips table&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图7.2-属于taxi_trips表的字段列表</p>
+			<p>对于这个用例，我们将<a id="_idIndexMarker378"/>注意力集中在以下领域，这些领域将用于创建我们的机器学习模型:</p>
+			<ul>
+				<li><code>trip_miles</code>:包含出租车司机在特定乘车过程中行驶的英里数。</li>
+				<li><code>trip_seconds</code>:表示每次滑行的持续时间，单位为秒。</li>
+				<li><code>fare</code>:这是客户付给出租车司机的费用，代表司机的收入。</li>
+				<li><code>tips</code>:此栏包含出租车司机从顾客处收到的小费金额。</li>
+			</ul>
+			<p>我们故意忽略与出租车乘坐成本相关的其他列，如<code>tolls</code>和<code>extras</code>，因为这些<a id="_idIndexMarker379"/>值不会受到出租车司机活动的直接影响。</p>
+			<p>在本节中，我们选择了将用于训练我们的机器学习模型的表和列。现在，是时候看看数据了，这样我们才能明白如何使用它。</p>
+			<h2 id="_idParaDest-109"><a id="_idTextAnchor109"/>检查数据质量</h2>
+			<p>在本节中，我们将在开发我们的机器学习模型之前应用<a id="_idIndexMarker380"/>一些数据质量检查。</p>
+			<p>数据质量是构建有效的K均值聚类模型的基础。由于目标是将观察值聚类到多个类别中，数据中的异常值可能会基于数据中的错误值创建不平衡的聚类。</p>
+			<p>让我们开始分析将用于构建我们的机器学习模型的数据集，如下所示:</p>
+			<ol>
+				<li value="1">In order to identify the time frame of our dataset, let's extract the minimum and maximum value of the <code>trip_start_timestamp</code> field, like this:<pre>SELECT MAX(trip_start_timestamp),
+       MIN(trip_start_timestamp)
+FROM
+`bigquery-public-data.chicago_taxi_trips.taxi_trips`;</pre><p>在<a id="_idIndexMarker381"/>上执行此<code>2013</code>至<code>2020</code>。</p><p>查询结果显示在下面的屏幕截图中:</p><div><img src="img/B16722_07_004.jpg" alt="Figure 7.3 – The result of the query shows the time frame of the dataset&#13;&#10;"/></div><p class="figure-caption">图7.3–查询结果显示了数据集的时间范围</p><p>为了解决我们的业务场景，我们可以将注意力集中在发生在<code>2020</code>的出租车上。</p></li>
+				<li>In the second step, we'll inspect the maximum values of the speed (expressed in miles <a id="_idIndexMarker382"/>per hour) and of a taxi driver's income. Let's execute the follow<a id="_idTextAnchor110"/>ing query:<pre>SELECT MAX (speed_mph), MAX (tot_income)
+FROM (
+      SELECT taxi_id,
+             AVG(trip_miles/(trip_seconds/60/60)) AS speed_mph,
+             SUM (fare+tips) AS tot_income
+      FROM `bigquery-public-data.chicago_taxi_trips.taxi_trips` 
+      WHERE 
+            EXTRACT(YEAR from trip_start_timestamp) = 2020
+            AND trip_seconds &gt; 0
+            AND trip_miles &gt;0
+            AND fare &gt; 0
+      GROUP BY taxi_id);</pre><p>内部<code>SELECT</code>语句计算平均速度，除以<code>trip_miles</code>字段的值和以小时表示的游乐设备持续时间<code>(trip_seconds/60/60)</code>。计算值存储在<code>speed_mph</code>栏中。它还创建了<code>tot_income</code>字段，该字段汇总了每个<code>taxi_id</code>字段的<code>fare</code>和<code>tips</code>值。使用<code>EXTRACT(YEAR from trip_start_timestamp) = 2020</code>过滤器，我们只选择发生在<code>2020</code>的出租车。在<code>trip_seconds</code>、<code>trip_miles</code>和<code>fare</code>字段上添加过滤器，我们还排除了<a id="_idIndexMarker383"/>可能出现在数据集中的所有空值和<code>NULL</code>值。最外部的<code>SELECT</code>语句使用<code>MAX (speed_mph), MAX (tot_income)</code>关键字确定平均速度和收入的最大值。</p><p>查询结果显示在下面的屏幕截图中:</p></li>
+			</ol>
+			<div><div><img src="img/B16722_07_005.jpg" alt="Figure 7.4 – The result of the query shows outliers in terms of speed and income&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图7.4-查询结果显示了速度和收入方面的异常值</p>
+			<p>从结果来看，很明显数据集包含一些与实际用例不兼容的异常值。实际上最高平均时速约为667英里，一个出租车司机最高收入超过100万<strong class="bold">美元</strong> ( <strong class="bold"> USD </strong>)。</p>
+			<p>我们刚刚执行的查询指出，我们的数据集中有一些不切实际的值，需要在接下来的步骤中过滤掉。</p>
+			<p>现在<a id="_idIndexMarker384"/>我们已经对数据集执行了一些质量检查，让我们专注于创建我们的训练数据集。</p>
+			<h2 id="_idParaDest-110"><a id="_idTextAnchor111"/>创建训练数据集</h2>
+			<p>对于<a id="_idIndexMarker385"/> K-Means聚类，我们只需要创建一个数据集，用于训练和测试机器学习模型。</p>
+			<p>让我们开始创建数据集，这些数据集将用于训练两种不同的K均值聚类模型，如下所示:</p>
+			<ol>
+				<li value="1">First of all, let's create a table that contains only the <code>speed_mph</code> field as an input feature for our K-Means clustering model, by running the following code:<pre>CREATE OR REPLACE TABLE `07_chicago_taxi_drivers.taxi_miles_per_minute` AS 
+SELECT *
+FROM (
+                SELECT taxi_id,
+                         AVG(trip_miles/(trip_seconds/60/60)) AS speed_mph
+                FROM `bigquery-public-data.chicago_taxi_trips.taxi_trips` 
+                WHERE 
+                      EXTRACT(YEAR from trip_start_timestamp) = 2020
+                       AND trip_seconds &gt; 0
+                       AND trip_miles &gt;0
+                GROUP BY taxi_id
+      )
+WHERE 
+      speed_mph BETWEEN 0 AND 50;</pre><p>该查询在<code>07_chicago_taxi_drivers</code>数据集中创建了<code>taxi_miles_per_minute</code>表。</p><p>该表包含两个不同的字段:在<code>taxi_id</code>列中是出租车的标识符，在<code>speed_mph</code>字段中是平均速度(以英里/小时表示)。使用<code>GROUP BY taxi_id</code>子句计算<code>taxi_trips</code>表中每个<code>taxi_id</code>字段的平均速度。新表只包括2020年发生的出租车乘坐次数。</p><p>查询的最后两行<a id="_idIndexMarker386"/>包含用于过滤异常值的<code>WHERE</code>子句。我们假设最大实际平均速度是每小时<code>50</code>英里。</p></li>
+				<li>In the second step, we'll create another table to host the additional feature (namely, <code>tot_income</code>), as follows:<pre>CREATE OR REPLACE TABLE `07_chicago_taxi_drivers.taxi_speed_and_income` AS
+SELECT *
+FROM (
+        SELECT taxi_id,
+                AVG(trip_miles/(trip_seconds/60/60)) AS speed_mph,
+               SUM (fare+tips) AS tot_income
+        FROM `bigquery-public-data.chicago_taxi_trips.taxi_trips` 
+        WHERE 
+              EXTRACT(YEAR from trip_start_timestamp) = 2020
+              AND trip_seconds &gt; 0
+              AND trip_miles &gt;0
+              AND fare &gt; 0
+        GROUP BY taxi_id
+      )
+WHERE 
+      speed_mph BETWEEN 0 AND 50
+      AND tot_income BETWEEN 0 AND 150000;</pre><p>查询的执行会生成一个<code>taxi_speed_and_income</code>表。此表包括使用与<em class="italic">步骤1 </em>相同的规则计算的<code>speed_mph</code>字段。该表还包括<code>tot_income</code>字段。该值计算为每个<code>taxi_id</code>场的<code>fare</code>和<code>tips</code>的<code>SUM</code>以及2020年的整个持续时间。</p><p>与在<em class="italic">步骤1 </em>中创建的<a id="_idIndexMarker387"/>表相比，我们添加了另一个过滤器，将年度<code>tot_income</code>值限制为150，000。</p><p>第二个表将用于基于两个<code>speed_mph</code>和<code>tot_income</code>特征创建另一个K均值聚类机器学习模型。</p></li>
+			</ol>
+			<p>既然我们已经创建了将在其上训练BigQuery ML模型的表，那么让我们深入到机器学习模型的创建中。</p>
+			<h1 id="_idParaDest-111"><a id="_idTextAnchor112"/>训练K-Means聚类模型</h1>
+			<p>在这一部分，我们将<a id="_idIndexMarker388"/>创建两个不同的K-Means机器学习模型。第一个模型将使用<code>taxi_miles_per_minute</code>作为训练数据集创建，而第二个模型也将包括<code>tot_income</code>作为一个特征，并将利用<code>taxi_speed_and_income</code>。让我们按如下方式进行:</p>
+			<ol>
+				<li value="1">As a first step, let's start training a machine learning model named <code>clustering_by_speed</code> by running the following code:<pre>CREATE OR REPLACE MODEL `07_chicago_taxi_drivers.clustering_by_speed`
+OPTIONS(model_type='kmeans', num_clusters=3, kmeans_init_method = 'KMEANS++') AS
+  SELECT * EXCEPT (taxi_id)
+  FROM `07_chicago_taxi_drivers.taxi_miles_per_minute`;</pre><p>SQL语句的第一行由<code>CREATE OR REPLACE MODEL</code>关键字组成，后面是<code>`07_chicago_taxi_drivers.clustering_by_speed`</code>机器学习模型的标识符和<code>OPTIONS</code>子句。</p><p>现在，让我们来看看我们用来训练机器学习模型的选项。选择的型号为<code>'kmeans'</code>。这个选项描述了我们用来训练模型的技术。<code>num_clusters</code>选项的值为<code>3</code>，因为我们试图将观察结果分为三个不同的类别:<em class="italic">最高</em>、<em class="italic">良好</em>和<em class="italic">中立</em>。</p><p>默认情况下，BigQuery <a id="_idIndexMarker389"/> ML以一个随机起点开始K-Means聚类算法的训练。机器学习模型的好坏也取决于这一点，这一点是BigQuery随机选取的。通过使用<code>kmeans_init_method = 'KMEANS++'</code>选项，利用<code>taxi_miles_per_minute</code>表初始化<a id="_idIndexMarker390"/>点，除了<code>taxi_id</code>列，该列仅在预测阶段使用。</p></li>
+				<li>After the training of the first machine learning model, let's train a second one, which also includes the <code>tot_income</code> value of the taxi driver during the year, as illustrated in the following code snippet:<pre>CREATE OR REPLACE MODEL `07_chicago_taxi_drivers.clustering_by_speed_and_income`
+OPTIONS(model_type='kmeans', num_clusters=3, standardize_features = true, kmeans_init_method = 'KMEANS++') AS
+  SELECT * EXCEPT (taxi_id)
+  FROM `07_chicago_taxi_drivers.taxi_speed_and_income`;</pre><p>这个查询非常类似于为创建前面的K-Means聚类模型而执行的SQL语句，但是我们可以立即注意到一个相关的差异。使用<a id="_idIndexMarker391"/>附加选项<code>standardize_features = true</code>训练<code>clustering_by_speed_and_income</code>模型。当您拥有不同数量级的数字要素时，此选项特别有用。在这种情况下，模型使用的是<code>speed_mph</code>字段(从0到50)和<code>tot_income</code>字段，其值可以达到150，000。</p></li>
+			</ol>
+			<p>现在，我们已经基于K-Means聚类算法训练了两个不同的机器学习模型，让我们看看如何利用BigQuery ML SQL语法<a id="_idIndexMarker392"/>和BigQuery <strong class="bold">用户界面</strong> ( <strong class="bold"> UI </strong>)来评估它们。</p>
+			<h1 id="_idParaDest-112"><a id="_idTextAnchor113"/>评估K均值聚类模型</h1>
+			<p>在这一部分，我们将学习如何评估K-Means聚类模型的性能。</p>
+			<p>K-Means聚类模型的评估阶段不同于我们在前面章节中执行的监督机器学习模型。让我们看看评估我们的机器学习模型需要采取的步骤，如下所示:</p>
+			<ol>
+				<li value="1">Let's extract the centroids from the first machine learning model that we trained in the previous section, by running the following code:<pre>SELECT *
+FROM ML.CENTROIDS
+        (MODEL `07_chicago_taxi_drivers.clustering_by_speed`)
+ORDER BY centroid_id;</pre><p><code>ML.CENTROIDS</code>函数返回K均值模型的质心信息。它接受<a id="_idIndexMarker394"/>圆括号中的型号名称作为输入，前面是<code>MODEL</code>关键字。</p><p class="callout-heading">重要说明</p><p class="callout">质心表示K-均值聚类模型中聚类的中心。在机器学习模型的训练阶段，质心被迭代优化，以最小化训练数据集中质心和观察值之间的距离。当训练阶段结束时，质心是稳定的。当相对损失改善小于为<code>MIN_REL_PROGRESS</code>参数指定的值时，BigQuery ML停止迭代。</p><p>查询的执行返回三个质心，如下面的屏幕截图所示:</p><div><img src="img/B16722_07_006.jpg" alt="Figure 7.5 – The result of the query shows the centroids identified by the machine learning model&#13;&#10;"/></div><p class="figure-caption">图7.5-查询结果显示了机器学习模型识别的质心</p><p>在这种情况下，每个<a id="_idIndexMarker395"/>质心仅由表示出租车司机平均速度的<code>speed_mph</code>特征的数值来表示。</p></li>
+				<li>The same information can be achieved leveraging the BigQuery UI. Selecting the <code>clustering_by_speed</code> model from the BigQuery navigation menu and accessing the <code>1</code> belongs to the first cluster and represents the taxi drivers with the best average speed: the <em class="italic">Top Drivers</em>. From the BigQuery UI, we can also notice that 869 taxi drivers belong to this cluster.<p>第二个质心包括大部分人口，其<code>speed_mph</code>值为14.3222。这个质心是<em class="italic">好司机</em>群的中心。</p><p>最后一个质心是具有最慢驱动因素的聚类的中心，包括在<em class="italic">中性驱动因素</em>聚类中的425个观察值。</p></li>
+				<li>如果我们从BigQuery UI的<strong class="bold">评估</strong>选项卡中选择分析<code>clustering_by_speed_and_income</code>模型，我们将看到以下信息:<div> <img src="img/B16722_07_008.jpg" alt="Figure 7.7 – The Evaluation tab of the clustering_by_speed_and_income BigQuery ML model&#13;&#10;"/> </div></li>
+			</ol>
+			<p class="figure-caption"> </p>
+			<p class="figure-caption">图7.7–按速度和收入分类的大查询ML模型的评估选项卡</p>
+			<p>查看由第二个模型识别的<a id="_idIndexMarker397"/>聚类和质心，我们可以立即注意到这些聚类基于两个不同的特征:<code>speed_mph</code>和<code>tot_income</code>。</p>
+			<p>第一个集群，<code>1</code>，包含了速度和年收入最好的466位车手:<em class="italic">顶级车手</em>。第二个包含性能最差的417 <em class="italic">中性驱动器</em>。最后一个质心包括大多数驱动程序，是<em class="italic">好驱动程序</em>群集。</p>
+			<p class="callout-heading">小费</p>
+			<p class="callout">根据BigQuery ML使用的初始化种子，训练K-Means聚类的不同迭代的结果可以生成不同的值。质心的位置可能与本节中显示的值不同。</p>
+			<p>既然我们已经查看了K-Means聚类模型的训练结果，让我们开始使用它们将出租车司机分类到不同的聚类中。</p>
+			<h1 id="_idParaDest-113"><a id="_idTextAnchor114"/>使用K均值聚类模型</h1>
+			<p>在本节中，我们将<a id="_idIndexMarker399"/>了解如何对新数据使用K-Means聚类模型。</p>
+			<p>为了使用我们的BigQuery ML模型，我们将在我们为训练机器学习模型而创建的同一个表上使用<code>ML.PREDICT</code>函数。</p>
+			<p>在本例中，我们还将包括<code>taxi_id</code>列，它标识每个出租车司机。以下查询将根据<code>speed_mph</code>和<code>tot_income</code>字段的值，将每个<code>taxi_id</code>字段分类到最近的分类中:</p>
+			<pre>SELECT
+  * EXCEPT(nearest_centroids_distance)
+FROM
+  ML.PREDICT( MODEL `07_chicago_taxi_drivers.clustering_by_speed_and_income`,
+    (
+      SELECT *
+      FROM
+        `07_chicago_taxi_drivers.taxi_speed_and_income`
+    ));</pre>
+			<p>查询语句由一个<code>SELECT</code>关键字组成，该关键字提取由<code>ML.PREDICT</code>函数返回的所有列，除了<code>nearest_centroids_distance</code>字段。</p>
+			<p>查询的执行<a id="_idIndexMarker400"/>生成如下截图所示的结果:</p>
+			<div><div><img src="img/B16722_07_009.jpg" alt="Figure 7.8 – The result of the query shows the application of the K-Means clustering model&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图7.8-查询结果显示了K均值聚类模型的应用</p>
+			<p>每个<code>taxi_id</code>字段被分配给一个特定的质心和相应的集群。从第一列<code>CENTROID_ID</code>可以看到分配。</p>
+			<p>现在我们已经应用了我们的模型，让我们制定一些最终的考虑因素，并提供一个可以得到奖励的出租车司机的列表，因为他们在<em class="italic">顶级司机</em>聚类中。</p>
+			<h1 id="_idParaDest-114"><a id="_idTextAnchor115"/>得出商业结论</h1>
+			<p>在本节中，我们将<a id="_idIndexMarker401"/>使用我们从机器学习模型的应用中获得的结果来制定一些最终的考虑因素。</p>
+			<p>使用在<em class="italic">中使用K均值聚类模型</em>部分执行的查询，我们可以创建一个包含由<code>clustering_by_speed_and_income</code> K均值机器学习模型识别的<em class="italic">主要驱动因素</em>的表，如下所示:</p>
+			<pre>CREATE OR REPLACE TABLE `07_chicago_taxi_drivers.top_taxi_drivers_by_speed_and_income` AS
+SELECT
+  * EXCEPT(nearest_centroids_distance)
+FROM
+  ML.PREDICT( MODEL `07_chicago_taxi_drivers.clustering_by_speed_and_income`,
+    (
+      SELECT *
+      FROM
+        `07_chicago_taxi_drivers.taxi_speed_and_income`
+    ))
+WHERE CENTROID_ID=1; </pre>
+			<p>查询的执行<a id="_idIndexMarker402"/>生成一个<code>top_taxi_drivers_by_speed_and_income</code>表，该表包含分类在具有<code>CENTRO<a id="_idTextAnchor116"/>ID_ID=1</code>的集群中并且对应于<em class="italic">顶级驱动</em>集群的所有驱动。请记住，K-Means聚类算法并不总是返回相同的分段。因此，条款<code>CENTROID_ID=1</code>可以根据每个培训阶段产生的结果而变化。</p>
+			<p>这个结果集包括出租车司机的标识符，他们的表现应该得到奖励。</p>
+			<h1 id="_idParaDest-115"><a id="_idTextAnchor117"/>总结</h1>
+			<p>在这一章中，我们已经建立了我们的无监督机器学习模型。在简单介绍了业务场景之后，我们发现了什么是无监督机器学习，并使用K-Means聚类算法将相似的观察结果分组到相同的聚类中。</p>
+			<p>在深入研究机器学习模型的开发之前，我们对数据集进行了一些数据质量检查，并选择了一些字段作为机器学习模型的特征。</p>
+			<p>在训练阶段，我们训练了两种不同的机器学习模型，以学习如何创建K-Means聚类模型。</p>
+			<p>然后，我们评估了这两个模型，利用了BigQuery ML SQL语法和BigQuery UI中可用的功能。</p>
+			<p>在最后一步中，我们测试了我们的机器学习模型，根据出租车司机的特征将数据集中的出租车司机聚类到K-Means模型生成的聚类中。</p>
+			<p>最后，我们还创建了一个属于<em class="italic">最佳驾驶员</em>集群的驾驶员列表，这些驾驶员可以获得奖励，因为与其他驾驶员的平均表现相比，他们可以被视为最佳驾驶员。</p>
+			<p>在下一章，我们将介绍使用时间序列数据进行预测。</p>
+			<h1 id="_idParaDest-116"><a id="_idTextAnchor118"/>更多资源</h1>
+			<ul>
+				<li><strong class="bold">芝加哥出租车出行公共数据集</strong>:<a href="https://console.cloud.google.com/marketplace/details/city-of-chicago-public-data/chicago-taxi-trips">https://console . cloud . Google . com/market place/details/city-of-Chicago-public-data/Chicago-Taxi-Trips</a></li>
+				<li><strong class="bold">芝加哥公开赛数据</strong>:<a href="https://data.cityofchicago.org/">https://data.cityofchicago.org/</a></li>
+				<li><code>CREATE MODEL</code> <strong class="bold">语句</strong>:<a href="https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-create">https://cloud . Google . com/big query-ml/docs/reference/standard-SQL/bigqueryml-syntax-create</a></li>
+				<li><code>ML.EVALUATE</code> <strong class="bold">功能</strong>:<a href="https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-evaluate">https://cloud . Google . com/big query-ml/docs/reference/standard-SQL/bigqueryml-syntax-evaluate</a></li>
+				<li><code>ML.PREDICT</code> <strong class="bold">功能</strong>:<a href="https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict">https://cloud . Google . com/big query-ml/docs/reference/standard-SQL/bigqueryml-syntax-predict</a></li>
+				<li><strong class="bold"> BigQuery ML K-Means聚类示例</strong>:<a href="https://cloud.google.com/bigquery-ml/docs/kmeans-tutorial">https://cloud.google.com/bigquery-ml/docs/kmeans-tutorial</a></li>
+			</ul>
+		</div>
+	
+
+</body></html>

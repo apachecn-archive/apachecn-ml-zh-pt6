@@ -1,0 +1,1305 @@
+<html><head/><body><html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Getting Started with Machine Learning</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">机器学习入门</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在上一章中，我们看到了什么是机器学习预测模型，并对它们如何工作形成了基本的理解。在这一章中，我们将演示神经网络模型的工作原理，然后转向另一种类型的模型，即(<strong>支持向量机</strong> ) <br/> <strong>支持向量机</strong>模型。</p>
+
+<p>以下是本章将涉及的主题:</p>
+
+<ul>
+
+<li>演示神经网络</li>
+
+<li>支持向量机</li>
+
+<li>演示支持向量机</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Demonstrating a neural network</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">演示神经网络</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>让我们跳到一个神经网络的实际例子。我们使用的软件是IBM提供的SPSS Modeler。但是可以随意使用任何数据挖掘软件包。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Running a neural network model</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">运行神经网络模型</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>为了运行我们的第一个神经网络，我们必须引入将要使用的数据，如果您使用的是IBM SPSS Modeler，您可以遵循以下步骤:</p>
+
+<ol>
+
+<li>使用<strong>变量获取数据。文件</strong>节点，并将其带到画布上:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-631 image-border" src="img/12e7de96-8016-4b88-a24e-812d2d542a76.png" style="width:102.00em;height:69.67em;"/></p>
+
+<ol start="2">
+
+<li class="CDPAlignLeft CDPAlign">将数据集附加到源节点:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-482 image-border" src="img/9cd347ff-f70c-4e83-8a7c-cf342f6f015e.png" style="width:37.08em;height:40.50em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign" style="padding-left: 60px">单击文件框右侧的三点框，导航至您的数据；我们在这里使用<kbd>Electronics_Data</kbd>:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-632 image-border" src="img/d2804182-e81c-4e77-953e-b35725d99f87.png" style="width:50.50em;height:28.33em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign" style="padding-left: 60px">点击<strong>打开</strong>。</p>
+
+<ol start="3">
+
+<li class="CDPAlignLeft CDPAlign">转到<strong>类型</strong>选项卡，检查数据是否被正确读取:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-484 image-border" src="img/532eed80-0100-4e2d-828d-69070f850889.png" style="width:36.50em;height:39.33em;"/></p>
+
+<p style="padding-left: 60px">点击<strong>读取数值</strong>按钮；在接下来弹出的提示上点击<strong> OK </strong>，你会看到:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-635 image-border" src="img/06c0e854-2a0a-4cac-956d-9ca895f8105f.png" style="width:36.75em;height:39.58em;"/></p>
+
+<p style="padding-left: 60px">看起来数据被正确读取了。</p>
+
+<ol start="4">
+
+<li class="CDPAlignLeft CDPAlign">我们将不使用第一个变量，<strong> ID </strong>，<strong> </strong>，因此我们将把它的度量设置为<strong>无类型</strong>:</li>
+
+</ol>
+
+<p> </p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-47 image-border" src="img/1259a997-e195-4b9c-bcc7-aa01ce0a7820.png" style="font-size: 1em;width:36.58em;height:40.50em;"/></p>
+
+<ol start="5">
+
+<li class="CDPAlignLeft CDPAlign">现在让我们指定我们的<strong>状态</strong>目标变量，并将其<strong>角色</strong>设置为<strong>目标</strong>:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-48 image-border" src="img/93571dba-6986-445a-a17b-ab899590c0a2.png" style="width:37.67em;height:41.75em;"/></p>
+
+<p style="padding-left: 60px">现在Modeler知道了<strong>状态</strong>是它将要预测的变量。它将使用其他字段来预测结果变量。</p>
+
+<ol start="6">
+
+<li class="CDPAlignLeft CDPAlign">看一看您添加的数据；为此，请转到画布底部的<strong>输出</strong>调色板:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-636 image-border" src="img/2e132e68-e93f-4a22-9e30-838f426dba1f.png" style="width:106.58em;height:73.58em;"/></p>
+
+<p style="padding-left: 60px">将源节点<kbd>Electronics_Data</kbd>连接到输出表节点:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-637 image-border" src="img/0ee2ccc8-d43c-4ba1-86c7-7367e39c333c.png" style="width:92.50em;height:65.17em;"/></p>
+
+<p class="mce-root"/>
+
+<ol start="7">
+
+<li class="CDPAlignLeft CDPAlign">单击画布上方播放图标旁边的<strong>运行选择</strong>(五边形图标)按钮运行流:</li>
+
+</ol>
+
+<p style="padding-left: 60px">您将看到以下数据:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-639 image-border" src="img/2de35d3b-9714-43fa-8cb1-cbbbc24a9176.png" style="width:44.83em;height:30.58em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign" style="padding-left: 60px">因此，我们有一个包含<strong> 19个字段和5，003条记录</strong>的表，这意味着如果我们除去没有使用的目标字段和ID字段，我们在这个数据集中有17个预测值。我们将预测status字段，以根据人们购买的商品数量、总收入、他们是否使用了折扣、他们支付商品的方式、位置和其他额外的客户特征来检查我们是否已经失去或保留了客户。关闭此窗口继续。</p>
+
+<ol start="8">
+
+<li class="CDPAlignLeft CDPAlign">在继续构建任何模型之前，请确保将您的数据集分为<kbd>Training</kbd>和<kbd>Testing</kbd>数据集，以便复制您的结果并验证我们正在构建的模型的一致性。为此，转到<strong>现场操作</strong>面板，将源节点连接到<strong>分区</strong>节点:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-640 image-border" src="img/1b44e65f-adbb-4617-9d46-05e2625b7c23.png" style="width:56.83em;height:35.67em;"/></p>
+
+<p style="padding-left: 60px">这个<strong>分区</strong>节点将创建数据集的两个版本:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-641 image-border" src="img/e980a232-e2a4-4d3c-8d09-a5a3af7f6a49.png" style="width:45.08em;height:35.75em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign" style="padding-left: 60px">因此，数据的<kbd>50</kbd>将被训练，而数据集的另一个<kbd>50</kbd>将被测试。点击<strong>确定</strong>。</p>
+
+<p class="mce-root"/>
+
+<ol start="9">
+
+<li class="CDPAlignLeft CDPAlign">我们现在将构建我们的模型。为此，转到<strong>建模</strong>面板，通过单击一次将<strong>分区</strong>节点连接到<strong>神经网络</strong>模型:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-642 image-border" src="img/4c61c34d-4b80-46aa-9f59-b4304214336f.png" style="width:88.92em;height:50.83em;"/></p>
+
+<p style="padding-left: 60px">因此，你可以看到<strong>状态</strong>，神经网络预测的变量，已经被捕获，并且将为其建立一个神经网络。</p>
+
+<ol start="10">
+
+<li class="CDPAlignLeft CDPAlign">点击<strong>神经网络</strong>统计节点，查看神经网络的详细信息:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-643 image-border" src="img/8345d326-bc52-4701-9c20-cce71b8e5c44.png" style="width:38.33em;height:39.50em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign" style="padding-left: 60px">你可以看到有一个目标变量，我们的17个<strong>预测器</strong>是由神经网络指定的。<strong>预测值</strong>可以是任何字段类型:连续、分类或任何其他类型。您也可以决定不包括这些<strong>预测值</strong>。</p>
+
+<ol start="11">
+
+<li class="CDPAlignLeft CDPAlign">点击<strong>构建选项</strong>选项卡:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-644 image-border" src="img/9dd99758-9922-4ff6-a7a5-9b10f138ef2f.png" style="width:37.33em;height:33.58em;"/></p>
+
+<ol start="12">
+
+<li class="CDPAlignLeft CDPAlign">这些问题是为了知道你想用模型做什么，是想建立一个新的模型还是继续训练一个现有的模型。您可以在此选择任何目标；我们将为我们的例子创建一个标准模型，我们将在后面的章节中讨论其他选项。</li>
+
+</ol>
+
+<ol start="13">
+
+<li class="CDPAlignLeft CDPAlign">点击<strong>构建选项</strong>下的<strong>基础</strong>选项卡，可以看到你想要构建的模型类型:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-645 image-border" src="img/d627489c-744b-4582-b4cd-fb670069abdb.png" style="width:54.25em;height:35.00em;"/></p>
+
+<p style="padding-left: 60px">正如你所看到的，我们有两个选项，多层感知器(MLP)模型(T7)和径向基函数(RBF)模型(T10)。当您拥有诸如聚类预测器之类的东西时，RBF是首选，但是对于我们的示例，多层感知器模型是最佳选择。“隐藏层”( Hidden layers)选项允许您指定模型中所需的隐藏层数量。目前，我们将选择<strong>自动计算单元数量</strong>。因此，模型会自动为我们计算隐藏层的数量。</p>
+
+<ol start="14">
+
+<li class="CDPAlignLeft CDPAlign">转到<strong>购物规则</strong>选项卡:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-646 image-border" src="img/8a3b22c9-cb90-4a2b-8940-84aa0de8c770.png" style="width:35.42em;height:27.92em;"/></p>
+
+<p style="padding-left: 60px">我们的模型将经历多次迭代，当它不再改进时就会停止；但是，它也可能因为其他原因而停止。例如，它可以在经过一定时间后停止，正如您在截图中看到的，默认设置为<kbd>15</kbd>分钟，但您可以对此进行更改。您也可以让模型在经过一定次数的迭代后停止，或者您可以告诉模型在达到一定的精确度后停止。因此，这些是你可以停止运行模型的其他方法。</p>
+
+<ol start="15">
+
+<li class="CDPAlignLeft CDPAlign">点击<strong>系综</strong>标签:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-648 image-border" src="img/c2e04487-ea0e-4bde-9a01-e982a92c0050.png" style="width:39.00em;height:29.50em;"/></p>
+
+<p style="padding-left: 60px">此选项使我们能够构建一个模型的多个版本；让我们保持默认值。</p>
+
+<ol start="16">
+
+<li class="CDPAlignLeft CDPAlign">转到<strong>高级</strong>选项卡:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-647 image-border" src="img/b3d0bf86-3b5a-48e5-8460-6fa00ba71686.png" style="width:34.50em;height:27.58em;"/></p>
+
+<p style="padding-left: 60px">我们知道，如果让神经网络运行足够长的时间，它们最终会学习数据中的模式。这可能是一个不受欢迎的功能，因为我们不想利用机会，因此我们希望保留一些数据，并且我们可以使用此选项设置每次迭代要保留的数据值-在这种情况下，训练数据集的<kbd>30.0</kbd>在每次迭代中从训练数据集保留。</p>
+
+<p style="padding-left: 60px">关于随机种子，正如我们所知，我们将多次运行我们的模型(我们找到全局解，而不是陷入次优解)，我们可以生成随机种子。每次你点击生成按钮，你会得到一个不同的随机种子(或起点)。<br/></p>
+
+<p style="padding-left: 60px"/>
+
+<p style="padding-left: 60px">此外，神经网络不会在缺少值的情况下运行；他们需要完整的数据，您可以使用<strong>高级</strong>选项卡<strong>预测器中的缺失值</strong>选项选择需要对缺失值做什么:</p>
+
+<ul>
+
+<li style="list-style-type: none">
+
+ 
+
+</li>
+
+</ul>
+
+<ol start="17">
+
+<li>转到<strong>型号选项</strong>选项卡:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-62 image-border" src="img/f16fd42f-6aa3-44e7-963e-8765dec261c2.png" style="width:36.17em;height:37.83em;"/></p>
+
+<p style="padding-left: 60px">模型会自动给出或计算预测值的重要性。这将让您知道模型中哪些字段是最重要的。就模型将提供的内容而言，它将提供一个预测，并且它还将提供对该预测分数的置信度。通常，您应该看到预测值的概率；那是最有用的。</p>
+
+<p style="padding-left: 60px">你也可以要求从下一个最有可能的结果预测的类别中获得概率的增加。如果你愿意，你也可以得到所有不同类别的分类目标的预测概率。</p>
+
+<p style="padding-left: 60px">倾向分数最终非常有用，我们稍后会讨论它们。</p>
+
+<ol start="18">
+
+<li>点击<strong>运行</strong>运行模型。现在模型已经建立:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-649 image-border" src="img/262594be-f964-4948-b5b2-f75c0cd660cd.png" style="width:39.00em;height:27.33em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign">让我们看看我们发现了什么。</p>
+
+<p class="mce-root"/>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Interpreting results</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">解释结果</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p class="mce-root">要查看结果，单击<strong>状态</strong>生成的模型，该模型是在模型构建后自动添加的。</p>
+
+<p>测试数据集需要以下观察。我们来详细了解一下:</p>
+
+<ol>
+
+<li>你会看到一个<strong>型号摘要</strong>:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-650 image-border" src="img/a7d9e613-c434-4d7e-8848-055abe5eedbc.png" style="width:42.42em;height:37.17em;"/></p>
+
+<p class="mce-root"/>
+
+<p class="CDPAlignLeft CDPAlign" style="padding-left: 60px">你可以看到我们的目标是什么；我们知道，我们运行了一个多层感知器模型，然后它给出了为什么模型停止的信息，你可以看到它停止了，因为误差不能进一步减少。基本上，这意味着模型不再改进，我们有一个隐藏层，这个隐藏层有七个神经元。我们还可以看到，在训练数据集上，整体准确率约为<strong> 79% </strong>。<br/></p>
+
+<ol start="2">
+
+<li>点击右侧的下一个选项卡，即<strong>预测值重要性</strong>选项卡:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-651 image-border" src="img/2bf865bc-81a4-4a3a-98dc-12824b0113e2.png" style="width:46.33em;height:40.67em;"/></p>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+<p style="padding-left: 60px">这为您提供了关于预测器重要性的信息。因此，您可以观察哪些预测因子是最重要的，并且对预测有很大的贡献。这显示了最重要的预测因素。在我们的例子中，<strong>扬声器</strong>预测器名列榜首。要了解更多预测因素的重要性，您只需向左拖动标尺即可。</p>
+
+<ol start="3">
+
+<li><strong>状态分类</strong>是我们的下一个观察:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-652 image-border" src="img/4edfc538-96d7-40ed-b6db-7a7ae5e0d034.png" style="width:47.17em;height:41.17em;"/></p>
+
+<p class="mce-root"/>
+
+<p style="padding-left: 60px">在这里，我们可以看到我们对训练数据集中两组中的每一组的预测有多准确；请注意正确预测的总百分比。您甚至可以从底部的<strong>样式</strong>选项卡切换到细胞计数视图。</p>
+
+<ol start="4">
+
+<li>让我们再往下一点，单击下一个选项卡:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-499 image-border" src="img/2562f170-3aa6-4a33-bd08-7d3ffebad538.png" style="width:45.00em;height:41.42em;"/></p>
+
+<p style="padding-left: 60px">这向我们展示了实际的神经网络模型。我们预测的是可变状态；我们有一个隐藏层，这个隐藏层有七个神经元，这就是我们在这里看到的。你可以看到每一个预测者和隐藏层神经元之间的联系。</p>
+
+<p style="padding-left: 60px">您还可以将<strong>风格</strong>从<strong>效果</strong>切换到<strong>系数</strong>:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-653 image-border" src="img/111fa051-8e9e-41c8-a1a5-122de468bfc4.png" style="width:52.58em;height:48.17em;"/></p>
+
+<p style="padding-left: 60px">线越粗，预测因子在方程中就越重要，你甚至可以看到系数。</p>
+
+<ol start="5">
+
+<li>单击最后一个图标，获取以下信息:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-654 image-border" src="img/6d271bc8-456c-4e81-be3b-c8bfef4ef586.png" style="width:47.50em;height:43.33em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign" style="padding-left: 60px">这只是给了我们关于哪个领域是我们的目标，哪个领域是我们的预测者的信息。</p>
+
+<p style="padding-left: 60px">关闭窗口，现在我们将看到有关我们的训练数据集的信息。为此，将我们拥有的模型连接到<strong>表</strong>图标:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-502 image-border" src="img/7ef1c7ba-b8b0-4988-a473-64aa73f4a78f.png" style="width:67.67em;height:52.75em;"/></p>
+
+<p style="padding-left: 60px">您可以运行表节点:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-657 image-border" src="img/64661ed0-dfa9-48fe-b6fc-4acfee1cee29.png" style="width:60.75em;height:41.33em;"/></p>
+
+<p>这里，您将有两个新字段，<strong> $N-Status </strong>，预测字段，和<strong> $NC-Status </strong>，该预测的置信度。这里，我们有用于训练的数据以及测试数据集。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Analyzing the accuracy of the model</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">分析模型的准确性</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>我们来分析一下模型的准确性:</p>
+
+<ol>
+
+<li>为了检查整体模型的准确性，转到<strong>输出</strong>调色板，将您的模型连接到<strong>分析</strong>节点:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-658 image-border" src="img/3a0be592-d179-4525-8f3e-fdb7548d2232.png" style="width:106.00em;height:69.92em;"/></p>
+
+<ol start="2">
+
+<li>点击<strong>一个</strong>一个<strong>分析</strong>节点，查看<strong>符合矩阵(针对符号目标)</strong>:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-659 image-border" src="img/3e13b0a0-93f7-4443-adbb-473f407e7196.png" style="width:32.92em;height:36.92em;"/></p>
+
+<p style="padding-left: 60px"><strong>符合矩阵(对于符号目标)</strong>被检查，以在模型的精确程度方面给我们提供额外的信息。</p>
+
+<ol start="3">
+
+<li>点击<strong>运行</strong>，您可以看到训练和测试数据集中的整体准确性:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-661 image-border" src="img/7f5ae29c-afe6-4b87-82f6-7aa85d3f8adb.png" style="width:33.67em;height:26.75em;"/></p>
+
+<p>请记住，我们之前在查看模型摘要时已经看到了相同的准确性结果，大约为79%。与训练数据集相比，测试数据集的准确性略有下降，但这应该没多大关系。对于足够可靠的模型来说，两个数据集的精确度之间的差异可以在5%以内。</p>
+
+<p>因此，我们的训练和测试数据非常相似，这意味着我们已经建立了一个一致和可靠的模型，我们可以信任！</p>
+
+<p>如果您查看分析的$N-Status 部分的<strong xmlns:epub="http://www.idpf.org/2007/ops">置信度矩阵，您可以看到，在训练数据集中，我们正确预测了<strong xmlns:epub="http://www.idpf.org/2007/ops"> 790 </strong>人是被<strong xmlns:epub="http://www.idpf.org/2007/ops">搅动的</strong>人和<strong xmlns:epub="http://www.idpf.org/2007/ops"> 1，146 </strong>人是当前客户。在测试数据集中，我们正确地预测出了745名<strong xmlns:epub="http://www.idpf.org/2007/ops">客户和1231名</strong>客户。</strong></p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Model performance on testing partition</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">在测试分区上模拟性能</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>由于我们将多次运行神经网络模型，因此创建两个表来显示发现的内容是一个好主意:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-662 image-border" src="img/e87496ed-bddf-4a4b-bd8e-5ab6a9dc266a.png" style="width:28.50em;height:2.67em;"/></p>
+
+<p>您还可以根据您在模型中使用的种子创建前10个预测值的表:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-663 image-border" src="img/9487f71f-b03c-4fb5-84b1-34d0b050193a.png" style="width:9.08em;height:14.92em;"/></p>
+
+<p class="mce-root">要评估您的模型的性能，您可以像我们到目前为止所做的那样多次重新运行模型，并在每次运行时检查模型的准确性。你甚至可以用不同的种子和不同的起点来运行它。因此，得到的结果会略有不同，但相当相似。如您所知，我们多次重新运行模型，以找到可能的最佳解决方案。</p>
+
+<p>要检查结果的一致性，您可以在每次重新运行模型时以这种方式继续展开模型性能表:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-664 image-border" src="img/de529e94-4429-4fbb-8bf1-f6768178338f.png" style="width:25.75em;height:7.42em;"/></p>
+
+<p>在这些模型中，你可以选择最有意义的模型。例如，如您所见，种子为5000的最后一个条目具有最高的整体准确性。它在预测客户流失方面的准确率也是最高的。但它在预测当前客户方面的准确率最低。因此，您可以确定哪个解决方案对您最重要，并相应地选择您的最佳模式。</p>
+
+<p>每次重新运行的前10个预测值也会随着结果的细微变化而变化。您可以在每次运行模型时记录前10个预测值，并展开您之前创建的前10个预测值表:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-627 image-border" src="img/c712f3c3-6aa1-4248-a4b3-5585480e7b9f.png" style="width:43.33em;height:14.58em;"/></p>
+
+<p>正如您所看到的，许多预测器仍然是最重要的，例如首要预测器，而有些预测器只出现一次或两次，例如，<strong>雇员数量</strong>预测器。这些带有前10个预测值列表的表格也可以帮助您选择您需要的模型。您还可以使用此信息创建新版本的模型，其中您不想使用最初使用的预测值，而只想使用出现在前十名中最常见的预测值或出现在前十名中的任何预测值。</p>
+
+<p>因为我们已经在减少预测因子的数量，这不仅会简化对模型的理解，而且最终会创建一个比某些情况下更简单的模型，这实际上可以更准确，因为你消除了其他一些预测因子可能带来的额外噪声。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Support Vector Machines</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">支持向量机</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p><strong>支持向量机</strong> ( <strong>支持向量机</strong>)模型是为了预测分类和连续结果而建立的，当你有许多预测因素时，它尤其有用。它们是为难以预测的情况而开发的，在这种情况下，线性模型无法区分结果领域的类别。他们也像黑匣子一样工作，隐藏他们预测结果的复杂工作。让我们深入了解支持向量机是如何工作的。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Working with Support Vector Machines</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">使用支持向量机</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>例如，假设有一种数据不能用单线分隔，如下图所示:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-665 image-border" src="img/e346474e-c64a-418f-90a0-1627031e37fe.png" style="width:21.75em;height:16.42em;"/></p>
+
+<p>将这些形状视为不同类型的数据。正如你所看到的，我们不能仅仅通过在它们之间画一条线来分离一组数据。但是，如果画一条复杂的曲线，比如一个圆，而不是一条直线，就像图中那样，同样的微分工作可以很容易地完成。</p>
+
+<p>SVM的主要任务是将原始数据从这个复杂的空间转换到另一个空间，在这个空间中，分离数据点的函数要简单得多。这个任务被称为<strong>内核转换</strong>。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Kernel transformation</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">内核变换</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p><strong>内核函数</strong>是一个转换数据的数学函数。之所以称之为<strong> SVM </strong>是因为向量形成了不同数据组之间的边界，如下图所示:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-666 image-border" src="img/ff159c75-3537-4b39-946d-71e10bf54976.png" style="width:21.58em;height:16.33em;"/></p>
+
+<p>因此，我们把圆圈放在下面，正方形放在上面，边界就是矢量。这些矢量边界将两个群体分开。向量就像是群体之间的边界。</p>
+
+<p>因此，在这一点上，我们可以有几种解决方案:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-667 image-border" src="img/e79c6d30-37ee-4360-8550-06d2ea8b8289.png" style="width:21.17em;height:16.00em;"/></p>
+
+<p>这表明我们不再需要圆形或复杂的曲线来分隔各组数据。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>But what is the best solution?</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">但是什么是最好的解决方案呢？</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>我们最终需要找到最佳解决方案。最佳解决方案将是最大化组之间的分离，同时平衡对新数据可能过度拟合函数的折衷。这一新数据包含一个权重因子或正则化因子，该因子向函数添加了一个惩罚，以最大化矢量之间的差值，同时最小化误差，如下图所示:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-668 image-border" src="img/b03c20aa-d4e3-4339-b14a-8c1cf6e0c782.png" style="width:24.75em;height:18.75em;"/></p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Types of kernel functions</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">核函数的类型</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在<strong> SPSS Modeler </strong>中，有四种不同类型的内核函数:</p>
+
+<ul>
+
+<li><strong>线性</strong>:一个简单的函数，很少出现非线性关系</li>
+
+<li><strong>多项式</strong>:更复杂的函数，适用于一些非线性关系</li>
+
+<li><strong> RBF(径向基函数)</strong>:类似于RNN神经网络，能很好地处理非线性关系</li>
+
+<li><strong> Sigmoid </strong>:类似于两层神经网络，能很好地处理非线性关系</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Demonstrating SVMs</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">演示支持向量机</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在这一部分，我们将运行一个SVM模型，看看它是如何工作的。</p>
+
+<p>首先，按照处理神经网络的方式获取数据集，将数据集划分为训练和测试数据集，并创建如下场景:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-669 image-border" src="img/b74f1a49-9340-4bc8-ba4b-79a31b864424.png" style="width:51.42em;height:31.00em;"/></p>
+
+<p>让我们看看如何运行支持向量机:</p>
+
+<ol>
+
+<li>转到<strong>建模</strong>面板，将分区节点连接到<strong> SVM </strong>:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-670 image-border" src="img/745cb57d-3b91-4c9d-be9d-b3d023c729b6.png" style="width:56.00em;height:37.17em;"/></p>
+
+<ol start="2">
+
+<li>进入<strong>专家</strong>选项卡，在<strong>模式</strong>中选择<strong>专家</strong>选项。请记住，无论何时运行<strong> SVM </strong>模型，都必须始终在<strong>专家</strong>模式下运行，因为这是一个需要根据模型状态不断更改默认值的模型。<strong>专家</strong>模式将使我们能够在需要时轻松更改数值:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-218 image-border" src="img/de507e6a-245e-4529-bdb2-e7ef597d2704.png" style="width:36.50em;height:29.17em;"/></p>
+
+<p style="padding-left: 60px">让我们详细讨论这些选项:</p>
+
+<ul>
+
+<li style="list-style-type: none">
+
+ 
+
+</li>
+
+</ul>
+
+<p style="padding-left: 60px">以下是我们为<strong>专家</strong>选项卡选择的值的汇总:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img src="img/54e27845-827c-45e3-ac63-6777689f6adf.png" style="width:32.42em;height:27.33em;"/></p>
+
+<ol start="3">
+
+<li class="CDPAlignLeft CDPAlign">点击<strong>分析</strong>选项卡。让我们看看该选项卡包括哪些内容:</li>
+
+</ol>
+
+<ul>
+
+<li style="list-style-type: none">
+
+ 
+
+</li>
+
+</ul>
+
+<ol start="4">
+
+<li>点击<strong>运行</strong>。你会看到一个这样的模型:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-672 image-border" src="img/9af08443-8017-417e-937b-1caec8688866.png" style="width:106.92em;height:56.17em;"/></p>
+
+<ol start="5">
+
+<li class="CDPAlignLeft CDPAlign">现在，将生成的模型连接到表中以查看结果:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-673 image-border" src="img/baab8f4d-b79a-4ccb-a25a-ce30d5a4edfb.png" style="width:106.58em;height:56.08em;"/></p>
+
+<p class="mce-root"/>
+
+<ol start="6">
+
+<li>点击<strong>工作台</strong>，然后点击<strong>运行</strong>。如果您滚动到末尾，您将在<strong>$ S-状态</strong>和<strong>$ SP-状态</strong>下找到预测:</li>
+
+</ol>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-674 image-border" src="img/59c06026-fa7e-455e-952b-e83ee8a79ebd.png" style="width:55.58em;height:37.83em;"/></p>
+
+<p class="CDPAlignLeft CDPAlign" style="padding-left: 60px">您还可以看到，我们已经获得了训练数据集和测试数据集的结果，尽管模型是基于测试数据集构建的。</p>
+
+<ol start="7">
+
+<li>现在，您可以关闭表格窗口，并单击模型<strong>状态</strong>，以检查汇总和模型设置。点击<strong>确定</strong>。</li>
+
+</ol>
+
+<p>该模型目前就像一个黑匣子。我们不知道我们是如何得到结果的，也不知道它是如何预测值的。让我们找出答案。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Interpreting the results</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">解释结果</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>正如我们对神经网络模型所做的那样，我们将检查我们已经建立的模型的准确性。为此，选择<strong>状态</strong>并转到<strong>输出</strong>调色板并选择<strong>分析</strong>:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-675 image-border" src="img/27dd6ef2-3b19-49c0-ae31-371b2982c0a6.png" style="width:55.75em;height:38.75em;"/></p>
+
+<p class="mce-root"/>
+
+<p>点击<strong>分析</strong>，如同我们之前对神经网络所做的一样，点击<strong>符合矩阵(用于符号目标)</strong>并点击<strong>运行</strong>；你会得到这个:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-676 image-border" src="img/0872da9a-0377-41d2-a31c-244f0b091d70.png" style="width:36.92em;height:30.33em;"/></p>
+
+<p>因此，目前我们有一个非常一致的模型！</p>
+
+<p>同样，让我们将结果记录在一个表格中，如下所示:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-677 image-border" src="img/982a2560-30ea-40b4-9d6e-9a21303682b0.png" style="width:38.25em;height:2.83em;"/></p>
+
+<p>如您所见，除了为神经网络制作的表格之外，我们还使用了一种模型，甚至还使用了正则化参数值。我们得到了一个非常一致的模型，使用核变换类型为线性，正则化参数值设置为<strong> 5 </strong>。但这也意味着我们可以尝试正则化参数的一个稍好的值，看看我们是否可以获得更好的解决方案。让我们继续寻找更好的解决方案。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Trying additional solutions</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">尝试其他解决方案</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>回到<strong> SVM </strong>型号、<strong>状态</strong>，点击<strong>专家</strong>标签。您可以将正则化参数更改为更高的值，因为模型在<kbd>5</kbd>是一致的；把这当成一次练习。但是，取而代之的是，我们将把下一次运行的<strong>内核类型</strong>改为最复杂的<strong> Sigmoid </strong>类型。不建议改变<strong>偏置</strong>值。但是，您可以更改<strong> Gamma </strong>以获得更好的结果，并且您可以在以后对这些值进行实验。现在，我们将保持默认设置，并点击<strong>运行</strong>:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-515 image-border" src="img/3dc04c94-1591-4578-a094-ba78f1aff532.png" style="width:36.42em;height:30.42em;"/></p>
+
+<p>点击<strong>分析</strong>选项卡，然后点击<strong>运行</strong>。这是我们的结果:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-678 image-border" src="img/49d9a7a6-c3f3-469a-9a1b-3f8f6d47bee5.png" style="width:35.67em;height:29.67em;"/></p>
+
+<p>该模型是一致的，但正如你所看到的，准确率明显低于我们在线性模型中发现的。因此，与线性模型相比，这个模型并没有做得更好。这意味着乙状结肠型不好用。</p>
+
+<p>这使我们得出结论，最适合我们数据集的核变换类型是最简单的线性变换。因为数据也没有那么复杂。但是，您必须多次重新运行模型来验证您的结果。</p>
+
+<p>以下是我对模型的分析:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-679 image-border" src="img/bfa784d9-3657-49f2-bf82-b78310c8b1cd.png" style="width:34.33em;height:6.42em;"/></p>
+
+<p>现在，您可以看到对于每个预测器，哪种类型的核变换以何种方式起作用。您可以选择对您重要的预测值，并将其作为最佳模型。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Summary</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">摘要</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在本章中，我们看到了如何使用神经网络模型。然后我们继续讨论SVM模型，演示SVM是如何工作的。我们已经看到了如何处理不同类型的内核转换。</p>
+
+<p>在下一章，我们将更详细地研究机器学习模型。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html></body></html>

@@ -1,0 +1,1022 @@
+<html><head/><body><html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Introducing Machine Learning Predictive Models</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">引入机器学习预测模型</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>很大比例的数据挖掘机会涉及机器学习，这些机会往往伴随着更大的经济回报。本章将为您提供将机器学习的力量引入数据挖掘工作所需的基础知识。在这一章中，我们将讨论机器学习模型的特征，并查看这些模型的一些示例。</p>
+
+<p>以下是我们将在本章中涉及的主题:</p>
+
+<ul>
+
+<li>机器学习预测模型的特征</li>
+
+<li>机器学习预测模型的类型</li>
+
+<li>使用神经网络</li>
+
+<li>一个样本神经网络模型</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Characteristics of machine learning predictive models</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">机器学习预测模型的特征</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>了解机器学习预测模型的特征将有助于您了解与任何统计或决策树模型相比的优势和局限性。</p>
+
+<p>让我们来了解一下机器学习中预测模型的一些特征:</p>
+
+<ul>
+
+<li><strong>优化学习复杂模式</strong>:机器学习模型被设计为优化学习复杂模式。与统计模型或决策树模型相比，当您的数据中有非常复杂的模式时，预测模型会非常出色。</li>
+
+<li><strong>考虑交互和非线性关系</strong>:机器学习预测模型可以比决策树模型更好地考虑数据中的交互和非线性关系。</li>
+
+<li><strong>假设很少</strong>:这些模型很强大，因为它们的假设很少。它们也可以用于不同类型的数据。</li>
+
+<li><strong>黑盒模型的解释不简单</strong>:预测模型是黑盒模型，这是预测机器学习模型的缺点之一，因为这意味着解释不简单。这意味着，如果我们最终建立了许多不同的方程并将它们组合起来，就很难准确地看到这些变量中的每一个是如何相互作用并影响输出变量的。因此，当谈到预测准确性时，预测机器学习模型是很好的，但对于理解预测背后的机制来说，它们不是那么好。</li>
+
+</ul>
+
+<p>如果你想预测什么，这些模型做得相当好，并且有惊人的准确性。但是，如果你想知道为什么会预测某个东西，如果你希望在实现中做一些改变，这样你就不会得到一个特定的预测，那么就很难破译。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Types of machine learning predictive models</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">机器学习预测模型的类型</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>以下是一些不同类型的机器学习预测模型:</p>
+
+<ul>
+
+<li>神经网络</li>
+
+<li>支持向量机</li>
+
+<li>随机森林</li>
+
+<li>朴素贝叶斯算法</li>
+
+<li>梯度推进算法</li>
+
+<li>k-最近邻</li>
+
+<li>自学习响应模型</li>
+
+</ul>
+
+<p>我们不会涵盖所有这些，但我们将重点关注一个非常有趣的模型——神经网络。在下面的章节中，我们将深入了解什么是神经网络。</p>
+
+<p class="mce-root"/>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Working with neural networks</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">使用神经网络</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>神经网络最初是为了理解大脑如何运作而开发的。最初用于神经科学和语言学领域。</p>
+
+<p class="mce-root">在这些领域中，研究人员注意到环境中发生了一些事情(输入)，个体对信息进行处理(在大脑中)，然后以某种方式做出反应(输出)。</p>
+
+<p>所以，神经网络背后的想法是，它们将充当大脑，就像一个黑匣子。然后，我们必须努力弄清楚发生了什么，以便能够应用这些发现。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Advantages of neural networks</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">神经网络的优势</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>以下是使用神经网络的优点:</p>
+
+<ul>
+
+<li>适用于多种类型的问题:它们可以很好地解决你可能遇到的大多数复杂问题。</li>
+
+<li><strong>他们概括得很好</strong>:准确的概括是一个很重要的特点。</li>
+
+<li><strong>它们非常常见</strong>:神经网络在当今世界已经变得非常普遍，它们很容易被接受并用于解决现实世界的问题。</li>
+
+<li><strong>对它们的了解很多</strong>:由于神经网络的普及，很多研究正在不同领域成功地进行和实施，因此有很多关于神经网络的信息。</li>
+
+<li><strong>适用于非聚类数据</strong>:当你有非聚类数据时，神经网络可以用在几种情况下，比如数据本身非常复杂的地方，你有很多交互的地方，或者你有非线性关系的地方；对于这种情况，神经网络无疑是非常强大和非常稳健的解决方案。</li>
+
+</ul>
+
+<p class="mce-root"/>
+
+<p class="mce-root"/>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Disadvantages of neural networks</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">神经网络的缺点</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>好的模型是以一些缺点为代价的:</p>
+
+<ul>
+
+<li><strong>它们需要时间来训练</strong>:神经网络确实需要很长时间来训练；它们通常比线性回归模型或决策树模型慢，因为这些模型基本上只传递一次数据，而使用神经网络，您实际上会经历许多许多次迭代。</li>
+
+<li><strong>不保证最佳解决方案</strong>:不保证你能找到最佳解决方案。这也意味着，除了通过多次迭代运行单个神经网络之外，您还需要使用不同的起点运行它多次，以便您可以尝试接近最佳解决方案。</li>
+
+<li>黑盒:正如我们之前讨论的，很难解释是什么给出了特定的输出以及如何给出的。</li>
+
+</ul>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Representing the errors</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">代表错误</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在构建我们的神经网络时，我们的实际目标是构建可能的最佳解决方案，而不是陷入次优方案。我们需要多次运行神经网络。</p>
+
+<p>以此误差图为例:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-616 image-border" src="img/d7429624-77cb-41e4-b447-0598c6c169c4.png" style="width:31.83em;height:17.17em;"/></p>
+
+<p class="mce-root"/>
+
+<p>这是一个描述不同解决方案中误差量的图表。<strong>全局解决方案</strong>是可能的最佳解决方案，并且确实是最优的。一个<strong>次优解决方案</strong>是一个终止、停滞、不再改进的解决方案，但它不是真正的最佳解决方案。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Types of neural network models</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">神经网络模型的类型</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>有不同类型的神经网络可供我们使用；在本节中，我们将深入了解这些问题。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Multi-layer perceptron</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">多层感知器</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>最常见的类型叫做<strong>多层感知器模型</strong>。这个神经网络模型由用圆圈表示的神经元组成，如下图所示。这些神经元被组织成层:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-617 image-border" src="img/5649117b-17a8-4dbe-ad61-8918f2eb2a4f.png" style="width:20.50em;height:19.00em;"/></p>
+
+<p class="mce-root"/>
+
+<p>每个多层感知器模型至少有三层:</p>
+
+<ul>
+
+<li><strong>输入层</strong>:该层由我们数据中的所有预测器组成。</li>
+
+<li><strong>输出层</strong>:由结果变量组成，也称为<strong>因变量</strong>或<strong>目标变量</strong>。</li>
+
+<li>隐藏层:这一层是你最大化神经网络能力的地方。在这一层还可以创建非线性关系，所有复杂的交互都在这里进行。你可以有许多这样的隐藏层。</li>
+
+</ul>
+
+<p>您还会注意到，在上图中，一个层中的每个神经元都与下一层中的每个神经元相连。这就形成了连接，每条连接线都会有一个与之相关的权重。这些权重将在模型中形成不同的方程。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Why are weights important?</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">为什么重量很重要？</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>重量很重要，原因有几个。首先，因为一层中的所有神经元都与下一层中的每个神经元相连，这意味着这些层是相连的。这也意味着一个神经网络模型，不像许多其他模型，不会丢弃任何预测器。例如，你可能从20个预测值开始，这20个预测值将被保留。权重之所以重要的第二个原因是它们提供了关于每个预测因子对预测的影响或重要性的信息。如稍后将示出的，这些权重开始时是随机的，然而通过多次迭代，权重被修改以提供有意义的信息。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>An example representation of a multilayer perceptron model</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">多层感知器模型的示例表示</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>这里，我们将看一个多层感知器模型的例子。我们将尝试根据个人的<strong>年龄</strong>、<strong>收入</strong>和<strong>性别</strong>来预测特定商品的潜在买家。</p>
+
+<p>例如，考虑以下情况:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-618 image-border" src="img/a77c97ce-86c8-48e4-9066-a2a68f23152c.png" style="width:20.17em;height:15.92em;"/></p>
+
+<p>如您所见，我们形成<strong>输入层</strong>的输入预测因子是<strong>年龄</strong>、<strong>收入</strong>和<strong>性别</strong>。构成我们<strong>输出层</strong>的结果变量是<strong>购买</strong>，它将决定某人是否购买了一件产品。有一个隐藏层，输入预测值最终在这里组合。</p>
+
+<p>为了更好地理解神经网络模型背后发生的事情，让我们来看看线性回归模型。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>The linear regression model</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">线性回归模型</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>让我们借助一个例子来理解线性回归模型。</p>
+
+<p>请考虑以下情况:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-619 image-border" src="img/64f2c33d-bbce-4d95-9ddd-45909ead45e5.png" style="width:20.67em;height:17.42em;"/></p>
+
+<p class="mce-root"/>
+
+<p>在线性回归中，<strong>输入层</strong>中的每个输入预测值都通过单个连接权重连接到结果字段，也称为<strong>系数</strong>，这些系数通过数据的单次传递进行估计。系数的数量将等于预测值的数量。这意味着每个预测值都有一个相关的系数。</p>
+
+<p>每个输入预测器都直接连接到目标<strong xmlns:epub="http://www.idpf.org/2007/ops">上，并以一个特定的系数作为其权重。因此，我们可以很容易地看到输入预测值的一个单位变化对结果变量或<strong xmlns:epub="http://www.idpf.org/2007/ops">目标</strong>的影响。这些类型的连接使得确定每个预测值对目标变量以及方程的影响变得容易。</strong></p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>A sample neural network model</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">一个样本神经网络模型</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>让我们用一个例子来更详细地理解神经网络:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-620 image-border" src="img/c4bba314-9ff5-4c34-bda5-d22ceb1a7350.png" style="width:19.50em;height:16.08em;"/></p>
+
+<p>注意<strong>输入层</strong>中的每个神经元都连接到<strong>隐藏层</strong>中的每个神经元，例如<strong>输入1 </strong>连接到<strong>隐藏层</strong>中的第一个、第二个甚至第三个神经元。这意味着将有三个不同的权重，并且这些权重将是三个不同等式的一部分。</p>
+
+<p>这是本例中发生的情况:</p>
+
+<ul>
+
+<li><strong>隐藏层</strong>介于<strong>输入层</strong>和<strong>输出层</strong>之间。</li>
+
+<li>隐藏层允许具有非线性关系的更复杂的模型。</li>
+
+<li>有许多方程，因此单个预测因子对结果变量的影响通过多种途径发生。</li>
+
+<li>对权重的解释不会简单明了。</li>
+
+<li>权重对应于变量重要性；它们最初将是随机的，然后它们将经历一系列不同的迭代，并将根据迭代的反馈而改变。然后，它们将具有与可变重要性相关联的真正意义。</li>
+
+</ul>
+
+<p>那么，让我们继续下去，看看这些权重是如何确定的，以及我们如何才能形成一个功能性的神经网络。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Feed-forward backpropagation</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">前馈反向传播</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p><strong>前馈反向传播</strong>是一种方法，通过这种方法，我们可以预测权重等事物，并最终预测神经网络的结果。</p>
+
+<p>根据这种方法，预测会出现以下迭代:</p>
+
+<ul>
+
+<li>如果一个预测是正确的，与之相关的权重就会加强。想象一下神经网络说，<em xmlns:epub="http://www.idpf.org/2007/ops"> H </em> <em xmlns:epub="http://www.idpf.org/2007/ops"> ey，你知道吗，我们用这个方程第一部分的权重0.75作为第一个预测器，我们得到了正确的预测；这可能是一个很好的起点。</em></li>
+
+<li class="CDPAlignLeft CDPAlign">假设预测不正确；误差被反馈或反向传播到模型中，以便修改权重或权重系数，如下所示:</li>
+
+</ul>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-621 image-border" src="img/90639680-c388-4e0a-abbd-2c2a9a9e2c1e.png" style="width:20.42em;height:16.75em;"/></p>
+
+<p class="mce-root"/>
+
+<p class="CDPAlignLeft CDPAlign" style="padding-left: 60px">这种反向传播不仅发生在<strong>隐藏层</strong>和<strong>目标层</strong>之间，还会发生在<strong>输入层</strong>:</p>
+
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-622 image-border" src="img/8b3fba01-e62b-46f8-ac89-f1eb0ea1c29a.png" style="width:24.00em;height:19.75em;"/></p>
+
+<p>当这些迭代发生时，我们实际上通过每次误差传播使我们的神经网络变得越来越好。现在，这种连接使得神经网络能够学习数据中的不同模式。</p>
+
+<p>因此，与任何线性回归或决策树模型不同，神经网络试图学习数据中的模式。如果有足够的时间来学习这些模式，神经网络结合其经验，可以更好地理解和预测，在很大程度上提高准确率。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Model training ethics</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">模范培训伦理</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>在训练神经网络模型时，不要用整个数据集来训练模型。出于测试目的，我们需要保留一些数据。这将允许我们测试神经网络是否能够将它从训练数据集学到的东西应用到新数据。</p>
+
+<p>我们希望神经网络能够很好地归纳新数据，并捕捉不同类型数据的共性，而不仅仅是使其成为特定样本的细微差别。相反，我们希望结果也能转换成新数据。模型定型后，可以使用模型的经验预测新数据。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html>
+<html xmlns:epub="http://www.idpf.org/2007/ops">
+
+    <head>
+
+        <title>Summary</title>
+
+        
+
+        <meta charset="utf-8"/>
+
+<meta content="urn:uuid:7534308b-ec57-4b8b-87c7-db0dbf92eb72" name="Adept.expected.resource"/>
+
+    </head>
+
+
+
+    <body>
+
+        
+
+
+
+                            
+
+                    <h1 class="header-title">摘要</h1>
+
+                
+
+            
+
+            
+
+                
+
+<p>我希望你现在清楚机器学习预测模型，并理解基本概念。在本章中，我们已经看到了机器学习预测模型的特征，并了解了一些不同的类型。这些概念是后续章节的踏脚石。我们还看了一个基本神经网络模型的例子。在下一章，我们将在一个数据集上实现一个活的神经网络，你也将被介绍到支持向量机及其实现。</p>
+
+
+
+
+
+            
+
+
+
+            
+
+        
+
+    </body>
+
+
+
+</html></body></html>

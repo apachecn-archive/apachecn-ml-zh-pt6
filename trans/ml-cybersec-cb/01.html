@@ -1,0 +1,1675 @@
+<html><head/><body>
+
+
+    
+        <title>Machine Learning for Cybersecurity</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">用于网络安全的机器学习</h1>
+                
+            
+            
+                
+<p>在这一章中，我们将讨论机器学习的基本技术。我们将在整本书中使用这些来解决有趣的网络安全问题。我们将涵盖基本算法，如聚类和梯度提升树，以及常见数据挑战的解决方案，如不平衡数据和假阳性约束。网络安全领域的机器学习从业者处于一个独特而令人兴奋的位置，可以在不断发展的环境中利用海量数据并创建解决方案。<br/></p>
+<p class="mce-root">本章包括以下配方:</p>
+<ul>
+<li>训练-测试-拆分您的数据</li>
+<li>标准化您的数据</li>
+<li>使用<strong>主成分分析</strong> ( <strong> PCA </strong>对大量数据进行汇总</li>
+<li>使用马尔可夫链生成文本</li>
+<li>使用scikit-learn执行聚类</li>
+<li>训练XGBoost分类器</li>
+<li>使用统计模型分析时间序列</li>
+<li>使用隔离林的异常检测</li>
+<li><strong>自然语言处理</strong> ( <strong> NLP </strong>)使用哈希矢量器和tf-idf与scikit-learn</li>
+<li>使用scikit-optimize进行超参数调谐</li>
+</ul>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Technical requirements</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">技术要求</h1>
+                
+            
+            
+                
+<p>在本章中，我们将使用以下内容:</p>
+<ul>
+<li>sci kit-学习</li>
+<li>马尔科维奇</li>
+<li>XGBoost</li>
+<li>统计模型</li>
+</ul>
+<p>安装说明和代码可以在<a href="https://github.com/PacktPublishing/Machine-Learning-for-Cybersecurity-Cookbook/tree/master/Chapter01">https://github . com/packt publishing/Machine-Learning-for-cyber security-Cookbook/tree/master/chapter 01</a>找到。<a href="https://github.com/emmanueltsukerman/MLforCSCookbook"> <br/> </a></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Train-test-splitting your data</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">训练-测试-拆分您的数据</h1>
+                
+            
+            
+                
+<p class="mce-root">在机器学习中，我们的目标是创建一个程序，它能够执行从未被明确教会执行的任务。我们这样做的方法是使用我们收集的数据来训练数学或统计模型。用于拟合模型的数据被称为<em>训练数据</em>。然后，生成的训练模型用于预测未来的、以前未见过的数据。通过这种方式，程序能够在没有人工干预的情况下管理新的情况。</p>
+<p class="mce-root">机器学习实践者面临的主要挑战之一是<em>过度拟合</em>的危险——创建一个在训练数据上表现良好的模型，但不能推广到新的、以前从未见过的数据。为了解决过度拟合的问题，机器学习实践者留出了一部分数据，称为<em>测试数据</em>，仅用于评估训练模型的性能，而不是将其作为训练数据集的一部分。这种对测试集的谨慎搁置是在网络安全中训练分类器的关键，在网络安全中，过度拟合是无处不在的危险。一个小的疏忽，比如只使用来自一个地区的良性数据，可能会导致一个糟糕的分类器。</p>
+<p>还有各种其他方法来验证模型性能，例如交叉验证。为简单起见，我们将主要关注列车测试拆分。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>该菜谱的准备工作包括在<kbd>pip</kbd>中安装scikit-learn和<kbd>pandas</kbd>包。执行此操作的命令如下:</p>
+</div>
+<div><pre><strong>pip install sklearn pandas</strong></pre></div>
+</div>
+</div>
+</div>
+<p>此外，我们还包括了在这个食谱中使用的<kbd>north_korea_missile_test_database.csv</kbd>数据集。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p>以下步骤演示了如何获取一个由特征<kbd>X</kbd>和标签<kbd>y</kbd>组成的数据集，并将它们分成一个训练和测试子集:</p>
+<ol>
+<li>首先导入<kbd>train_test_split</kbd>模块和<kbd>pandas</kbd>库，将您的特征读入<kbd>X</kbd>并将标签读入<kbd>y</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px" class="CDPAlignLeft CDPAlign">from sklearn.model_selection import train_test_split<br/>import pandas as pd<br/><br/>df = pd.read_csv("north_korea_missile_test_database.csv")<br/>y = df["Missile Name"]<br/>X = df.drop("Missile Name", axis=1)</pre>
+<ol start="2">
+<li>接下来，将数据集及其标签随机分为一个由原始数据集大小的80%组成的训练集和一个由原始数据集大小的20%组成的测试集:</li>
+</ol>
+<pre style="padding-left: 60px">X_train, X_test, y_train, y_test = train_test_split(<br/>    X, y, test_size=0.2, random_state=31<br/>)</pre>
+<ol start="3">
+<li>我们再次应用<kbd>train_test_split</kbd>方法，以获得验证集<kbd>X_val</kbd>和<kbd>y_val</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px">X_train, X_val, y_train, y_val = train_test_split(<br/>    X_train, y_train, test_size=0.25, random_state=31<br/>)</pre>
+<ol start="4">
+<li>我们最终得到的训练集是原始数据大小的60%，验证集是20%，测试集是20%。</li>
+</ol>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p style="padding-left: 60px">以下屏幕截图显示了输出:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1059 image-border" src="img/e07b58f8-015b-4ff0-b98f-3ada859d0136.png" style="width:17.75em;height:10.33em;"/></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的...</h1>
+                
+            
+            
+                
+<p>我们从读取数据集开始，数据集包括朝鲜历史上和正在进行的导弹实验。我们的目标是根据剩余的特征来预测导弹的类型，例如设施和发射时间。步骤1到此结束。在步骤2中，我们应用scikit-learn的<kbd>train_test_split</kbd>方法将<kbd>X</kbd>和<kbd>y</kbd>细分为一个训练集<kbd>X_train</kbd>和<kbd>y_train</kbd>，以及一个测试集<kbd>X_test</kbd>和<kbd>y_test</kbd>。<kbd>test_size = 0.2</kbd>参数意味着测试集由20%的原始数据组成，而剩余部分放在训练集中。<kbd>random_state</kbd>参数允许我们重现相同的<em>随机生成的</em>分割。接下来，关于步骤3，重要的是要注意，在应用中，我们经常想要比较几个不同的模型。使用测试集来选择最佳模型的危险在于，我们可能会过度适应测试集。这类似于数据钓鱼的统计学罪过。为了应对这种危险，我们创建了一个额外的数据集，称为验证集。我们在训练集上训练我们的模型，使用验证集来比较它们，最后使用测试集来获得我们选择的模型的性能的准确指标。因此，在步骤3中，我们选择我们的参数，以便从数学上讲，最终结果由原始数据集的60%的训练集、20%的验证集和20%的测试集组成。最后，我们通过使用<kbd>len</kbd>函数来计算数组的长度，从而再次检查我们的假设(步骤4)。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Standardizing your data</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">标准化您的数据</h1>
+                
+            
+            
+                
+<p>对于许多机器学习算法来说，性能对特征的相对规模高度敏感。出于这个原因，标准化你的特征通常是很重要的。标准化一个特征意味着移动它的所有值，使它们的平均值= 0，并缩放它们，使它们的方差= 1。</p>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p>规格化有用的一个例子是在文件的PE头中。PE头包含非常大的值(例如，<kbd>SizeOfInitializedData</kbd>字段)和非常小的值(例如，段的数量)。对于某些最大似然模型，如神经网络，特征之间的巨大差异会降低性能。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>该配方的准备工作包括在<kbd>pip</kbd>中安装<kbd>scikit-learn</kbd>和<kbd>pandas</kbd>包。执行以下步骤:</p>
+</div>
+<div><pre><strong>pip install sklearn pandas</strong></pre>
+<p>此外，您将在这个食谱的存储库中找到一个名为<kbd>file_pe_headers.csv</kbd>的数据集。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p>在以下步骤中，我们利用scikit-learn的<kbd>StandardScaler</kbd>方法来标准化我们的数据:</p>
+<ol>
+<li>首先导入所需的库并收集数据集，<kbd>X</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px">import pandas as pd<br/><br/>data = pd.read_csv("file_pe_headers.csv", sep=",")<br/>X = data.drop(["Name", "Malware"], axis=1).to_numpy()</pre>
+<p style="padding-left: 60px">数据集<kbd>X</kbd>如下所示:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1060 image-border" src="img/dd02cfd2-e3d5-411d-9192-89815651d799.png" style="width:31.42em;height:12.67em;"/></p>
+<ol start="2">
+<li>接下来，使用一个<kbd>StandardScaler</kbd>实例标准化<kbd>X</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn.preprocessing import StandardScaler<br/><br/>X_standardized = StandardScaler().fit_transform(X)</pre>
+<p style="padding-left: 60px" class="CDPAlignLeft CDPAlign">标准化数据集如下所示:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1061 image-border" src="img/d70b9c6a-48d9-459c-bb08-8f2c50afc2cf.png" style="width:35.25em;height:14.08em;"/></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的...</h1>
+                
+            
+            
+                
+<p>我们从读入数据集开始(步骤1)，数据集由PE文件集合的PE头信息组成。这些差异很大，一些列达到几十万个文件，而其他列停留在个位数。因此，某些模型(如神经网络)在这种非标准化数据上表现不佳。在第2步中，我们实例化<kbd>StandardScaler()</kbd>，然后使用<kbd>.fit_transform(X)</kbd>应用它来重新缩放<kbd>X</kbd>。因此，我们获得了一个重新调整的数据集，其列(对应于要素)的平均值为0，方差为1。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Summarizing large data using principal component analysis</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">使用主成分分析汇总大量数据</h1>
+                
+            
+            
+                
+<p>假设你想为一个人在45岁时的预期财政净值建立一个预测器。有大量的变量需要考虑:智商、当前的财政价值、婚姻状况、身高、地理位置、健康、教育、职业状态、年龄以及你可能想到的许多其他变量，如LinkedIn连接数或SAT分数。</p>
+<p class="mce-root">拥有这么多特性的麻烦是多方面的。首先是数据量，这将为你的算法带来很高的存储成本和计算时间。第二，对于大的特征空间，具有大量数据对于模型的准确性是至关重要的。也就是说，区分信号和噪音变得更加困难。由于这些原因，当处理这样的高维数据时，我们经常使用降维技术，如PCA。关于这个话题的更多信息可以在<a href="https://en.wikipedia.org/wiki/Principal_component_analysis">https://en.wikipedia.org/wiki/Principal_component_analysis</a>找到。</p>
+<p class="mce-root">主成分分析允许我们利用我们的特征并返回少量的新特征，这些新特征由我们的原始特征形成，具有最大的解释能力。此外，由于新功能是旧功能的线性组合，这允许我们匿名化我们的数据，例如，这在处理金融信息时非常方便。</p>
+<p>做好准备</p>
+<p>该菜谱的准备工作包括在<kbd>pip</kbd>中安装scikit-learn和<kbd>pandas</kbd>包。执行此操作的命令如下:</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">此外，我们将使用与上一个配方相同的数据集<kbd>malware_pe_headers.csv</kbd>。</h1>
+                
+            
+            
+                
+<div><div><div><div><p>怎么做...</p>
+</div>
+<div><pre><strong>pip install sklearn pandas</strong></pre>
+<p>在本节中，我们将介绍如何对数据使用PCA:</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">首先导入必要的库并读入数据集:</h1>
+                
+            
+            
+                
+<p>标准化数据集，这在应用PCA之前是必要的:</p>
+<ol>
+<li>实例化一个<kbd>PCA</kbd>实例，并使用它来降低数据的维度:</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn.decomposition import PCA<br/>import pandas as pd<br/><br/>data = pd.read_csv("file_pe_headers.csv", sep=",")<br/>X = data.drop(["Name", "Malware"], axis=1).to_numpy()</pre>
+<ol start="2">
+<li>评估降维的有效性:</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn.preprocessing import StandardScaler<br/><br/>X_standardized = StandardScaler().fit_transform(X)</pre>
+<ol start="3">
+<li>以下屏幕截图显示了输出:</li>
+</ol>
+<pre style="padding-left: 60px">pca = PCA()<br/>pca.fit_transform(X_standardized)</pre>
+<ol start="4">
+<li><img class="alignnone size-full wp-image-1062 image-border" src="img/31a84424-30b5-4159-83a6-ee81ae91fccb.png" style="width:37.08em;height:25.00em;"/></li>
+</ol>
+<pre style="padding-left: 60px">print(pca.explained_variance_ratio_)</pre>
+<p style="padding-left: 60px">The following screenshot shows the output:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1062 image-border" src="img/31a84424-30b5-4159-83a6-ee81ae91fccb.png" style="width:37.08em;height:25.00em;"/></p>
+<p class="mce-root">它是如何工作的...</p>
+<p class="mce-root">我们首先读入数据集，然后将其标准化，就像标准化数据的方法一样(步骤1和2)。(在应用PCA之前，有必要使用标准化数据)。我们现在实例化一个新的PCA transformer实例，并使用它来学习转换(fit)和应用转换到数据集，使用<kbd>fit_transform</kbd>(步骤3)。在第4步中，我们分析我们的转换。特别要注意的是，<kbd>pca.explained_variance_ratio_</kbd>的元素表示在每个方向上有多少差异。总和为1，表明如果我们考虑数据所在的完整空间，所有的差异都被考虑在内。然而，仅仅通过采取前几个方向，我们就可以解释方差的大部分，同时限制我们的维度。在我们的例子中，前40个方向占方差的90%:</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">这会产生以下输出:</h1>
+                
+            
+            
+                
+<p>这意味着我们可以将特征的数量从78个减少到40个，同时保留90%的方差。这意味着PE头的许多特性是紧密相关的，这是可以理解的，因为它们不是独立设计的。</p>
+<pre class="mce-root">sum(pca.explained_variance_ratio_[0:40])</pre>
+<div><p class="output_area">使用马尔可夫链生成文本</p>
+</div>
+<div><pre>0.9068522354673663</pre></div>
+<p>马氏链是简单的随机模型，其中系统可以以多种状态存在。要知道系统下一步的概率分布，只需要知道它当前的位置就足够了。这与后续状态的概率分布可能依赖于系统的过去历史的系统形成对比。这种简化的假设使得马尔可夫链可以很容易地应用于许多领域，而且效果惊人。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Generating text using Markov chains</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">在这个菜谱中，我们将利用马尔可夫链来生成虚假评论，这对用笔测试评论系统的垃圾邮件检测器很有用。在后面的食谱中，您将把技术从马尔可夫链升级到RNNs。</h1>
+                
+            
+            
+                
+<p>做好准备</p>
+<p>该配方的准备工作包括在<kbd>pip</kbd>安装<kbd>markovify</kbd>和<kbd>pandas</kbd>包。执行此操作的命令如下:</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">此外，本章存储库中的目录包括一个CSV数据集<kbd>airport_reviews.csv</kbd>，它应该放在本章代码的旁边。</h1>
+                
+            
+            
+                
+<div><div><div><div><p>怎么做...</p>
+</div>
+<div><pre><strong>pip install markovify pandas</strong></pre>
+<p>让我们通过执行以下步骤来看看如何使用马尔可夫链生成文本:</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">首先导入<kbd>markovify</kbd>库和一个我们想要模仿其风格的文本文件:</h1>
+                
+            
+            
+                
+<p>举例来说，我选择了一组机场评论作为我的文本:</p>
+<ol>
+<li>接下来，将各个评论合并成一个大的文本字符串，并使用机场评论文本构建一个马尔可夫链模型:</li>
+</ol>
+<pre style="padding-left: 60px">import markovify<br/>import pandas as pd<br/><br/>df = pd.read_csv("airport_reviews.csv")</pre>
+<p style="padding-left: 60px">在后台，库从文本中计算过渡词概率。</p>
+<pre style="padding-left: 60px">"The airport is certainly tiny! ..."</pre>
+<ol start="2">
+<li>使用马尔可夫链模型生成五个句子:</li>
+</ol>
+<pre style="padding-left: 60px">from itertools import chain<br/><br/>N = 100<br/>review_subset = df["content"][0:N]<br/>text = "".join(chain.from_iterable(review_subset))<br/>markov_chain_model = markovify.Text(text)</pre>
+<p style="padding-left: 60px">Behind the scenes, the library computes the transition word probabilities from the text.</p>
+<ol start="3">
+<li>Generate five sentences using the Markov chain model:</li>
+</ol>
+<pre style="padding-left: 60px">for i in range(5):<br/>    print(markov_chain_model.make_sentence())</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root">由于我们使用的是airport reviews，因此在执行前面的代码后，我们将得到以下输出:</p>
+<p class="mceNonEditable">出奇的逼真！尽管评论必须筛选出最好的。</p>
+<ol start="4">
+<li>生成长度不超过<kbd>140</kbd>个字符的<kbd>3</kbd>个句子:</li>
+</ol>
+<div><pre style="padding-left: 60px">On the positive side it's a clean airport transfer from A to C gates and outgoing gates is truly enormous - but why when we arrived at about 7.30 am for our connecting flight to Venice on TAROM.<br/>The only really bother: you may have to wait in a polite manner.<br/>Why not have bus after a short wait to check-in there were a lots of shops and less seating.<br/>Very inefficient and hostile airport. This is one of the time easy to access at low price from city center by train.<br/>The distance between the incoming gates and ending with dirty and always blocked by never ending roadworks.</pre></div>
+<p style="padding-left: 60px">对于我们的运行示例，我们将看到以下输出:</p>
+<ol start="5">
+<li>它是如何工作的...</li>
+</ol>
+<pre style="padding-left: 60px">for i in range(3):<br/>    print(markov_chain_model.make_short_sentence(140))</pre>
+<p style="padding-left: 60px">我们从导入Markovify库开始，这是一个用于Markov链计算的库，并阅读文本，这将通知我们的Markov模型(步骤1)。在第二步中，我们使用文本创建一个马尔可夫链模型。以下是文本对象初始化代码的相关片段:</p>
+<div><pre style="padding-left: 60px">However airport staff member told us that we were put on a connecting code share flight.<br/>Confusing in the check-in agent was friendly.<br/>I am definitely not keen on coming to the lack of staff . Lack of staff . Lack of staff at boarding pass at check-in.</pre></div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">需要理解的最重要的参数是<kbd>state_size = 2</kbd>，这意味着马尔可夫链将计算连续单词对之间的转换。对于更真实的句子，可以增加该参数，代价是使句子看起来不那么新颖。接下来，我们应用我们训练过的马尔可夫链来生成几个例句(步骤3和4)。我们可以清楚地看到，马尔可夫链捕捉到了文本的基调和风格。最后，在步骤5中，我们使用马尔可夫链在机场评论的风格中创建了几个<kbd>tweets</kbd>。</h1>
+                
+            
+            
+                
+<p>使用scikit-learn执行聚类</p>
+<pre>class Text(object):<br/><br/>    reject_pat = re.compile(r"(^')|('$)|\s'|'\s|[\"(\(\)\[\])]")<br/><br/>    def __init__(self, input_text, state_size=2, chain=None, parsed_sentences=None, retain_original=True, well_formed=True, reject_reg=''):<br/>        """<br/>        input_text: A string.<br/>        state_size: An integer, indicating the number of words in the model's state.<br/>        chain: A trained markovify.Chain instance for this text, if pre-processed.<br/>        parsed_sentences: A list of lists, where each outer list is a "run"<br/>              of the process (e.g. a single sentence), and each inner list<br/>              contains the steps (e.g. words) in the run. If you want to simulate<br/>              an infinite process, you can come very close by passing just one, very<br/>              long run.<br/>        retain_original: Indicates whether to keep the original corpus.<br/>        well_formed: Indicates whether sentences should be well-formed, preventing<br/>              unmatched quotes, parenthesis by default, or a custom regular expression<br/>              can be provided.<br/>        reject_reg: If well_formed is True, this can be provided to override the<br/>              standard rejection pattern.<br/>        """</pre>
+<p><strong>聚类</strong>是一组无监督的机器学习算法，其中部分数据根据相似性进行分组。例如，分类可能由n维欧几里得空间中靠得很近的数据组成。聚类在网络安全中非常有用，可以区分正常和异常的网络活动，并有助于将恶意软件分类。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Performing clustering using scikit-learn</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">Performing clustering using scikit-learn</h1>
+                
+            
+            
+                
+<p><strong>Clustering</strong> is a collection of unsupervised machine learning algorithms in which parts of the data are grouped based on similarity. For example, clusters might consist of data that is close together in n-dimensional Euclidean space. Clustering is useful in cybersecurity for distinguishing between normal and anomalous network activity, and for helping to classify malware into families.</p>
+<p class="mce-root">做好准备</p>
+<p class="mce-root">该配方的准备工作包括在<kbd>pip</kbd>中安装<kbd>scikit-learn</kbd>、<kbd>pandas</kbd>和<kbd>plotly</kbd>包。执行此操作的命令如下:</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">此外，存储库中为这个食谱提供了一个名为<kbd>file_pe_header.csv</kbd>的数据集。</h1>
+                
+            
+            
+                
+<p>怎么做...</p>
+<pre><strong>pip install sklearn plotly pandas</strong></pre>
+<p>在以下步骤中，我们将看到scikit-learn的K-means聚类算法如何在玩具PE恶意软件分类上执行的演示:</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">从导入和绘制数据集开始:</h1>
+                
+            
+            
+                
+<p>In the following steps, we will see a demonstration of how scikit-learn's K-means clustering algorithm performs on a toy PE malware classification:</p>
+<ol>
+<li>Start by importing and plotting the dataset:</li>
+</ol>
+<pre style="padding-left: 60px">import pandas as pd<br/>import plotly.express as px<br/><br/>df = pd.read_csv("file_pe_headers.csv", sep=",")<br/>fig = px.scatter_3d(<br/>    df,<br/>    x="SuspiciousImportFunctions",<br/>    y="SectionsLength",<br/>    z="SuspiciousNameSection",<br/>    color="Malware",<br/>)<br/>fig.show()</pre>
+<p class="mce-root">以下屏幕截图显示了输出:</p>
+<p class="mce-root"><img class="alignnone size-full wp-image-1063 image-border" src="img/d5b81582-3439-462a-b2fd-90c0cb515aa0.png" style="width:39.50em;height:28.33em;"/></p>
+<p style="padding-left: 60px">提取要素和目标标签:</p>
+<p class="CDPAlignCenter CDPAlign">接下来，导入scikit-learn的聚类模块，并用两个聚类拟合数据的K-means模型:</p>
+<ol start="2">
+<li>使用我们训练好的算法预测聚类:</li>
+</ol>
+<pre style="padding-left: 60px">y = df["Malware"]<br/>X = df.drop(["Name", "Malware"], axis=1).to_numpy()</pre>
+<ol start="3">
+<li>要查看算法的表现，请绘制算法的聚类图:</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn.cluster import KMeans<br/><br/>estimator = KMeans(n_clusters=len(set(y)))<br/>estimator.fit(X)</pre>
+<ol start="4">
+<li>以下屏幕截图显示了输出:</li>
+</ol>
+<pre style="padding-left: 60px">y_pred = estimator.predict(X)<br/>df["pred"] = y_pred<br/>df["pred"] = df["pred"].astype("category")</pre>
+<ol start="5">
+<li><img class="alignnone size-full wp-image-1208 image-border" src="img/869390eb-e597-455c-801f-844687dc056e.png" style="width:35.08em;height:24.50em;"/></li>
+</ol>
+<pre style="padding-left: 60px">fig = px.scatter_3d(<br/>    df,<br/>    x="SuspiciousImportFunctions",<br/>    y="SectionsLength",<br/>    z="SuspiciousNameSection",<br/>    color="pred",<br/>)<br/>fig.show()</pre>
+<p style="padding-left: 60px">结果并不完美，但是我们可以看到聚类算法捕获了数据集中的大部分结构。</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1208 image-border" src="img/869390eb-e597-455c-801f-844687dc056e.png" style="width:35.08em;height:24.50em;"/></p>
+<p>它是如何工作的...</p>
+<p class="mce-root">我们首先从一组样本中导入PE头信息的数据集(步骤1)。该数据集由两类PE文件组成:恶意软件和良性文件。然后，我们使用plotly创建一个好看的交互式3D图形(步骤1)。我们继续为机器学习准备数据集。具体来说，在步骤2中，我们将<kbd>X</kbd>设置为数据集的特征，将y设置为数据集的类。基于存在两个类别的事实，我们的目标是将数据聚类成两个与样本分类相匹配的组。我们利用K-means算法(第3步)，你可以在<a href="https://en.wikipedia.org/wiki/K-means_clustering">https://en.wikipedia.org/wiki/K-means_clustering</a>找到更多信息。有了经过彻底训练的聚类算法，我们就可以在测试集上进行预测了。我们应用我们的聚类算法来预测每个样本应该属于哪个聚类(步骤4)。观察我们在步骤5中的结果，我们看到聚类已经捕获了许多底层信息，因为它能够很好地拟合数据。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">训练XGBoost分类器</h1>
+                
+            
+            
+                
+<p>梯度推进被广泛认为是通用机器学习问题的最可靠和最准确的算法。我们将利用XGBoost在未来的食谱中创建恶意软件检测器。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Training an XGBoost classifier</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<p>该菜谱的准备工作包括在<kbd>pip</kbd>中安装scikit-learn、<kbd>pandas</kbd>和<kbd>xgboost</kbd>包。执行此操作的命令如下:</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">此外，存储库中为这个食谱提供了一个名为<kbd>file_pe_header.csv</kbd>的数据集。</h1>
+                
+            
+            
+                
+<p>怎么做...</p>
+<pre><strong>pip install sklearn xgboost pandas</strong></pre>
+<p>在以下步骤中，我们将演示如何实例化、训练和测试XGBoost分类器:</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">从读入数据开始:</h1>
+                
+            
+            
+                
+<p>接下来，训练-测试-分割数据集:</p>
+<ol>
+<li>创建XGBoost模型的一个实例，并在定型集上对其进行定型:</li>
+</ol>
+<pre style="padding-left: 60px">import pandas as pd<br/><br/>df = pd.read_csv("file_pe_headers.csv", sep=",")<br/>y = df["Malware"]<br/>X = df.drop(["Name", "Malware"], axis=1).to_numpy()</pre>
+<ol start="2">
+<li>最后，在测试集上评估它的性能:</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn.model_selection import train_test_split<br/><br/>X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)</pre>
+<ol start="3">
+<li>以下屏幕截图显示了输出:</li>
+</ol>
+<pre style="padding-left: 60px">from xgboost import XGBClassifier<br/><br/>XGB_model_instance = XGBClassifier()<br/>XGB_model_instance.fit(X_train, y_train)</pre>
+<ol start="4">
+<li><img class="alignnone size-full wp-image-1065 image-border" src="img/0697316c-043c-48d1-9a3f-4eee7867f25f.png" style="width:7.67em;height:1.33em;"/></li>
+</ol>
+<pre style="padding-left: 60px">from sklearn.metrics import accuracy_score<br/><br/>y_test_pred = XGB_model_instance.predict(X_test)<br/>accuracy = accuracy_score(y_test, y_test_pred)<br/>print("Accuracy: %.2f%%" % (accuracy * 100))</pre>
+<p style="padding-left: 60px">The following screenshot shows the output:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1065 image-border" src="img/0697316c-043c-48d1-9a3f-4eee7867f25f.png" style="width:7.67em;height:1.33em;"/></p>
+<p class="mce-root">它是如何工作的...</p>
+<p class="mce-root">我们从读入数据开始(步骤1)。然后，我们创建一个训练测试分割(步骤2)。我们继续用默认参数实例化XGBoost分类器，并使其适合我们的训练集(步骤3)。最后，在步骤4中，我们使用XGBoost分类器对测试集进行预测。然后，我们产生XGBoost模型预测的测量精度。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">使用统计模型分析时间序列</h1>
+                
+            
+            
+                
+<p>时间序列是在连续时间获得的一系列值。比如每分钟采样的股市价格，就形成了一个时间序列。在网络安全领域，时间序列分析可以非常方便地预测网络攻击，例如内部员工泄露数据，或者一群黑客串通起来准备下一次攻击。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Analyzing time series using statsmodels</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">让我们看看使用时间序列进行预测的几种技术。</h1>
+                
+            
+            
+                
+<p>做好准备</p>
+<p>该配方的准备工作包括在<kbd>pip</kbd>中安装<kbd>matplotlib</kbd>、<kbd>statsmodels</kbd>和<kbd>scipy</kbd>包。执行此操作的命令如下:</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p>在以下步骤中，我们将演示几种使用时间序列数据进行预测的方法:</p>
+<pre><strong>pip install matplotlib statsmodels scipy</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">首先生成一个时间序列:</h1>
+                
+            
+            
+                
+<p>绘制您的数据:</p>
+<ol>
+<li>以下屏幕截图显示了输出:</li>
+</ol>
+<pre style="padding-left: 60px">from random import random<br/><br/>time_series = [2 * x + random() for x in range(1, 100)]</pre>
+<ol start="2">
+<li><img class="alignnone size-full wp-image-1066 image-border" src="img/1d04a34d-bfe3-441d-b431-a92458457502.png" style="width:24.00em;height:16.00em;"/></li>
+</ol>
+<pre style="padding-left: 60px">%matplotlib inline<br/>import matplotlib.pyplot as plt<br/><br/>plt.plot(time_series)<br/>plt.show()</pre>
+<p style="padding-left: 60px">我们可以使用多种技术来预测时间序列的后续值:</p>
+<p class="CDPAlignCenter CDPAlign"><strong>自回归</strong> ( <strong> AR </strong>):</p>
+<ol start="3">
+<li>There is a large variety of techniques we can use to predict the consequent value of a time series:
+ 
+</li>
+</ol>
+<pre style="padding-left: 120px">from statsmodels.tsa.ar_model import AR<br/><br/>model = AR(time_series)<br/>model_fit = model.fit()<br/>y = model_fit.predict(len(time_series), len(time_series))</pre>
+<ol start="3">
+<li style="list-style-type: none">
+ 
+</li>
+</ol>
+<pre style="padding-left: 120px">from statsmodels.tsa.arima_model import ARMA<br/><br/>model = ARMA(time_series, order=(0, 1))<br/>model_fit = model.fit(disp=False)<br/>y = model_fit.predict(len(time_series), len(time_series))</pre>
+<ol start="3">
+<li style="list-style-type: none">产生的预测如下:<ul>
+<li><img class="alignnone size-full wp-image-1067 image-border" src="img/b35f14f9-0bb6-425d-bbc3-c32e1b3be02c.png" style="width:32.00em;height:33.92em;"/></li>
+</ul>
+</li>
+</ol>
+<pre style="padding-left: 120px">from statsmodels.tsa.holtwinters import SimpleExpSmoothing<br/><br/>model = SimpleExpSmoothing(time_series)<br/>model_fit = model.fit()<br/>y = model_fit.predict(len(time_series), len(time_series))</pre>
+<p>它是如何工作的...</p>
+<p class="CDPAlignCenter CDPAlign">第一步，我们生成一个简单的玩具时间序列。该系列由一条线上的值组成，并点缀了一些附加噪声。接下来，我们在步骤2中绘制时间序列。您可以看到它非常接近于一条直线，对于时间<img class="fm-editor-equation" src="img/bb728aba-f0a1-493f-a6d3-c8a52662bd65.png" style="width:0.42em;height:0.92em;"/>的时间序列值的合理预测是<img class="fm-editor-equation" src="img/f8365b1e-32c3-4f44-8eba-a235d3e09405.png" style="width:1.00em;height:1.00em;"/>。为了创建时间序列值的预测，我们考虑三种不同的方案(步骤3)来预测时间序列的未来值。在自回归模型中，基本思想是时间<em> t </em>的时间序列值是之前时间的时间序列值的线性函数。更准确地说，有一些常数<img class="fm-editor-equation" src="img/78f5feb2-6573-41aa-a3e9-ace1a6660c99.png" style="width:6.83em;height:0.92em;"/>和一个数字<img class="fm-editor-equation" src="img/039e0190-78eb-4e7a-ad1c-e30f1f0e6473.png" style="width:0.50em;height:0.83em;"/>，例如:</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title"><img class="alignnone size-full wp-image-1068 image-border" src="img/e6d48f5b-64b0-444d-9eee-4a7e31a2b667.png" style="width:23.75em;height:1.33em;"/></h1>
+                
+            
+            
+                
+<p>作为一个假设的例子，<img class="fm-editor-equation" src="img/dba51c21-ae4d-485d-b878-0f7f04b88c3c.png" style="width:0.50em;height:0.83em;"/>可能是<em> 3 </em>，这意味着时间序列的值可以通过知道其最后的<em> 3 </em>值而容易地计算出来。</p>
+<p style="padding-left: 150px" class="CDPAlignLeft CDPAlign">在移动平均模型中，时间序列被建模为围绕平均值波动。更准确地说，让<img class="fm-editor-equation" src="img/176f6dfd-d61f-4a5d-a8bf-7d1447efd15e.png" style="width:1.25em;height:0.92em;"/>是一个独立同分布正态变量序列，让<img class="fm-editor-equation" src="img/1b146731-b7ad-42a1-9901-80df10e48329.png" style="width:1.00em;height:1.17em;"/>是一个常数。然后，通过以下公式对时间序列进行建模:</p>
+<p><img class="alignnone size-full wp-image-1069 image-border" src="img/c4c6352b-d94c-4d62-90fe-99519dbea008.png" style="width:10.58em;height:1.25em;"/></p>
+<p>由于这个原因，它在预测我们产生的噪声线性时间序列时表现不佳。</p>
+<p style="padding-left: 210px">最后，在简单指数平滑中，我们提出一个平滑参数，<img class="fm-editor-equation" src="img/fe2653e2-e6f5-4665-b6cb-cd0585722359.png" style="width:3.42em;height:0.67em;"/>。然后，我们模型的估计值<img class="fm-editor-equation" src="img/0b46364e-73ee-499f-8a9a-4ab7013880b4.png" style="width:1.17em;height:1.08em;"/>由以下等式计算得出:</p>
+<p><img class="alignnone size-full wp-image-1070 image-border" src="img/5590c81b-0f15-4fd5-bf0b-b9b4dc074eb2.png" style="width:4.25em;height:1.00em;"/></p>
+<p><img class="alignnone size-full wp-image-1071 image-border" src="img/962f5ffe-7714-4e71-94ea-36e8b861cdfe.png" style="width:12.25em;height:1.50em;"/></p>
+<p style="padding-left: 210px">换句话说，我们跟踪一个估计值<img class="fm-editor-equation" src="img/bd3be59f-8df1-4602-9425-552842dbd7c4.png" style="width:1.17em;height:1.08em;"/>，并使用当前的时间序列值<img class="fm-editor-equation" src="img/9fe675db-c5a5-4b58-9190-28199fb71327.png" style="width:1.17em;height:1.17em;"/>对其稍作调整。调整的力度由<img class="fm-editor-equation" src="img/91976144-4a0c-46e8-96e0-9d996cca4b39.png" style="width:0.92em;height:0.83em;"/>参数控制。</p>
+<p style="padding-left: 180px">隔离森林异常检测</p>
+<p>异常检测是对数据集中不符合预期模式的事件的识别。在应用程序中，这些事件可能至关重要。例如，它们可能是网络入侵或欺诈事件。我们将利用隔离林来检测这种异常情况。隔离森林依赖于这样的观察，即隔离异常值是容易的，而描述正常数据点是比较困难的。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Anomaly detection with Isolation Forest</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<p>该配方的准备包括在<kbd>pip</kbd>中安装<kbd>matplotlib</kbd>、<kbd>pandas</kbd>和<kbd>scipy</kbd>包。执行此操作的命令如下:</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p>在接下来的步骤中，我们将演示如何应用隔离森林算法来检测异常:</p>
+<pre><strong>pip install matplotlib pandas scipy</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">导入所需的库并设置随机种子:</h1>
+                
+            
+            
+                
+<p>生成一组正常观察值，用作训练数据:</p>
+<ol>
+<li>生成一个测试集，也包含正常观察值:</li>
+</ol>
+<pre style="padding-left: 60px">import numpy as np<br/>import pandas as pd<br/><br/>random_seed = np.random.RandomState(12)</pre>
+<ol start="2">
+<li>生成一组异常值观察值。这些是从不同于正常观察的分布中产生的:</li>
+</ol>
+<pre style="padding-left: 60px">X_train = 0.5 * random_seed.randn(500, 2)<br/>X_train = np.r_[X_train + 3, X_train]<br/>X_train = pd.DataFrame(X_train, columns=["x", "y"])</pre>
+<ol start="3">
+<li>让我们来看看我们生成的数据:</li>
+</ol>
+<pre style="padding-left: 60px">X_test = 0.5 * random_seed.randn(500, 2)<br/>X_test = np.r_[X_test + 3, X_test]<br/>X_test = pd.DataFrame(X_test, columns=["x", "y"])</pre>
+<p class="mce-root">以下屏幕截图显示了输出:</p>
+<p class="mce-root"><img class="alignnone size-full wp-image-1072 image-border" src="img/62e1ed8c-6c95-4fbc-bf15-8f69ca89cb4b.png" style="width:24.50em;height:16.50em;"/></p>
+<ol start="4">
+<li>Generate a set of outlier observations. These are generated from a different distribution than the normal observations:</li>
+</ol>
+<pre style="padding-left: 60px">X_outliers = random_seed.uniform(low=-5, high=5, size=(50, 2))<br/>X_outliers = pd.DataFrame(X_outliers, columns=["x", "y"])</pre>
+<ol start="5">
+<li>现在根据我们的训练数据训练一个隔离林模型:</li>
+</ol>
+<pre style="padding-left: 60px">%matplotlib inline<br/>import matplotlib.pyplot as plt<br/><br/>p1 = plt.scatter(X_train.x, X_train.y, c="white", s=50, edgecolor="black")<br/>p2 = plt.scatter(X_test.x, X_test.y, c="green", s=50, edgecolor="black")<br/>p3 = plt.scatter(X_outliers.x, X_outliers.y, c="blue", s=50, edgecolor="black")<br/>plt.xlim((-6, 6))<br/>plt.ylim((-6, 6))<br/>plt.legend(<br/>    [p1, p2, p3],<br/>    ["training set", "normal testing set", "anomalous testing set"],<br/>    loc="lower right",<br/>)<br/><br/>plt.show()</pre>
+<p style="padding-left: 60px">我们来看看算法表现如何。将标签附加到<kbd>X_outliers</kbd>:</p>
+<p class="CDPAlignCenter CDPAlign">以下是输出:</p>
+<p> </p>
+<ol start="6">
+<li>x</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn.ensemble import IsolationForest<br/><br/>clf = IsolationForest()<br/>clf.fit(X_train)<br/>y_pred_train = clf.predict(X_train)<br/>y_pred_test = clf.predict(X_test)<br/>y_pred_outliers = clf.predict(X_outliers)</pre>
+<ol start="7">
+<li>y</li>
+</ol>
+<pre style="padding-left: 60px">X_outliers = X_outliers.assign(pred=y_pred_outliers)<br/>X_outliers.head()</pre>
+<p style="padding-left: 60px">强的松</p>
+<table style="border-collapse: collapse;width: 100%" border="1">
+<thead>
+<tr>
+<th class="CDPAlignCenter CDPAlign">0</th>
+<th class="CDPAlignCenter CDPAlign">3.947504</th>
+<th class="CDPAlignCenter CDPAlign">2.891003</th>
+<th class="CDPAlignCenter CDPAlign">一</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="CDPAlignCenter CDPAlign">一</td>
+<td class="CDPAlignCenter CDPAlign">0.413976</td>
+<td class="CDPAlignCenter CDPAlign">-2.025841</td>
+<td class="CDPAlignCenter CDPAlign">-1</td>
+</tr>
+<tr>
+<td class="CDPAlignCenter CDPAlign">2</td>
+<td class="CDPAlignCenter CDPAlign">-2.644476</td>
+<td class="CDPAlignCenter CDPAlign">-3.480783</td>
+<td class="CDPAlignCenter CDPAlign">-1</td>
+</tr>
+<tr>
+<td class="CDPAlignCenter CDPAlign">3</td>
+<td class="CDPAlignCenter CDPAlign">-0.518212</td>
+<td class="CDPAlignCenter CDPAlign">-3.386443</td>
+<td class="CDPAlignCenter CDPAlign">-1</td>
+</tr>
+<tr>
+<td class="CDPAlignCenter CDPAlign">四</td>
+<td class="CDPAlignCenter CDPAlign">2.977669</td>
+<td class="CDPAlignCenter CDPAlign">2.215355</td>
+<td class="CDPAlignCenter CDPAlign">一</td>
+</tr>
+<tr>
+<td class="CDPAlignCenter CDPAlign">让我们根据异常值绘制隔离林预测，看看它捕捉到了多少异常值:</td>
+<td class="CDPAlignCenter CDPAlign">以下屏幕截图显示了输出:</td>
+<td class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1073 image-border" src="img/724ae20b-2325-4b22-8324-849089f48d95.png" style="width:21.00em;height:14.17em;"/></td>
+<td class="CDPAlignCenter CDPAlign">现在让我们看看它在正常测试数据上的表现。将预测标签附加到<kbd>X_test</kbd>:</td>
+</tr>
+</tbody>
+</table>
+<ol start="8">
+<li>以下是输出:</li>
+</ol>
+<pre style="padding-left: 60px">p1 = plt.scatter(X_train.x, X_train.y, c="white", s=50, edgecolor="black")<br/>p2 = plt.scatter(<br/>    X_outliers.loc[X_outliers.pred == -1, ["x"]],<br/>    X_outliers.loc[X_outliers.pred == -1, ["y"]],<br/>    c="blue",<br/>    s=50,<br/>    edgecolor="black",<br/>)<br/>p3 = plt.scatter(<br/>    X_outliers.loc[X_outliers.pred == 1, ["x"]],<br/>    X_outliers.loc[X_outliers.pred == 1, ["y"]],<br/>    c="red",<br/>    s=50,<br/>    edgecolor="black",<br/>)<br/><br/>plt.xlim((-6, 6))<br/>plt.ylim((-6, 6))<br/>plt.legend(<br/>    [p1, p2, p3],<br/>    ["training observations", "detected outliers", "incorrectly labeled outliers"],<br/>    loc="lower right",<br/>)<br/><br/>plt.show()</pre>
+<p style="padding-left: 60px">The following screenshot shows the output:</p>
+<p class="CDPAlignCenter CDPAlign">x</p>
+<ol start="9">
+<li>y</li>
+</ol>
+<pre style="padding-left: 60px">X_test = X_test.assign(pred=y_pred_test)<br/>X_test.head()</pre>
+<p>强的松</p>
+<table style="border-collapse: collapse;width: 100%" border="1">
+<thead>
+<tr>
+<th class="CDPAlignCenter CDPAlign">0</th>
+<th class="CDPAlignCenter CDPAlign">3.944575</th>
+<th class="CDPAlignCenter CDPAlign">3.866919</th>
+<th class="CDPAlignCenter CDPAlign">-1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="CDPAlignCenter CDPAlign">一</td>
+<td class="CDPAlignCenter CDPAlign">2.984853</td>
+<td class="CDPAlignCenter CDPAlign">3.142150</td>
+<td class="CDPAlignCenter CDPAlign">一</td>
+</tr>
+<tr>
+<td class="CDPAlignCenter CDPAlign">2</td>
+<td class="CDPAlignCenter CDPAlign">3.501735</td>
+<td class="CDPAlignCenter CDPAlign">2.168262</td>
+<td class="CDPAlignCenter CDPAlign">一</td>
+</tr>
+<tr>
+<td class="CDPAlignCenter CDPAlign">3</td>
+<td class="CDPAlignCenter CDPAlign">2.906300</td>
+<td class="CDPAlignCenter CDPAlign">3.233826</td>
+<td class="CDPAlignCenter CDPAlign">一</td>
+</tr>
+<tr>
+<td class="CDPAlignCenter CDPAlign">四</td>
+<td class="CDPAlignCenter CDPAlign">3.273225</td>
+<td class="CDPAlignCenter CDPAlign">3.261790</td>
+<td class="CDPAlignCenter CDPAlign">一</td>
+</tr>
+<tr>
+<td class="CDPAlignCenter CDPAlign">现在，让我们绘制结果图，看看我们的分类器是否正确标记了正常测试数据:</td>
+<td class="CDPAlignCenter CDPAlign">以下屏幕截图显示了输出:</td>
+<td class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1074 image-border" src="img/60609e2c-972c-4f26-ad58-4000736e81d6.png" style="width:24.75em;height:16.67em;"/></td>
+<td class="CDPAlignCenter CDPAlign">1</td>
+</tr>
+</tbody>
+</table>
+<ol start="10">
+<li>显然，我们的隔离森林模型在捕捉异常点方面表现得相当好。有相当多的假阴性(正常点被归类为异常值的情况)，但通过调整我们的模型参数，我们可能能够减少这些。</li>
+</ol>
+<pre style="padding-left: 60px">p1 = plt.scatter(X_train.x, X_train.y, c="white", s=50, edgecolor="black")<br/>p2 = plt.scatter(<br/>    X_test.loc[X_test.pred == 1, ["x"]],<br/>    X_test.loc[X_test.pred == 1, ["y"]],<br/>    c="blue",<br/>    s=50,<br/>    edgecolor="black",<br/>)<br/>p3 = plt.scatter(<br/>    X_test.loc[X_test.pred == -1, ["x"]],<br/>    X_test.loc[X_test.pred == -1, ["y"]],<br/>    c="red",<br/>    s=50,<br/>    edgecolor="black",<br/>)<br/><br/>plt.xlim((-6, 6))<br/>plt.ylim((-6, 6))<br/>plt.legend(<br/>    [p1, p2, p3],<br/>    [<br/>        "training observations",<br/>        "correctly labeled test observations",<br/>        "incorrectly labeled test observations",<br/>    ],<br/>    loc="lower right",<br/>)<br/><br/>plt.show()</pre>
+<p style="padding-left: 60px">它是如何工作的...</p>
+<p class="CDPAlignCenter CDPAlign">第一步包括简单地加载必要的库，这将允许我们快速而容易地操作数据。在步骤2和3中，我们生成一个由正常观察值组成的训练和测试集。这些有相同的分布。另一方面，在步骤4中，我们通过创建离群值来生成测试集的剩余部分。这个异常数据集的分布不同于训练数据和其余的测试数据。绘制我们的数据，我们看到一些离群点看起来无法与正常点区分开来(步骤5)。由于数据的性质，这保证了我们的分类器将有很大比例的错误分类，并且我们在评估其性能时必须记住这一点。在步骤6中，我们用默认参数将隔离林的实例拟合到训练数据中。</p>
+<p class="mce-root">注意，该算法没有被馈送关于异常数据的信息。我们使用经过训练的隔离林实例来预测测试数据是正常还是异常，并类似地预测异常数据是正常还是异常。为了检查算法如何执行，我们将预测的标签附加到<kbd>X_outliers</kbd>(步骤7)，然后在离群值上绘制隔离林实例的预测(步骤8)。我们看到它能够捕捉到大部分异常。那些被错误标记的无法从正常观察中分辨出来。接下来，在步骤9中，我们将预测的标签附加到<kbd>X_test</kbd>以准备分析，然后在正常测试数据上绘制隔离林实例的预测(步骤10)。我们看到它正确地标记了大多数正常的观察值。与此同时，有大量不正确分类的正常观察值(以红色显示)。</p>
+<p>根据我们愿意容忍多少假警报，我们可能需要微调我们的分类器以减少假阳性的数量。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">使用哈希矢量器和tf-idf与scikit-learn进行自然语言处理</h1>
+                
+            
+            
+                
+<p>我们经常在数据科学中发现，我们希望分析的对象是文本的。例如，它们可能是推文、文章或网络日志。由于我们的算法需要数字输入，我们必须找到一种方法将这样的文本转换成数字特征。为此，我们采用了一系列技术。</p>
+<p>一个<em>令牌</em>是一个文本单位。例如，我们可以指定我们的标记是单词、句子或字符。计数矢量器接受文本输入，然后输出由文本记号的计数组成的矢量。<strong>哈希矢量器</strong>是计数矢量器的一个变种，旨在以可解释性和哈希冲突为代价，提高速度和可伸缩性。虽然这很有用，但是仅仅统计文档语料库中出现的单词数可能会产生误导。原因是，通常不重要的词，如<em> the </em>和<em> a </em>(称为<em>停用词</em>)出现的频率很高，因此信息内容很少。由于诸如此类的原因，我们经常给单词不同的权重来抵消这一点。这样做的主要技术是<strong> tf-idf </strong>，它代表<strong>词频，逆文档频</strong>。主要思想是我们考虑一个术语出现的次数，但是用它出现在文档中的次数来贴现它。</p>
+<p>在网络安全中，文本数据无处不在；事件日志、对话记录和函数名列表只是几个例子。因此，能够处理这样的数据是很重要的，你将在这个食谱中学到一些东西。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Natural language processing using a hashing vectorizer and tf-idf with scikit-learn</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<p>这个菜谱的准备工作包括在<kbd>pip</kbd>安装scikit-learn包。执行此操作的命令如下:</p>
+<p>此外，本章的存储库中还包含一个日志文件<kbd>anonops_short.log</kbd>，其中包含IRC频道<kbd>#Anonops</kbd>上发生的对话摘录。</p>
+<p>怎么做…</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">在接下来的步骤中，我们将把文本数据的语料库转换成数字形式，服从机器学习算法:</h1>
+                
+            
+            
+                
+<div><div><div><div><p>首先，导入一个文本数据集:</p>
+</div>
+<div><pre><strong>pip install sklearn</strong></pre></div>
+</div>
+</div>
+</div>
+<p>接下来，使用哈希矢量器计算文本中的单词数，然后使用tf-idf进行加权:</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">最终结果是一个稀疏矩阵，每一行是一个向量，代表一个文本:</h1>
+                
+            
+            
+                
+<p>以下是输出:</p>
+<ol>
+<li><img class="alignnone size-full wp-image-1075 image-border" src="img/84d753ae-9201-4079-aaad-ead4c340cd34.png" style="width:20.25em;height:44.83em;"/></li>
+</ol>
+<pre style="padding-left: 60px">with open("anonops_short.txt", encoding="utf8") as f:<br/>    anonops_chat_logs = f.readlines()</pre>
+<ol start="2">
+<li>它是如何工作的...</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn.feature_extraction.text import HashingVectorizer<br/>from sklearn.feature_extraction.text import TfidfTransformer<br/><br/>my_vector = HashingVectorizer(input="content", ngram_range=(1, 2))<br/>X_train_counts = my_vector.fit_transform(anonops_chat_logs,)<br/>tf_transformer = TfidfTransformer(use_idf=True,).fit(X_train_counts)<br/>X_train_tf = tf_transformer.transform(X_train_counts)</pre>
+<ol start="3">
+<li>我们从加载#Anonops文本数据集开始(步骤1)。Anonops IRC频道隶属于匿名黑客组织。特别是，聊天参与者过去曾在Anonops上计划并宣布他们的未来目标。因此，一个设计良好的ML系统将能够通过对这些数据进行训练来预测网络攻击。在步骤2中，我们实例化了一个哈希矢量器。哈希矢量器为我们提供了文本中1元和2元单词的计数，换句话说，就是文章中的单个和连续单词对(标记)。然后，我们应用tf-idf转换器，为哈希矢量器给出的计数赋予适当的权重。我们的最终结果是一个大的稀疏矩阵，代表文本中1-和2-gram的出现，按重要性加权。最后，我们检查了Scipy中我们的特色数据的稀疏矩阵表示的前端。</li>
+</ol>
+<pre style="padding-left: 60px">X_train_tf<br/><br/>&lt;180830 x 1048576 sparse matrix of type &lt;class 'numpy.float64'&gt;' with 3158166 stored elements in Compressed Sparse Row format&gt;<br/><br/>print(X_train_tf)</pre>
+<p>使用scikit-optimize进行超参数调谐</p>
+<p class="CDPAlignCenter CDPAlign">在机器学习中，<strong>超参数</strong>是一个参数，其值是在训练过程开始之前设置的。例如，梯度增强模型的学习速率的选择和多层感知器的隐藏层的大小都是超参数的例子。相比之下，其他参数的值是通过训练获得的。超参数选择非常重要，因为它会对模型的性能产生巨大影响。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">最基本的超参数调整方法叫做<strong>网格搜索</strong>。在这种方法中，您为每个超参数指定一个潜在值范围，然后全部尝试，直到找到最佳组合。这种强力方法很全面，但是计算量很大。还有更复杂的方法。在这个食谱中，你将学习如何使用<kbd>scikit-optimize</kbd>对超参数使用<em>贝叶斯优化</em>。与基本网格搜索相比，在贝叶斯优化中，不是所有的参数值都被尝试，而是从指定的分布中采样固定数量的参数设置。更多细节可以在<a href="https://scikit-optimize.github.io/notebooks/bayesian-optimization.html" target="_blank">https://sci kit-optimize . github . io/notebooks/Bayesian-optimization . html</a>找到。</h1>
+                
+            
+            
+                
+<p>做好准备</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Hyperparameter tuning with scikit-optimize</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">该配方的准备工作包括安装特定版本的<kbd>scikit-learn</kbd>，安装<kbd>xgboost</kbd>，以及在<kbd>pip</kbd>中安装<kbd>scikit-optimize</kbd>。执行此操作的命令如下:</h1>
+                
+            
+            
+                
+<p>怎么做...</p>
+<p>在下面的步骤中，您将加载标准的<kbd>wine</kbd>数据集，并使用贝叶斯优化来调整XGBoost模型的超参数:</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">从scikit-learn加载<kbd>wine</kbd>数据集:</h1>
+                
+            
+            
+                
+<p>导入XGBoost和分层K倍:</p>
+<pre><strong>pip install scikit-learn==0.20.3 xgboost scikit-optimize pandas</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">从<kbd>scikit-optimize</kbd>导入<kbd>BayesSearchCV</kbd>，并指定要测试的参数设置数量:</h1>
+                
+            
+            
+                
+<p>指定您的评估者。在这种情况下，我们选择XGBoost并将其设置为能够执行多类分类:</p>
+<ol>
+<li>Load the <kbd>wine</kbd> dataset from scikit-learn:</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn import datasets<br/><br/>wine_dataset = datasets.load_wine()<br/>X = wine_dataset.data<br/>y = wine_dataset.target</pre>
+<ol start="2">
+<li>Import XGBoost and stratified K-fold:</li>
+</ol>
+<pre style="padding-left: 60px">import xgboost as xgb<br/>from sklearn.model_selection import StratifiedKFold</pre>
+<ol start="3">
+<li>指定参数搜索空间:</li>
+</ol>
+<pre style="padding-left: 60px">from skopt import BayesSearchCV<br/><br/>n_iterations = 50</pre>
+<ol start="4">
+<li>指定要执行的交叉验证的类型:</li>
+</ol>
+<pre style="padding-left: 60px">estimator = xgb.XGBClassifier(<br/>    n_jobs=-1,<br/>    objective="multi:softmax",<br/>    eval_metric="merror",<br/>    verbosity=0,<br/>    num_class=len(set(y)),<br/>)</pre>
+<p class="mce-root">使用您定义的设置定义<kbd>BayesSearchCV</kbd>:</p>
+<p class="mce-root"/>
+<ol start="5">
+<li>定义一个<kbd>callback</kbd>函数来打印参数搜索的进度:</li>
+</ol>
+<pre style="padding-left: 60px">search_space = {<br/>    "learning_rate": (0.01, 1.0, "log-uniform"),<br/>    "min_child_weight": (0, 10),<br/>    "max_depth": (1, 50),<br/>    "max_delta_step": (0, 10),<br/>    "subsample": (0.01, 1.0, "uniform"),<br/>    "colsample_bytree": (0.01, 1.0, "log-uniform"),<br/>    "colsample_bylevel": (0.01, 1.0, "log-uniform"),<br/>    "reg_lambda": (1e-9, 1000, "log-uniform"),<br/>    "reg_alpha": (1e-9, 1.0, "log-uniform"),<br/>    "gamma": (1e-9, 0.5, "log-uniform"),<br/>    "min_child_weight": (0, 5),<br/>    "n_estimators": (5, 5000),<br/>    "scale_pos_weight": (1e-6, 500, "log-uniform"),<br/>}</pre>
+<ol start="6">
+<li>Specify the type of cross-validation to perform:</li>
+</ol>
+<pre style="padding-left: 60px">cv = StratifiedKFold(n_splits=3, shuffle=True)</pre>
+<ol start="7">
+<li>执行参数搜索:</li>
+</ol>
+<pre style="padding-left: 60px">bayes_cv_tuner = BayesSearchCV(<br/>    estimator=estimator,<br/>    search_spaces=search_space,<br/>    scoring="accuracy",<br/>    cv=cv,<br/>    n_jobs=-1,<br/>    n_iter=n_iterations,<br/>    verbose=0,<br/>    refit=True,<br/>)</pre>
+<p> </p>
+<ol start="8">
+<li>如您所见，下面显示了输出:</li>
+</ol>
+<pre style="padding-left: 60px">import pandas as pd<br/>import numpy as np<br/><br/>def print_status(optimal_result):<br/>    """Shows the best parameters found and accuracy attained of the search so far."""<br/>    models_tested = pd.DataFrame(bayes_cv_tuner.cv_results_)<br/>    best_parameters_so_far = pd.Series(bayes_cv_tuner.best_params_)<br/>    print(<br/>        "Model #{}\nBest accuracy so far: {}\nBest parameters so far: {}\n".format(<br/>            len(models_tested),<br/>            np.round(bayes_cv_tuner.best_score_, 3),<br/>            bayes_cv_tuner.best_params_,<br/>        )<br/>    )<br/><br/>    clf_type = bayes_cv_tuner.estimator.__class__.__name__<br/>    models_tested.to_csv(clf_type + "_cv_results_summary.csv")</pre>
+<p>它是如何工作的...</p>
+<ol start="9">
+<li>在步骤1和2中，我们导入一个标准数据集，即<kbd>wine</kbd>数据集，以及分类所需的库。接下来是一个更有趣的步骤，在这个步骤中，我们根据要尝试的参数组合数量，指定我们希望超参数搜索持续多长时间。搜索时间越长，结果越好，但有过度拟合和延长计算时间的风险。在第4步中，我们选择XGBoost作为模型，然后指定类的数量、问题的类型和评估度量。这部分将取决于问题的类型。例如，对于一个回归问题，我们可以一起设置<kbd>eval_metric = 'rmse'</kbd>和删除<kbd>num_class</kbd>。</li>
+</ol>
+<pre style="padding-left: 60px">result = bayes_cv_tuner.fit(X, y, callback=print_status)</pre>
+<p>除XGBoost之外的其他型号也可以通过超参数优化器进行选择。在下一步(步骤5)中，我们指定我们将探索的每个参数的概率分布。这是使用<kbd>BayesSearchCV</kbd>优于简单网格搜索的优势之一，因为它允许您更智能地探索参数空间。接下来，我们指定我们的交叉验证方案(步骤6)。因为我们正在执行一个分类问题，所以指定一个分层折叠是有意义的。但是对于一个回归问题，<kbd>StratifiedKFold</kbd>应该换成<kbd>KFold</kbd>。</p>
+<p style="padding-left: 60px">还要注意，为了测量结果，更大的分裂数是优选的，尽管这将会带来计算上的代价。在步骤7中，您可以看到可以更改的附加设置。特别是，<kbd>n_jobs</kbd>允许您并行化任务。评分的详细程度和方法也可以改变。为了监控搜索过程和超参数调优的性能，我们定义了一个回调函数来打印步骤8中的进度。网格搜索的结果也保存在CSV文件中。最后，我们运行超参数搜索(步骤9)。输出允许我们观察超参数搜索的每次迭代的参数和性能。</p>
+<pre style="padding-left: 60px" class="mce-root">Model #1<br/> Best accuracy so far: 0.972<br/> Best parameters so far: {'colsample_bylevel': 0.019767840658391753, 'colsample_bytree': 0.5812505808116454, 'gamma': 1.7784704701058755e-05, 'learning_rate': 0.9050859661329937, 'max_delta_step': 3, 'max_depth': 42, 'min_child_weight': 1, 'n_estimators': 2334, 'reg_alpha': 0.02886003776717955, 'reg_lambda': 0.0008507166793122457, 'scale_pos_weight': 4.801764874750116e-05, 'subsample': 0.7188797743009225}<br/> <br/> Model #2<br/> Best accuracy so far: 0.972<br/> Best parameters so far: {'colsample_bylevel': 0.019767840658391753, 'colsample_bytree': 0.5812505808116454, 'gamma': 1.7784704701058755e-05, 'learning_rate': 0.9050859661329937, 'max_delta_step': 3, 'max_depth': 42, 'min_child_weight': 1, 'n_estimators': 2334, 'reg_alpha': 0.02886003776717955, 'reg_lambda': 0.0008507166793122457, 'scale_pos_weight': 4.801764874750116e-05, 'subsample': 0.7188797743009225}<br/><br/>&lt;snip&gt;<br/><br/>Model #50<br/> Best accuracy so far: 0.989<br/> Best parameters so far: {'colsample_bylevel': 0.013417868502558758, 'colsample_bytree': 0.463490250419848, 'gamma': 2.2823050161337873e-06, 'learning_rate': 0.34006478878384533, 'max_delta_step': 9, 'max_depth': 41, 'min_child_weight': 0, 'n_estimators': 1951, 'reg_alpha': 1.8321791726476395e-08, 'reg_lambda': 13.098734837402576, 'scale_pos_weight': 0.6188077759379964, 'subsample': 0.7970035272497132}</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">在本书中，我们将避免调整分类器的超参数。部分原因是简洁，部分原因是这里的超参数调整是<em>过早优化</em>，因为终端用户对算法的性能没有特定的要求或目标。在这里已经看到了如何执行它，您可以很容易地将这个方法应用到手边的应用程序中。</h1>
+                
+            
+            
+                
+<p>另一个需要记住的超参数调优的著名库是<kbd>hyperopt</kbd>。</p>
+<p>Other models than XGBoost can be selected with the hyperparameter optimizer as well. In the next step, (step 5), we specify a probability distribution over each parameter that we will be exploring. This is one of the advantages of using <kbd>BayesSearchCV</kbd> over a simple grid search, as it allows you to explore the parameter space more intelligently. Next, we specify our cross-validation scheme (step 6). Since we are performing a classification problem, it makes sense to specify a stratified fold. However, for a regression problem, <kbd>StratifiedKFold</kbd> should be replaced with <kbd>KFold</kbd>.</p>
+<p>Also note that a larger splitting number is preferred for the purpose of measuring results, though it will come at a computational price. In step 7, you can see additional settings that can be changed. In particular, <kbd>n_jobs</kbd> allows you to parallelize the task. The verbosity and the method used for scoring can be altered as well. To monitor the search process and the performance of our hyperparameter tuning, we define a callback function to print out the progress in step 8. The results of the grid search are also saved in a CSV file. Finally, we run the hyperparameter search (step 9). The output allows us to observe the parameters and the performance of each iteration of the hyperparameter search.</p>
+<p>In this book, we will refrain from tuning the hyperparameters of classifiers. The reason is in part brevity, and in part because hyperparameter tuning here would be <em>premature optimization</em>, as there is no specified requirement or goal for the performance of the algorithm from the end user. Having seen how to perform it here, you can easily adapt this recipe to the application at hand.</p>
+<p>Another prominent library for hyperparameter tuning to keep in mind is <kbd>hyperopt</kbd>.</p>
+
+
+            
+
+            
+        
+    
+
+
+</body></html>

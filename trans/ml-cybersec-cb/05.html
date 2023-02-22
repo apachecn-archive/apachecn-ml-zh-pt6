@@ -1,0 +1,2014 @@
+<html><head/><body>
+
+
+    
+        <title>Penetration Testing Using Machine Learning</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">使用机器学习的渗透测试</h1>
+                
+            
+            
+                
+<p>渗透测试，也称为pen测试，是对信息系统的授权模拟网络攻击，旨在引出安全漏洞。在这一章中，我们将涵盖一系列广泛的机器学习技术，用于渗透测试和安全对策。我们将从破解一个简单的验证码系统开始。我们将介绍使用深度学习、模糊化和代码小工具自动发现软件漏洞。我们将展示对Metasploit的增强，以及如何评估机器学习系统对恶意攻击的鲁棒性。最后，我们将讨论更专业的主题，比如去除Tor流量的匿名性，通过击键动力学识别未授权访问，以及检测恶意URL。<br/></p>
+<p class="mce-root">本章包括以下配方:</p>
+<ul>
+<li class="mce-root">验证码破解程序</li>
+<li class="mce-root">神经网络辅助模糊化</li>
+<li class="mce-root">深度利用</li>
+<li class="mce-root">使用机器学习的Web服务器漏洞扫描器</li>
+<li class="mce-root">使用机器学习对Tor去噪声化</li>
+<li class="mce-root"><strong>物联网</strong> ( <strong>物联网</strong>)利用机器学习进行设备类型识别</li>
+<li class="mce-root">击键动力学</li>
+<li class="mce-root">恶意URL检测器</li>
+<li class="mce-root">深冲</li>
+<li class="mce-root">基于深度学习的软件漏洞自动检测系统(VulDeePecker)</li>
+</ul>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Technical requirements</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">技术要求</h1>
+                
+            
+            
+                
+<p>在本章中，我们将使用以下内容:</p>
+<ul>
+<li>张量流</li>
+<li>克拉斯</li>
+<li>OpenCV</li>
+<li>Google API客户端</li>
+<li>Censys</li>
+<li>网络x</li>
+<li>右旋糖酐</li>
+<li>dpkt</li>
+<li>NumPy</li>
+<li>SciPy</li>
+<li>Xlib</li>
+<li>根西姆</li>
+</ul>
+<p>代码和数据集可以在https://github . com/packt publishing/Machine-Learning-for-cyber security-Cookbook/tree/master/chapter 05找到。<a href="https://github.com/emmanueltsukerman/MLforCSCookbook"/> <a href="https://github.com/emmanueltsukerman/MLforCSCookbook"/></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>CAPTCHA breaker</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">验证码破解程序</h1>
+                
+            
+            
+                
+<p class="mce-root CDPAlignLeft CDPAlign">一个<strong>验证码</strong>是一个旨在防止自动访问或抓取的系统。它通过询问问题来识别用户何时是人，何时是程序。你大概见过下面截图的无数变种:</p>
+<p class="mce-root CDPAlignCenter CDPAlign"><img src="img/2d535842-1285-4150-aa14-470cc388ae91.png" style="width:10.00em;height:4.42em;"/></p>
+<p class="mce-root CDPAlignLeft CDPAlign">有时，请求是插入一个代码，有时是选择一些对象，例如，一系列图像中的店面或交通灯，有时验证码是一个数学问题。在这一章中，我们将打破一个简单的验证码系统，称为真正简单的验证码:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1019 image-border" src="img/3e6d42c3-d51a-4506-b5f0-f88abef38a1c.png" style="width:111.17em;height:72.83em;"/></p>
+<p class="mce-root">尽管简单，<strong>真正简单的验证码</strong>仍然被广泛使用。最重要的是，它将说明如何破解其他更复杂的验证码系统。<br/>第一步将是处理验证码数据集，以便于机器学习。解决这个问题的最天真的方法很可能会失败。也就是说，构建一个采用四字符验证码并将其分类到<em> (26+10)^4 = 1，679，616 </em>个可能的类别之一(26个字母和10个数字，由于在这样的序列中可能的四个组合的数量，需要四次方))的监督分类器将需要大量的数据和计算。相反，我们在单个字符上训练一个分类器，将验证码切割成单个字符，然后执行四次分类。这里，又有一个问题，那就是精确地裁剪字符并不容易。使用OpenCV功能和额外的考虑，这个食谱将解决这个挑战。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Processing a CAPTCHA dataset</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">处理验证码数据集</h1>
+                
+            
+            
+                
+<p>在这个食谱中，我们将执行创建验证码破解程序的第一部分，在这个过程中，我们处理验证码数据集，使其适合训练机器学习模型。</p>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><div><div><div><div><p>该配方的准备工作包括在<kbd>pip</kbd>中安装多个软件包。说明如下:</p>
+</div>
+</div>
+</div>
+</div>
+<div><div><div><div><pre><strong>pip install opencv-python imutils</strong></pre></div>
+</div>
+</div>
+</div>
+<div><div><div><div><p>此外，为了方便您的使用，我们在<kbd>captcha_images.7z</kbd>中提供了一组验证码。要使用这些，只需将档案解压到一个<kbd>captcha_images</kbd>文件夹中。</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">在以下步骤中，我们将处理CAPTCHA数据集，使其适合训练机器学习模型:</p>
+<ol>
+<li class="mce-root">收集大量验证码。</li>
+<li class="mce-root">我们的下一个目标是处理验证码，指定验证码图像的存储位置，然后枚举指定文件夹中的所有验证码:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import os<br/><br/>captcha_images_folder = "captcha_images"<br/>captchas = [<br/>    os.path.join(captcha_images_folder, f) for f in os.listdir(captcha_images_folder)<br/>]</pre>
+<ol start="3">
+<li class="mce-root">定义一个函数，该函数将获取CAPTCHA的图像并生成灰度版本以及CAPTCHA图像的阈值(即黑白)版本:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import cv2<br/><br/>def preprocess_CAPTCHA(img):<br/>    """Takes a CAPTCHA image and thresholds it."""<br/>    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)<br/>    gray_with_border = cv2.copyMakeBorder(gray, 8, 8, 8, 8, cv2.BORDER_REPLICATE)<br/>    preprocessed = cv2.threshold(<br/>        gray_with_border, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU<br/>    )[1]<br/>    return gray_with_border, preprocessed</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mceNonEditable"/>
+<ol start="4">
+<li class="mce-root">定义一个采用验证码路径的函数，并使用它来存储验证码的文本标签:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def get_CAPTCHA_label(path_to_file):<br/>    """Get the CAPTCHA text from the file name."""<br/>    filename = os.path.basename(path_to_file)<br/>    label = filename.split(".")[0]<br/>    return label</pre>
+<ol start="5">
+<li class="mce-root">定义一个函数，该函数将获取我们将计算的验证码轮廓，然后确定它们的边界矩形，为将验证码裁剪为单个字符做准备:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def find_bounding_rectangles_of_contours(contours):<br/>    """Determines the bounding rectangles of the contours of the cropped letters."""<br/>    letter_bounding_rectangles = []<br/>    for contour in contours:<br/>        (x, y, w, h) = cv2.boundingRect(contour)<br/>        if w / h &gt; 1.25:<br/>            half_width = int(w / 2)<br/>            letter_bounding_rectangles.append((x, y, half_width, h))<br/>            letter_bounding_rectangles.append((x + half_width, y, half_width, h))<br/>        else:<br/>            letter_bounding_rectangles.append((x, y, w, h))<br/>    return letter_bounding_rectangles</pre>
+<ol start="6">
+<li class="mce-root">定义一个采用验证码路径的函数，将其作为图像读入，然后使用我们定义的函数对其进行预处理:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def CAPTCHA_to_gray_scale_and_bounding_rectangles(captcha_image_file):<br/>    """Take a CAPTCHA and output a grayscale version as well as the bounding rectangles of its cropped letters."""<br/>    image = cv2.imread(captcha_image_file)<br/>    gray, preprocessed = preprocess_CAPTCHA(image)<br/>    contours = cv2.findContours(<br/>        preprocessed.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE<br/>    )<br/>    contours = contours[0]<br/>    letter_bounding_rectangles = find_bounding_rectangles_of_contours(contours)<br/>    letter_bounding_rectangles = sorted(letter_bounding_rectangles, key=lambda x: x[0])<br/>    return gray, letter_bounding_rectangles</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mceNonEditable"/>
+<ol start="7">
+<li class="mce-root">定义另一个辅助函数来获取字母轮廓的边界矩形，并根据这些矩形生成字符图像:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def bounding_rectangle_to_letter_image(letter_bounding_box, grayscaled):<br/>    """Obtains the letter defined by a bounding box."""<br/>    x, y, w, h = letter_bounding_box<br/>    letter_image = grayscaled[y - 2 : y + h + 2, x - 2 : x + w + 2]<br/>    return letter_image</pre>
+<ol start="8">
+<li class="mce-root">定义最后一个辅助函数来执行CAPTCHA的裁剪，然后保存每个裁剪的字符:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">captcha_processing_output_folder = "extracted_letter_images"<br/>character_counts = {}<br/><br/>def crop_bounding_rectangles_and_save_to_file(<br/>    letter_bounding_rectangles, gray, captcha_label<br/>):<br/>    """Saves the individual letters of a CAPTCHA."""<br/>    for letter_bounding_rectangle, current_letter in zip(<br/>        letter_bounding_rectangles, captcha_label<br/>    ):<br/>        letter_image = bounding_rectangle_to_letter_image(<br/>            letter_bounding_rectangle, gray<br/>        )<br/><br/>        save_path = os.path.join(captcha_processing_output_folder, current_letter)<br/>        if not os.path.exists(save_path):<br/>            os.makedirs(save_path)<br/><br/>        character_count = character_counts.get(current_letter, 1)<br/><br/>        p = os.path.join(save_path, str(character_count) + ".png")<br/>        cv2.imwrite(p, letter_image)<br/><br/>        character_counts[current_letter] = character_count + 1</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<ol start="9">
+<li class="mce-root">遍历所有验证码，对它们进行预处理，找到字符轮廓，然后保存相应的字符:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import imutils<br/>import numpy as np<br/><br/>for captcha_image_file in captchas:<br/>    captcha_label = get_CAPTCHA_label(captcha_image_file)<br/>    gray, letter_bounding_rectangles = CAPTCHA_to_gray_scale_and_bounding_rectangles(<br/>        captcha_image_file<br/>    )<br/>    if len(letter_bounding_rectangles) != 4:<br/>        continue<br/>    crop_bounding_rectangles_and_save_to_file(<br/>        letter_bounding_rectangles, gray, captcha_label<br/>    )</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>我们的起点是收集大量验证码(<em>步骤1 </em>)。这些你都可以在<kbd>captcha_images.7z</kbd>里找到。或者，由于真正简单的验证码代码可以在网上获得，你可以修改它来生成大量的验证码。其他想法包括利用机器人抓取验证码。接下来，在<em>步骤2 </em>中，我们指定验证码图片存储的位置，然后枚举指定文件夹中的所有验证码。我们的目标是开始处理这些。在<em>步骤3 </em>中，我们定义了一个函数来对验证码图像进行阈值化和灰度化。这使我们能够减少计算量，并且更容易确定一个字符从哪里开始，下一个字符从哪里结束。然后我们定义一个函数来获取验证码的标签(<em>步骤4 </em>)。接下来，为了准备处理，我们定义了一个效用函数，该函数获取CAPTCHA的轮廓，并使用它们来确定每个字符的边界矩形。一旦找到一个边界矩形，就很容易裁剪字符以将其隔离(<em>步骤5 </em>)。接下来，在<em>步骤6 </em>中，我们将迄今为止定义的函数合并成一个方便的函数。我们还定义了一个额外的函数，来实际裁剪字符。综上所述，在<em>第8步</em>中，我们编写一个函数来执行前面的步骤，然后保存得到的孤立字符，并记录每个字符保存了多少。这有助于命名和记账。我们现在可以执行裁剪了，因此，在<em>步骤9 </em>中，我们遍历所有的验证码，并使用我们的实用函数，裁剪单个字符。请注意，<kbd>if</kbd>语句是为了跳过任何不正确裁剪的验证码。</p>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p>在菜谱结束时，您的输出文件夹<kbd>extracted_letter_images</kbd>应该有一个文件夹，用于存放大多数字母和数字，如下面的屏幕截图所示:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/23403397-e788-4dde-9d75-6ca1739d3a20.png"/></p>
+<p class="mce-root"/>
+<p class="mce-root">没有表示所有字符和数字的原因是验证码不包含数字1和字母I，因为这两者很容易混淆。类似地，对于0和O. <br/>在每个文件夹中，您将拥有该字母或数字的大量实例，这些实例是从初始验证码中裁剪和处理的:</p>
+<p class="mce-root"/>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1012 image-border" src="img/21529bd2-1d19-4f7b-9556-2da0eb14c722.png" style="width:61.25em;height:41.83em;"/></p>
+<p>预处理步骤到此结束。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Training a CAPTCHA solver neural network</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">训练验证码求解器神经网络</h1>
+                
+            
+            
+                
+<p>既然我们的数据得到了很好的处理，我们可以训练一个神经网络来执行验证码预测。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><div><div><div><div><p>准备这个菜谱包括在pip中安装一些包。说明如下:</p>
+</div>
+</div>
+</div>
+</div>
+<div><div><div><div><pre><strong>pip install opencv-python imutils sklearn keras tensorflow</strong></pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">在下面的步骤中，我们将训练一个神经网络来求解非常简单的验证码:</p>
+<ol>
+<li class="mce-root">指定提取的信件图像所在的文件夹:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">captcha_processing_output_folder = "extracted_letter_images"</pre>
+<ol start="2">
+<li class="mce-root">导入OpenCV和imutils进行图像处理:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import cv2<br/>import imutils</pre>
+<ol start="3">
+<li class="mce-root">定义一个助手函数，将图像调整到给定的大小:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def resize_image_to_dimensions(image, desired_width, desired_height):<br/>    """Resizes an image to the desired dimensions."""<br/>    (h, w) = image.shape[:2]<br/>    if w &gt; h:<br/>        image = imutils.resize(image, width=desired_width)<br/>    else:<br/>        image = imutils.resize(image, height=desired_height)<br/>    pad_width = int((desired_width - image.shape[1]) / 2.0)<br/>    pad_height = int((desired_height - image.shape[0]) / 2.0)<br/>    image_with_border = cv2.copyMakeBorder(<br/>        image, pad_height, pad_height, pad_width, pad_width, cv2.BORDER_REPLICATE<br/>    )<br/>    image_with_border_resized = cv2.resize(<br/>        image_with_border, (desired_width, desired_height)<br/>    )<br/>    return image_with_border_resized</pre>
+<ol start="4">
+<li class="mce-root">准备读入图像:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def read_image(image_file_path):<br/>    """Read in an image file."""<br/>    img = cv2.imread(image_file_path)<br/>    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)<br/>    img = resize_image_to_dimensions(img, 20, 20)<br/>    img = np.expand_dims(img, axis=2)<br/>    return img</pre>
+<ol start="5">
+<li class="mce-root">读入每个字母图像并记录其标签:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import numpy as np<br/>import os<br/>from imutils import paths<br/><br/>images = []<br/>labels = []<br/><br/>for image_file_path in imutils.paths.list_images(captcha_processing_output_folder):<br/>    image_file = read_image(image_file_path)<br/>    label = image_file_path.split(os.path.sep)[-2]<br/>    images.append(image_file)<br/>    labels.append(label)</pre>
+<ol start="6">
+<li class="mce-root">归一化所有图像，即将像素值重新调整为0-1，并将标签转换为NumPy数组:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">images = np.array(images, dtype="float") / 255.0<br/>labels = np.array(labels)</pre>
+<ol start="7">
+<li>创建训练测试分割:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from sklearn.model_selection import train_test_split<br/><br/>(X_train, X_test, y_train, y_test) = train_test_split(<br/>    images, labels, test_size=0.3, random_state=11<br/>)</pre>
+<ol start="8">
+<li>导入<kbd>LabelBinarizer</kbd>以便对标签进行编码:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from sklearn.preprocessing import LabelBinarizer<br/><br/>label_binarizer = LabelBinarizer().fit(y_train)<br/>y_train = label_binarizer.transform(y_train)<br/>y_test = label_binarizer.transform(y_test)</pre>
+<ol start="9">
+<li>定义神经网络架构:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from keras.models import Sequential<br/>from keras.layers.convolutional import Conv2D, MaxPooling2D<br/>from keras.layers.core import Flatten, Dense<br/><br/>num_classes = 32<br/>NN_model = Sequential()<br/>NN_model.add(<br/>    Conv2D(20, (5, 5), padding="same", input_shape=(20, 20, 1), activation="relu")<br/>)<br/>NN_model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))<br/>NN_model.add(Conv2D(50, (5, 5), padding="same", activation="relu"))<br/>NN_model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))<br/>NN_model.add(Flatten())<br/>NN_model.add(Dense(512, activation="relu"))<br/>NN_model.add(Dense(num_classes, activation="softmax"))<br/>NN_model.compile(<br/>    loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"]<br/>)<br/>NN_model.summary()</pre>
+<ol start="10">
+<li>将神经网络拟合到训练数据:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">NN_model.fit(<br/>    X_train,<br/>    y_train,<br/>    validation_data=(X_test, y_test),<br/>    batch_size=16,<br/>    epochs=5,<br/>    verbose=1,<br/>)</pre>
+<ol start="11">
+<li>选择您想要破解的验证码实例:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">CAPTCHA = "captcha_images\\NZH2.png"</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<ol start="12">
+<li>我们将导入在之前的配方中用于处理图像的所有函数，即<kbd>find_bounding_rectangles_of_contours</kbd>、<kbd>preprocess_CAPTCHA</kbd>、<kbd>get_CAPTCHA_label</kbd>和<kbd>CAPTCHA_to_grayscale_and_bounding_rectangles</kbd>。</li>
+<li>像我们在之前的配方中所做的那样处理验证码图像:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">captcha_label = get_CAPTCHA_label(CAPTCHA)<br/>gray, letter_bounding_rectangles = CAPTCHA_to_gray_scale_and_bounding_rectangles(<br/>    CAPTCHA<br/>)<br/>predictions = []</pre>
+<ol start="14">
+<li>读入每个裁剪的字母，并使用神经网络来预测标签:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">for letter_bounding_rectangle in letter_bounding_rectangles:<br/>    x, y, w, h = letter_bounding_rectangle<br/>    letter_image = gray[y - 2 : y + h + 2, x - 2 : x + w + 2]<br/>    letter_image = resize_image_to_dimensions(letter_image, 20, 20)<br/>    letter_image = np.expand_dims(letter_image, axis=2)<br/>    letter_image = np.expand_dims(letter_image, axis=0)<br/>    prediction = NN_model.predict(letter_image)<br/>    letter = label_binarizer.inverse_transform(prediction)[0]<br/>    predictions.append(letter)</pre>
+<ol start="15">
+<li>打印出预测:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">predicted_captcha_text = "".join(predictions)<br/>print("Predicted CAPTCHA text is: {}".format(predicted_captcha_text))<br/>print("CAPTCHA text is: {}".format(CAPTCHA.split("\\")[-1].split(".")[0]))<br/><br/>Predicted CAPTCHA text is: NZH2<br/>CAPTCHA text is: NZH2</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>在前面的配方中，我们已经完成了验证码的预处理，现在我们准备利用这些来训练验证码破解者。我们首先为从验证码中提取的所有单个字符的路径设置一个变量。我们导入将要使用的图像操作库(<em>步骤2 </em>)，然后在<em>步骤3 </em>中定义一个调整图像大小的函数。这是用于字符识别的相对标准的方法，它允许训练进行得更快，并且减少了存储器的使用。在<em>步骤4 </em>中，我们定义了一个方便的函数，以NumPy数组的形式读入文件，用于训练目的，然后，在<em>步骤5 </em>中，我们遍历所有的字母并记录它们的标签。接下来，我们归一化所有的图像(<em>步骤6 </em>)，这是另一个标准的计算机视觉技巧。我们现在创建一个训练测试分裂，准备装配我们的分类器(<em>步骤7 </em>)，然后利用标签二值化器对我们的标签进行编码(<em>步骤8 </em>)。这是必要的，因为标签是字符，可能不是数字。在<em>步骤9 </em>中，我们定义了神经网络的架构。所述的架构相对普通，并且提供了精度和速度。我们将我们的神经网络与<em>步骤10 </em>中的训练集相匹配。其他参数可以增强网络的性能。艰苦的工作现在完成了。我们现在开始演示验证码破解程序是如何工作的。在<em>步骤11 </em>中，我们选择了一个单一实例来展示我们的验证码破解程序的功效。在步骤12-14中，我们通过管道传递该图像，并为该验证码生成预测文本。最后，我们验证预测是正确的(<em>步骤15 </em>)。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Neural network-assisted fuzzing</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">神经网络辅助模糊化</h1>
+                
+            
+            
+                
+<p>Fuzzing是一种软件漏洞检测方法，其中大量随机输入被输入到程序中，以搜索会导致崩溃、不必要的信息泄漏或其他意外行为的输入。在自动模糊化中，程序产生这些输入。一般来说，自动模糊化器的缺点是在尝试冗余输入时容易卡住。由于这个原因，最近开发了基于人工智能的模糊器。在这个菜谱中，我们将使用NEUZZ，She等人开发的基于神经网络的fuzzer(见<a href="https://arxiv.org/abs/1807.05620">、</a>)，来查找软件中未知的漏洞。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><div><div><div><div><p>以下配方需要Ubuntu 16.04或18.04虚拟机或物理机。在此设备上，运行以下命令:</p>
+<div><div><div><div><div><div><div><div><pre><strong>pip install keras</strong></pre>
+<p>将<kbd>neuzz-modified.7z</kbd>解压到您选择的文件夹中。</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">在下面的步骤中，我们提供了一个使用NEUZZ来查找readelf Unix工具的导致崩溃的输入的方法:</p>
+<ol>
+<li class="mce-root">使用以下代码构建neuzz:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root"><strong>gcc -O3 -funroll-loops ./neuzz.c -o neuzz</strong></pre>
+<p>如果你收到警告，没关系。</p>
+<p style="padding-left: 60px" class="mce-root">2.安装32位二进制文件所需的库:</p>
+<pre style="padding-left: 60px" class="mce-root"><strong> sudo dpkg --add-architecture i386</strong><br/><strong> sudo apt-get update</strong><br/><strong> sudo apt-get install libc6:i386 libncurses5:i386 libstdc++6:i386 lib32z1</strong></pre>
+<ol start="3">
+<li class="mce-root">以root用户身份设置CPU扩展算法和核心转储通知:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root"><strong> cd /sys/devices/system/cpu</strong><br/><strong> echo performance | tee cpu*/cpufreq/scaling_governor</strong><br/><strong> echo core &gt;/proc/sys/kernel/core_pattern</strong></pre>
+<ol start="4">
+<li class="mce-root">将<kbd>neuzz</kbd>、<kbd>nn.py</kbd>和<kbd>afl-showmap</kbd>复制到<kbd>programs/readelf</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root"><strong> cp /path_to_neuzz/neuzz /path_to_neuzz/programs/readelf</strong><br/><strong> cp /path_to_neuzz/nn.py /path_to_neuzz/programs/readelf</strong><br/><strong> cp /path_to_neuzz/afl-showmap /path_to_neuzz/programs/readelf</strong></pre>
+<ol start="5">
+<li class="mce-root">为所有文件提供可执行权限:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>chmod +x /path_to_neuzz/programs/readelf/neuzz</strong><br/><strong>chmod +x /path_to_neuzz/programs/readelf/nn.py</strong><br/><strong>chmod +x /path_to_neuzz/programs/readelf/afl-showmap</strong><br/><strong>chmod +x /path_to_neuzz/programs/readelf/readelf</strong></pre>
+<ol start="6">
+<li class="mce-root">打开终端启动神经网络模块:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root"><strong>cd /path_to_neuzz/programs/readelf</strong><br/><strong>python nn.py ./readelf -a</strong></pre>
+<ol start="7">
+<li class="mce-root">打开另一个终端并启动NEUZZ:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root"><strong> ./neuzz -i neuzz_in -o seeds -l 7507 ./readelf -a @@</strong></pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p style="padding-left: 60px" class="mce-root">以下是运行这些命令的片段:</p>
+<p class="mce-root CDPAlignCenter CDPAlign"><img src="img/9675c7a1-2b44-43e5-8fd8-9816e4176517.png"/></p>
+<ol start="8">
+<li class="mce-root">通过运行以下命令测试NEUZZ收集的崩溃:</li>
+</ol>
+<pre style="padding-left: 60px"><strong> ./readelf -a crash/file_name</strong></pre>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1013 image-border" src="img/d367d900-4a9f-47ff-906c-d598bb32bc9c.png" style="width:48.33em;height:27.00em;"/></p>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>大多数流行的模糊器，虽然在某些有限的情况下有效，但经常陷入循环。基于梯度的方法，比如这里讨论的方法，是有前途的，但并不明显适用于这个问题，因为真实世界的程序行为不一定是光滑函数(例如，它们可以是不连续的)。NEUZZ背后的想法是使用神经网络将程序的行为近似为平滑函数。然后，可以应用梯度方法来提高模糊化效率。我们通过编译NEUZZ ( <em>步骤1) </em>开始我们的食谱。<kbd>funroll-loops</kbd>标志使编译器展开循环，循环的迭代次数可以在编译时或进入循环时确定。因此，代码会更大，并且可能运行得更快，尽管这不是必须的。继续设置NEUZZ，我们添加32位支持(<em>步骤2 </em>)。我们设置CPU扩展算法和核心转储通知(<em>步骤3</em>)；CPU频率调整是一项设置，它使操作系统能够通过调高或调低CPU频率来节能。在接下来的两步中，我们简单地将文件放在一个方便的位置，并允许权限来执行它们。我们已经设置好NEUZZ了。我们现在可以用它来寻找导致程序崩溃的输入。在<em>步骤6 </em>和<em>步骤7 </em>中，我们开始使用我们的神经网络搜索碰撞。在等待足够长的时间让<em>步骤6 </em>和<em>步骤7 </em>收集足够的输入导致readelf工具崩溃后，我们执行这些输入之一(<em>步骤8 </em>)来查看结果。事实上，我们看到输入导致readelf崩溃。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>DeepExploit</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">深度利用</h1>
+                
+            
+            
+                
+<p><strong> DeepExploit </strong>是一款渗透测试工具，通过利用人工智能将Metasploit提升到一个全新的水平。其主要特点如下:</p>
+<ul>
+<li><strong>深度渗透</strong>:如果DeepExploit成功利用目标，它也会自动对其他内部服务器执行利用。</li>
+<li><strong>学习</strong> : DeepExploit是一个强化学习系统，类似于AlphaGo。</li>
+</ul>
+<p>使用DeepExploit来测试您的安全系统将会使您的系统更加安全。在本菜谱中，我们将设置并运行DeepExploit。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><div><div><p>现在将引导您完成安装<kbd>DeepExploit</kbd>所需的步骤:</p>
+<ol>
+<li>下载并设置Kali Linux。你可以在<a href="https://www.offensive-security.com/kali-linux-vm-vmware-virtualbox-image-download/">https://www . offensive-security . com/kali-Linux-VM-VMware-virtualbox-image-download/</a>找到虚拟机镜像。以下步骤都发生在您的Kali Linux机器中。</li>
+</ol>
+<ol start="2">
+<li>通过在终端中运行以下命令来安装Git:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>sudo apt install git</strong></pre>
+<ol start="3">
+<li>通过运行以下命令安装Python:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>sudo apt install python3-pip</strong></pre>
+<ol start="4">
+<li>克隆<kbd>git</kbd>库。在终端中，运行以下命令:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>git clone https://github.com/emmanueltsukerman/machine_learning_security.git</strong></pre>
+<ol start="5">
+<li>打开<kbd>DeepExploit</kbd>目录:</li>
+</ol>
+<p style="padding-left: 60px">在终端中，运行以下命令:</p>
+<pre style="padding-left: 60px"><strong>cd machine_learning_security/DeepExploit</strong></pre>
+<ol start="6">
+<li>安装<kbd>DeepExploit</kbd>的必备包。</li>
+</ol>
+<p style="padding-left: 60px">在终端中，运行以下命令:</p>
+<pre style="padding-left: 60px"><strong>pip3 install -r requirements.txt</strong></pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p>在这个方法中，您将使用<kbd>DeepExploit</kbd>来危害一个受害虚拟机。</p>
+<ol>
+<li>下载一个<kbd>Metasploitable2</kbd>虚拟机镜像。</li>
+</ol>
+<p>详情可在https://metasploit.help.rapid7.com/docs/metasploitable-2找到。</p>
+<p class="mce-root"/>
+<ol start="2">
+<li>在虚拟机上运行一个<kbd>Metasploitable2</kbd>实例。</li>
+<li>获取您的<kbd>Metasploitable2</kbd>的IP地址。</li>
+<li>下一步是设置DeepExploit的配置。</li>
+<li>在终端中，运行<kbd>ifconfig</kbd>来获得你的Kali Linux的IP。通过将<kbd>[common]</kbd>下的<kbd>server_host</kbd>设置为您的Kali Linux IP来编辑<kbd>config.ini</kbd>(例如，使用<kbd>vim</kbd>)。</li>
+<li>将<kbd>config.ini</kbd>中<kbd>proxy_host</kbd>和<kbd>proxy_port</kbd>的值设置为<kbd>proxychains.conf</kbd>中的值。</li>
+<li>在终端中，运行<kbd>cat /etc/proxychains.conf</kbd>并找到<kbd>socks4</kbd>旁边的值:</li>
+</ol>
+<pre style="padding-left: 60px"><strong> ...snip...</strong><br/><strong> [ProxyList]</strong><br/><strong> ...snip...</strong><br/><strong> socks4  127.0.0.1 9050</strong></pre>
+<ol start="8">
+<li>然后，将<kbd>config.ini</kbd>中的<kbd>proxy_host</kbd>和<kbd>proxy_port</kbd>的值设置为等于这些值:</li>
+</ol>
+<pre style="padding-left: 60px"><strong> vim config.ini</strong><br/><strong> ...snip...</strong><br/><strong> proxy_host      : 127.0.0.1</strong><br/><strong> proxy_port      : 9050</strong></pre>
+<ol start="9">
+<li>通过运行<kbd>msfconsole</kbd>在终端中启动Metasploit。</li>
+<li>在Metasploit上启动RPC服务器。在指示的地方，键入您的Kali Linux的IP:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>msf&gt; load msgrpc ServerHost="kali linux ip" ServerPort=55553 User=test Pass=test1234.</strong></pre>
+<p style="padding-left: 60px">您应该看到以下内容:</p>
+<pre style="padding-left: 60px"><strong>[*] MSGRPC Service: "kali linux ip":55553</strong><br/><strong>[*] MSGRPC Username: test</strong><br/><strong>[*] MSGRPC Password: test1234</strong><br/><strong>[*] Successfully loaded plugin: msgrpc</strong></pre>
+<p class="mce-root"/>
+<ol start="11">
+<li>在您的Kali Linux机器的终端中，运行<kbd>python3 DeepExploit.py -t "Metasploitable2 ip" -m train</kbd>来训练<kbd>DeepExploit</kbd>。培训的开始应该如下所示:</li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1020 image-border" src="img/b2fccab6-e290-47a0-b863-7b447bb02774.png" style="width:154.58em;height:70.58em;"/></p>
+<p style="padding-left: 60px">每当<kbd>DeepExploit</kbd>发现一个漏洞，你就会看到一个<kbd>BINGO!!!</kbd>通知，如下图所示:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1021 image-border" src="img/b63f382c-1202-4166-9c8c-fb3fc19f2119.png" style="width:154.25em;height:71.25em;"/></p>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p style="padding-left: 60px">培训结束后，学习内容将被保存。您可以在这里看到完成屏幕:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1022 image-border" src="img/e312ea67-43e8-4c15-bb3f-1e50298d61ea.png" style="width:154.25em;height:71.58em;"/></p>
+<ol start="12">
+<li>使用<kbd>DeepExploit</kbd>测试<kbd>Metasploitable2</kbd>的漏洞。在终端中，运行<kbd>python DeepExploit.py -t "Metasploitable2 ip" -m test</kbd>。</li>
+<li>检查钢笔测试报告，如图所示:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>firefox report/DeepExploit_test_report.html</strong></pre>
+<p style="padding-left: 60px">我们将得到以下输出:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/840efb2f-5ed7-433e-8226-ef3474486359.png"/></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>这个食谱需要大量的准备和配置。初始步骤是建立一个受害者虚拟机(<em>步骤1和2 </em>)。在<em>步骤3 </em>中，我们确定受害虚拟机的IP地址。注意<kbd>Metasploitable2</kbd>的凭证是<kbd>msfadmin/msfadmin</kbd>。您可以使用凭证登录，然后使用<kbd>ifconfig</kbd>获得您的<kbd>Metasploitable2</kbd> IP。如果您在同一台主机上使用Kali Linux虚拟机和<kbd>Metasploitable2</kbd>虚拟机，请确保这两个虚拟机可以通信。例如，将两个虚拟机都放在一个主机专用适配器上，并从Kali Linux机器ping到Metasploitable2机器。接下来，我们现在配置<kbd>DeepExploit</kbd>，以便我们可以将目标指向受害者虚拟机(<em>步骤4 </em> - <em> 8 </em>)。在<em>步骤9 </em>和<em>步骤10 </em>中，我们打开了Metasploit，它被<kbd>DeepExploit</kbd>用作子模块。Metasploit是一个主要的渗透测试框架。完成所有准备工作后，我们现在可以开始训练我们的模型了。在<em>步骤11 </em>中，我们在<kbd>Metasploitable2</kbd>虚拟机上训练<kbd>DeepExploit</kbd>。该模型利用了<strong>异步演员-评论家代理</strong> ( <kbd>A3C</kbd>)算法，该算法由谷歌的DeepMind group在几年前发布，以胜过<kbd>deep Q-network</kbd> ( <kbd>DQN</kbd>)方法而闻名。接下来，我们测试我们的模型(<em>步骤12 </em>)，并在报告中打印出它的分析结果(<em>步骤13 </em>)。从长报告中可以看到，大量的漏洞被<kbd>DeepExploit</kbd>发现。从高层次上讲，强化学习在渗透测试中的应用表明，极其高效的自动化渗透测试即将到来。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Web server vulnerability scanner using machine learning (GyoiThon)</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">使用机器学习的Web服务器漏洞扫描器</h1>
+                
+            
+            
+                
+<p>GyoiThon是一个用于网络服务器的情报收集工具。它执行对目标网络服务器的远程访问，并识别在服务器上运行的产品，例如<strong>内容管理系统</strong> ( <strong> CMS </strong>)、网络服务器软件、框架和编程语言。此外，它还可以使用Metasploit为已识别的产品执行漏洞利用模块。</p>
+<p>GyoiThon的一些主要特征如下:</p>
+<ul>
+<li><strong>远程访问/全自动</strong> : GyoiThon可以仅使用远程访问自动收集目标web服务器上的信息。你只对你的行动执行过一次死刑。</li>
+<li><strong>无损检测</strong>:<em><strong/></em>GyoiThon只使用普通访问就可以收集目标web服务器上的信息。一个功能允许GyoiThon异常访问，例如通过发送漏洞利用模块。</li>
+<li><strong>收集各种信息</strong> : GyoiThon有许多情报收集引擎，如网络爬虫、谷歌自定义搜索API、Censys、默认内容浏览器和云服务检查。通过使用字符串模式匹配和机器学习分析收集的信息，GyoiThon可以识别目标web服务器上运行的产品/版本/CVE号、HTML注释/调试消息、登录页面和其他信息。</li>
+<li><strong>真实漏洞检查</strong> : GyoiThon可以使用Metasploit在已识别的产品上执行漏洞利用模块。因此，它可以确定目标web服务器的真正漏洞。</li>
+</ul>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<p>现在将引导您完成安装和运行GyoiThon的步骤:</p>
+<ol>
+<li>下载并设置Kali Linux。你可以在<a href="https://www.offensive-security.com/kali-linux-vm-vmware-virtualbox-image-download/">https://www . offensive-security . com/kali-Linux-VM-VMware-virtualbox-image-download/</a>找到虚拟机镜像。以下步骤都发生在您的Kali Linux机器中。</li>
+</ol>
+<ol start="2">
+<li>通过运行以下程序在终端中安装<kbd>git</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>sudo apt install git</strong></pre>
+<ol start="3">
+<li>通过运行以下命令在终端中安装<kbd>python</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>sudo apt install python3-pip</strong></pre>
+<ol start="4">
+<li>通过运行以下命令，在终端中将Git存储库克隆到您的Linux机器中:</li>
+</ol>
+<div><pre style="padding-left: 60px"><strong>git clone https://github.com/gyoisamurai/GyoiThon.git</strong></pre>
+<ol start="5">
+<li>通过运行以下命令在终端中打开<kbd>GyoiThon</kbd>目录:</li>
+</ol>
+</div>
+<pre style="padding-left: 60px"><strong>cd GyoiThon</strong></pre>
+<ol start="6">
+<li>通过运行以下命令，在终端中安装DeepExploit的必备组件:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>pip3 install -r requirements.txt</strong></pre>
+<ol start="7">
+<li>(可选。)将模块中的<kbd>Gyoi_CveExplorerNVD</kbd>文件替换为本书存储库中可用的文件。在某些情况下，原始代码出现了故障，本书存储库中可用的修改后的代码可能会解决这个问题。</li>
+</ol>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p>在本菜谱中，您将使用DeepExploit来危害受害者虚拟机:</p>
+<ol>
+<li>下载一个<kbd>Metasploitable2</kbd>虚拟机镜像。</li>
+<li>在虚拟机上运行一个<kbd>Metasploitable2</kbd>实例。</li>
+<li>获取您的<kbd>Metasploitable2</kbd>的IP地址。</li>
+<li>在您的Kali Linux机器中，您应该能够通过在web浏览器中键入<kbd>Metasploitable2's ip address:80</kbd>来看到您的<kbd>Metasploitable2's</kbd>网站实例:</li>
+</ol>
+<div><img class="alignnone size-full wp-image-1023 image-border" src="img/71464351-549d-4a10-9759-c96489711565.png" style="width:106.58em;height:71.50em;"/></div>
+<ol start="5">
+<li>在终端中，运行<kbd>ifconfig</kbd>来获取您的Kali Linux的IP。通过将<kbd>proxy</kbd>设置为<kbd>empty</kbd>，将<kbd>server host</kbd>设置为<kbd>Kali Linux IP</kbd>，将<kbd>LHOST</kbd>设置为<kbd>Metasploitable2 IP</kbd>，将<kbd>LPORT</kbd>设置为<kbd>80</kbd>来编辑<kbd>config.ini</kbd>(例如，使用<kbd>vim</kbd>)。</li>
+<li>打开主机文件，通过键入<kbd>http:Metasploitable2 ip:80/</kbd>添加<kbd>Metasploitable2</kbd>网络服务器地址。</li>
+<li>在Kali Linux机器的终端中，运行<kbd>python3 Gyoithon.py</kbd>开始攻击。</li>
+<li>攻击结束后，检查报告文件夹中的pen测试报告:</li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1024 image-border" src="img/efb44d52-8217-4d81-beae-0e222e914e69.png" style="width:126.83em;height:24.67em;"/></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p><em>步骤1-3 </em>与DeepExploit的方法没有什么不同，我们准备了一个受害者虚拟机。<kbd>Metasploitable2</kbd>的全权证书是<kbd>msfadmin/msfadmin</kbd>。您可以使用凭证登录，然后使用<kbd>ifconfig</kbd>获得您的<kbd>Metasploitable2</kbd> IP。如果您在同一台主机上使用Kali Linux虚拟机和<kbd>Metasploitable2</kbd>虚拟机，请确保两者可以通信。例如，将两个虚拟机都放在一个主机专用适配器上，并从Kali Linux机器ping到Metasploitable2机器。接下来，我们通过检查我们是否能够在<em>步骤4 </em>中访问受害虚拟机的网页来验证环境是否已经正确设置。在<em>步骤5 </em>和<em>步骤6 </em>中，我们配置GyoiThon，为我们的pen测试做准备。完成环境设置后，我们现在准备执行pen测试。在<em>步骤7 </em>中，我们利用GyoiThon来搜索漏洞。然后，我们输出一份检测到的漏洞的完整报告(<em>步骤8 </em>)。查看报告，我们可以看到GyoiThon能够找到大量的漏洞。现在已经确定了受害者机器的漏洞，我们可以继续利用这些漏洞，例如使用Metasploit来攻击受害者机器。</p>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Deanonymizing Tor using machine learning</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">使用机器学习对Tor去噪声化</h1>
+                
+            
+            
+                
+<p>Tor是一个支持匿名通信的免费开源软件。此外，只有在使用Tor浏览器时才能访问的网站仍然存在，并且是<strong>暗网</strong>生态系统的一部分——对普通用户隐藏的互联网部分的名称。在这个方案中，我们将通过从单个会话中收集足够的功能和信息来识别匿名用户的活动，从而对Tor流量进行去匿名化。这个食谱利用了<strong>con marap/网站指纹库</strong>。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<p>现在将引导您完成设置Tor和Lynx web浏览器所需的步骤:</p>
+<ol>
+<li>设置一个Ubuntu虚拟机。</li>
+<li>通过运行以下命令在终端中安装<kbd>git</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>sudo apt install git</strong></pre>
+<ol start="3">
+<li>通过运行以下命令克隆终端中的代码库:</li>
+</ol>
+<div><pre style="padding-left: 60px"><strong>git clone https://github.com/conmarap/website-fingerprinting</strong></pre></div>
+<div><ol start="4">
+<li>通过运行以下命令在终端中安装<kbd>tor</kbd>和<kbd>lynx</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>sudo apt install tor lynx</strong></pre></div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做…</h1>
+                
+            
+            
+                
+<p class="mce-root">这个食谱由三部分组成。第一部分包括Tor流量的数据收集。第二步是根据这些数据训练一个分类器。最后一部分是使用分类器来预测正在观察的流量类型。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Collecting data</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">收集数据</h1>
+                
+            
+            
+                
+<p>数据收集需要遵循以下步骤:</p>
+<ol>
+<li>在<kbd>config.json</kbd>中列出您希望分类的流量类别:</li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><img src="img/5c3ccb28-410d-41c7-bb0b-f8f7c8577d14.png" style="width:32.92em;height:11.58em;"/></p>
+<ol start="2">
+<li>在终端中，通过运行以下命令，从网站指纹目录中为其中一个类(比如<kbd>duckduckgo.com</kbd>)收集额外的数据点:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>./pcaps/capture.sh duckduckgo.com</strong></pre>
+<ol start="3">
+<li>打开另一个终端，并运行以下命令:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>torsocks lynx https://duckduckgo.com</strong><a href="https://duckduckgo.com/"/></pre>
+<p style="padding-left: 60px">此时，您的两个终端应该如下所示:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/ecfa12db-50fc-48f7-b06e-fa36a7cbdbdb.png"/></p>
+<ol start="4">
+<li>完成浏览会话后，按两次<em> Q </em>结束捕获。</li>
+</ol>
+<p>当收集了足够数量的训练数据时，我们就可以训练分类器了。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Training</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">培养</h1>
+                
+            
+            
+                
+<p>要对数据训练分类器，请使用Python运行以下脚本:</p>
+<pre><strong>python gather_and_train.py</strong></pre>
+<p>结果是一个文件分类器:<kbd>nb.dmp</kbd>。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Predicting</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">预测</h1>
+                
+            
+            
+                
+<p>让我们使用分类器来预测正在观察的流量类型:</p>
+<ol>
+<li>为了预测新的流量实例，收集<kbd>pcap</kbd>文件。</li>
+<li>
+<p>使用Python，以<kbd>pcap</kbd>文件作为参数运行<kbd>predict.py</kbd>脚本:</p>
+</li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><img src="img/3ed74252-6025-48bc-b427-eea3b88220cd.png"/></p>
+<p>作者的聚类如下所示:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/63bfbc53-5589-47b6-a81a-a8a28fe1d895.png"/></p>
+<p>上图显示，尽管流量是匿名的，但这些特征确实能够区分流量类型。</p>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>我们开始构建我们的分类器，创建一个目录，列出所有我们希望分析的网站(<em>步骤1 </em>)。数量越多，目标就越有可能拜访其中一个。另一方面，数量越少，训练数据集就越小。在<em>步骤2 </em> - <em> 4 </em>中，我们执行为分类器收集数据点所需的步骤。具体来说，我们通过访问<em>步骤1 </em>中定义的网站之一，然后捕获该访问的数据包。通过对不同的浏览会话重复这些步骤，我们能够构建一个健壮的数据集。在<em>步骤5 </em>中，我们根据目前收集的数据训练一个分类器。我们现在准备测试我们的分类器。在<em>步骤6 </em>中，我们访问一个网站并收集其<kbd>pcap</kbd>，就像我们在收集我们的训练数据时所做的一样。然后，我们使用分类器对这次访问进行分类(<em>步骤7 </em>)。我们看到，尽管用户使用Tor，它确实正确地确定了用户访问了哪个网页。</p>
+<p>总之，在这个菜谱中，scikit-learn被用来编写一个k近邻分类器，它将对Tor <kbd>pcap</kbd>文件进行分类。实际上，流量永远不会像<em>一样干净</em>，所以在相同大小的真实数据集上，准确性可能会降低。然而，具有大量资源的实体可以创建非常准确的分类器。这意味着完全有可能使用这样的方法来准确地危害匿名用户。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>IoT device type identification using machine learning</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">使用机器学习的物联网设备类型识别</h1>
+                
+            
+            
+                
+<p>随着物联网的出现，任何给定目标的攻击面都呈指数级增长。新技术会带来新的风险，就物联网而言，组织面临的一个此类风险是连接到组织网络的恶意物联网设备的增加。能够判断这种设备何时被添加到网络并了解其性质是非常重要的。在这份食谱中，我们将建立一个机器学习模型，按类型对网络物联网设备进行分类。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><div><div><div><div><p>该配方的准备包括在<kbd>pip</kbd>中安装<kbd>sklearn</kbd>、<kbd>pandas</kbd>和<kbd>xgboost</kbd>包。说明如下:</p>
+<pre><strong>pip install pandas sklearn xgboost</strong></pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<p>在<kbd>iot_train.csv</kbd>和<kbd>iot_test.csv</kbd>文件中已经为您提供了一个数据集。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做…</h1>
+                
+            
+            
+                
+<p>在以下步骤中，我们将训练和测试物联网网络信息分类器:</p>
+<ol>
+<li>导入<kbd>pandas</kbd>和<kbd>os</kbd>，读入训练和测试数据；</li>
+</ol>
+<pre style="padding-left: 60px">import pandas as pd<br/>import os<br/><br/>training_data = pd.read_csv("iot_devices_train.csv")<br/>testing_data = pd.read_csv("iot_devices_test.csv")</pre>
+<p style="padding-left: 60px">该数据包含298个要素，如以下屏幕截图所示:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/9c50983f-be84-4f46-9db7-6d554bbccf6e.png"/></p>
+<p class="mce-root"/>
+<ol start="2">
+<li>创建培训和测试数据集，其中目标是设备类别:</li>
+</ol>
+<pre style="padding-left: 60px">X_train, y_train = (<br/>    training_data.loc[:, training_data.columns != "device_category"].values,<br/>    training_data["device_category"],<br/>)<br/>X_test, y_test = (<br/>    testing_data.loc[:, testing_data.columns != "device_category"].values,<br/>    testing_data["device_category"],<br/>)</pre>
+<p style="padding-left: 60px">设备类别包括安全摄像机、电视、烟雾探测器、恒温器、水传感器、手表、婴儿监视器、运动传感器、灯和插座。</p>
+<ol start="3">
+<li>将类别编码成数字形式:</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn import preprocessing<br/><br/>le = preprocessing.LabelEncoder()<br/>le.fit(training_data["device_category"].unique())<br/>y_train_encoded = le.transform(y_train)<br/>y_test_encoded = le.transform(y_test)</pre>
+<ol start="4">
+<li>实例化一个<kbd>xgboost</kbd>分类器:</li>
+</ol>
+<pre style="padding-left: 60px">from xgboost import XGBClassifier<br/><br/>model = XGBClassifier()</pre>
+<ol start="5">
+<li>训练并测试<kbd>xgboost</kbd>分类器:</li>
+</ol>
+<pre style="padding-left: 60px">model.fit(X_train, y_train_encoded)<br/>model.score(X_test, y_test_encoded)</pre>
+<p style="padding-left: 60px">输出如下所示:</p>
+<pre style="padding-left: 60px"><strong>0.6622222222222223</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的...</h1>
+                
+            
+            
+                
+<p>这个方法的一个重要动机是，我们不能依赖IP地址作为设备的标识符，因为这个值可能是伪造的。因此，我们希望分析流量的高级数据，即元数据和流量统计数据，而不是内容，以确定设备是否属于网络。我们从阅读训练和测试数据集开始。我们继续对这些进行特征化，并通过观察分类标签来执行快速数据探索步骤(<em>步骤2 </em>)。为了将这些输入到我们的分类器中，我们将这些分类标签转换成数字标签，以用于训练我们的机器学习分类器(<em>步骤3 </em>)。特征化<em>步骤4 </em>和<em>步骤5 </em>中的数据后，我们实例化、训练和测试一个<kbd>xgboost</kbd>分类器，在测试集上获得一个<kbd>0.66</kbd>的分数。关联数据中有10类物联网设备。在10之间随机猜测的基线将产生0.1的准确度。这里训练的<kbd>XGBoost</kbd>分类器达到了0.66的准确率，这表明它确实是一种基于高级流量数据成功分类物联网设备的有前途的方法。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Keystroke dynamics</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">击键动力学</h1>
+                
+            
+            
+                
+<p>击键动力学，也称为打字生物统计学，是通过人们打字的方式来识别一个人的研究。一个重要的用例是识别哪个用户使用给定的凭证登录，例如，谁以root用户身份登录？另一个用例是识别不同用户何时输入了一系列击键。在这份食谱中，我们将展示如何使用基于机器学习的击键动力学算法。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<p>这个食谱需要一个Linux虚拟机或真实机器。在准备过程中，请执行以下操作:</p>
+<ol>
+<li>在您的设备上安装<kbd>git</kbd>。</li>
+</ol>
+<p style="padding-left: 60px">在终端中，运行以下命令:</p>
+<pre style="padding-left: 60px"><strong>sudo apt install git</strong></pre>
+<ol start="2">
+<li>克隆包含击键动力学算法代码的<kbd>git</kbd>库:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>git clone https://github.com/emmanueltsukerman/keystroke_dynamics.git</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p>在下面的步骤中，我们将根据两个用户的打字模式训练模型，然后使用该模型来识别其中一个用户的打字模式。该方法应该在Linux虚拟或真实机器上运行:</p>
+<ol>
+<li>跑<kbd>example.py</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>python example.py</strong></pre>
+<ol start="2">
+<li>通过选择选项1训练用户1的击键，然后键入文本:</li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><img src="img/209f8806-a477-4839-b1e1-221d511f8a53.png" style="width:43.58em;height:19.83em;"/></p>
+<ol start="3">
+<li>运行<kbd>example.py</kbd>并通过选择选项1训练用户2的击键，然后让用户2键入文本:</li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><img src="img/b69bbb11-e7fb-4448-b4c9-fb5081e45a08.png"/></p>
+<ol start="4">
+<li>运行<kbd>example.py</kbd>，这一次，选择选项2。</li>
+<li>让其中一个用户再次键入文本。该算法将键盘动态与训练数据中最相似的打字员进行匹配:</li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><img src="img/04dfcca1-d472-4c2a-a11e-b4c06a74d71f.png"/></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的...</h1>
+                
+            
+            
+                
+<p>分析击键动力学利用用户在键盘上打字的节奏和速度来验证个人的身份。我们从建立一些基线开始。在<em>步骤1 </em>和<em>步骤2 </em>中，我们设置了击键动力学系统来学习第一个用户的打字模式。然后我们对第二个用户做同样的事情(<em>步骤3 </em>)。这建立了我们的<em>普通</em>用户，以及他们的打字模式。在<em>步骤4 </em>和<em>步骤5 </em>中，我们利用我们训练过的模型(在<em>步骤1 </em> - <em> 3 </em>中训练过)，来确定当前用户是谁。正如您所看到的，分类器输出一个相似性分数，并从保存的用户目录中预测当前用户是谁。这使我们能够检测未经授权的用户，并简单地跟踪系统的使用情况。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Malicious URL detector</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">恶意URL检测器</h1>
+                
+            
+            
+                
+<p>恶意URL通过托管垃圾邮件、恶意软件和漏洞以及窃取信息，每年造成数十亿美元的损失。传统上，对这些攻击的防御依赖于黑名单和白名单——被认为是恶意的URL列表和被认为是安全的URL列表。然而，黑名单缺乏通用性，无法抵御以前未见过的恶意网址。为了补救这种情况，已经开发了机器学习技术。在这个菜谱中，我们将使用带有Keras的字符级递归神经网络运行一个恶意URL检测器。代码是基于<a href="https://github.com/chen0040/keras-malicious-url-detector">https://github.com/chen0040/keras-malicious-url-detector</a>。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><div><div><div><div><p>该配方的准备工作包括在<kbd>pip</kbd>中安装多个软件包。说明如下:</p>
+</div>
+</div>
+</div>
+</div>
+<div><div><div><div><pre><strong>pip install keras tensorflow sklearn pandas matplotlib</strong></pre>
+<p>另外，克隆下面的<kbd>git</kbd>存储库:</p>
+<pre><strong>git clone https://github.com/emmanueltsukerman/keras-malicious-url-detector.git</strong></pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做…</h1>
+                
+            
+            
+                
+<ol>
+<li>训练双向LSTM模型:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>python bidirectional_lstm_train.py</strong></pre>
+<p style="padding-left: 60px">训练屏幕看起来应该是这样的:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/84819f8a-6cdb-44bc-92b1-ddf7aaae7375.png"/></p>
+<ol start="2">
+<li>测试分类器:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>python bidirectional_lstm_predict.py</strong></pre>
+<p style="padding-left: 60px">测试屏幕应该如下所示:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1184 image-border" src="img/9c1798ae-4ed4-4b4c-9241-67f07a4fd2cb.png" style="width:158.00em;height:54.08em;"/></p>
+<p style="padding-left: 60px">最后，你可以在<kbd>reports</kbd>文件夹下看到结果:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/44212e52-6f14-44fd-864b-1937f0dbf77b.png" style="width:31.25em;height:23.42em;"/></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>这是一个相对简单的方法，但可以作为一个更强大的恶意URL检测器的良好起点。数据集由标签为0和1的URL组成，具体取决于它们是恶意的还是良性的:</p>
+<pre>http://google.com,0<br/>http://facebook.com,0<br/>http://youtube.com,0<br/>http://yahoo.com,0<br/>http://baidu.com,0<br/>http://wikipedia.org,0<br/>http://qq.com,0<br/>http://linkedin.com,0<br/>http://live.com,0<br/>http://twitter.com,0<br/>http://amazon.com,0<br/>http://taobao.com,0<br/>http://blogspot.com,0<br/><br/>&lt;snip&gt;<br/>http://360.cn,0 <br/>http://go.com,0 <br/>http://bbc.co.uk,0<br/>http://xhamster.com,0</pre>
+<p>在<em>步骤1 </em>中，我们训练一个双向LSTM模型。通过深入研究代码，您可以根据需要调整网络。训练完我们的模型后，评估它的性能并执行一些健全性检查是很重要的。我们在<em>步骤2 </em>中这样做，测试步骤包括显示随机选择的20个URL的分类器结果。一般来说，双向LSTM是一种递归神经网络架构，由于其从头到尾记住信息和分析数据的能力，显示出很大的前景。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Deep-pwning</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">深冲</h1>
+                
+            
+            
+                
+<p>Deep-pwning是一个用于评估机器学习工具对敌对攻击的鲁棒性的框架。在数据科学界已经广为人知的是，幼稚的机器学习模型，如以分类图像为唯一目标的深度神经网络，非常容易被愚弄。</p>
+<p>下图显示了解释和利用对立的例子，I. J. Goodfellow等人:</p>
+<div><img src="img/9ac0d85b-0396-4dcd-af64-85b1d4e362f1.png" style="width:41.33em;height:13.92em;"/><br/></div>
+<p>网络安全是一个对抗性的战场，用于防范攻击者的机器学习模型应该对对手具有鲁棒性。因此，重要的是不仅要报告通常的性能指标，如准确度、精确度和召回率，而且要对模型的对抗性鲁棒性有一定的度量。deep-pwning框架是一个简单的工具包。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><p>在准备这个食谱时，请遵循以下步骤:</p>
+<ol>
+<li>在您的设备上安装<kbd>git</kbd>。</li>
+</ol>
+</div>
+<ol start="2">
+<li>通过使用以下命令，使用Git下载或克隆存储库:</li>
+</ol>
+<div><pre style="padding-left: 60px"><strong>git clone https://github.com/emmanueltsukerman/deep-pwning.git</strong></pre>
+<ol start="3">
+<li>安装回购的要求。</li>
+</ol>
+<p style="padding-left: 60px">在终端中，转到存储库的根目录并运行以下命令:</p>
+<pre style="padding-left: 60px"><strong>pip install -r requirements.txt</strong></pre></div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做…</h1>
+                
+            
+            
+                
+<p>在以下步骤中，您将利用深度挖掘攻击MNIST数字数据集上的LeNet5:</p>
+<ol>
+<li>从目录向下，使用以下命令运行MNIST驱动程序:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>python mnist_driver.py –restore_checkpoint</strong></pre>
+<p style="padding-left: 60px">结果应该是这样的:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/850ff85a-8a0e-4458-80f8-9b13406ba064.png"/></p>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>在<em>步骤1 </em>中，我们创建一个大型对立样本数据集；即，创建150，000个对立样本，几乎所有样本都能够在数字上欺骗LeNet5。要检查这些对立的样本，请在输出目录中解开pickle，如下所示:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1185 image-border" src="img/bb8fd2b2-dd3f-4dbf-906c-6c8e2af2fdf7.png" style="width:35.75em;height:20.25em;"/></p>
+<p>在<kbd>utils</kbd>下，一个名为<kbd>mnist_read_pickle.py</kbd>的文件将<kbd>pickle</kbd>文件作为参数。运行它会显示一个对立的示例。下图欺骗LeNet5，使其认为看到的是数字1:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/d48b2dcf-0f92-4bb1-a4a8-fdf33014de85.png" style="width:13.08em;height:13.08em;"/></p>
+<p>deep-pwning框架被设计成模块化的，因此用户可以插入并修改各个部分以满足他们的需求。例如，替换MNIST数据集和LeNet5架构。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Deep learning-based system for the automatic detection of software vulnerabilities</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">基于深度学习的软件漏洞自动检测系统</h1>
+                
+            
+            
+                
+<p>信息安全专家通常能够识别潜在的可利用代码。然而，这项工作强度大，成本高，可能不足以保证程序的安全性。深度学习相对于传统机器学习的一大优势就是可以自动发现特征。这允许我们减少对脆弱性方面的人类专家的需求，以及产生更有效的系统。在这个菜谱中，我们将利用<em> VulDeePecker : </em> <em>一个基于深度学习的漏洞检测系统</em>(<a href="https://arxiv.org/pdf/1801.01681.pdf">https://arxiv.org/pdf/1801.01681.pdf</a>)，自动检测C/C++软件中的缓冲区错误漏洞和资源管理错误。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>该配方的准备包括在<kbd>pip</kbd>中安装<kbd>pandas</kbd>、<kbd>gensim</kbd>、<kbd>keras</kbd>、<kbd>tensorflow</kbd>和<kbd>sklearn</kbd>包。说明如下:</p>
+</div>
+</div>
+</div>
+</div>
+<div><div><div><div><pre><strong>pip install pandas gensim keras tensorflow sklearn</strong></pre></div>
+</div>
+</div>
+</div>
+<p>此外，对于这个配方，克隆VulDeePecker的存储库:</p>
+<ol>
+<li>安装<kbd>git</kbd>，然后在终端中运行以下命令:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>git clone https://github.com/emmanueltsukerman/Deep-Learning-Based-System-for-Automatic-Detection-of-Software-Vulnerabilities.git</strong></pre>
+<p>在<kbd>datasets</kbd>文件夹中有两个数据集，<kbd>cwe119_cgd.7z</kbd>和<kbd>cwe399_cgd.7z</kbd>。如果你想在这个食谱中使用它们，提取它们。</p>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做…</h1>
+                
+            
+            
+                
+<ol>
+<li>收集小工具的训练数据集，并将其放在<kbd>datasets</kbd>下。在<kbd>datasets</kbd>文件夹中有两个数据集，它们的形式如下:</li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1186 image-border" src="img/5bbdf15e-6406-47bc-8453-6fb22a8ac5f2.png" style="width:77.92em;height:63.92em;"/></p>
+<ol start="2">
+<li>在数据集上训练和测试深度学习模型。</li>
+</ol>
+<p style="padding-left: 60px">这是通过运行以下命令来完成的:</p>
+<pre style="padding-left: 60px"><strong>python vuldeepecker_train.py "path to dataset"</strong></pre>
+<p style="padding-left: 60px"><strong> </strong>输出显示在以下截图中:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1187 image-border" src="img/714ed965-843e-4b21-9bd8-1d3c857a5f23.png" style="width:158.08em;height:58.75em;"/></p>
+<ol start="3">
+<li>收集您想要预测的数据集，并将其放在<kbd>datasets</kbd>下:</li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><img src="img/86517346-69b4-49ec-97f7-9d758835d94b.png"/></p>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<ol start="4">
+<li>通过运行以下命令，使用您训练的模型来预测这些是否是易受攻击的代码段:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>python vuldeepecker_predict.py "path to data" "path to model"</strong></pre>
+<p class="CDPAlignCenter CDPAlign"><img src="img/0422d9eb-52b2-4079-a859-beecd558e5de.png"/></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>为了让机器学习能够用于漏洞检测，您需要找到适合学习的软件程序的表示。为此，我们使用代码小工具，它们被转换成向量。代码小工具是语义上彼此相关的代码行的选择。在<em>步骤1 </em>中，我们收集这样的代码小工具进行训练。您可以看到三个代码小工具以及标签的图像。这里，标签1表示有漏洞，而标签0表示没有漏洞。要从想要的程序中提取小工具，建议使用商业产品Checkmarx提取程序切片，然后组装成代码小工具。另一个数据集可用。该数据集<kbd>cwe-119</kbd>对应于缓冲区错误漏洞。接下来，我们在我们的漏洞数据集上训练深度学习模型(<em>步骤2 </em>)。使用的深度学习模型是一个<strong>双向长短时记忆</strong> ( <strong> BLSTM </strong>)，其架构给出如下:</p>
+<pre>Bidirectional(LSTM(300), input_shape=(50, 50))<br/>Dense(300)<br/>LeakyReLU()<br/>Dropout(0.5)<br/>Dense(300)<br/>LeakyReLU()<br/>Dropout(0.5)<br/>Dense(2, activation='softmax')<br/>Adamax(lr=0.002)<br/>'categorical_crossentropy'</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p>注意，训练阶段会自动将模型保存为<kbd>[base-name-of-training-dataset]_model.h5</kbd>。我们现在准备寻找新的漏洞。因此，我们在<kbd>datasets</kbd> ( <em>步骤3 </em>)中放置一个测试集，然后通过预测这个新集中的漏洞来使用我们的神经网络(<em>步骤4 </em>)。</p>
+
+
+            
+
+            
+        
+    
+
+
+</body></html>

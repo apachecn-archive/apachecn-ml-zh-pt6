@@ -1,0 +1,159 @@
+<html><head/><body>
+	
+		<title>B17761_10_Final_JM_ePub</title>
+		
+	
+<!-- kobo-style -->
+
+<style type="text/css" id="koboSpanStyle">.koboSpan { -webkit-text-combine: inherit; }</style>
+
+
+	
+		<div><h1 id="_idParaDest-143">第十章:探索时间序列分析</h1>
+			<p>在前一章中，我们讨论了使用深度学习及其在自然语言形式的非结构化数据(一种序列数据)方面的强大适用性。我们现在要关注的另一种序列数据是时间序列数据。我们可以将时间序列数据视为标准数据集，但包含基于时间的特征，从而在开发预测模型时释放出一系列新的可能性。</p>
+			<p>时间序列数据最常见的应用之一是一种称为时间序列分析的过程。我们可以将时间序列分析定义为数据<strong class="bold">探索</strong>和<strong class="bold">预测</strong>的一个领域，其中使用特定的<strong class="bold">时间间隔</strong>或<strong class="bold">时间戳</strong>对数据集进行排序或索引。在生物技术和生命科学行业，我们每天都会遇到很多时间序列数据的例子。一些更基于实验室的重点领域包括基因表达和色谱，以及非实验室领域，如需求预测和股票价格分析。</p>
+			<p>在本章中，我们将探讨几个不同的领域，以便更好地理解时间序列数据的分析，以及开发一个能够使用这些数据的模型，并开发一个稳健的预测模型。</p>
+			<p>在探索这些领域时，我们将涵盖以下主题:</p>
+			<ul>
+				<li>了解时间序列数据</li>
+				<li>探索时序数据集的组成部分</li>
+				<li>教程–使用预言家和LSTM预测产品需求</li>
+			</ul>
+			<p>记住这一点，让我们开始吧！</p>
+			<h1 id="_idParaDest-144"><a id="_idTextAnchor145"/>了解时间序列数据</h1>
+			<p>当谈到使用<strong class="bold">时间序列</strong>数据时，有无数种方法来可视化和显示<a id="_idIndexMarker1075"/>数据，以有效地传达思想或想法。到目前为止，在我们使用的大多数数据中，我们已经处理了特征和标签，其中某个特征集通常对应于感兴趣的标签。当涉及到时间序列数据时，我们倾向于放弃类或标签的概念，而更多地关注数据中的趋势。时间序列数据最常见的应用之一是<strong class="bold">需求预测</strong>的想法。需求预测，顾名思义，包括许多可用于帮助提前预测特定商品或服务需求的方法和工具。在本节中，我们将学习使用数据集进行时间序列分析的许多方面，该数据集涉及给定生物技术产品的需求预测。</p>
+			<h2 id="_idParaDest-145"><a id="_idTextAnchor146"/>将时间序列数据视为结构化数据集</h2>
+			<p>如今市场上有许多不同的生物技术产品，从农业转基因作物到单克隆抗体疗法。在本节中，我们将通过使用<code>dataset_demand-forecasting_ts.csv</code>数据集来调查人类治疗药物的销售数据，该数据集属于一家小型生物技术初创公司:</p>
+			<ol>
+				<li>With this in mind, let’s go ahead and dive into the data. We will begin by importing the libraries of interest, importing the <code>CSV</code> file, and taking a glance at the first few rows of data:<pre>import pandas as pd
+df = pd.read_csv(“dataset_demand-forecasting_ts.csv”)
+df.head()</pre><p>这将导致以下输出:</p><div><img src="img/B17761_10_001.jpg" alt="Figure 10.1 – The first few rows of the forecasting dataset&#10;&#10;"/></div><p class="figure-caption">图10.1–预测数据集的前几行</p><p>相对于我们过去处理过的许多其他数据集，这个数据集似乎<a id="_idIndexMarker1078"/>简单得多，因为我们只处理两列:<code>Date</code>和任意给定日期的<code>Sales</code>数。我们还可以看到，从<code>2014-01-01</code>开始，销售额是按天计算的。如果我们使用<code>tail()</code>函数检查数据集的结尾，我们将会看到数据集在<code>2020-12-23</code>结束——基本上为我们提供了6年的销售数据。</p></li>
+				<li>We can visualize the time series data using the <code>Plotly</code> library:<pre>import plotly.express as px
+import plotly.graph_objects as go
+fig = px.line(df, x=”Date”, y=”Sales”, title=’Single Product Demand’, width=800, height=400)
+fig.update_traces(line_color=’#4169E1’)
+fig.show()</pre><p>执行<code>fig.show()</code>功能后，我们将收到以下输出:</p><div><img src="img/B17761_10_002.jpg" alt="Figure 10.2 – Time series plot of the sales dataset&#10;&#10;"/></div><p class="figure-caption">图10.2–销售数据集的时间序列图</p><p>我们可以<a id="_idIndexMarker1079"/>立即对数据集进行一些初步观察:</p><ul><li>数据中有大量的噪声和可变性。</li><li>随着时间的推移，销售额逐渐增加(我应该投资他们！).</li><li>似乎有季节性的因素，销售在12月左右达到高峰。</li></ul><p>为了更深入地探索这些想法，深入研究数据，我们需要解构时间序列方面。使用<code>Date</code>列，我们可以将数据集分解为年、月和日，以便更好地理解这些数据的重复性或季节性。</p><p class="callout-heading">重要说明</p><p class="callout"><strong class="bold">数据集<a id="_idIndexMarker1080"/>内的</strong>季节性是指与一年中的那个时间相关的季节性特征。例如，与流感疫苗相关的数据集通常显示，在为冬季(流感季节)做准备时，秋季的疫苗接种率相对于春季或夏季有所增加。</p></li>
+				<li>First, we <a id="_idIndexMarker1081"/>will need to use the <code>to_datetime()</code> function to convert <code>string</code> into the <code>date</code> type:<pre>def get_features(dataframe):
+    dataframe[“sales”] = dataframe[“sales”]
+    dataframe[“Date”] = pd.to_datetime(dataframe[‘Date’])
+    dataframe[‘year’] = dataframe.Date.dt.year
+    dataframe[‘month’] = dataframe.Date.dt.month
+    dataframe[‘day’] = dataframe.Date.dt.day
+    dataframe[‘dayofyear’] = dataframe.Date.dt.dayofyear
+    dataframe[‘dayofweek’] = dataframe.Date.dt.dayofweek
+    dataframe[‘weekofyear’] = dataframe.Date.dt.weekofyear
+    return dataframe 
+df = get_features(df)
+df.head()</pre><p>执行此命令后，我们将收到以下数据帧作为输出:</p><div><img src="img/B17761_10_003.jpg" alt="Figure 10.3 – The first five rows of the sales dataset showing new features&#10;&#10;"/></div><p class="figure-caption">图10.3–显示新功能的销售数据集的前五行</p></li>
+				<li>Here, we <a id="_idIndexMarker1082"/>can see that we were able to break down the time series aspect and yield a little more data than we originally started with. Let’s go ahead and plot the data by <code>year</code>:<pre>plt.figure(figsize=(10,5))
+ax = sns.boxplot(x=’year’, y=’sales’, data=df)
+ax.set_xlabel(‘Year’, fontsize = 16)
+ax.set_ylabel(‘Sales’, fontsize = 16)</pre><p>绘制完我们的数据后，我们将收到下面的箱线图，它显示了每一年的销售额。从统计角度来看，我们可以证实我们最初的观察，即销售额每年都在逐渐增加:</p><div><img src="img/B17761_10_004.png.jpg" alt="Figure 10.4 – Boxplot showing the increasing sales every year&#10;&#10;"/></div><p class="figure-caption">图10.4–箱线图显示了每年不断增长的销售额</p></li>
+				<li>Let’s <a id="_idIndexMarker1083"/>go ahead and plot the same graph for each given <code>month</code> instead:<pre>plt.figure(figsize=(10,5))
+ax = sns.boxplot(x=’month’, y=’sales’, data=df)
+ax.set_xlabel(‘Month’, fontsize = 16)
+ax.set_ylabel(‘Sales’, fontsize = 16)</pre><p>将<em class="italic">x</em>-轴从年改为月后，我们将收到下图，这证实了我们的观察，即销售数据往往在1月(<strong class="bold">1</strong>)/12月(<strong class="bold"> 12 </strong>)左右达到峰值:</p><div><img src="img/B17761_10_005.jpg" alt="Figure 10.5 – Boxplot showing the seasonal sales for every month&#10;&#10;"/></div><p class="figure-caption">图10.5–显示每月季节性销售的箱线图</p><p>早些时候，我们注意到数据集包含大量的噪声，也就是说<a id="_idIndexMarker1084"/>数据中有大量的波动。我们可以通过采用<strong class="bold">滚动平均值</strong> ( <strong class="bold">移动平均值</strong>)来解决这种噪声并使数据正常化——这种计算通过创建一系列平均值来帮助我们分析数据点。</p></li>
+				<li>我们可以使用<code>rolling()</code>函数:<pre>df[“Rolling_20”] = df[“sales”].rolling(window=20).mean() df[“Rolling_100”] = df[“sales”].rolling(window=100).mean()</pre>在我们的数据框架中直接实现这一点</li>
+				<li>Notice that in the preceding code, we used two examples to demonstrate the idea of a rolling average by using window values of 20 and 100. Using <code>Plotly Go</code>, we can plot the original raw data and the two rolling averages onto a single plot:<pre>fig = go.Figure()
+fig.add_trace(go.Scatter(x=df[“Date”], y=df[“sales”], mode=’lines’, name=’Raw Data’, line=dict(color=”#bec2ed”)))
+fig.add_trace(go.Scatter(x=df[“Date”], y=df[“Rolling_20”], mode=’lines’, name=’Rolling 20’, line=dict(color=”#858eed”,dash=”dash”)))
+fig.add_trace(go.Scatter(x=df[“Date”], y=df[“Rolling_100”], mode=’lines’, name=’Rolling 100’, line=dict(color=”#d99543”)))
+fig.update_layout(width=800, height=500)</pre><p>在<a id="_idIndexMarker1085"/>执行这段代码时，我们将收到以下输出:</p></li>
+			</ol>
+			<div><div><img src="img/B17761_10_006.jpg" alt="Figure 10.6 – Boxplot showing the rolling average of the sales data&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图10.6–显示销售数据滚动平均值的箱线图</p>
+			<p>请注意，原始数据集在背景中绘制得很模糊，被代表<code>window</code>值20的虚线和代表<code>window</code>值100的前景实线所覆盖。当您试图可视化和理解您的数据时，以及构建预测模型时，使用滚动平均会很有用，我们将在本章的后面看到。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout"><strong class="bold">移动平均值</strong> ( <strong class="bold">移动平均值</strong>)是一种计算方法，用于通过在特定范围内取移动平均值来平滑<a id="_idIndexMarker1086"/>噪声数据集。该范围通常被称为窗口，通常是最后的<em class="italic"> x </em>个数据点。</p>
+			<p>时间序列<a id="_idIndexMarker1087"/>数据与我们迄今为止在本书中探讨的许多数据集非常不同。与其他数据集不同，时间序列数据通常被认为与几个<strong class="bold">组件</strong>一致，所有这些我们将在下一节中探讨。</p>
+			<h1 id="_idParaDest-146"><a id="_idTextAnchor147"/>探索时间序列数据集的组成部分</h1>
+			<p>在这一节中，我们将探讨通常被视为时间序列数据集的<a id="_idIndexMarker1088"/>组成部分的四个主要项目，并将它们可视化。记住这一点，让我们开始吧！</p>
+			<p>时间序列数据集一般由四个主要部分组成:<strong class="bold">水平</strong>、<strong class="bold">长期</strong> <strong class="bold">趋势</strong>、<strong class="bold">季节性</strong>和<strong class="bold">不规则噪声</strong>，我们可以将其分解为一种方法，称为时间序列<strong class="bold">分解</strong>。分解背后的主要目的是通过更抽象地思考数据来获得数据集的更好视角。我们可以认为时间序列的组成部分是加法或乘法:</p>
+			<p><img src="img/Formula_B17761_10_001.png" alt=""/></p>
+			<p><img src="img/Formula_B17761_10_002.png" alt=""/></p>
+			<p>我们可以<a id="_idIndexMarker1090"/>将每个组件定义如下:</p>
+			<ul>
+				<li><strong class="bold">级别</strong>:一段时间内数据集的平均<a id="_idIndexMarker1091"/>值</li>
+				<li><strong class="bold">长期趋势</strong>:数据显示增加或减少的一般<a id="_idIndexMarker1092"/>方向</li>
+				<li><strong class="bold">季节性趋势</strong>:短期<a id="_idIndexMarker1093"/>重复性(日、周、月)</li>
+				<li><strong class="bold">不规则趋势</strong>:数据中的<a id="_idIndexMarker1094"/>噪声显示随机波动</li>
+			</ul>
+			<p>通过执行以下简单的步骤，我们可以将<code>statsmodels</code>库与我们的数据集结合使用，更深入地探索和观察这些化合物:</p>
+			<ol>
+				<li value="1">首先，我们需要通过仅保留销售列、删除任何缺失的值并将日期列设置为数据帧的<strong class="bold">索引</strong> : <pre>dftmp = pd.DataFrame({‘data’: df.Rolling_100.values},                       index=df.Date) dftmp = dftmp.dropna() dftmp.head()</pre>来重塑数据集</li>
+				<li>We can check the first few rows to see that the date is now our index:<div><img src="img/B17761_10_007.jpg" alt="Figure 10.7 – First few rows of the reshaped dataset&#10;&#10;"/></div><p class="figure-caption">图10.7-整形数据集的前几行</p></li>
+				<li>接下来，我们<a id="_idIndexMarker1095"/>将从<code>statsmodels</code>库中导入<code>seasonal_decompose</code>函数，并将其应用到我们的<code>dataframe</code> : <pre>from statsmodels.tsa.seasonal import seasonal_decompose result = seasonal_decompose(dftmp, model=’multiplicative’, period=365)</pre></li>
+				<li>Finally, we can plot the result using the built-in <code>plot() </code>function and view the results:<pre>result.plot()
+pyplot.show()</pre><p>使用<code>show()</code>功能将给出以下输出:</p></li>
+			</ol>
+			<p class="figure-caption">  </p>
+			<div><div><img src="img/B17761_10_008.png.jpg" alt="Figure 10.8 – Results of the seasonal decomposition function&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图10.8-季节分解函数的结果</p>
+			<p>在这里，我们可以看到我们在本节前面提到的四个组件。在<a id="_idIndexMarker1096"/>第一个图中，我们可以看到我们在上一节中计算的移动平均值。接下来是<strong class="bold">长期趋势</strong>，它显示了整个数据集的稳定增长。然后，我们可以看到数据集背后的<strong class="bold">季节性</strong>，证实销售额在12月和1月左右趋于增长。最后，我们可以看到数据集内的<strong class="bold">残差</strong>数据或<strong class="bold">噪声</strong>。我们可以将这种噪声定义为对其他主要类别没有贡献的项目。</p>
+			<p>分解数据集通常是为了更好地理解数据及其一些主要特征，这通常会改变您对数据集和任何给定的可开发预测模型的看法。在下一节中，我们将学习如何开发两种常见的预测模型。</p>
+			<h1 id="_idParaDest-147"><a id="_idTextAnchor148"/>教程–使用预言家和LSTM预测需求</h1>
+			<p>在本教程中，我们将使用上一节中的销售数据集来开发两个<a id="_idIndexMarker1097"/>稳健需求预测模型。我们的主要目标是利用销售数据来预测未来的需求。<strong class="bold">需求预测</strong>通常用于预测在给定日期或地点<a id="_idIndexMarker1098"/>要销售的单位数量。世界各地的公司，特别是那些处理温度敏感或时间敏感药物的公司，依靠这些<a id="_idIndexMarker1099"/>等模型来优化其供应链，并确保满足患者的需求。</p>
+			<p>首先，我们将<a id="_idIndexMarker1100"/>探索脸书著名的<strong class="bold">先知</strong>图书馆，接着<a id="_idIndexMarker1101"/>开发一个定制的<strong class="bold">长短期记忆</strong> ( <strong class="bold"> LSTM </strong>)深度学习模型。考虑到这一点，让我们继续研究如何使用Prophet模型。</p>
+			<h2 id="_idParaDest-148"><a id="_idTextAnchor149"/>使用Prophet进行时间序列建模</h2>
+			<p>Prophet是一个模型<a id="_idIndexMarker1102"/>，当它在2017年首次发布时，在<a id="_idIndexMarker1103"/>数据科学界获得了很大的吸引力。作为一个在<strong class="bold"> R </strong>和<strong class="bold"> Python </strong>中都可用的开源库，该模型很快被采用并广泛用作时间序列数据的主要预测模型之一。这种模式背后最大的好处之一也是它的后果之一——它的高抽象性，允许用户只用几行代码就能做出预测。这种有限的可变性是进行快速预测的好方法，但会阻碍模型开发过程，具体取决于手头的数据集。</p>
+			<p>在接下来的几页中，我们将开发一个Prophet模型，用我们的数据来预测未来的销售，并通过与实际销售数据进行比较来验证结果。让我们开始吧:</p>
+			<ol>
+				<li value="1">首先，让我们继续使用<code>rolling()</code>函数来获得数据集的滚动平均值<a id="_idIndexMarker1105"/>。然后，我们<a id="_idIndexMarker1106"/>可以将这个值叠加到原始值上:<pre>df[“AverageSales”] = df[“Sales”].rolling(window=20).mean() fig = go.Figure() fig.add_trace(go.Scatter(x=df[“Date”], y=df[“Sales”], mode=’lines’, name=’Raw Data’, line=dict(color=”#bec2ed”))) fig.add_trace(go.Scatter(x=df[“Date”], y=df[“AverageSales”], mode=’lines’, name=’Rolling 20’, line=dict(color=”#3d43f5”))) fig.update_layout(width=800, height=500)</pre></li>
+				<li>This will result in the following output:<div><img src="img/B17761_10_009.jpg" alt="Figure 10.9 – The rolling average relative to the raw dataset&#10;&#10;"/></div><p class="figure-caption">图10.9–相对于原始数据集的滚动平均值</p><p>在这里，我们可以看到数据集现在少了很多噪音，并且更容易处理。我们可以<a id="_idIndexMarker1107"/>使用<strong class="bold"> Prophet </strong>库和我们的数据集，通过四个基本步骤创建预测:</p></li>
+				<li>首先，我们需要重塑数据帧，将其与<code>Prophet</code>库集成。库期望数据帧包含两列——<code>ds</code>和<code>y</code>——其中<code>ds</code>是日期戳,<code>y</code>是我们正在处理的值。我们可以使用下面的代码将这个数据帧改造成一个新的数据帧:<pre>df2 = df[[“Date”, “AverageSales”]] df2 = df2.dropna() df2.columns = [“ds”, “y”]</pre></li>
+				<li>类似于<code>sklearn</code>库的实现，我们可以创建一个Prophet模型的实例，然后<code>fit</code>到我们的数据集:<pre>m = Prophet() m.fit(df2)</pre></li>
+				<li>接下来可以调用<code>make_future_dataframe()</code>函数和感兴趣的期数。这将产生一个包含一列日期的数据帧:<pre>future = m.make_future_dataframe(periods=365*2)</pre></li>
+				<li>Finally, we can use the <code>predict()</code> function to make a forecast using the future variable as an input parameter. This will return a number of different statistical values related to the dataset: <pre>forecast = m.predict(future)
+forecast[[‘ds’, ‘yhat’, ‘yhat_lower’, ‘yhat_upper’]].tail()</pre><p>我们可以将数据集的范围限制为几列，并检索以下数据帧:</p><div><img src="img/B17761_10_010.jpg" alt="Figure 10.10 – The output of the forecasting function from Prophet&#10;&#10;"/></div><p class="figure-caption">图10.10-Prophet预测功能的输出</p></li>
+				<li>Now, we <a id="_idIndexMarker1108"/>can visualize our predictions using the built-in <code>plot()</code> function from our <strong class="bold">Prophet</strong> instance:<pre>fig1 = m.plot(forecast)</pre><p>这将产生以下输出，其中显示了原始原始数据集、未来预测以及一些上限和下限:</p><div><img src="img/B17761_10_011.jpg" alt="Figure 10.11 – Graphical representation of the forecasted data&#10;&#10;"/></div><p class="figure-caption">图10.11–预测数据的图形表示</p></li>
+				<li>或者，我们可以通过使用一部分数据训练模型来测试模型的能力——例如，直到2018年的所有数据。然后我们可以<a id="_idIndexMarker1109"/>使用预测模型来预测剩余时间，以便将输出与实际数据进行比较。完成后，我们将收到以下输出:</li>
+			</ol>
+			<div><div><img src="img/B17761_10_012.jpg" alt="Figure 10.12 – Graphical representation of the training and testing data&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图10.12–培训和测试数据的图形表示</p>
+			<p>在这里，我们可以看到代表预测销售额的虚线非常接近实际值。我们还可以看到，该模型没有预测曲线的极值，因此它可能需要额外的调整，以达到更现实的预测。然而，<strong class="bold">预言家</strong>的高级本质可能会在这方面受到限制。</p>
+			<p>由此我们可以看出，准备数据和实现模型的速度非常快，我们只用了几行代码就完成了。在下一节中，我们将学习如何使用<strong class="bold"> Keras </strong>开发一个<strong class="bold"> LSTM </strong>。</p>
+			<h2 id="_idParaDest-149"><a id="_idTextAnchor150"/>使用LSTM进行时间序列建模</h2>
+			<p><strong class="bold"> LSTM </strong>模型<a id="_idIndexMarker1110"/>最早在1997年获得普及，然后最近几年随着<a id="_idIndexMarker1111"/>计算能力的增加再次流行起来。你可能还记得，LSTMs是一种<strong class="bold">递归神经网络</strong>(<strong class="bold">RNN</strong>)<a id="_idIndexMarker1112"/>可以记住和忘记数据集中的模式。相对于<strong class="bold"> Prophet </strong>而言，这种模式的一个主要优点是它的中低级本质，因为完整的实现需要更多的代码。用户获得了对模型开发过程的大量控制，使他们能够使模型适应几乎任何类型的数据集和任何类型的用例。记住这一点，让我们开始吧:</p>
+			<ol>
+				<li value="1">使用相同的数据集，我们可以使用<code>20</code>的<code>window</code>创建一个滚动平均值，以减少数据集中的噪声。然后，我们可以删除由此导致的缺失值:<pre>df[‘Sales’] = df[“Sales”].rolling(window=20).mean() df = df.dropna()</pre></li>
+				<li>使用<code>sklearn</code>库中的<code>MinMaxScaler</code>，我们可以继续扩展我们的数据集:<pre>ds = df[[“Sales”]].values scaler = MinMaxScaler(feature_range=(0, 1)) ds = scaler.fit_transform(ds)</pre></li>
+				<li>接下来，我们需要将数据分成训练集和测试集。请记住，我们在这里的目的是为模型提供一些样本历史数据，看看我们能否准确预测未来的需求。让我们继续使用数据集的75%来训练模型，看看我们能否预测剩余的25%: <pre>train_size = int(len(ds) * 0.75) test_size = len(ds) - train_size train = ds[0: train_size,:] test = ds[train_size : len(ds), :]</pre></li>
+				<li>鉴于<a id="_idIndexMarker1113"/>我们正在处理时间序列数据，我们将需要使用<code>lookback</code>在迭代中训练模型。让我们继续选择<code>100</code>的<code>lookback</code>值，并使用我们的<code>dataset_generator</code>函数来创建<a id="_idIndexMarker1114"/>我们的训练和测试集。我们可以把一个<code>lookback</code>值看作模型应该在数据中回溯多远来训练:<pre>lookback = 100 X_train, y_train = dataset_generator(train, lookback) X_test, y_test = dataset_generator(test, lookback)</pre></li>
+				<li>您可能还记得，在使用数据作为输入之前，我们需要<code>reshape</code>我们的数据:<pre>X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1])) X_test = np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))</pre></li>
+				<li>最后，准备好数据后，我们可以继续准备模型本身。假设我们只处理一个单一的特性，我们可以保持我们的模型相对简单。首先，我们将使用Keras中的<code>Sequential</code>类，然后添加一个具有两个节点的<code>LSTM</code>层，再添加一个具有单个输出值的<code>Dense</code>层:<pre>model = Sequential() model.add(LSTM(2, input_shape=(1, lookback))) model.add(Dense(1))</pre></li>
+				<li>接下来，我们<a id="_idIndexMarker1115"/>可以使用学习速率为<code>0.001</code>的<code>Adam</code>优化器，并编译模型:<pre>opt = tf.keras.optimizers.Adam(learning_rate=0.001) model.compile(loss=’mean_squared_error’, optimizer=opt)</pre></li>
+				<li>Recall <a id="_idIndexMarker1116"/>that we can use the <code>summary()</code> function to take a look at the compiled model:<pre>model.summary()</pre><p>这将产生以下输出，从中可以窥见模型的内部工作原理:</p><div><img src="img/B17761_10_013.jpg" alt="Figure 10.13 – Summary of the Keras model&#10;&#10;"/></div><p class="figure-caption">图10.13-Keras模型概述</p></li>
+				<li>编译好模型后，我们就可以开始训练过程了。我们可以调用<code>fit()</code>函数来拟合10个时期的训练数据集的模型:<pre>history = model.fit(X_train, y_train, epochs=10, batch_size=1, verbose=2)</pre></li>
+				<li>The model <a id="_idIndexMarker1117"/>training process should be relatively quick. Once it’s been completed, we <a id="_idIndexMarker1118"/>can take a look at the <code>loss</code> value by visualizing the results in a graph:<pre>plt.figure(figsize=(10,6))
+plt.plot(history.history[“loss”], linewidth=2)
+plt.title(“Model Loss”, fontsize=15)
+plt.xlabel(“# Epochs”, fontsize=15)
+plt.ylabel(“Mean Squared Error”, fontsize=15)</pre><p>这将产生以下输出，显示损耗随着时间的推移而逐渐减少:</p><div><img src="img/B17761_10_014.png.jpg" alt="Figure 10.14 – Model loss over time&#10;&#10;"/></div><p class="figure-caption">图10.14–随时间推移的模型损耗</p><p>这里，我们可以看到<code>loss</code>值相当一致地降低，最终在9-10历元标记附近稳定下来。注意，我们在优化器中指定了一个学习率<code>0.001</code>。如果我们将该值增加到0.01，或者减少到0.0001，该图的输出将会非常不同。我们可以使用学习率作为一个强大的参数<a id="_idIndexMarker1119"/>来优化我们模型的性能。继续尝试，看看损失的图形输出会是什么。</p></li>
+				<li>完成<a id="_idIndexMarker1120"/>模型训练后，我们可以继续使用该模型来预测感兴趣的值:<pre>X_train_forecast = scaler.inverse_transform(model.predict(X_train)) y_train = scaler.inverse_transform([y_train.ravel()]) X_test_forecast = scaler.inverse_transform(model.predict(X_test)) y_test = scaler.inverse_transform([y_test.ravel()])</pre></li>
+				<li>设置好所有数据后，我们可以通过使用<code>matplotlib</code>绘制结果来可视化数据。首先，让我们使用<code>lightgrey</code> : <pre>plt.plot(list(range(0, len(ds))), scaler.inverse_transform(ds), label=”Original”, color=”lightgrey”)</pre>绘制原始数据集</li>
+				<li>接下来，我们可以使用<code>blue</code> : <pre>train_y_plot = X_train_forecast train_x_plot = [i+lookback for i in list(range(0, len(X_train_forecast)))] plt.plot(train_x_plot, train_y_plot , label=”Train”, color=”blue”)</pre>绘制训练值</li>
+				<li>Finally, we <a id="_idIndexMarker1121"/>can plot the forecasted values using <code>darkorange</code> and a dashed <a id="_idIndexMarker1122"/>line to distinguish it from its two counterparts:<pre>test_y_plot = X_test_forecast
+test_x_plot = [i+lookback*2 for i in
+               list(range(len(X_train_forecast), 
+               len(X_train_forecast)+len(X_test_forecast)))]
+plt.plot(test_x_plot, test_y_plot , label=”Forecast”, 
+         color=”darkorange”, linewidth=2, linestyle=”--”)
+plt.legend()</pre><p>执行这段代码后，我们将得到以下输出:</p></li>
+			</ol>
+			<div><div><img src="img/B17761_10_015.png.jpg" alt="Figure 10.15 – Training and testing datasets using the LSTM model&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图10.15–使用LSTM模型的训练和测试数据集</p>
+			<p>在这里，我们可以看到这个相对简单的<strong class="bold"> LSTM </strong>模型在使用我们提供的训练数据集对<a id="_idIndexMarker1123"/>进行预测时非常有效。该模型不仅能够捕捉到<a id="_idIndexMarker1124"/>价值的大致方向，还能够捕捉到价值的季节性。</p>
+			<h1 id="_idParaDest-150"><a id="_idTextAnchor151"/>总结</h1>
+			<p>在这一章中，我们试图分析和理解时间序列数据，并在不到15页的篇幅内开发了两个预测模型。我们通过探索时间序列数据并将其分解为通常可用于浅层机器学习模型的较小特征来开始我们的旅程。然后，我们研究了时间序列数据集的组成部分，以了解潜在的构成。最后，我们开发了两个业内最常用的预测模型——脸书的Prophet模型和Keras的LSTM模型。</p>
+			<p>在过去的几章中，我们开发了各种技术解决方案来解决常见的业务问题。在下一章中，我们将探索使用Flask框架为最终用户提供这样的模型的第一步。</p>
+		</div>
+	
+</body></html>

@@ -1,0 +1,371 @@
+<html><head/><body>
+
+
+	
+		<title>B16722_04_Final_ASB_ePub</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-61"><em class="italic"> <a id="_idTextAnchor061"/>第四章</em>:用线性回归预测数值</h1>
+			<p>对于需要在预算和资源方面规划其战略的公司来说，预测数字措施可能是非常有价值的。在大多数行业中，预测数字可以为他们的竞争带来巨大的商业优势，也可以创造新的商业场景。</p>
+			<p>线性回归诞生于统计学科，成为执行这种任务的最著名的机器学习技术之一。在数据科学中，线性回归模型用于发现和量化不同变量之间的因果关系。这种模型在不同的业务场景中非常有用，在这些场景中需要对数值度量进行预测。</p>
+			<p>在这一章中，我们将介绍利用BigQuery ML构建线性回归模型所需的所有步骤，big query ML简化并加速了开发过程的所有阶段。</p>
+			<p>通过循序渐进的方法，我们将涵盖以下主题:</p>
+			<ul>
+				<li>介绍业务场景</li>
+				<li>发现线性回归</li>
+				<li>探索和理解数据集</li>
+				<li>训练线性回归模型</li>
+				<li>评估线性回归模型</li>
+				<li>利用线性回归模型</li>
+				<li>得出商业结论</li>
+			</ul>
+			<p>我们开始吧！</p>
+			<h1 id="_idParaDest-62"><a id="_idTextAnchor062"/>技术要求</h1>
+			<p>本章要求您访问网络浏览器，并能够利用以下内容:</p>
+			<ul>
+				<li>访问谷歌云控制台的GCP帐户</li>
+				<li>托管BigQuery数据集的GCP项目</li>
+			</ul>
+			<p>现在，让我们深入到BigQuery ML线性回归模型的分析和开发部分。</p>
+			<p>请看下面的视频，看看代码是如何运行的:【https://bit.ly/2Rru9wA<a href="https://bit.ly/2Rru9wA"/></p>
+			<h1 id="_idParaDest-63"><a id="_idTextAnchor063"/>介绍业务场景</h1>
+			<p>想象一下，你是纽约一家大公司的业务分析师。你的公司<a id="_idIndexMarker234"/>管理着全国最大的自行车共享项目。它利用10，000辆自行车，在纽约不同地区实现了600个站点:曼哈顿、布鲁克林、皇后区和泽西城。</p>
+			<p>以下图片来自纽约市的一个自行车共享站:</p>
+			<div><div><img src="img/B16722_04_001.jpg" alt="Figure 4.1 – New York City bike sharing service by Citi Bike&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图4.1–花旗自行车提供的纽约市自行车共享服务</p>
+			<p>由于该公司的愿景和创新精神，自2013年以来，已经收集了大量数据，并且每天都在更新。这些数据包含大量关于服务使用的信息，可以用来提取非常有趣的统计数据。</p>
+			<p>在撰写本文时，自行车共享服务适用于所有已注册按周、按月或按年订阅的客户。然而，对于只在城市停留几天的人，例如游客或商务旅行者，这是不方便的。</p>
+			<p>考虑到很多人只在纽约市呆几天，该公司希望人们能够只租几个小时的自行车。因此，管理层正在考虑启用新的现收现付租赁方案的可能性。</p>
+			<p>该公司的目标是为这部分客户创造完全数字化的体验，并正在考虑开发一种新的移动应用程序。如果客户提前指出他们的出发和到达站，移动应用程序应该能够预测平均行程时间和乘车费用估计。由于这一功能，客户将提前知道行程时间是否符合他们的时间表，以及是否比其他公共交通服务更便宜。</p>
+			<p>公司的一位经理可能会要求你使用<strong class="bold">机器学习</strong> ( <strong class="bold"> ML </strong>)来开发将被引入新的移动应用的预测系统。ML系统应该使用已经收集并存储在BigQuery公共数据集中的数据来预测自行车租赁的行程时间。</p>
+			<p>既然我们已经解释并理解了问题陈述，那么让我们来看看机器学习技术，我们可以用它来预测一个数值，例如旅行的持续时间。</p>
+			<h1 id="_idParaDest-64"><a id="_idTextAnchor064"/>发现线性回归</h1>
+			<p><strong class="bold">线性回归</strong>是一种最简单的技术，当我们有一个连续的数值要预测时，我们可以应用这种技术。是统计学中最初引入的用来分析不同变量之间相关性的著名算法<a id="_idIndexMarker237"/>。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">在统计学中，回归这个术语意味着两个变量是相关的。这个术语描述了一种<a id="_idIndexMarker238"/>因果关系。原因称为<strong class="bold">自变量</strong>，而<a id="_idIndexMarker239"/>结果称为<strong class="bold">因变量</strong>。因变量可以作为自变量的函数来计算。</p>
+			<p>下图显示了两个变量之间简单线性关系的图形表示:</p>
+			<div><div><img src="img/B16722_04_002.jpg" alt="Figure 4.2 – Representation of simple linear regression&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图4.2-简单线性回归的表示</p>
+			<p>线性<a id="_idIndexMarker240"/>回归模型试图通过找到标签与其特征之间的最佳线性关系来预测标签。如果机器学习模型仅使用一个输入变量，则该模型被定义为<strong class="bold">简单线性回归</strong>。如果ML模型基于多个特征，则称为<strong class="bold">多元线性回归</strong>。</p>
+			<p>在我们的业务<a id="_idIndexMarker241"/>场景中，乘坐的持续时间可以用一个数值来表示，因此我们可以使用线性回归方法来训练我们的ML模型。简单线性回归的一个例子是仅利用一个变量(如起点和终点之间的距离)来预测结果的可能性。多元线性回归基于多个输入变量。在我们的场景中，这可能是起点站和终点站之间的距离、骑手的年龄以及发生租赁的星期几。</p>
+			<p>训练线性<a id="_idIndexMarker242"/>回归模型意味着试图找到可用于输入变量(称为特征)和输出变量(称为标签)之间的线性方程的系数的值。</p>
+			<p>我们不会在本书中详细介绍线性回归的所有细节，但我们可以提到一些线性关系的例子来更好地理解这个概念。在现实生活中，我们可以找到许多可以用线性回归很好地估计的度量，例如:</p>
+			<ul>
+				<li>一个人的体重取决于他的身高。</li>
+				<li>公司的收入是顾客数量的函数。</li>
+				<li>飞机消耗的燃料量取决于飞行的距离。</li>
+			</ul>
+			<p>既然我们已经学习了线性回归的基础知识，是时候看看我们将用来构建机器学习模型的数据集了。</p>
+			<h1 id="_idParaDest-65"><a id="_idTextAnchor065"/>探索和理解数据集</h1>
+			<p>在深入机器学习实现之前，有必要分析我们用例可用的<a id="_idIndexMarker243"/>数据。由于机器学习训练是基于实例的，我们需要清楚地了解要考虑哪些数据，并检查可用记录的质量。</p>
+			<p class="callout-heading">小费</p>
+			<p class="callout">数据科学家和业务分析师花费大量时间和资源来清楚地了解数据集，检查它们的质量，并做好准备。虽然这些操作似乎与机器学习算法的实现没有直接联系，但如果你希望获得可靠的结果，它们是必不可少的。模型的实际训练是从理解数据、控制数据质量和准备数据开始的漫长旅程的最后一英里。</p>
+			<p>让我们从清楚地了解我们数据集中的信息开始<a id="_idIndexMarker244"/>来构建我们的用例。</p>
+			<h2 id="_idParaDest-66"><a id="_idTextAnchor066"/>了解数据</h2>
+			<p>为了清楚地了解我们将用于实施该用例的数据集，我们需要做以下工作:</p>
+			<ol>
+				<li>Log into Google Cloud Console and access the BigQuery user interface from the navigation menu:<div><img src="img/B16722_04_003.jpg" alt="Figure 4.3 – Accessing the BigQuery service from the GCP console&#13;&#10;"/></div><p class="figure-caption">图4.3–从GCP控制台访问BigQuery服务</p></li>
+				<li>Create a new dataset under the project that we created in <a href="B16722_02_Final_ASB_ePub.xhtml#_idTextAnchor039"><em class="italic">Chapter 2</em></a>, <em class="italic">Setting Up Your GCP and BigQuery Environment</em>. To do this, we need to select our GCP project in the BigQuery navigation menu and click on the <code>04_nyc_bike_sharing</code>, keeping all the other options with default values:<div><img src="img/B16722_04_004.jpg" alt="Figure 4.4 – Creating the new BigQuery dataset to host the assets of our use case&#13;&#10;"/></div><p class="figure-caption">图4.4–创建新的BigQuery数据集来托管我们用例的资产</p><p>这个数据集<a id="_idIndexMarker246"/>将包含我们的BigQuery ML模型和我们将在本章接下来的步骤中创建的所有中间表。</p><p>创建数据集后，它将出现在BigQuery导航菜单中，如下面的屏幕截图所示:</p><div><img src="img/B16722_04_005.jpg" alt="Figure 4.5 – The new dataset is available within the GCP project and &#13;&#10;visible in the BigQuery navigation menu&#13;&#10;"/></div><p class="figure-caption">图4.5–新数据集在GCP项目中可用，并在BigQuery导航菜单中可见</p></li>
+				<li>Open the <strong class="bold">bigquery-public-data</strong> GCP project that hosts all the BigQuery public datasets and browse the items until you find the <strong class="bold">new_york_citibike</strong> dataset. In this public <a id="_idIndexMarker247"/>dataset, we will see two BigQuery tables: <strong class="bold">citibike_stations</strong> and <strong class="bold">citibike_trips</strong>. The first table is a registry of the stations of our bike sharing service, while the second one is the most interesting for our use case. We can start analyzing it now:<div><img src="img/B16722_04_006.jpg" alt="Figure 4.6 – The New York Citi Bike Public dataset contains two &#13;&#10;different tables that can be used for our business scenario&#13;&#10;"/></div><p class="figure-caption">图4.6–纽约花旗自行车公共数据集包含两个不同的表，可用于我们的业务场景</p></li>
+				<li>Let's click on the <strong class="bold">citibike_trips</strong> table in the BigQuery navigation menu to access the schema of the table:<div><img src="img/B16722_04_007.jpg" alt="Figure 4.7 – The structure of the citibike_trips table lists all the fields that &#13;&#10;can be used as labels and features&#13;&#10;"/></div><p class="figure-caption">图4.7–Citi bike _ trips表的结构列出了所有可用作标签和特征的字段</p><p>该表有很好的文档记录，对于每一列，我们可以很容易地理解其名称、数据类型和内容的含义。</p><p>这个表<a id="_idIndexMarker248"/>包含了我们用例的相关信息:<strong class="bold"> tripduration </strong>字段表示每次自行车租赁的持续时间，以秒为单位。<strong class="bold"> tripduration </strong>的值是一个数值，它是我们在业务场景中想要预测的，所以它将是我们的<strong class="bold">标签</strong>。</p><p>表格中的所有其他字段都是潜在的<strong class="bold">功能</strong>。事实上，我们有起止站的信息，旅行发生的时间，以及对顾客的一些了解，比如他们的年龄。所有这些列都可以作为很好的候选特征，因为车站的位置与要经过的距离直接相关，并影响旅行的持续时间。此外，乘车开始的时间可能会影响持续时间，因为在某些日子里，街道可能会更加繁忙。然后，从客户的角度，我们可能会猜测年轻人骑得比老年人快。从模式的角度来看，我们可以得出结论，这个表为开发我们的机器学习模型提供了一个很好的数据集，但我们需要进一步检查我们最初的猜测。</p></li>
+				<li>As the next <a id="_idIndexMarker249"/>step, let's take a look at how many records we have in the table and if they're enough for our purposes.<p>单击<strong class="bold">详细信息</strong>选项卡，我们可以看到该表包含超过5800万条记录:</p></li>
+			</ol>
+			<div><div><img src="img/B16722_04_008.jpg" alt="Figure 4.8 – The Details tab of the citibike_trips table shows the number of records that are available&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图4.8–Citi bike _ trips表的Details选项卡显示了可用记录的数量</p>
+			<p>我们可以非常有信心用如此大量的数据建立一个ML模型。</p>
+			<p>在本节中，我们了解了通过分析BigQuery在其用户界面中提供的元数据可以获得多少信息。现在，是时候看看这个表中的实际数据，并有效地使用它了。</p>
+			<h2 id="_idParaDest-67"><a id="_idTextAnchor067"/>检查数据质量</h2>
+			<p>数据质量是构建稳健的机器学习模型的基础。一个ML模型从例子中学习<a id="_idIndexMarker250"/>。如果示例提供了不正确的数据，模型将不可避免地从这些错误中学习，并在实际使用中应用它们。</p>
+			<p>让我们开始分析将用于构建ML模型的数据集:</p>
+			<ol>
+				<li value="1">Frist of all, we will focus on the <code>tripduration</code> field. This is the column that we want to predict with our machine learning model and represents our label:<pre>SELECT COUNT(*)
+FROM
+  `bigquery-public-data.new_york_citibike.citibike_trips`
+WHERE
+  tripduration is NULL
+  OR tripduration&lt;=0;</pre><p>这个查询语句计算带有空的或小于零的<code>tripduration</code>的行数。尽管表描述报告数据集只包含持续时间大于1分钟的行程，但我们可以立即注意到该查询的结果是一个大于0的数字。事实上，我们可以发现超过500万条记录的<code>tripduration</code>字段没有被正确赋值。因为我们不能在标签的空值或错误值上训练模型，所以我们需要从用例中排除这些记录。</p></li>
+				<li>Next, we'll inspect the minimum and the maximum value of the <code>tripduration</code> field to evidence any outlier that can cause poor performance for our machine learning model:<pre>SELECT  MIN (tripduration)/60 minimum_duration_in_minutes,
+        MAX (tripduration)/60  maximum_duration_in_minutes
+FROM
+  `bigquery-public-data.new_york_citibike.citibike_trips`
+WHERE
+  tripduration is not NULL
+  AND tripduration&gt;0;</pre><p>虽然最短租赁时间的期望值是1分钟，但我们可以看到<a id="_idIndexMarker251"/>最大值与自行车共享服务的正常功能不兼容。事实上，最长持续时间超过300，000分钟，这大约相当于超过225天的租赁期。</p><p>在下面的屏幕截图中，您可以看到查询的结果:</p><div><img src="img/B16722_04_009.jpg" alt="Figure 4.8 – The Details tab of the citibike_trips table shows the number of records that are available&#13;&#10;"/></div><p class="figure-caption">图4.9-查询结果，证明tripduration列中存在异常值</p><p>在准备数据集时，我们会考虑所有这些因素，以避免对机器学习模型产生任何影响。</p></li>
+				<li>Then, we can apply a similar check to all the columns that are potential features of our machine learning model, excluding the records that present a non-significant value of <code>tripduration</code>:<pre>SELECT  COUNT(*)
+FROM
+  `bigquery-public-data.new_york_citibike.citibike_trips`
+WHERE
+  (tripduration is not NULL
+  AND tripduration&gt;0) AND (
+  starttime is NULL
+  OR start_station_name is NULL
+  OR end_station_name is NULL
+  OR start_station_latitude is NULL
+  OR start_station_longitude is NULL
+  OR end_station_latitude is NULL
+  OR end_station_longitude is NULL);</pre><p>对于这个查询语句，我们只关注租赁期限<a id="_idIndexMarker252"/>大于零且不为空的记录。查询的目标是检查所有其他潜在要素是否都不是空字段。</p><p>在这种情况下，查询返回的计数为零。出于这个原因，我们可以确信，排除<code>tripduration</code>为<code>NULL</code>的行，我们将获得其他列的有意义的值。</p></li>
+				<li>After that, we can analyze the <code>birth_year</code> column, which represents the birth year of the customer that is using the bike sharing service:<pre>SELECT  COUNT(*)
+FROM
+  `bigquery-public-data.new_york_citibike.citibike_trips`
+WHERE
+  (tripduration is not NULL
+  AND tripduration&gt;0)
+  AND ( birth_year is NULL);</pre><p><code>SELECT COUNT (*)</code>语句查找客户出生年份为空的记录。该查询筛选出<code>tripduration</code>等于<code>NULL</code>或小于零的记录。</p><p>在执行<a id="_idIndexMarker253"/>查询时，我们可以立即注意到有超过500万条记录包含了<code>birth_year</code>的<code>NULL</code>值。我们需要在用例的后续阶段过滤这些记录。</p><p class="callout-heading">小费</p><p class="callout">为了加速在表上编写<code>SELECT</code>语句的过程并避免任何打字错误，BigQuery允许您使用<strong class="bold">查询表</strong>按钮，它会自动生成一个SQL存根，您只需要选择要提取的字段。此外，您还可以从导航菜单中选择表名，或者从<strong class="bold">模式</strong>选项卡中选择列名，以便在您正在编写的SQL查询中自动包含所选对象的名称。</p></li>
+			</ol>
+			<p>现在，我们已经对数据集执行了一些质量检查，让我们将重点放在将行分段到三个不同的表中:训练、评估和预测。</p>
+			<h2 id="_idParaDest-68"><a id="_idTextAnchor068"/>分割数据集</h2>
+			<p>开发机器学习模型的主要原则之一是基于将我们的数据集分割成训练集和评估集，然后在不同的记录上使用ML模型。</p>
+			<p>让我们通过执行以下步骤开始分割数据集:</p>
+			<ol>
+				<li value="1">To understand how the data is distributed across the years and months, we can use the following query statement:<pre>SELECT
+  EXTRACT (YEAR FROM starttime) year,
+  EXTRACT (MONTH FROM starttime) month,
+  count(*) total
+FROM
+  `bigquery-public-data.new_york_citibike.citibike_trips`
+WHERE 
+  EXTRACT (YEAR FROM starttime)=2017 OR
+  EXTRACT (YEAR FROM starttime)=2018
+  AND (tripduration&gt;=3*60 AND tripduration&lt;=3*60*60)
+  AND  birth_year is not NULL
+  AND birth_year &lt; 2007
+GROUP BY
+  year, month 
+ORDER BY
+  year, month asc;</pre><p><code>SELECT</code>语句从<code>starttime</code>字段中提取年和月，这表示自行车旅行开始的确切时间。</p><p>要提取整个时间戳的<a id="_idIndexMarker255"/>部分，我们可以使用<code>EXTRACT</code>函数，该函数接受一个参数作为输入，比如<code>YEAR</code>、<code>MONTH</code>、<code>QUARTER</code>、<code>WEEK</code>、<code>DAYOFYEAR</code>或<code>DAYOFWEEK</code>，后跟<code>FROM</code>关键字和包含日期表达式的字段。</p><p>该查询已经排除了我们在上一节中发现的所有不良记录，并专注于<code>2017</code>和<code>2018</code>。</p><p>为了排除<code>tripduration</code>列中的异常值，我们只考虑最短租赁时间为3分钟、最长为3小时的行。</p><p>我们还可以为客户的出生年份添加一个过滤器，通过过滤所有带有空<code>birth_year</code>的记录，忽略所有在<code>2007</code>之后出生的客户。</p><p>该查询对使用<code>GROUP BY</code>子句分割每年和每月结果的行数进行计数，并按照<code>ORDER BY</code>子句中的指定以升序方式对这些期间进行排序。</p><p>在下面的屏幕截图中，您可以看到查询的结果:</p><div><img src="img/B16722_04_010.jpg" alt="Figure 4.10 – The results of the query describe the segmentation on a monthly basis&#13;&#10;"/></div><p class="figure-caption">图4.10-查询结果描述了每月的细分情况</p><p>从查询结果中，我们可以看到数据集从2017年4月一直到2018年5月。我们可以使用经验法则，保留80%的数据用于训练，10%用于评估，剩下的10%用于预测。通过将此规则应用于我们的数据集，我们将使用前11个月作为训练阶段，接下来的2个月作为评估阶段，最后一个月作为预测阶段。</p></li>
+				<li>Applying what we <a id="_idIndexMarker257"/>decided on in the previous step, let's create a table that contains only the rows that will be used to train our BigQuery ML model:<pre>CREATE OR REPLACE TABLE `04_nyc_bike_sharing.training_table` AS
+  SELECT 
+    tripduration/60 tripduration,
+                        starttime,
+                        stoptime,
+                        start_station_id,
+                        start_station_name, 
+                        start_station_latitude,
+                        start_station_longitude, 
+                        end_station_id,
+                        end_station_name, 
+                        end_station_latitude,
+                        end_station_longitude, 
+                        bikeid,
+                        usertype,
+                        birth_year, 
+                        gender,
+                        customer_plan
+  FROM
+    `bigquery-public-data.new_york_citibike.citibike_trips`
+  WHERE 
+    (
+       (EXTRACT (YEAR FROM starttime)=2017 AND
+         (EXTRACT (MONTH FROM starttime)&gt;=04 OR
+           EXTRACT (MONTH FROM starttime)&lt;=10))
+        OR (EXTRACT (YEAR FROM starttime)=2018 AND
+          (EXTRACT (MONTH FROM starttime)&gt;=01 OR
+            EXTRACT (MONTH FROM starttime)&lt;=02))
+    )
+    AND (tripduration&gt;=3*60 AND tripduration&lt;=3*60*60)
+    AND birth_year is not NULL
+    AND birth_year &lt; 2007;</pre><p>查询的结果<a id="_idIndexMarker258"/>存储在新的<code>`04_nyc_bike_sharing.training_table`</code>表中，我们创建该表是为了支持用例的后续步骤。</p><p><code>SELECT</code>语句从BigQuery公共数据集中提取<code>citibike_trips</code>表中的所有字段，将<code>tripduration</code>的值从秒转换为分。</p><p><code>WHERE</code>条款允许我们只考虑我们想用于训练阶段的月份。时间范围从2017年4月到2018年2月。我们还在同一个子句中应用了来自数据质量检查的过滤器。</p></li>
+				<li>Now that we've delimited the training dataset, we can create another table dedicated to <a id="_idIndexMarker259"/>the records that will be used to evaluate our machine learning model:<pre>CREATE OR REPLACE TABLE `04_nyc_bike_sharing.evaluation_table` AS
+SELECT 
+    tripduration/60 tripduration,
+                       starttime,
+                       stoptime,
+                       start_station_id,
+                       start_station_name, 
+                       start_station_latitude,
+                       start_station_longitude, 
+                       end_station_id,
+                       end_station_name, 
+                       end_station_latitude,
+                       end_station_longitude, 
+                       bikeid,
+                       usertype,
+                       birth_year, 
+                       gender, 
+                       customer_plan
+              FROM
+    `bigquery-public-data.new_york_citibike.citibike_trips`
+              WHERE 
+    (EXTRACT (YEAR FROM starttime)=2018 AND 
+      (EXTRACT (MONTH FROM starttime)=03 OR 
+        EXTRACT (MONTH FROM starttime)=04))
+    AND (tripduration&gt;=3*60 AND tripduration&lt;=3*60*60)
+    AND  birth_year is not NULL
+    AND birth_year &lt; 2007;</pre><p>该查询与用于创建培训表的语句非常相似。唯一的<a id="_idIndexMarker260"/>差异与我们在<code>WHERE</code>子句中选择的期间有关。对于<code>evaluation_table</code>，我们将<code>SELECT</code>声明的重点放在了2018年3月和4月的记录上，这些记录之前被排除在培训表之外。</p></li>
+				<li>Using the same approach, we can also create the table that will be used to test our machine learning model: <pre>CREATE OR REPLACE TABLE `04_nyc_bike_sharing.prediction_table` AS
+SELECT 
+    tripduration/60 tripduration,
+                    starttime,
+                    stoptime,
+                    start_station_id,
+                    start_station_name, 
+                    start_station_latitude,
+                    start_station_longitude, 
+                    end_station_id,
+                    end_station_name, 
+                    end_station_latitude,
+                    end_station_longitude, bikeid,
+                    usertype, birth_year, gender, 
+                    customer_plan
+FROM
+    `bigquery-public-data.new_york_citibike.citibike_trips`
+WHERE 
+    EXTRACT (YEAR FROM starttime)=2018
+    AND EXTRACT (MONTH FROM starttime)=05
+    AND (tripduration&gt;=3*60 AND tripduration&lt;=3*60*60)
+    AND birth_year is not NULL
+    AND birth_year &lt; 2007;</pre><p>该查询将应用必要的逻辑，但只会考虑2018年5月。</p></li>
+			</ol>
+			<p>既然我们已经<a id="_idIndexMarker261"/>分割了我们的数据集，并且我们清楚哪些记录用于训练、评估和测试阶段，那么让我们深入ML模型的创建。</p>
+			<h1 id="_idParaDest-69"><a id="_idTextAnchor069"/>训练线性回归模型</h1>
+			<p>根据业务场景的需求，训练BigQuery ML模型不是一次性的操作，而是一个需要多次<a id="_idIndexMarker262"/>尝试和循环才能更接近开发具有良好性能的有效资产的最终目标的过程。对于我们的用例，我们将多次尝试改进ML模型的性能。让我们开始吧:</p>
+			<ol>
+				<li value="1">First, let's start training a new machine learning model named <code>trip_duration_by_stations</code>:<pre>CREATE OR REPLACE MODEL `04_nyc_bike_sharing.trip_duration_by_stations`
+OPTIONS
+  (model_type='linear_reg') AS
+SELECT
+  start_station_name,
+  end_station_name,
+  tripduration as label
+FROM
+  `04_nyc_bike_sharing.training_table`;</pre><p>在这个语句中，我们可以注意到<code>CREATE OR REPLACE MODEL</code>关键字，它用于创建一个新模型。这个关键字后面是模型的标识符，它通过连接数据集和ML模型名称来表示。</p><p>在这些第一行之后，我们有了<code>OPTIONS</code>关键字，其中指定了要使用的机器类型<a id="_idIndexMarker263"/>学习模型。在这种情况下，我们使用由<code>model_type='linear_reg'</code>标识的线性回归。</p><p>在<code>OPTIONS</code>之后，我们需要指定ML模型将被训练的记录集。对于第一次尝试，我们将决定只使用两个特征:自行车旅行的起点和终点的名称。</p><p>使用<code>as label</code>关键字，我们指示BigQuery使用<code>tripduration</code>作为我们机器学习模型的标签。或者，可以将标签包含在带有关键字<code>INPUT_LABEL_COLS</code>的<code>OPTIONS</code>列表中，如以下代码片段所示:</p><pre>OPTIONS
+  (model_type='linear_reg'
+ input_label_cols=['tripduration'])</pre><p>几秒钟后，BigQuery ML模型将被创建，并在导航菜单中的<code>04_nyc_bike_sharing</code>数据集下可用。选择ML型号并点击<code>trip_duration_by_stations</code>。</p><p>在这种情况下，我们将注意力集中在<strong class="bold">平均绝对误差</strong>上。该值表示标签的实际值和预测值之间的平均距离。</p><p>如下图截图<a id="_idIndexMarker264"/>所示，非常接近7分钟:</p><div><img src="img/B16722_04_011.jpg" alt="Figure 4.11 – The Evaluation tab shows some key performance indicators of the ML model&#13;&#10;"/></div><p class="figure-caption">图4.11–评估选项卡显示了ML模型的一些关键性能指标</p></li>
+				<li>Now, let's try to enrich the ML model with other features that can bring additional value: <pre>CREATE OR REPLACE MODEL `04_nyc_bike_sharing.trip_duration_by_stations_and_day`
+OPTIONS
+  (model_type='linear_reg') AS
+SELECT
+  start_station_name,
+  end_station_name,
+    IF (EXTRACT(DAYOFWEEK FROM starttime)=1 OR
+          EXTRACT(DAYOFWEEK FROM starttime)=7, 
+          true, false) is_weekend,
+  tripduration as label
+FROM
+  `04_nyc_bike_sharing.training_table`;</pre><p>在第二个模型中，我们添加了一个名为<code>is_weekend</code>的新特性。该字段是一个<code>IF</code>语句，如果当天是星期天或星期六，则返回<code>true</code>，由值<code>1</code>和<code>7</code>表示；否则就是<code>false</code>。</p><p>如果我们检查这个新的BigQuery ML模型的平均绝对误差，我们可以注意到我们用6.7784的值稍微改善了模型的性能。</p></li>
+				<li>Since we've had some improvements from adding more features, let's try including the age of the customer as a new parameter for our ML model:<pre>CREATE OR REPLACE MODEL 
+  `04_nyc_bike_sharing.trip_duration_by_stations_day_age`
+OPTIONS
+  (model_type='linear_reg') AS
+SELECT
+  start_station_name,
+  end_station_name,
+  IF (EXTRACT(DAYOFWEEK FROM starttime)=1 OR
+        EXTRACT(DAYOFWEEK FROM starttime)=7, 
+        true, false) is_weekend,
+  EXTRACT(YEAR FROM starttime)-birth_year as age,
+  tripduration as label
+FROM
+  `04_nyc_bike_sharing.training_table`;</pre><p>与以前的模型相比，我们添加了新的<code>age</code>列，它是按照<code>starttime</code>年和客户出生年之间的差异计算的。</p><p>一旦我们执行了查询语句，我们会发现新的<code>age</code>特性并没有提高ML模型的性能。这是因为平均绝对误差为6.9508。这个值比我们的第一次尝试要好，但比第二次差。</p></li>
+			</ol>
+			<p>在本节中，我们创建了不同的ML模型，同时尝试在我们的数据集中使用不同的特性。接下来，我们将继续使用<code>trip_duration_by_stations_and_day</code>模型，该模型在训练阶段实现了平均绝对误差方面的最佳性能。</p>
+			<p>现在，让我们学习如何开始评估阶段。</p>
+			<h1 id="_idParaDest-70"><a id="_idTextAnchor070"/>评估线性回归模型</h1>
+			<p>对于BigQuery ML模型的评估阶段，我们将使用<code>ML.EVALUATE</code>函数和<a id="_idIndexMarker267"/>表来存放评估记录。这些行与培训阶段使用的行完全分开。</p>
+			<p>让我们执行以下查询来评估评估表上的ML模型:</p>
+			<pre>SELECT
+  *
+FROM
+  ML.EVALUATE(MODEL `04_nyc_bike_sharing.trip_duration_by_stations_and_day`,
+    (
+    SELECT
+          start_station_name,
+          end_station_name,
+          IF (EXTRACT(DAYOFWEEK FROM starttime)=1 OR 
+                EXTRACT(DAYOFWEEK FROM starttime)=7, 
+                true, false) is_weekend,
+          tripduration as label
+    FROM
+          `04_nyc_bike_sharing.evaluation_table`));</pre>
+			<p><code>SELECT</code>语句提取由<code>ML.EVALUATE</code>函数返回的所有字段。评估函数应用于<code>`04_nyc_bike_sharing.trip_duration_by_stations_and_day`</code>模型和从<code>evaluation_table</code>表中提取的行。</p>
+			<p>最内部的<code>SELECT</code>提取与<a id="_idIndexMarker268"/>相同的用于训练ML模型的字段，这些字段应用相同的变换，例如在<code>is_weekend</code>字段上，其使用与训练阶段相同的逻辑来计算。</p>
+			<p>查询的结果显示平均绝对误差非常接近7分钟，这与在训练阶段获得的值6.7784相似。出于这个原因，我们可以说ML模型在不同于训练数据集的数据集上保持了它的性能。我们可以说模型不受过拟合的影响。</p>
+			<p>在下面的屏幕截图中，您可以看到评估查询提取的性能指标:</p>
+			<div><div><img src="img/B16722_04_012.jpg" alt="Figure 4.12 – The query results of the EVALUATE function show the ML key &#13;&#10;performance calculated on the evaluation table&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图4.12-EVALUATE函数的查询结果显示了在评估表上计算的ML关键绩效</p>
+			<p>现在，我们已经<a id="_idIndexMarker269"/>训练了模型，并且我们也对评估阶段的结果感到满意，让我们学习如何将我们的机器学习模型应用于其他记录并获得预测。</p>
+			<h1 id="_idParaDest-71"><a id="_idTextAnchor071"/>利用线性回归模型</h1>
+			<p>为了使用我们的BigQuery ML模型，我们将使用<code>ML.PREDICT</code>函数和我们已经<a id="_idIndexMarker270"/>明确创建的表来存放我们尚未使用的记录。</p>
+			<p>以下查询将使用<code>prediction_table</code>中的数据预测标签:</p>
+			<pre>SELECT
+   tripduration as actual_duration,
+   predicted_label as predicted_duration,
+   ABS(tripduration - predicted_label) difference_in_min
+FROM
+  ML.PREDICT(MODEL `04_nyc_bike_sharing.trip_duration_by_stations_and_day`,
+    (
+    SELECT
+          start_station_name,
+          end_station_name,
+          IF (EXTRACT(DAYOFWEEK FROM starttime)=1 OR 
+                EXTRACT(DAYOFWEEK FROM starttime)=7, 
+                true, false) is_weekend,
+          tripduration
+    FROM
+          `04_nyc_bike_sharing.prediction_table`
+    ))
+    order by  difference_in_min asc;</pre>
+			<p>查询语句由一个<code>SELECT</code>关键字组成，该关键字提取实际和预测的租赁期限。它计算以分钟为单位的差值，并对结果<a id="_idIndexMarker271"/>进行排序，从最小到最大的分钟差值。为了计算差值，我们使用了<code>ABS</code>函数，它提取一个数值的绝对值。</p>
+			<p><code>ML.PREDICT</code>函数应用于<code>SELECT</code>语句，该语句从<code>prediction_table</code>中提取特征和实际持续时间。最后一个字段仅用于与预测值进行比较，而不用于运行ML模型。</p>
+			<p>在下面的屏幕截图中，您可以看到查询执行的结果:</p>
+			<div><div><img src="img/B16722_04_013.jpg" alt="Figure 4.13 – The query results of the PREDICT function show the actual and the predicted duration.&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图4.13-预测函数的查询结果显示了实际和预测的持续时间。</p>
+			<p>现在，我们已经应用了我们的模型，让我们制定一些最终的考虑因素，并向我们的经理提供关于预测自行车租赁行程持续时间的可能性的答案。</p>
+			<h1 id="_idParaDest-72">得出商业结论</h1>
+			<p>在这一节中，我们将使用应用ML模型得到的结果来阐述一些最终的考虑事项。</p>
+			<p>通过用父语句<code>SELECT COUNT</code>丰富<a id="_idIndexMarker272"/>先前的查询，我们可以确定有多少预测与实际值相差不到<code>15</code>分钟。</p>
+			<p>让我们执行以下查询来计算旅行持续时间预测值与实际值相差多远:</p>
+			<pre>SELECT COUNT (*)
+FROM (
+SELECT
+   tripduration as actual_duration,
+   predicted_label as predicted_duration,
+   ABS(tripduration - predicted_label) difference_in_min
+FROM
+  ML.PREDICT(MODEL `04_nyc_bike_sharing.trip_duration_by_stations_and_day`,
+    (
+    SELECT
+          start_station_name,
+          end_station_name,
+          IF (EXTRACT(DAYOFWEEK FROM starttime)=1 OR 
+                EXTRACT(DAYOFWEEK FROM starttime)=7, 
+                true, false) is_weekend,
+          tripduration
+    FROM
+          `04_nyc_bike_sharing.prediction_table`
+    ))
+    order by difference_in_min asc) where difference_in_min&lt;=15;</pre>
+			<p><code>SELECT COUNT</code>查询的结果返回1，548，370个预测值，预测值和实际值之间的差异小于<code>15</code>分钟。</p>
+			<p>考虑到<a id="_idIndexMarker273"/><code>prediction_table</code>表的总大小是1，728，078，我们可以说，在89.6%的情况下，我们的机器学习模型能够预测旅行持续时间，差距小于15分钟。</p>
+			<p>出于我们之前表达的原因，我们可以向管理层建议从新的按需付费和现收现付定价模式的季度费用开始。通过这种策略，当客户从起点站取车，并在一周的某一天在移动应用程序上指定目的地时，我们的模型将能够以大约7分钟的平均绝对误差来预测<a id="_idIndexMarker274"/>骑行的准确费用。89.6%的应用程序将为我们的客户提供一个良好的价格估计。</p>
+			<h1 id="_idParaDest-73"><a id="_idTextAnchor073"/>总结</h1>
+			<p>在这一章中，我们基于现实生活场景构建了我们的第一个机器学习用例。在简单介绍了用例之后，我们发现了什么是线性回归，以及如何用它来预测数值。</p>
+			<p>在实际开发机器学习模型之前，我们了解到对数据有一个清晰的理解并检查其质量是获得有效的机器学习模型的基础。为了打下坚实的基础，我们利用了BigQuery公共数据集，该数据集收集了纽约市自行车共享服务的所有租赁信息。</p>
+			<p>为了训练模型，我们使用了不同的特性来理解哪些变量与构建BigQuery ML模型相关。</p>
+			<p>然后，我们选择了一个机器学习模型进行评估阶段。在此阶段，我们使用BigQuery评估函数来验证机器学习模型也可以有效地处理训练数据集之外的新行。</p>
+			<p>最后，我们将ML模型应用于第三个记录子集，以预测每次自行车租赁的持续时间。我们通过利用用户选择的起止站和旅行发生在一周中的哪一天来做到这一点。</p>
+			<p>我们还计算出，其中89%的人与旅行的实际持续时间相差不到15分钟。出于这个原因，我们可以得出结论，如果该公司对我们新的现收现付产品应用季度费用，我们可以为我们的客户提供良好的用户体验。</p>
+			<p>在下一章中，我们将发现二进制逻辑回归以及如何使用它和BigQuery ML来预测布尔变量。</p>
+			<h1 id="_idParaDest-74"><a id="_idTextAnchor074"/>延伸阅读</h1>
+			<ul>
+				<li><strong class="bold">纽约市自行车共享公共数据集</strong>:<a href="https://console.cloud.google.com/marketplace/product/city-of-new-york/nyc-citi-bike">https://console . cloud . Google . com/market place/product/city-of-new York/NYC-Citi-Bike</a></li>
+				<li><strong class="bold"> BigQuery ML创建模型</strong>:<a href="https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-create">https://cloud . Google . com/big query-ML/docs/reference/standard-SQL/bigqueryml-syntax-Create</a></li>
+				<li><strong class="bold"> BigQuery ML评估模型</strong>:<a href="https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-evaluate">https://cloud . Google . com/big query-ML/docs/reference/standard-SQL/bigqueryml-syntax-Evaluate</a></li>
+				<li><strong class="bold">big query ML Predict</strong>:<a href="https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict">https://cloud . Google . com/big query-ML/docs/reference/standard-SQL/bigqueryml-syntax-Predict</a></li>
+				<li><strong class="bold"> BigQuery ML线性回归示例</strong>:<a href="https://cloud.google.com/bigquery-ml/docs/bigqueryml-natality">https://cloud . Google . com/big query-ML/docs/bigqueryml-natality</a></li>
+			</ul>
+		</div>
+	
+
+</body></html>

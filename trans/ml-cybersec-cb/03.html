@@ -1,0 +1,1749 @@
+<html><head/><body>
+
+
+    
+        <title>Advanced Malware Detection</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">高级恶意软件检测</h1>
+                
+            
+            
+                
+<p>在本章中，我们将讨论恶意软件分析的更高级的概念。在前一章中，我们介绍了攻击恶意软件分类的一般方法。在这里，我们将讨论更具体的方法和前沿技术。特别是，我们将涵盖如何处理混淆和打包的恶意软件，如何扩大N元语法特征的集合，以及如何使用深度学习来检测甚至创建恶意软件。</p>
+<p class="mce-root">本章包括以下配方:</p>
+<ul>
+<li>检测混淆的JavaScript</li>
+<li>特色化PDF文件</li>
+<li>利用hash-gram算法快速提取N元文法</li>
+<li>构建动态恶意软件分类器</li>
+<li>MalConv–用于恶意PE检测的端到端深度学习</li>
+<li>使用封隔器</li>
+<li>组装打包的样本数据集</li>
+<li>为封隔器构建分类器</li>
+<li>MalGAN–创建逃避性恶意软件</li>
+<li>跟踪恶意软件漂移</li>
+</ul>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Technical requirements</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">技术要求</h1>
+                
+            
+            
+                
+<p class="mce-root">以下是本章的技术先决条件:</p>
+<ul>
+<li>克拉斯</li>
+<li>张量流</li>
+<li>XGBoost</li>
+<li>UPX</li>
+<li>统计模型</li>
+</ul>
+<p>代码和数据集可以在https://github . com/packt publishing/Machine-Learning-for-cyber security-Cookbook/tree/master/chapter 03找到。<a href="https://github.com/emmanueltsukerman/MLforCSCookbook"/></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Detecting obfuscated JavaScript</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">检测混淆的JavaScript</h1>
+                
+            
+            
+                
+<p class="mce-root">在这一节中，我们将看到如何使用机器学习来检测JavaScript文件何时被混淆。这样做可以用来创建一个二进制特征，无论是否混淆，用于良性/恶意分类，也可以作为去除脚本模糊的先决步骤。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>该食谱的准备包括在<kbd>pip</kbd>中安装<kbd>scikit-learn</kbd>包。该命令如下所示:</p>
+</div>
+<div><pre><strong>pip install sklearn</strong></pre>
+<p>此外，资源库中还为您提供了混淆和非混淆的JavaScript文件。将<kbd>JavascriptSamplesNotObfuscated.7z</kbd>解压到一个名为<kbd>JavaScript Samples</kbd>的文件夹中。将<kbd>JavascriptSamplesObfuscated.7z</kbd>解压到一个名为<kbd>JavaScript Samples Obfuscated</kbd>的文件夹中。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">在以下步骤中，我们将演示二进制分类器如何检测混淆的JavaScript文件:</p>
+<ol>
+<li class="mce-root">首先导入处理JavaScript内容所需的库，准备数据集，对其进行分类，并测量分类器的性能:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import os<br/>from sklearn.feature_extraction.text import HashingVectorizer, TfidfTransformer<br/>from sklearn.ensemble import RandomForestClassifier<br/>from sklearn.model_selection import train_test_split<br/>from sklearn.metrics import accuracy_score, confusion_matrix<br/>from sklearn.pipeline import Pipeline</pre>
+<ol start="2">
+<li class="mce-root">我们指定混淆和非混淆JavaScript文件的路径，并为这两种类型的文件分配不同的标签:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">js_path = "path\\to\\JavascriptSamples"<br/>obfuscated_js_path = "path\\to\\ObfuscatedJavascriptSamples"<br/> <br/>corpus = []<br/>labels = []<br/>file_types_and_labels = [(js_path, 0), (obfuscated_js_path, 1)]</pre>
+<ol start="3">
+<li class="mce-root">然后，我们将文件读入语料库并准备标签:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">for files_path, label in file_types_and_labels:<br/>    files = os.listdir(files_path)<br/>    for file in files:<br/>        file_path = files_path + "/" + file<br/>        try:<br/>            with open(file_path, "r") as myfile:<br/>                data = myfile.read().replace("\n", "")<br/>                data = str(data)<br/>                corpus.append(data)<br/>                labels.append(label)<br/>        except:<br/>            pass</pre>
+<ol start="4">
+<li class="mce-root">我们将数据集分成训练集和测试集，并准备一个管道来执行基本的NLP，然后是一个随机森林分类器:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">X_train, X_test, y_train, y_test = train_test_split(<br/>    corpus, labels, test_size=0.33, random_state=42<br/>)<br/>text_clf = Pipeline(<br/>    [<br/>        ("vect", HashingVectorizer(input="content", ngram_range=(1, 3))),<br/>        ("tfidf", TfidfTransformer(use_idf=True,)),<br/>        ("rf", RandomForestClassifier(class_weight="balanced")),<br/>    ]<br/>)</pre>
+<ol start="5">
+<li class="mce-root">最后，我们将管道拟合到训练数据，预测测试数据，然后打印出我们的结果:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">text_clf.fit(X_train, y_train)<br/>y_test_pred = text_clf.predict(X_test)<br/><br/>print(accuracy_score(y_test, y_test_pred))<br/>print(confusion_matrix(y_test, y_test_pred))</pre>
+<p style="padding-left: 60px">准确度和混淆矩阵如下所示:</p>
+<div><img class="alignnone size-full wp-image-1089 image-border" src="img/93e19b60-0a56-4f9c-b550-f3c1de40da7d.png" style="width:9.33em;height:3.50em;"/></div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>我们首先导入标准的Python库来分析文件并建立机器学习管道(<em>步骤1 </em>)。在<em>步骤2 </em>和<em> 3 </em>中，我们将未混淆和混淆的JavaScript文件收集到数组中，并为它们分配各自的标签。这是为我们的二元分类问题做准备。请注意，生成此分类器的主要挑战是生成一个大而有用的数据集。解决这个障碍的想法包括收集大量的JavaScript样本，然后使用不同的工具来混淆这些样本。因此，您的分类器将可能能够避免过度适应一种类型的模糊。收集完数据后，我们将其分成训练和测试子集(<em>步骤4 </em>)。此外，我们建立一个管道，将NLP方法应用到JavaScript代码本身，然后训练一个分类器(<em>步骤4 </em>)。最后，我们在<em>步骤5 </em>中测量分类器的性能。您会注意到，除了构建适当的数据集的挑战之外，这个方法与我们用来检测文件类型的方法类似。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Featurizing PDF files</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">特色化PDF文件</h1>
+                
+            
+            
+                
+<p class="mce-root">在本节中，我们将了解如何特征化PDF文件，以便将它们用于机器学习。我们将使用的工具是由<em>迪迪尔·斯蒂文斯</em>(<a href="https://blog.didierstevens.com/">https://blog.didierstevens.com/</a>)设计的<kbd>PDFiD</kbd> Python脚本。Stevens选择了恶意文件中常见的20个特征，包括PDF文件是否包含JavaScript或启动自动操作。在文件中发现这些特征是可疑的，因此，这些特征的出现可能表示恶意行为。</p>
+<p class="mce-root">实际上，该工具扫描一个PDF文件，并计算~20个特征中每一个的出现次数。该工具的运行如下所示:</p>
+<pre> PDFiD 0.2.5 PythonBrochure.pdf<br/><br/> PDF Header: %PDF-1.6<br/> obj                 1096<br/> endobj              1095<br/> stream              1061<br/> endstream           1061<br/> xref                   0<br/> trailer                0<br/> startxref              2<br/> /Page                 32<br/> /Encrypt               0<br/> /ObjStm               43<br/> /JS                    0<br/> /JavaScript            0<br/> /AA                    1<br/> /OpenAction            0<br/> /AcroForm              1<br/> /JBIG2Decode           0<br/> /RichMedia             0<br/> /Launch                0<br/> /EmbeddedFile          0<br/> /XFA                   0<br/> /URI                   0<br/> /Colors &gt; 2^24         0</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p class="a-b-r-La">这个配方的必备文件在资源库中的<kbd>pdfid</kbd>和<kbd>PDFSamples</kbd>文件夹中。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">在下面的步骤中，您将使用<kbd>PDFiD</kbd>脚本来特征化一组PDF文件:</p>
+<ol>
+<li class="mce-root">下载该工具，并将所有附带代码放在与特征化PDF <kbd>Files.ipynb</kbd>相同的目录下。</li>
+<li class="mce-root">导入IPython的<kbd>io</kbd>模块以捕获外部脚本的输出:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from IPython.utils import io</pre>
+<ol start="3">
+<li class="mce-root">定义一个函数来特征化PDF:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def PDF_to_FV(file_path):<br/>    """Featurize a PDF file using pdfid."""</pre>
+<ol start="4">
+<li class="mce-root">对一个文件运行<kbd>pdfid</kbd>并捕获操作的输出:</li>
+</ol>
+<pre class="mce-root">     with io.capture_output() as captured:<br/>         %run -i pdfid $file_path<br/>     out = captured.stdout</pre>
+<ol start="5">
+<li class="mce-root">接下来，解析输出，使其成为一个数字向量:</li>
+</ol>
+<pre class="mce-root">    out1 = out.split("\n")[2:-2]<br/>    return [int(x.split()[-1]) for x in out1]</pre>
+<ol start="6">
+<li class="mce-root">导入<kbd>listdir</kbd>以枚举文件夹中的文件并指定您放置pdf收藏的位置:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from os import listdir<br/><br/>PDFs_path = "PDFSamples\\"</pre>
+<ol start="7">
+<li class="mce-root">遍历目录中的每个文件，对其进行特征化，然后将所有的特征向量收集到<kbd>X</kbd>中:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">X = []<br/>files = listdir(PDFs_path)<br/>for file in files:<br/>    file_path = PDFs_path + file<br/>    X.append(PDF_to_FV(file_path))</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>我们通过下载<kbd>PDFiD</kbd>工具并把我们的PDF文件放在一个方便分析的位置来开始我们的准备工作(<em>步骤1 </em>)。请注意，该工具是免费的，使用简单。接下来，我们导入非常有用的IPython的<kbd>io</kbd>模块，以便捕获外部程序的结果，即<kbd>PDFiD</kbd> ( <em>步骤2 </em>)。在下面的步骤中，<em>步骤3 </em>和<em>步骤5 </em>，我们定义了一个函数PDF to FV，它获取一个PDF文件并特征化它。特别是，它利用了<kbd>PDFiD</kbd>工具，然后将其输出解析成一种方便的形式。当我们运行<kbd>PDFSamples</kbd> \ <kbd>PythonBrochure.pdf</kbd>文件时，我们的函数输出如下向量:</p>
+<pre class="mce-root"> [1096, 1095, 1061, 1061, 0, 0, 2, 32, 0, 43, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0]</pre>
+<p class="mce-root">既然我们能够特征化一个单独的PDF文件，为什么不特征化我们所有的PDF文件，使它们服从机器学习(<em>步骤6 </em>和<em> 7 </em>)。特别是，在<em>步骤6 </em>中，我们提供了包含我们想要特征化的PDF文件的路径，并且，在<em>步骤7 </em>中，我们执行文件的实际特征化。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Extracting N-grams quickly using the hash-gram algorithm</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">利用hash-gram算法快速提取N元文法</h1>
+                
+            
+            
+                
+<p class="mce-root">在这一节中，我们演示了一种快速高效地提取最频繁的N元文法的技术。这使得我们能够更容易地应对大量N元文法带来的挑战。这项技术被称为<strong>哈希表</strong>，它依赖于在提取N元语法时对它们进行哈希运算。N元语法的一个特性是它们遵循幂定律，该定律确保散列冲突对由此获得的特征的质量没有显著影响。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>该配方的准备包括在<kbd>pip</kbd>中安装<kbd>nltk</kbd>。该命令如下所示:</p>
+</div>
+<div><pre><strong>pip install nltk</strong></pre>
+<p>此外，在存储库根目录下的<kbd>PE Samples Dataset</kbd>文件夹中已经为您提供了良性和恶意文件。将所有名为<kbd>Benign PE Samples*.7z</kbd>的档案解压到名为<kbd>Benign PE Samples</kbd>的文件夹中，将所有名为<kbd>Malicious PE Samples*.7z</kbd>的档案解压到名为<kbd>Malicious PE Samples</kbd>的文件夹中。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">在下面的步骤中，我们将演示哈希算法是如何工作的:</p>
+<ol start="1">
+<li class="mce-root">首先指定包含样本的文件夹、参数N，并导入一个哈希库和一个从字符串中提取N元语法的库:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from os import listdir<br/>from nltk import ngrams<br/>import hashlib<br/><br/>directories = ["Benign PE Samples", "Malicious PE Samples"]<br/>N = 2</pre>
+<ol start="2">
+<li class="mce-root">我们创建一个函数来读入文件的字节，并将它们转换成N元语法:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def read_file(file_path):<br/>    """Reads in the binary sequence of a binary file."""<br/>    with open(file_path, "rb") as binary_file:<br/>        data = binary_file.read()<br/>    return data<br/><br/>def byte_sequence_to_Ngrams(byte_sequence, N):<br/>    """Creates a list of N-grams from a byte sequence."""<br/>    return ngrams(byte_sequence, N)</pre>
+<ol start="3">
+<li>现在，我们将想要散列N元文法:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def hash_input(inp):<br/>    """Compute the MD5 hash of an input."""<br/>    return int(hashlib.md5(inp).hexdigest(), 16)<br/><br/>def make_ngram_hashable(Ngram):<br/>    """Convert N-gram into bytes to be hashable."""<br/>    return bytes(Ngram)</pre>
+<ol start="4">
+<li class="mce-root"><kbd>hash_file_Ngrams_into_dictionary</kbd>函数获取一个N-gram，对其进行哈希运算，然后在字典中为该哈希递增计数。归约模块B (%B)确保字典中的关键字不超过<kbd>B</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def hash_file_Ngrams_into_dictionary(file_Ngrams, T):<br/>    """Hashes N-grams in a list and then keeps track of the counts in a dictionary."""<br/>    for Ngram in file_Ngrams:<br/>        hashable_Ngram = make_ngram_hashable(Ngram)<br/>        hashed_and_reduced = hash_input(hashable_Ngram) % B<br/>        T[hashed_and_reduced] = T.get(hashed_and_reduced, 0) + 1</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mceNonEditable"/>
+<ol start="5">
+<li class="mce-root">我们为小于2^16的最大素数b指定一个值，并创建一个空字典:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">B = 65521<br/>T = {}</pre>
+<ol start="6">
+<li class="mce-root">我们迭代我们的文件，并计算它们的散列N-gram:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">for dataset_path in directories:<br/>    samples = [f for f in listdir(dataset_path)]<br/>    for file in samples:<br/>        file_path = dataset_path + "/" + file<br/>        file_byte_sequence = read_file(file_path)<br/>        file_Ngrams = byte_sequence_to_Ngrams(file_byte_sequence, N)<br/>        hash_file_Ngrams_into_dictionary(file_Ngrams, T)</pre>
+<ol start="7">
+<li class="mce-root">我们使用<kbd>heapq</kbd>选择最频繁的<kbd>K1=1000</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">K1 = 1000<br/>import heapq<br/><br/>K1_most_common_Ngrams_Using_Hash_Grams = heapq.nlargest(K1, T)</pre>
+<ol start="8">
+<li class="mce-root">一旦选择了顶部散列的N元文法，它们就构成了特征集。为了特征化样本，对其N元文法进行迭代、散列和归约，并且如果结果是所选择的顶部散列N元文法之一，则递增该索引处的特征向量:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def featurize_sample(file, K1_most_common_Ngrams_Using_Hash_Grams):<br/>    """Takes a sample and produces a feature vector.<br/>    The features are the counts of the K1 N-grams we've selected.<br/>    """<br/>    K1 = len(K1_most_common_Ngrams_Using_Hash_Grams)<br/>    fv = K1 * [0]<br/>    file_byte_sequence = read_file(file_path)<br/>    file_Ngrams = byte_sequence_to_Ngrams(file_byte_sequence, N)<br/>    for Ngram in file_Ngrams:<br/>        hashable_Ngram = make_ngram_hashable(Ngram)<br/>        hashed_and_reduced = hash_input(hashable_Ngram) % B<br/>        if hashed_and_reduced in K1_most_common_Ngrams_Using_Hash_Grams:<br/>            index = K1_most_common_Ngrams_Using_Hash_Grams.index(hashed_and_reduced)<br/>            fv[index] += 1<br/>    return fv</pre>
+<ol start="9">
+<li class="mce-root">最后，我们特征化我们的数据集:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">X = []<br/>for dataset_path in directories:<br/>    samples = [f for f in listdir(dataset_path)]<br/>    for file in samples:<br/>        file_path = dataset_path + "/" + file<br/>        X.append(featurize_sample(file_path, K1_most_common_Ngrams_Using_Hash_Grams))</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>hash-gram方法中的初始步骤类似于N-gram的普通提取。首先，我们指定包含样本的文件夹，我们的N值(如N-grams)。另外，我们导入一个哈希库，这是一个不同于普通提取N元文法的动作(<em> Step 1 </em>)。继续我们的准备工作，我们定义一个函数来读入文件的所有字节(相对于读入其内容)，并将这些字节转换成N元语法(<em>步骤2 </em>)。我们定义一个函数来计算N-gram的MD5散列，并将结果作为十六进制数返回。此外，我们定义了一个函数来将N元语法转换成它的字节成分，以便能够散列它(<em>步骤3 </em>)。</p>
+<p>接下来，我们定义一个函数来遍历文件的散列N元文法，将它们简化为模B，然后为简化的散列增加字典中的计数(<em>步骤4 </em>)。参数B控制字典中不同键的数量限制。通过散列，我们能够随机化计算N元文法的桶。现在，当我们将要运行我们的函数时，是时候指定b的值了。我们选择b的值为小于2^16的最大质数(<em>步骤5 </em>)。</p>
+<p>标准做法是选择一个素数，以确保哈希冲突的数量最少。我们现在遍历我们的文件目录，并对每个文件应用我们之前定义的函数(<em>步骤6 </em>)。结果是一个大字典，<em> T </em>，它包含散列N元文法的计数。这个字典不算太大，我们很容易从中选出N元文法最常见的前K1个约简哈希(<em> Step 7 </em>)。通过这样做，我们选择顶部最频繁的N元文法的概率很高，尽管由于散列冲突可能有多于K1个。在这一点上，我们有了我们的特征集，它是通过散列映射到我们选择的K1散列N元文法的N元文法。我们现在特征化我们的数据集(<em>步骤8 </em>和<em> 9 </em>)。特别是，我们遍历我们的文件，计算它们的N-gram。如果一个N-gram有一个简化的hash，是K1个选择的hash之一，我们认为它是一个频繁的N-gram，并把它作为我们的特征集的一部分。</p>
+<p class="mce-root">需要注意的是，hash-grams算法并不总是更快，但只要考虑的数据集很大，它就会更快。在许多情况下，在提取N-gram的简单方法导致内存错误的情况下，hash-gram能够成功终止。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>See also</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">请参见</h1>
+                
+            
+            
+                
+<p class="mce-root">有关hash-gram算法的更多详细信息，请参见<a href="https://www.edwardraff.com/publications/hash-grams-faster.pdf">https://www . edwardraff . com/publications/hash-grams-faster . pdf</a><a href="https://www.edwardraff.com/publications/hash-grams-faster.pdf">。</a></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Building a dynamic malware classifier</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">构建动态恶意软件分类器</h1>
+                
+            
+            
+                
+<p class="mce-root">在某些情况下，根据恶意软件的行为来检测恶意软件具有相当大的优势。特别是，当恶意软件在动态情况下被分析时，隐藏其意图要困难得多。因此，对动态信息进行操作的分类器比静态分类器更准确。在本节中，我们提供了一个动态恶意软件分类器的配方。我们使用的数据集是android应用程序的病毒共享库的一部分。动态分析是由Johannes Thon在几款采用Android API 23的LG Nexus 5设备上执行的，(在LG Nexus 5设备场(API 23)上动态分析了超过4，000个恶意应用，在LG Nexus 5设备场(API 23)上由goorax动态分析了超过4，300个良性应用，由原始设备在CC下使用/未经修改)。</p>
+<p class="mce-root">我们的方法是在API调用序列中使用N元语法。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>该配方的准备包括在<kbd>pip</kbd>中安装<kbd>scikit-learn</kbd>、<kbd>nltk</kbd>和<kbd>xgboost</kbd>。该命令如下所示:</p>
+</div>
+<div><pre><strong>pip install sklearn nltk xgboost</strong></pre>
+<p>此外，在存储库中已经为您提供了良性和恶意的动态分析文件。将所有名为<kbd>DA Logs Benign*.7z</kbd>的档案解压到名为<kbd>DA Logs Benign</kbd>的文件夹中，将所有名为<kbd>DA Logs Malware*.7z</kbd>的档案解压到名为<kbd>DA Logs Malicious</kbd>的文件夹中。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">在下面的步骤中，我们演示了分类器如何根据观察到的API调用序列来检测恶意软件。</p>
+<ol>
+<li class="mce-root">我们的日志是JSON格式的，所以我们从导入JSON库开始。</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import numpy as np<br/>import os<br/>import json<br/><br/>directories_with_labels = [("DA Logs Benign", 0), ("DA Logs Malware", 1)]</pre>
+<ol start="2">
+<li class="mce-root">编写一个函数来解析JSON日志:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def get_API_class_method_type_from_log(log):<br/>    """Parses out API calls from behavioral logs."""<br/>    API_data_sequence = []<br/>    with open(log) as log_file:<br/>        json_log = json.load(log_file)<br/>        api_calls_array = "[" + json_log["api_calls"] + "]"</pre>
+<ol start="3">
+<li>我们选择提取API调用的类、方法和类型:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">        api_calls = json.loads(api_calls_array)<br/>        for api_call in api_calls:<br/>            data = api_call["class"] + ":" + api_call["method"] + ":" + api_call["type"]<br/>            API_data_sequence.append(data)<br/>    return API_data_sequence</pre>
+<ol start="4">
+<li class="mce-root">我们将日志读入语料库，并收集它们的标签:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">data_corpus = []<br/>labels = []<br/>for directory, label in directories_with_labels:<br/>    logs = os.listdir(directory)<br/>    for log_path in logs:<br/>        file_path = directory + "/" + log_path<br/>        try:<br/>            data_corpus.append(get_API_class_method_type_from_log(file_path))<br/>            labels.append(label)<br/>        except:<br/>            pass</pre>
+<ol start="5">
+<li>现在，让我们看看语料库中的数据是什么样的:</li>
+</ol>
+<pre style="padding-left: 60px">print(data_corpus[0])<br/><br/><strong>['android.os.SystemProperties:get:content', 'android.os.SystemProperties:get:content', 'android.os.SystemProperties:get:content', 'android.os.SystemProperties:get:content', 'android.os.SystemProperties:get:content', 'android.os.SystemProperties:get:content', 'android.os.SystemProperties:get:content', 'android.os.SystemProperties:get:content', 'android.os.SystemProperties:get:content', 'android.os.SystemProperties:get:content', 'android.os.SystemProperties:get:content', 'android.os.SystemProperties:get:content', 'android.app.ContextImpl:registerReceiver:binder', 'android.app.ContextImpl:registerReceiver:binder', 'android.os.SystemProperties:get:content', 'android.os.SystemProperties:get:content']</strong></pre>
+<ol start="6">
+<li>我们继续执行列车测试分割:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from sklearn.model_selection import train_test_split<br/><br/>corpus_train, corpus_test, y_train, y_test = train_test_split(<br/>    data_corpus, labels, test_size=0.2, random_state=11<br/>)</pre>
+<ol start="7">
+<li>我们的方法是使用N-gram，因此我们加载我们的N-gram提取函数，对当前数据格式稍作修改:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import collections<br/>from nltk import ngrams<br/>import numpy as np<br/><br/><br/>def read_file(file_path):<br/>    """Reads in the binary sequence of a binary file."""<br/>    with open(file_path, "rb") as binary_file:<br/>        data = binary_file.read()<br/>    return data<br/><br/><br/>def text_to_Ngrams(text, n):<br/>    """Produces a list of N-grams from a text."""<br/>    Ngrams = ngrams(text, n)<br/>    return list(Ngrams)<br/><br/><br/>def get_Ngram_counts(text, N):<br/>    """Get a frequency count of N-grams in a text."""<br/>    Ngrams = text_to_Ngrams(text, N)<br/>    return collections.Counter(Ngrams)</pre>
+<ol start="8">
+<li>我们指定N=4并收集所有N元文法:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">N = 4<br/>total_Ngram_count = collections.Counter([])<br/>for file in corpus_train:<br/>    total_Ngram_count += get_Ngram_counts(file, N)</pre>
+<ol start="9">
+<li>接下来，我们缩小到<kbd>K1 = 3000</kbd>最常见的N-gram:</li>
+</ol>
+<pre style="padding-left: 60px">K1 = 3000<br/>K1_most_frequent_Ngrams = total_Ngram_count.most_common(K1)<br/>K1_most_frequent_Ngrams_list = [x[0] for x in K1_most_frequent_Ngrams]<br/><br/>[('java.lang.reflect.Method:invoke:reflection', 'java.lang.reflect.Method:invoke:reflection', 'java.lang.reflect.Method:invoke:reflection', 'java.lang.reflect.Method:invoke:reflection'),<br/><br/>('java.io.FileInputStream:read:runtime', 'java.io.FileInputStream:read:runtime', 'java.io.FileInputStream:read:runtime', 'java.io.FileInputStream:read:runtime'),<br/><br/> &lt;snip&gt;<br/><br/> ('android.os.SystemProperties:get:content',   'android.os.SystemProperties:get:content',   'android.os.SystemProperties:get:content',   'javax.crypto.spec.SecretKeySpec:javax.crypto.spec.SecretKeySpec:crypto')</pre>
+<ol start="10">
+<li>然后，我们编写一个方法，将一个样本特征化为一个N-gram计数的向量:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def featurize_sample(file, Ngrams_list):<br/>    """Takes a sample and produces a feature vector.<br/>    The features are the counts of the K1 N-grams we've selected.<br/>    """<br/>    K1 = len(Ngrams_list)<br/>    feature_vector = K1 * [0]<br/>    fileNgrams = get_Ngram_counts(file, N)<br/>    for i in range(K1):<br/>        feature_vector[i] = fileNgrams[Ngrams_list[i]]<br/>    return feature_vector</pre>
+<ol start="11">
+<li>我们应用这个函数来特征化我们的训练和测试样本:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">X_train = []<br/>for sample in corpus_train:<br/>    X_train.append(featurize_sample(sample, K1_most_frequent_Ngrams_list))<br/>X_train = np.asarray(X_train)<br/>X_test = []<br/>for sample in corpus_test:<br/>    X_test.append(featurize_sample(sample, K1_most_frequent_Ngrams_list))<br/>X_test = np.asarray(X_test)</pre>
+<ol start="12">
+<li>我们使用互信息将K1=3000个最频繁的N元文法进一步缩小到K2=500个最具信息量的N元文法。然后，我们设置一个管道来运行XGBoost分类器:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from sklearn.feature_selection import SelectKBest, mutual_info_classif<br/>from sklearn.pipeline import Pipeline<br/>from xgboost import XGBClassifier<br/><br/>K2 = 500<br/>mi_pipeline = Pipeline(<br/>    [<br/>        ("mutual_information", SelectKBest(mutual_info_classif, k=K2)),<br/>        ("xgb", XGBClassifier()),<br/>    ]<br/>)</pre>
+<ol start="13">
+<li>我们训练我们的管道，并在训练和测试集上评估其准确性:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">mi_pipeline.fit(X_train, y_train)<br/>print("Training accuracy:")<br/>print(mi_pipeline.score(X_train, y_train))<br/>print("Testing accuracy:")<br/>print(mi_pipeline.score(X_test, y_test))</pre>
+<p style="padding-left: 30px">以下输出为我们提供了训练和测试的准确性:</p>
+<div><pre style="padding-left: 60px"><strong>Training accuracy:
+0.8149428743235118
+Testing accuracy:
+0.8033674082982561</strong></pre></div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>在这个方法中，我们执行了一些令人兴奋的事情，即根据恶意软件和良性样本的运行时行为对它们进行分类。我们的前三个步骤是定义一个函数来读入和解析JSON日志，这些日志包含关于示例运行时行为的信息。顺便说一句，每当您的数据可能具有可变数量的属性时，JSON都是一种有用的文件格式。我们做出战略选择，提取API调用类、方法和内容。其他特性也是可用的，比如进行API调用的时间以及调用了什么参数。代价是数据集将变得更大，这些特征可能会导致速度变慢或过度拟合。关于为分类器选择附加特征，建议进行调查。</p>
+<p>定义好函数后，我们继续执行解析，并在一个地方收集所有解析的数据(<em>步骤4 </em>)。在第五步中，我们看了一眼我们的语料库。我们看到了组成数据的四个API调用的示例。接下来是执行训练测试分割的标准步骤。在<em>步骤7 </em>和<em> 8 </em>中，我们加载我们的N-gram提取函数，并使用这些函数从我们的数据集中提取N-gram。这些提取方法类似于用于二进制文件的方法，但是针对手边的文本格式进行了调整。最初，我们收集K1=3000个最频繁的N元文法，以便减少计算量。通过增加数字K1和随后的K2，我们可以预期我们的分类器的精度会提高，但是内存和计算需求会增加(<em>步骤9 </em>)。在<em>步骤10 </em>中，我们定义了一个函数来将样本特征化为它们的N元特征向量，然后，在<em>步骤11 </em>中，我们应用这个函数来特征化我们的训练和测试样本。我们希望进一步缩小我们的功能集。我们选择使用互信息从<kbd>K1=3000</kbd>个最频繁的N元语法中选择K2=500个最具信息量的N元语法(<em>步骤12</em>)—有许多选项，如选择最佳N元语法的方法中所讨论的。</p>
+<p class="mce-root"/>
+<p>例如，另一种选择是使用卡方检验。此外，可以选择除XGBoost之外的其他分类器。最后，我们看到获得的准确性表明在API调用序列上使用N元语法的方法是有前途的。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>MalConv – end-to-end deep learning for malicious PE detection</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">MalConv–用于恶意PE检测的端到端深度学习</h1>
+                
+            
+            
+                
+<p class="mce-root">静态恶意软件检测的新发展之一是将深度学习用于恶意软件检测的端到端机器学习。在这个设置中，我们完全跳过所有的特征工程；我们不需要知道PE报头或可能指示PE恶意软件的其他特征。我们只需将一串原始字节输入我们的神经网络，然后进行训练。这个想法最早是在https://arxiv.org/pdf/1710.09435.pdf提出的。这种架构被称为<strong> MalConv </strong>，如下图所示:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1140 image-border" src="img/c9386f51-629c-45b5-90e8-3a6dbd951146.png" style="width:33.17em;height:9.00em;"/></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>该配方的准备包括在<kbd>pip</kbd>中安装多个软件包，即<kbd>keras</kbd>、<kbd>tensorflow</kbd>和<kbd>tqdm</kbd>。该命令如下所示:</p>
+</div>
+<div><pre><strong>pip install keras tensorflow tqdm</strong></pre>
+<p>此外，在资源库根目录下的<kbd>PE Samples Dataset</kbd>文件夹中，已经为您提供了良性和恶意文件。将所有名为<kbd>Benign PE Samples*.7z</kbd>的档案解压到名为<kbd>Benign PE Samples</kbd>的文件夹中，将所有名为<kbd>Malicious PE Samples*.7z</kbd>的档案解压到名为<kbd>Malicious PE Samples</kbd>的文件夹中。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">在本食谱中，我们详细介绍了如何在原始pe文件上训练MalConv:</p>
+<ol>
+<li class="mce-root">我们导入<kbd>numpy</kbd>用于向量运算，导入<kbd>tqdm</kbd>用于跟踪循环的进度:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import numpy as np<br/>from tqdm import tqdm</pre>
+<ol start="2">
+<li class="mce-root">定义一个函数，将一个字节作为向量嵌入:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def embed_bytes(byte):<br/>    binary_string = "{0:08b}".format(byte)<br/>    vec = np.zeros(8)<br/>    for i in range(8):<br/>        if binary_string[i] == "1":<br/>            vec[i] = float(1) / 16<br/>        else:<br/>            vec[i] = -float(1) / 16<br/>    return vec</pre>
+<ol start="3">
+<li class="mce-root">读取原始PE样品的位置，并创建其标签列表:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import os<br/>from os import listdir<br/><br/>directories_with_labels = [("Benign PE Samples", 0), ("Malicious PE Samples", 1)]<br/>list_of_samples = []<br/>labels = []<br/>for dataset_path, label in directories_with_labels:<br/>    samples = [f for f in listdir(dataset_path)]<br/>    for file in samples:<br/>        file_path = os.path.join(dataset_path, file)<br/>        list_of_samples.append(file_path)<br/>        labels.append(label)</pre>
+<ol start="4">
+<li class="mce-root">定义一个方便的函数来读入文件的字节序列:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def read_file(file_path):<br/>    """Read the binary sequence of a file."""<br/>    with open(file_path, "rb") as binary_file:<br/>        return binary_file.read()</pre>
+<ol start="5">
+<li class="mce-root">设置每个样本要读入的最大字节长度<kbd>maxSize</kbd>，嵌入样本的所有字节，并将结果收集在X:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">max_size = 15000<br/>num_samples = len(list_of_samples)<br/>X = np.zeros((num_samples, 8, max_size))<br/>Y = np.asarray(labels)<br/>file_num = 0<br/>for file in tqdm(list_of_samples):<br/>    sample_byte_sequence = read_file(file)<br/>    for i in range(min(max_size, len(sample_byte_sequence))):<br/>        X[file_num, :, i] = embed_bytes(sample_byte_sequence[i])<br/>    file_num += 1</pre>
+<ol start="6">
+<li class="mce-root">准备优化程序:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from keras import optimizers<br/><br/>my_opt = optimizers.SGD(lr=0.01, decay=1e-5, nesterov=True)</pre>
+<ol start="7">
+<li class="mce-root">利用Keras功能API建立深度神经网络架构:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root"> from keras import Input<br/> from keras.layers import Conv1D, Activation, multiply, GlobalMaxPool1D, Dense<br/> from keras import Model<br/><br/> inputs = Input(shape=(8, maxSize))<br/> conv1 = Conv1D(kernel_size=(128), filters=32, strides=(128), padding='same')(inputs)<br/> conv2 = Conv1D(kernel_size=(128), filters=32, strides=(128), padding='same')(inputs)<br/> a = Activation('sigmoid', name='sigmoid')(conv2)<br/> mul = multiply([conv1, a])<br/> b = Activation('relu', name='relu')(mul)<br/> p = GlobalMaxPool1D()(b)<br/> d = Dense(16)(p)<br/> predictions = Dense(1, activation='sigmoid')(d)<br/> model = Model(inputs=inputs, outputs=predictions)<br/><br/></pre>
+<ol start="8">
+<li class="mce-root">编译模型并选择批量大小:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">model.compile(optimizer=my_opt, loss="binary_crossentropy", metrics=["acc"])<br/>batch_size = 16<br/>num_batches = int(num_samples / batch_size)</pre>
+<ol start="9">
+<li class="mce-root">批量训练模型:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">for batch_num in tqdm(range(num_batches)):<br/>    batch = X[batch_num * batch_size : (batch_num + 1) * batch_size]<br/>    model.train_on_batch(<br/>        batch, Y[batch_num * batch_size : (batch_num + 1) * batch_size]<br/>    )</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>我们从导入<kbd>numpy</kbd>和<kbd>tqdm</kbd> ( <em>步骤1 </em>)开始，这是一个允许您通过显示百分比进度条来跟踪循环进度的包。作为将文件的原始字节输入到我们的深度神经网络的一部分，我们使用一个简单的8维空间中的字节嵌入，其中字节的每一位对应于向量的一个坐标(<em>步骤2 </em>)。位等于1意味着相应的坐标被设置为1/16，而位值0对应于等于-1/16的坐标。例如，嵌入10010001作为向量(1/16，-1/16，-1/16，1/16，-1/16，-1/16，-1/16，1/16)。执行嵌入的其他方式也是可能的，例如与神经网络一起训练的方式。</p>
+<p>MalConv架构是一个简单但计算快速的选择。在<em>步骤3 </em>中，我们列出了样本及其标签，在<em>步骤4 </em>中，我们定义了一个函数来读取文件的字节。注意代替<kbd>r</kbd>的<kbd>rb</kbd>设置，以便将文件作为字节序列读取。在<em>步骤5 </em>中，我们使用<kbd>tqdm</kbd>来跟踪循环的进程。对于每个文件，我们读入字节序列并将每个字节嵌入到一个8维空间中。然后我们将所有这些收集到<em> X </em>中。如果字节数超过<kbd>maxSize=15000</kbd>，那么我们停止。如果字节数小于maxSize，则字节数被假定为0。控制每个文件读取多少字节的<kbd>maxSize</kbd>参数可以根据内存容量、可用计算量和样本大小进行调整。在接下来的步骤(<em>步骤6 </em>和<em> 7 </em>)中，我们定义了一个标准优化器，即一个带有参数选择的随机梯度下降，并定义了我们的神经网络的架构，以与MalConv的架构紧密匹配。注意，我们在这里使用了Keras functional API，它允许我们在模型中创建重要的输入输出关系。</p>
+<p>最后，请注意，更好的架构和参数选择是一个开放的研究领域。接下来，我们现在可以自由选择批量并开始训练(<em>步骤8 </em>和<em> 9 </em>)。批量大小是一个重要的参数，可以影响学习过程的速度和稳定性。出于我们的目的，我们做了一个简单的选择。我们一次喂一批，训练我们的神经网络。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Tackling packed malware</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">应对打包的恶意软件</h1>
+                
+            
+            
+                
+<p class="mce-root">打包是对可执行文件的压缩或加密，与普通压缩不同，它通常在运行时在内存中解压缩，而不是在执行前解压缩到磁盘。包装商给分析师带来了困惑的挑战。</p>
+<p class="mce-root">例如，一个名为VMProtect的打包程序通过在具有独特架构的虚拟环境中执行来保护其内容不被分析师发现，这使得任何人分析该软件都是一个巨大的挑战。</p>
+<p class="mce-root">琥珀色是一种反射型PE封隔器，用于绕过安全产品和缓解措施。它可以将定期编译的PE文件打包到反射有效载荷中，这些有效载荷可以像外壳代码一样加载和执行它们自己。它支持秘密的内存有效负载部署，可用于绕过防病毒、防火墙、IDS、IPS产品和应用程序白名单缓解措施。最常用的封隔器是UPX。</p>
+<p class="mce-root">由于打包会混淆代码，因此它通常会导致机器学习分类器的性能下降。通过确定使用哪个打包程序来打包可执行文件，我们可以使用同一个打包程序来解包代码，也就是说，将代码还原到其原始的、未混淆的版本。然后，反病毒和机器学习检测文件是否是恶意的变得更简单。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Using packers</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">使用封隔器</h1>
+                
+            
+            
+                
+<p class="mce-root">在这个食谱中，我们将展示如何获得一个打包器，即UPX，以及如何使用它。拥有一组封隔器的目的首先是执行数据扩充，这将在配方的剩余部分中详细描述，其次是一旦确定了用于对样品进行封隔的封隔器，就能够对样品进行解包。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p class="a-b-r-La">以下配方不需要包装。你可以在这本书的资源库的<kbd>Packers</kbd>文件夹中找到<kbd>upx.exe</kbd>。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">在本菜谱中，您将利用UPX打包程序来打包一个文件:</p>
+<ol>
+<li class="mce-root">从https://github.com/upx/upx/releases/<a href="https://github.com/upx/upx/releases/">下载并解压缩最新版本的UPX</a></li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1090 image-border" src="img/b1b91e18-66dd-4bf4-bb13-75826c3680b8.png" style="width:160.00em;height:78.50em;"/></p>
+<ol start="2">
+<li class="mce-root">通过运行<kbd>upx.exe</kbd>和<kbd>foofile.exe</kbd>，对您想要打包的文件执行<kbd>upx.exe</kbd>。成功打包的结果如下所示:</li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1091 image-border" src="img/6695ad88-cfd4-4a68-8887-e3b997d847ca.png" style="width:40.83em;height:11.67em;"/></p>
+<p>该文件仍然是一个可执行文件，不像归档文件，它会被压缩。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p class="mce-root">如您所见，使用封隔器非常简单。大多数打包程序的一个好处是，除了混淆文件内容之外，它们还可以减小文件的大小。许多黑客利用定制的打包程序。这些东西的优点是很难拆开包装。从检测恶意文件的角度来看，使用自定义打包程序打包的文件非常可疑。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Assembling a packed sample dataset</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">组装打包的样本数据集</h1>
+                
+            
+            
+                
+<p class="mce-root">为打包分类器组装数据集的一个明显方法是收集已打包且其包装已贴标签的样本。组装打包样本的另一个有效方法是收集大量文件，然后自己打包。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p class="a-b-r-La">以下配方不需要包装。你可以在这本书的资源库的<kbd>Packers</kbd>文件夹中找到<kbd>upx.exe</kbd>。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">在这个菜谱中，您将使用UPX来打包一个文件目录。</p>
+<ol>
+<li class="mce-root">在目录<kbd>A</kbd>中放置<kbd>upx.exe</kbd>，在目录<kbd>B</kbd>中放置样本集合<kbd>A</kbd>。对于这个例子，<kbd>B</kbd>是良性PE样本UPX。</li>
+<li class="mce-root">列出目录<kbd>B</kbd>中的文件:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import os<br/><br/>files_path = "Benign PE Samples UPX/"<br/>files = os.listdir(files_path)<br/>file_paths = [files_path+x for x in files]</pre>
+<ol start="3">
+<li class="mce-root">对<kbd>B</kbd>中的每个文件运行<kbd>upx</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from subprocess import Popen, PIPE<br/><br/>cmd = "upx.exe"<br/>for path in file_paths:<br/>    cmd2 = cmd+" \""+path+"\""<br/>    res = Popen(cmd2, stdout=PIPE).communicate()<br/>    print(res)</pre>
+<ol start="4">
+<li class="mce-root">每当包装出现错误时，取出原始样品:</li>
+</ol>
+<pre class="mce-root">    if "error" in str(res[0]):<br/>        print(path)<br/>        os.remove(path)</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>前两步是运行UPX封隔器的准备工作。在<em>步骤3 </em>中，我们使用一个子流程来调用外部命令，也就是Python中的UPX。当我们包装样品时(<em>步骤4 </em>)，无论何时出现错误，我们都会移除样品，因为它无法成功包装。这确保了我们的目录只包含打包的样本，这样我们就可以将干净和有组织的数据输入到我们的分类器中。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Building a classifier for packers</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">为封隔器构建分类器</h1>
+                
+            
+            
+                
+<p>收集了标记数据(由根据包装商标记的目录中的包装样本组成)后，我们准备训练分类器来确定样本是否被包装，如果是，由哪个包装商包装。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>该配方的准备包括将<kbd>scikit-learn</kbd>和<kbd>nltk</kbd>安装在<kbd>pip</kbd>中。该命令如下所示:</p>
+</div>
+<div><pre><strong>pip install sklearn nltk</strong></pre>
+<p>此外，存储库中还为您提供了打包和非打包文件。在这个配方中，使用了三种类型的样品:未包装的、UPX包装的和琥珀包装的。将资源库根目录下<kbd>PE Samples Dataset</kbd>中名为<kbd>Benign PE Samples*.7z</kbd>的所有档案解压到名为<kbd>Benign PE Samples</kbd>的文件夹中，将<kbd>Benign PE Samples UPX.7z</kbd>解压到名为<kbd>Benign PE Samples UPX</kbd>的文件夹中，将<kbd>Benign PE Samples Amber.7z</kbd>解压到名为<kbd>Benign PE Samples Amber</kbd>的文件夹中。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p>在本菜谱中，您将构建一个分类器来确定哪个打包程序用于打包文件:</p>
+<ol start="1">
+<li>读入待分析文件的名称及其标签，对应于所用的封隔器:</li>
+</ol>
+<pre style="padding-left: 60px" class="a-b-r-La">import os<br/>from os import listdir<br/><br/>directories_with_labels = [<br/>    ("Benign PE Samples", 0),<br/>    ("Benign PE Samples UPX", 1),<br/>    ("Benign PE Samples Amber", 2),<br/>]<br/>list_of_samples = []<br/>labels = []<br/>for dataset_path, label in directories_with_labels:<br/>    samples = [f for f in listdir(dataset_path)]<br/>    for file in samples:<br/>        file_path = os.path.join(dataset_path, file)<br/>        list_of_samples.append(file_path)<br/>        labels.append(label)</pre>
+<ol start="2">
+<li>创建训练测试分割:</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn.model_selection import train_test_split<br/><br/>samples_train, samples_test, labels_train, labels_test = train_test_split(<br/>    list_of_samples, labels, test_size=0.3, stratify=labels, random_state=11<br/>)</pre>
+<ol start="3">
+<li>定义提取N元语法所需的导入:</li>
+</ol>
+<pre style="padding-left: 60px">import collections<br/>from nltk import ngrams<br/>import numpy as np</pre>
+<ol start="4">
+<li>定义用于提取N元语法的函数:</li>
+</ol>
+<pre style="padding-left: 60px">def read_file(file_path):<br/>    """Reads in the binary sequence of a binary file."""<br/>    with open(file_path, "rb") as binary_file:<br/>        data = binary_file.read()<br/>    return data<br/><br/><br/>def byte_sequence_to_Ngrams(byte_sequence, N):<br/>    """Creates a list of N-grams from a byte sequence."""<br/>    Ngrams = ngrams(byte_sequence, N)<br/>    return list(Ngrams)<br/><br/><br/>def extract_Ngram_counts(file, N):<br/>    """Takes a binary file and outputs the N-grams counts of its binary sequence."""<br/>    filebyte_sequence = read_file(file)<br/>    file_Ngrams = byte_sequence_to_Ngrams(filebyte_sequence, N)<br/>    return collections.Counter(file_Ngrams)<br/><br/><br/>def featurize_sample(sample, K1_most_frequent_Ngrams_list):<br/>    """Takes a sample and produces a feature vector.<br/>    The features are the counts of the K1 N-grams we've selected.<br/>    """<br/>    K1 = len(K1_most_frequent_Ngrams_list)<br/>    feature_vector = K1 * [0]<br/>    file_Ngrams = extract_Ngram_counts(sample, N)<br/>    for i in range(K1):<br/>        feature_vector[i] = file_Ngrams[K1_most_frequent_Ngrams_list[i]]<br/>    return feature_vector</pre>
+<ol start="5">
+<li>浏览数据，并选择您希望用作您的特征的N元语法:</li>
+</ol>
+<pre style="padding-left: 60px">N = 2<br/>total_Ngram_count = collections.Counter([])<br/>for file in samples_train:<br/>    total_Ngram_count += extract_Ngram_counts(file, N)<br/>K1 = 100<br/>K1_most_common_Ngrams = total_Ngram_count.most_common(K1)<br/>K1_most_common_Ngrams_list = [x[0] for x in K1_most_common_Ngrams]</pre>
+<ol start="6">
+<li>特征化训练集:</li>
+</ol>
+<pre style="padding-left: 60px">Ngram_features_list_train = []<br/>y_train = []<br/>for i in range(len(samples_train)):<br/>    file = samples_train[i]<br/>    NGram_features = featurize_sample(file, K1_most_common_Ngrams_list)<br/>    Ngram_features_list_train.append(NGram_features)<br/>    y_train.append(labels_train[i])<br/>X_train = Ngram_features_list_train</pre>
+<ol start="7">
+<li>根据训练数据训练随机森林模型:</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn.ensemble import RandomForestClassifier<br/><br/>clf = RandomForestClassifier(n_estimators=100)<br/>clf = clf.fit(X_train, y_train)</pre>
+<ol start="8">
+<li>特征化测试集:</li>
+</ol>
+<pre style="padding-left: 60px">Ngram_features_list_test = []<br/>y_test = []<br/>for i in range(len(samples_test)):<br/>    file = samples_test[i]<br/>    NGram_features = featurize_sample(file, K1_most_common_Ngrams_list)<br/>    Ngram_features_list_test.append(NGram_features)<br/>    y_test.append(labels_test[i])<br/>X_test = Ngram_features_list_test</pre>
+<ol start="9">
+<li>利用训练好的分类器对测试集进行预测，并使用混淆矩阵评估性能:</li>
+</ol>
+<pre style="padding-left: 60px">y_pred = clf.predict(X_test)<br/>from sklearn.metrics import confusion_matrix<br/><br/>confusion_matrix(y_test, y_pred)</pre>
+<p style="padding-left: 60px">输出如下所示:</p>
+<div><img class="alignnone size-full wp-image-1092 image-border" src="img/9f4cfd98-7261-4d18-b696-8831f90b68f6.png" style="width:31.25em;height:6.42em;"/></div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>我们首先简单地将数据和标签组织成数组(<em>步骤1 </em>)。特别是，我们读入我们的样品，并根据包装它们的包装商给它们贴上相应的标签。在<em>步骤2 </em>中，我们对数据进行训练测试分割。我们现在已经准备好特征化我们的数据，因此我们导入了提取N-gram所必需的库，并定义了我们的N-gram函数(<em>步骤3 </em>和<em> 4 </em>)，这将在其他菜谱中讨论，并且，通过简化选择<em> N=2 </em>和<em> K1=100 </em>最频繁的N-gram作为我们的特征，特征化了我们的数据(<em>步骤5 </em>和<em>6<em>不同的N值和选择最有信息量的N元文法的其他方法可以产生更好的结果，同时增加了对计算资源的需求。特征化数据后，我们对其进行训练测试分割(<em>步骤7 </em>，然后对数据训练一个随机森林分类器(简单的首选)(<em>步骤8 </em>)。通过<em>步骤9 </em>中的混淆矩阵判断，我们看到机器学习分类器在这类问题上表现得非常准确。</em></em></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>MalGAN – creating evasive malware</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">MalGAN–创建逃避性恶意软件</h1>
+                
+            
+            
+                
+<p class="mce-root">使用<strong>生成式敌对网络</strong> ( <strong> GANs </strong>)，我们可以创建敌对的恶意软件样本来训练和改进我们的检测方法，并在对手之前发现漏洞。这里的代码基于<strong>j 40903272/MalConv-keras</strong>。敌对恶意软件样本是已经通过用小的但仔细计算的字节序列填充它们而被修改的恶意软件样本，选择该字节序列是为了欺骗用于对样本进行分类的神经网络(在这种情况下是MalConv)。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>该配方的准备包括在<kbd>pip</kbd>安装<kbd>pandas</kbd>、<kbd>keras</kbd>、<kbd>tensorflow</kbd>和<kbd>scikit-learn</kbd>包。该命令如下所示:</p>
+</div>
+<div><pre><strong>pip install pandas keras tensorflow sklearn</strong></pre>
+<p><kbd>MalGan</kbd>的相关代码和资源文件已经包含在本书的资源库中，在<kbd>MalGan</kbd>目录下。此外，汇编一组PE示例，然后将它们的路径放在文件的第一列:</p>
+<pre class="mce-root"><strong>"MalGAN_input/samplesIn.csv"</strong> </pre>
+<p>在第二列中，输入这些样本的判断(1表示良性，0表示恶意)。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">在本食谱中，您将学习如何创建恶意软件:</p>
+<ol>
+<li class="mce-root">首先导入MalGAN的代码，以及一些实用程序库。</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import os<br/>import pandas as pd<br/>from keras.models import load_model<br/>import MalGAN_utils<br/>import MalGAN_gen_adv_examples</pre>
+<ol start="2">
+<li class="mce-root">指定输入和输出路径:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">save_path = "MalGAN_output"<br/>model_path = "MalGAN_input/malconv.h5"<br/>log_path = "MalGAN_output/adversarial_log.csv"<br/>pad_percent = 0.1<br/>threshold = 0.6<br/>step_size = 0.01<br/>limit = 0.<br/>input_samples = "MalGAN_input/samplesIn.csv"</pre>
+<ol start="3">
+<li class="mce-root">设置您是否希望使用GPU进行对立样本生成:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">MalGAN_utils.limit_gpu_memory(limit)</pre>
+<ol start="4">
+<li class="mce-root">将包含样品名称和标签的csv文件读入数据框:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">df = pd.read_csv(input_samples, header=None)<br/>fn_list = df[0].values</pre>
+<ol start="5">
+<li class="mce-root">加载预先计算的MalConv模型:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">model = load_model(model_path)</pre>
+<ol start="6">
+<li class="mce-root">使用<strong>快速梯度步进法</strong> ( <strong> FGSM </strong>)生成对抗性恶意软件:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">adv_samples, log = MalGAN_gen_adv_examples.gen_adv_samples(model, fn_list, pad_percent, step_size, threshold)</pre>
+<ol start="7">
+<li class="mce-root">保存结果日志并将样本写入磁盘:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">log.save(log_path)<br/>for fn, adv in zip(fn_list, adv_samples):<br/>    _fn = fn.split('/')[-1]<br/>    dst = os.path.join(save_path, _fn)<br/>    print(dst)<br/>    with open(dst, 'wb') as f:<br/>        f.write(adv)</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>我们首先导入我们将要使用的所有MalGAN代码(<em>步骤1 </em>)。我们必须指定几个参数(<em>步骤2 </em>)，现在解释一下。<kbd>savePath</kbd>参数是保存对立范例的位置。<kbd>modelPath</kbd>变量是MalConv预计算权重的路径。<kbd>logPath</kbd>参数是记录与将<strong>快速梯度标记方法</strong> ( <strong> FGSM </strong>)应用于样品相关的数据。例如，日志文件可能如下所示:</p>
+<table style="border-collapse: collapse;width: 697px;height: 150px;border-color: #000000" border="1">
+<tbody>
+<tr style="height: 33.2852px">
+<td style="width: 116px" class="CDPAlignCenter CDPAlign">
+<p><strong>文件名</strong></p>
+</td>
+<td style="width: 138px" class="CDPAlignCenter CDPAlign">
+<p><strong>原始分数</strong></p>
+</td>
+<td style="width: 111px" class="CDPAlignCenter CDPAlign">
+<p><strong>文件长度</strong></p>
+</td>
+<td style="width: 115px" class="CDPAlignCenter CDPAlign">
+<p><strong>衬垫长度</strong></p>
+</td>
+<td style="width: 54px" class="CDPAlignCenter CDPAlign">
+<p><strong>损失</strong></p>
+</td>
+<td style="width: 150px" class="CDPAlignCenter CDPAlign">
+<p><strong>预测分数</strong></p>
+</td>
+</tr>
+<tr style="height: 74px">
+<td style="width: 116px" class="CDPAlignCenter CDPAlign">
+<p>0778...b916</p>
+</td>
+<td style="width: 138px" class="CDPAlignCenter CDPAlign">
+<p>0.001140</p>
+</td>
+<td style="width: 111px" class="CDPAlignCenter CDPAlign">
+<p>235</p>
+</td>
+<td style="width: 115px" class="CDPAlignCenter CDPAlign">
+<p>23</p>
+</td>
+<td style="width: 54px" class="CDPAlignCenter CDPAlign">
+<p>一</p>
+</td>
+<td style="width: 150px" class="CDPAlignCenter CDPAlign">
+<p>0.912</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>观察原始评分接近<kbd>0</kbd>，说明原始样本被MalConv认为是恶意的。在选择使用哪些字节进行填充后，最终的预测得分接近于<kbd>1</kbd>，这表明修改后的样本现在被认为是良性的。<kbd>padPercent</kbd>参数决定有多少字节被附加到样本的末尾。<kbd>threshold</kbd>参数确定神经网络在对立示例中应该有多确定是良性的，以便将其写入磁盘。<kbd>stepSize</kbd>是FGSM中使用的参数。现阶段参数到此为止。我们还有另外一个选择，就是用CPU还是GPU ( <em> Step 3 </em>)。为了简单起见，我们在这个食谱中选择使用CPU。显然，GPU会使计算更快。这里的<kbd>limit</kbd>参数表示在计算中使用多少GPU，并被设置为<kbd>0</kbd>。在下一步<em>步骤4 </em>中，我们读入由<kbd>inputSamples</kbd>参数指向的<kbd>.csv</kbd>文件。该输入日志采用如下格式:</p>
+<p class="mce-root">2b5137a1658c...8</p>
+<table style="border-collapse: collapse;width: 101.358%;border-color: #000000" border="1">
+<tbody>
+<tr style="height: 26.5664px">
+<td style="width: 61.7823%" class="CDPAlignCenter CDPAlign">
+<p>一</p>
+</td>
+<td style="width: 36.2177%" class="CDPAlignCenter CDPAlign">
+<p>0778a070b28...6</p>
+</td>
+</tr>
+<tr style="height: 32px">
+<td style="width: 61.7823%" class="CDPAlignCenter CDPAlign">
+<p>0</p>
+</td>
+<td style="width: 36.2177%" class="CDPAlignCenter CDPAlign">
+<p>这里，在第一列中，给出了样本的路径，在第二列中，提供了标签(<kbd>1</kbd>表示良性，<kbd>0</kbd>表示恶意)。我们现在加载预先计算的MalGAN模型(<em>步骤5 </em>)，生成敌对的恶意软件样本(<em>步骤6 </em>)，然后将它们保存到磁盘上(<em>步骤7 </em>)。</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>跟踪恶意软件漂移</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Tracking malware drift</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">恶意软件的传播千变万化。不仅有新的样本发布，还有新类型的病毒。例如，密码黑客是一种相对较新的恶意软件，直到加密货币出现才为人所知。有趣的是，从机器学习的角度来看，不仅是恶意软件的类型和分布在进化，而且它们的定义也在进化，这被称为<strong>概念漂移</strong>。更具体地说，15年前的病毒可能在当前使用的系统中不再可执行。因此，它不会伤害用户，因此不再是恶意软件的实例。</h1>
+                
+            
+            
+                
+<p class="mce-root">通过跟踪恶意软件的动向，甚至预测它，组织能够更好地将其资源引导到正确的防御类型，为自己接种疫苗以抵御未来的威胁。</p>
+<p class="mce-root">做好准备</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">该配方的准备包括在<kbd>pip</kbd>中安装<kbd>matplotlib</kbd>、<kbd>statsmodels</kbd>和<kbd>scipy</kbd>包。该命令如下所示:</h1>
+                
+            
+            
+                
+<div><div><div><div><p>怎么做...</p>
+</div>
+<div><pre><strong>pip install matplotlib statsmodels scipy</strong></pre></div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">在本食谱中，您将使用时间序列回归来根据历史数据预测恶意软件的分布:</h1>
+                
+            
+            
+                
+<p class="mce-root">收集您感兴趣的领域中恶意软件分布的历史数据:</p>
+<ol>
+<li class="mce-root">将数据转换为每个恶意软件类别的单独时间序列:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">month0 = {"Trojan": 24, "CryptoMiner": 11, "Other": 36, "Worm": 29}<br/>month1 = {"Trojan": 28, "CryptoMiner": 25, "Other": 22, "Worm": 25}<br/>month2 = {"Trojan": 18, "CryptoMiner": 36, "Other": 41, "Worm": 5}<br/>month3 = {"CryptoMiner": 18, "Trojan": 33, "Other": 44, "Worm": 5}<br/>months = [month0, month1, month2, month3]</pre>
+<ol start="2">
+<li class="mce-root">下图显示了特洛伊木马的时间序列:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">trojan_time_series = []<br/>crypto_miner_time_series = []<br/>worm_time_series = []<br/>other_time_series = []<br/>for month in months:<br/>    trojan_time_series.append(month["Trojan"])<br/>    crypto_miner_time_series.append(month["CryptoMiner"])<br/>    worm_time_series.append(month["Worm"])<br/>    other_time_series.append(month["Other"])</pre>
+<p style="padding-left: 60px" class="mce-root"><img class="alignnone size-full wp-image-1093 image-border" src="img/61629ac3-ea5d-45c7-b8d7-ffe33e2b62fd.png" style="width:21.50em;height:15.33em;"/></p>
+<p class="CDPAlignCenter CDPAlign">下图显示了密码矿工的时间序列:</p>
+<p style="padding-left: 60px" class="mce-root"><img class="alignnone size-full wp-image-1094 image-border" src="img/f79a4bd3-3510-4acd-bab4-aeb75c6987cc.png" style="width:22.08em;height:15.75em;"/></p>
+<p class="CDPAlignCenter CDPAlign">下图显示了蠕虫的时间序列:</p>
+<p style="padding-left: 60px"><img class="alignnone size-full wp-image-1095 image-border" src="img/db09ce4d-c553-465a-8b5c-d3e482b2c8c4.png" style="width:22.67em;height:16.17em;"/></p>
+<p class="CDPAlignCenter CDPAlign">下图显示了其他类型恶意软件的时间序列:</p>
+<p style="padding-left: 60px"><img class="alignnone size-full wp-image-1096 image-border" src="img/8980a23c-40c6-49c7-bbb8-43fbf12e4af7.png" style="width:23.42em;height:16.75em;"/></p>
+<p class="CDPAlignCenter CDPAlign">从<kbd>statsmodels</kbd>导入移动平均线:</p>
+<ol start="3">
+<li class="mce-root">使用移动平均线根据时间序列预测下个月的分布。</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from statsmodels.tsa.arima_model import ARMA</pre>
+<ol start="4">
+<li class="mce-root">特洛伊木马的结果如下:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">ts_model = ARMA(trojan_time_series, order=(0, 1))<br/>model_fit_to_data = ts_model.fit(disp=True)<br/>y_Trojan = model_fit_to_data.predict(len(trojan_time_series), len(trojan_time_series))<br/>print("Trojan prediction for following month: " + str(y_Trojan[0]) + "%")</pre>
+<p style="padding-left: 60px">我们对密码矿工使用相同的方法:</p>
+<pre style="padding-left: 60px"><strong>Trojan prediction for following month: 21.699999876315772%</strong></pre>
+<p style="padding-left: 60px">我们得到以下预测:</p>
+<pre style="padding-left: 60px" class="mce-root">ts_model = ARMA(crypto_miner_time_series, order=(0, 1))<br/>model_fit_to_data = ts_model.fit(disp=True)<br/>y_CryptoMiner = model_fit_to_data.predict(<br/>    len(crypto_miner_time_series), len(crypto_miner_time_series)<br/>)<br/>print("CryptoMiner prediction for following month: " + str(y_CryptoMiner[0]) + "%")</pre>
+<p style="padding-left: 60px">对于蠕虫，请使用以下代码:</p>
+<pre style="padding-left: 60px"><strong>CryptoMiner prediction for following month: 24.09999979660618%</strong></pre>
+<p style="padding-left: 60px">我们得到以下预测:</p>
+<pre style="padding-left: 60px" class="mce-root">ts_model = ARMA(worm_time_series, order=(0, 1))<br/>model_fit_to_data = ts_model.fit(disp=True)<br/>y_Worm = model_fit_to_data.predict(len(worm_time_series), len(worm_time_series))<br/>print("Worm prediction for following month: " + str(y_Worm[0]) + "%")</pre>
+<p style="padding-left: 60px">对于其他类型的恶意软件，我们使用以下代码:</p>
+<pre style="padding-left: 60px"><strong>Worm prediction for following month: 14.666665384131406%</strong></pre>
+<p style="padding-left: 60px">我们得到以下预测:</p>
+<pre style="padding-left: 60px" class="mce-root">ts_model = ARMA(other_time_series, order=(0, 1))<br/>model_fit_to_data = ts_model.fit(disp=True)<br/>y_Other = model_fit_to_data.predict(len(other_time_series), len(other_time_series))<br/>print("Other prediction for following month: " + str(y_Other[0]) + "%")</pre>
+<p style="padding-left: 60px">它是如何工作的…</p>
+<pre style="padding-left: 60px"><strong>Other prediction for following month: 27.400000645620793%</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">出于指导目的，我们生成一个玩具数据集，表示每种恶意软件在时间上的百分比(<em>步骤1 </em>)。有了大量的历史数据，这样的数据集可以指示在安全领域中向何处输送资源。我们在一个地方收集数据并生成可视化图(<em>步骤2 </em>)。我们希望执行简单的预测，因此我们引入ARMA，它代表<em>自回归移动平均模型</em>，是移动平均模型的推广。为简单起见，我们将ARMA专门化为<strong>移动平均线</strong> ( <strong> MA </strong>)。在<em>步骤4 </em>中，我们使用MA来预测恶意软件的百分比将如何发展到下一个时间段。对于较大的数据集，谨慎的做法是尝试不同的模型，并创建考虑时间的训练测试分割。这将允许您找到最具解释性的模型，换句话说，就是产生最准确的时间预测的模型。</h1>
+                
+            
+            
+                
+<p>For instructive purposes, we produce a toy dataset representing the percentage of each type of malware in time (<em>Step 1</em>). With a larger amount of historical data, such a dataset can indicate where to channel your resources in the domain of security. We collect the data in one place and produce visualization plots (<em>Step 2</em>). We would like to perform simple forecasting, so we import ARMA, which stands for <em>autoregressive–moving-average model</em>, and is a generalization of the moving-average model. For simplicity, we specialize ARMA to <strong>moving average</strong> (<strong>MA</strong>). In <em>Step 4</em>, we employ MA to make a prediction on how the percentages of malware will evolve to the next time period. With a larger dataset, it is prudent to attempt different models, as well as create a train-test split that accounts for time. This will allow you to find the most explanatory model, in other words, the model that produces the most accurate time forecasts. </p>
+
+
+            
+
+            
+        
+    
+
+
+</body></html>

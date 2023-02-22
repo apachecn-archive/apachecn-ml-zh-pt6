@@ -1,0 +1,182 @@
+<html><head/><body>
+
+
+	
+		<title>B16783_05_Final_SB_epub</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-77"><a id="_idTextAnchor094"/> <em class="italic">第五章</em>:用MLflow管理模型</h1>
+			<p>在本章中，您将了解MLflow中模型管理的不同功能。您将了解MLflow中的模型生命周期，我们将解释如何将其与您的常规开发工作流集成，以及如何创建MLflow中不可用的定制模型。模型生命周期将与MLflow的模型注册特性一起引入。</p>
+			<p>具体来说，我们将了解本章的以下部分:</p>
+			<ul>
+				<li>了解MLflow中的模型</li>
+				<li>探索MLflow中的模型风格</li>
+				<li>管理模型和签名模式</li>
+				<li>使用模型注册表管理生命周期</li>
+			</ul>
+			<p>从工作台的角度来看，我们希望使用MLflow来管理我们的模型，并实现一个清晰的模型生命周期。利用MLflow向我们的基准测试添加托管模型功能将提升我们的<strong class="bold">机器学习工程</strong>解决方案的质量和运营。</p>
+			<h1 id="_idParaDest-78"><a id="_idTextAnchor095"/>技术要求</h1>
+			<p>对于本章，您将需要以下内容:</p>
+			<ul>
+				<li>最新版本的Docker安装在您的机器上。如果你还没有安装，请按照<a href="https://docs.docker.com/get-docker/">https://docs.docker.com/get-docker/</a>的说明进行操作。</li>
+				<li>安装了最新版本的<code>docker-compose</code>。请按照https://docs.docker.com/compose/install/.的指示</li>
+				<li>在命令行中访问Git，并按照<a href="https://git-scm.com/book/en/v2/Getting-Started-Installing-Git">https://Git-SCM . com/book/en/v2/Getting-Started-Installing-Git</a>中的描述进行安装。</li>
+				<li>访问Bash终端(Linux或Windows)。</li>
+				<li>访问浏览器。</li>
+				<li>Python 3.5以上版本已安装。</li>
+				<li>本地安装您的机器学习工作台的最新版本，在<a href="B16783_03_Final_SB_epub.xhtml#_idTextAnchor066"> <em class="italic">第三章</em> </a>，<em class="italic">您的数据科学工作台</em>中描述。</li>
+			</ul>
+			<h1 id="_idParaDest-79"><a id="_idTextAnchor096"/>了解MLflow中的模型</h1>
+			<p>在MLflow平台上，有两个主要组件可用于管理模型:</p>
+			<ul>
+				<li><strong class="bold">模块</strong>:该模块管理平台上的格式、库、标准执行模块<a id="_idIndexMarker177"/>。它支持各种最常用的机器学习模型:sklearn、XGBoost、TensorFlow、H20、fastai等。它具有管理模型的输出和输入模式以及简化部署的特性。</li>
+				<li><strong class="bold">模型注册</strong>:这个模块处理一个模型生命周期，从注册和标记<a id="_idIndexMarker178"/>模型元数据开始，这样它就可以被相关系统检索到。它支持不同状态的模型，例如，实时开发、测试和生产。</li>
+			</ul>
+			<p>MLflow模型的核心是模型的打包格式。MLflow模型打包的主要目标是将模型类型从<a id="_idIndexMarker180"/>执行模型的环境中分离出来。MLflow模型的一个很好的类比是，它有点像模型的<strong class="bold"> Dockerfile </strong>，其中您描述了模型的元数据，上游的部署工具能够基于规范与模型进行交互。</p>
+			<p>从<em class="italic">图5.1 </em>的图表中可以看出，一边是您的模型库，例如TensorFlow或sklearn。MLflow的核心是MLflow模型格式，它能够以多种风格(模型格式)提供，以满足内部和云中不同类型的推理工具的需求:</p>
+			<div><div><img src="img/image0011.jpg" alt=""/>
+				</div>
+			</div>
+			<p class="figure-caption">图5.1–物流模型图</p>
+			<p><em class="italic">图5.1 </em>摘自<a id="_idIndexMarker181"/>网址<a href="https://www.infoq.com/presentations/mlflow-databricks/#">https://www.infoq.com/presentations/mlflow-databricks/#</a>。</p>
+			<p>MLflow模型定义的核心部分是MLflow模型文件，如下一个屏幕截图所示:</p>
+			<div><div><img src="img/image0022.jpg" alt=""/>
+				</div>
+			</div>
+			<p class="figure-caption">图5.2–多模型文件示例</p>
+			<p>一个MLmodel <a id="_idIndexMarker182"/>示例可在<em class="italic">图5.2 </em>中看到，并提供以下信息:</p>
+			<ul>
+				<li><strong class="bold"> run_id </strong>:这是对允许创建模型的项目的模型运行的引用。</li>
+				<li><strong class="bold"> time_created </strong>:模型创建时的时间戳。</li>
+				<li><code>pyfunc</code>ml flow提供的模型。</li>
+				<li><strong class="bold">签名</strong>:这是MLmodel的组件，它定义了模型签名，并允许您以某种方式输入模型的推理过程。它允许对需要匹配模型签名的输入数据进行验证。</li>
+			</ul>
+			<p><code>pyfunc</code>。该函数在任何支持Python的环境中都受支持，从而为模型的部署者提供了在登录MLflow后如何最好地运行模型的灵活性:</p>
+			<ol>
+				<li>在项目的GitHub repo中，请转到<code>Gradflow</code>文件夹，运行以下命令启动本章的环境:<pre>make </pre></li>
+				<li>You can run <a id="_idIndexMarker183"/>all the cells including the model cell depicted in <em class="italic">Figure 5.3</em>:<div><img src="img/image0032.jpg" alt=""/></div><p class="figure-caption">图5.3–多模型文件示例</p><p><em class="italic">图5.3 </em>中的模型应该与MLflow 中实验管理<a href="B16783_04_Final_SB_epub.xhtml#_idTextAnchor081"> <em class="italic">第4章</em> </a> <em class="italic">中使用的模型非常相似。使用<code>mlflow.start_run</code>，您可以开始在MLflow中记录您的模型，并使用平台的固有功能来捕获正在开发的模型的相关细节。</em></p></li>
+				<li>You can now explore the <code>MLmodel</code> file in MLflow:<div><img src="img/image0042.jpg" alt=""/></div><p class="figure-caption">图5.4–多模型文件示例</p></li>
+				<li>Explore <a id="_idIndexMarker184"/>the <code>conda</code> file in MLflow:<div><img src="img/image0052.jpg" alt=""/></div><p class="figure-caption">图5.5–多模型文件示例</p></li>
+				<li>Load the model as <code>MLflow Pyfunc</code> for prediction:<pre>import mlflow
+logged_model = ‘/data/artifacts/1/132e6fa332f2412d85f3cb9e6d6bc933/artifacts/model’
+# Load model as a PyFuncModel.
+loaded_model = mlflow.pyfunc.load_model(logged_model)
+# Predict on a Pandas DataFrame.
+import pandas as pd
+loaded_model.predict(pd.DataFrame(X_test))</pre><p>或者，可以使用<code>/data/model/model.h5 file</code>将模型加载到本地H5 Keras格式，并加载到完全不同的应用程序，如图<em class="italic">图5.4 </em>所示。</p></li>
+			</ol>
+			<p>在本节介绍了<a id="_idIndexMarker185"/>MLflow中模型的概念后，我们接下来将更深入地研究ml flow中不同类型的模型。</p>
+			<h1 id="_idParaDest-80"><a id="_idTextAnchor097"/>探索MLflow中的模型风味</h1>
+			<p>MLflow中的模型风格基本上是MLflow支持的不同库的不同模型。该功能允许MLflow使用每个特定模型的本地<a id="_idIndexMarker186"/>库处理模型类型，并支持模型的一些本地功能。下面的列表选择了一些有代表性的模型来描述和说明MLflow中可用的支持:</p>
+			<ul>
+				<li><code>mlflow.tensorflow</code> : TensorFlow是目前使用最多的库之一，尤其是面向深度学习的库。MLflow通过以TensorBoard格式保存日志，与模型格式和监控功能进行了本机集成。对于TensorFlow模型，MLflow中支持自动记录。<em class="italic">图5.5 </em>中的Keras模型是MLflow中张量流支持的一个很好的例子。</li>
+				<li><code>mlflow.h2o</code> : H2O是一个完整的机器学习平台，面向模型的自动化，与MLflow有一些重叠的功能。MLflow提供了以H2O本地格式加载(<code>load_model</code>)和日志模型(<code>log_model</code>)的能力，允许工具之间的互操作性。不幸的是，截至目前的MLflow版本，您无法在<code>h2o</code>型号上使用自动登录:<pre>mlflow.h2o.load_model(...) mlflow.h2o.log_model(...)</pre></li>
+				<li><code>mlflow.spark</code> : MLflow通过两个<a id="_idIndexMarker187"/>主接口与Apache Spark库原生集成:用于机器学习的Spark MLlib和MLeap平台(https://combuste . github . io/ml EAP-docs/)。Mleap更像是一个部署平台，而MLlib更像是一个可以添加到项目中的库。</li>
+			</ul>
+			<p>MLflow支持一个非常全面的风格/格式列表，它们的用法和支持可以在这里阅读:<a href="https://www.mlflow.org/docs/latest/python_api/index.html&#13;">https://www.mlflow.org/docs/latest/python_api/index.html.</a></p>
+			<h2 id="_idParaDest-81"><a id="_idTextAnchor098"/>定制型号</h2>
+			<p>我们可以深入下一段代码和定制的<code>RandomPredictor</code>模型。只要<a id="_idIndexMarker188"/>你用<code>fit</code>和<code>predict methods</code>为一个类提供一个接口，你就可以拥有自己定制的MLflow模型:</p>
+			<pre>class RandomPredictor(mlflow.pyfunc.PythonModel):
+  def __init__(self):
+    pass
+  def fit(self):
+    pass
+  def predict(self, context, model_input):
+    return model_input.apply(
+        lambda column: random.randint(0,1))</pre>
+			<p>在前面的<code>class</code>中，我们基本上使用了一个随机概率，它可以作为一个系统中的样本模型，在这个系统中，你要确保你的模型比随机模型更好。</p>
+			<p>在这个<a id="_idIndexMarker189"/>部分，我们介绍了不同类型的模型风格和定制模式的创建。接下来，我们将研究MLflow的一些模式和签名特性。</p>
+			<h1 id="_idParaDest-82"><a id="_idTextAnchor099"/>管理模型签名和模式</h1>
+			<p>MLflow的一个重要特性是为模型的输入和输出模式<a id="_idIndexMarker190"/>提供抽象，以及在预测和训练期间验证模型数据的能力。</p>
+			<p>如果在预测过程中您的输入与模型的模式和签名不匹配，MLflow将引发错误:</p>
+			<ol>
+				<li value="1">接下来我们将看一个数字分类的简单模型的代码清单(数据集的详细信息可以在这里找到:<a href="https://archive.ics.uci.edu/ml/datasets/Optical+Recognition+of+Handwritten+Digits">https://archive . ics . UCI . edu/ml/datasets/Optical+Recognition+of+handled+Digits</a>)。以下代码将图像展平成熊猫数据帧，并使模型适合数据集:<pre>from sklearn import datasets, svm, metrics from sklearn.model_selection import train_test_split import mlflow digits = datasets.load_digits() n_samples = len(digits.images) data = digits.images.reshape((n_samples, -1)) clf = svm.SVC(gamma=0.001) X_train, X_test, y_train, y_test = train_test_split(     data, digits.target, test_size=0.5, shuffle=False) mlflow.sklearn.autolog() with mlflow.start_run():     clf.fit(X_train, y_train)</pre></li>
+				<li>We’ll look <a id="_idIndexMarker191"/>at the previous code listing, which you can run in a new notebook and navigate through the MLflow UI to investigate in more depth the MLmodel generated in <em class="italic">Figure 5.6</em>:<div><img src="img/image0062.jpg" alt=""/></div><p class="figure-caption">图5.6–多模型文件示例</p></li>
+				<li>MLmodel文件包含输入和输出文件的JSON签名。对于一些自动记录的口味，我们将无法自动推断签名，因此您可以在记录模型时提供内联签名:<pre># flatten the images from mlflow.models.signature import infer_signature with mlflow.start_run(run_name=’untuned_random_forest’):     …     signature = infer_signature(X_train,          wrappedModel.predict(None, X_train))     mlflow.pyfunc.log_model(“random_forest_model”,                              python_model=wrappedModel,                              signature=signature)</pre></li>
+			</ol>
+			<p>在前面的代码块中，模型的签名由<code>infer_signature </code>方法提供。当通过<code>log_model</code>登录模型时，提供签名。签名与模型一起记录的一个重要优点是，它们可以<a id="_idIndexMarker192"/>作为模型的文档和元数据。第三方系统可以使用元数据，并通过验证数据或为模型生成文档来与模型交互。</p>
+			<p>在本节中，我们介绍了MLflow模型的模型模式和签名特性。我们现在将转移到这个领域中的另一个关键模块，即模型注册中心。</p>
+			<h1 id="_idParaDest-83"><a id="_idTextAnchor100"/>引入模型注册表</h1>
+			<p><strong class="bold"> MLflow Model Registry </strong>是MLflow中的一个模块，它包括一个模型的集中存储，一个允许在注册表中管理模型生命周期的API。</p>
+			<p>机器学习模型开发人员的典型<a id="_idIndexMarker193"/>工作流程是获取训练数据；清理、处理和训练模型；并且从那里开始，移交给部署模型的系统或人员。在非常小的环境中，你有一个人负责这个功能，这是非常琐碎的。当团队中模型的种类和数量开始扩大时，挑战和摩擦就开始出现了。机器学习开发者提出的关于存储和检索模型的常见摩擦点的选择如下:</p>
+			<ul>
+				<li>大型团队中的协作</li>
+				<li>在生产中逐步淘汰过时的模型</li>
+				<li>一个模型的出处</li>
+				<li>缺乏模型的文档</li>
+				<li>识别模型的正确版本</li>
+				<li>如何将模型与部署工具集成</li>
+			</ul>
+			<p><strong class="bold"> MLflow Model Registry </strong>背后的主要思想是在一个组织中提供一个中央存储模型，所有相关的模型都存储在这里，并且可以由人<a id="_idIndexMarker194"/>和系统访问。一个很好的类比是模型的Git存储库以及相关的元数据和模型的集中式状态管理。</p>
+			<p>在MLflow UI(在您的本地环境中可用)中，您应该单击标签为<strong class="bold">型号</strong>的<strong class="bold">实验</strong>右侧的选项卡，如箭头所示:</p>
+			<ol>
+				<li value="1">Through this module, you are able to list all the models registered, search by name, or create by name. For each model, you can see the label of the latest version and the specific versions that are in staging or production:<div><img src="img/image0072.jpg" alt=""/></div><p class="figure-caption">图5.7–模型注册用户界面</p></li>
+				<li>A new model can be created by clicking on the <strong class="bold">Create Model</strong> button where a relevant name can be given to a specific model as shown in <em class="italic">Figure 5.8</em>:<div><img src="img/image0082.jpg" alt=""/></div><p class="figure-caption">图5.8–模型注册界面–创建模型</p></li>
+				<li>您还可以通过进入<strong class="bold">实验</strong>模型并选择您的一个模型来<a id="_idIndexMarker195"/>在MLflow中创建模型，并从那里具体决定注册该模型。您必须将您的跑步与现有模型相关联，或者创建一个新的模型名称，以便与此特定类型的模型相关联:</li>
+			</ol>
+			<div><div><img src="img/image0092.jpg" alt=""/>
+				</div>
+			</div>
+			<p class="figure-caption">图5.9–模型跟踪用户界面–创建新模型</p>
+			<p>当您<a id="_idIndexMarker196"/>添加新模型时，MLflow会自动增加版本，并将此版本标记为最新版本，组织中的每个人都可以针对给定问题向注册表查询模型的最新版本。</p>
+			<h2 id="_idParaDest-84">将您的最佳型号添加到Mode <a id="_idTextAnchor101"/> l注册表</h2>
+			<p>在MLflow的UI中<a id="_idIndexMarker197"/>可以做的一切也可以通过MLflow API实现。</p>
+			<p>我们可以快速回到我们的股票市场预测用例，将我们的第一个基线模型添加到模型注册表中，运行本章回购中提供的<code>hyperopt_optimization_logistic_regression_mlflow.ipynb notebook</code>，并根据F1得分指标按降序对运行进行排序，如图<em class="italic">图5.10 </em>所示:</p>
+			<div><div><img src="img/image0101.jpg" alt=""/>
+				</div>
+			</div>
+			<p class="figure-caption">图5.10–选择最佳模型</p>
+			<p>从那里，您<a id="_idIndexMarker198"/>应该能够注册名为<code>BTC StockPrediction</code>的最佳模型，如图<em class="italic">图5.11 </em>所示:</p>
+			<div><div><img src="img/image0111.jpg" alt=""/>
+				</div>
+			</div>
+			<p class="figure-caption">图5.11–命名您的模型</p>
+			<p>通过返回模型模块，您会注意到，如图<em class="italic">图5.12 </em>所示，您在<strong class="bold">版本1 </strong>下新创建的模型:</p>
+			<div><div><img src="img/image0121.jpg" alt=""/>
+				</div>
+			</div>
+			<p class="figure-caption">图5.12-注册型号</p>
+			<p>在介绍了<a id="_idIndexMarker199"/>模型注册的功能之后，在下一节中，我们将描述一个模型开发生命周期来帮助组织模型的管理。</p>
+			<h1 id="_idParaDest-85"><a id="_idTextAnchor102"/>管理模型开发生命周期</h1>
+			<p>当在不止一个模型开发人员的团队中工作时，管理<a id="_idIndexMarker200"/>模型生命周期是非常重要的。对于多个模型开发人员来说，在同一个项目中尝试不同的模型是很常见的，让一个评审者决定最终进入生产的模型是非常重要的:</p>
+			<div><div><img src="img/image0131.jpg" alt=""/>
+				</div>
+			</div>
+			<p class="figure-caption">图5.13–模型开发生命周期示例</p>
+			<p>如果使用与图5.13 中<em class="italic">所示相似的生命周期，则<a id="_idIndexMarker201"/>中的模型在其生命周期中可以经历以下阶段:</em></p>
+			<ul>
+				<li><strong class="bold">开发</strong>:模型开发人员仍然在探索和尝试不同的方法，仍然在试图为他们的机器学习问题找到合理的解决方案的状态。</li>
+				<li><strong class="bold"> Staging </strong>:可以用量产型流量自动测试模型的状态。</li>
+				<li><strong class="bold">生产</strong>:当模型准备好处理实际生产流量时。</li>
+				<li><strong class="bold">存档</strong>:当模型不再服务于最初开发时的业务目的时，它将被存档，其元数据将被存储以备将来参考或遵从。</li>
+			</ul>
+			<p>例如，<em class="italic">图5.14 </em>中所示的评审员或主管可以将模型从<strong class="bold">开发</strong>状态转移到<strong class="bold">准备</strong>状态，以便在测试环境中进一步部署，如果评审员批准，该模型可以过渡到生产环境中:</p>
+			<div><div><img src="img/image0141.jpg" alt=""/>
+				</div>
+			</div>
+			<p class="figure-caption">图5.14–模型开发生命周期示例</p>
+			<p>当从MLflow中的一个状态转换<a id="_idIndexMarker202"/>时，您可以选择将现有状态中的模型发送到下一个状态:</p>
+			<div><div><img src="img/image0151.jpg" alt=""/>
+				</div>
+			</div>
+			<p class="figure-caption">图5.15–物流中的阶段转换</p>
+			<p>在一个成熟的环境中，从<strong class="bold">准备阶段</strong>到<strong class="bold">生产阶段</strong>的过渡<a id="_idIndexMarker203"/>是自动完成的，我们将在本书接下来的章节中演示。</p>
+			<p>在本节中，我们总结了与MLflow中的模型相关的特性的描述。</p>
+			<h1 id="_idParaDest-86"><a id="_idTextAnchor103"/>总结</h1>
+			<p>在本章中，我们首先介绍了MLflow中的模型模块以及对不同算法的支持，从基于树的算法到线性算法再到神经算法。我们在模型的日志和度量以及定制度量的创建方面接触到了支持。</p>
+			<p>在前两节中，我们介绍了模型注册中心模型，以及如何使用它来实现模型生命周期以管理我们的模型。</p>
+			<p>在本书的下一章和下一节中，我们将重点关注将迄今为止学到的概念应用到现实生活系统中，并且我们将为生产环境构建一个机器学习系统。</p>
+			<h1 id="_idParaDest-87"><a id="_idTextAnchor104"/>延伸阅读</h1>
+			<p>为了巩固您的知识并深入了解本章介绍的概念，您应该查看以下链接:</p>
+			<ul>
+				<li><a href="https://www.mlflow.org/docs/latest/models.html">https://www.mlflow.org/docs/latest/models.html</a></li>
+				<li><a href="https://www.mlflow.org/docs/latest/model-registry.html">https://www.mlflow.org/docs/latest/model-registry.html</a></li>
+				<li><a href="https://www.slideshare.net/Hadoop_Summit/introducing-mlflow-an-open-source-platform-for-the-machine-learning-lifecycle-for-onprem-or-in-the-cloud">https://www . slide share . net/Hadoop _ Summit/introducing-ml flow-an-open-source-platform-for-the-machine-learning-life cycle-for-on prem-or-in-the-cloud</a></li>
+			</ul>
+		</div>
+		<div><div/>
+		</div>
+	
+
+</body></html>

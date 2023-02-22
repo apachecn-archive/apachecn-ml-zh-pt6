@@ -1,0 +1,225 @@
+<html><head/><body>
+
+
+	
+		<title>B16722_13_Final_ASB_ePub</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-182"><em class="italic"> <a id="_idTextAnchor184"/>第十三章</em>:用BigQuery ML运行TensorFlow模型</h1>
+			<p>TensorFlow是可用的最常用和最相关的<strong class="bold">机器学习</strong> ( <strong class="bold"> ML </strong>)框架之一。它允许数据科学家和ML工程师开发高级模型，它还提供了极大的灵活性和丰富的数学函数集。</p>
+			<p>TensorFlow提供的高级功能为希望利用数据科学家和ML工程师开发的现有模型的数据分析师提供了巨大的机会。</p>
+			<p>此外，BigQuery ML和TensorFlow之间的互操作性代表了一种填补公司内部业务和技术利益相关者之间鸿沟的方式。第一组通常更侧重于对数据的深入了解，而第二组是面向技术的，侧重于编程技能。</p>
+			<p>在这一章中，我们将学习什么是TensorFlow，以及它如何与BigQuery ML一起使用。我们将了解如何将BigQuery ML模型导出为TensorFlow格式，以及如何使用BigQuery ML SQL语法运行TensorFlow模型。</p>
+			<p>为了理解如何用TensorFlow补充BigQuery ML，我们将讨论以下主题:</p>
+			<ul>
+				<li>张量流简介</li>
+				<li>发现BigQuery ML和TensorFlow之间的关系</li>
+				<li>将BigQuery ML模型转换为张量流</li>
+				<li>使用BigQuery ML运行张量流模型</li>
+			</ul>
+			<h1 id="_idParaDest-183"><a id="_idTextAnchor185"/>技术要求</h1>
+			<p>本章要求您能够访问web浏览器，并能够利用以下内容:</p>
+			<ul>
+				<li>访问谷歌云控制台的GCP帐户</li>
+				<li>托管BigQuery数据集的GCP项目</li>
+				<li>一个托管谷歌云存储空间的GCP项目</li>
+			</ul>
+			<p>现在我们已经讨论了技术需求，让我们开始探索TensorFlow模型的BigQuery ML。</p>
+			<p>看看下面的视频，看看代码是如何运行的:<a href="https://bit.ly/33ngmdf">https://bit.ly/33ngmdf</a></p>
+			<h1 id="_idParaDest-184"><a id="_idTextAnchor186"/>张量流简介</h1>
+			<p>在这一节中，我们将介绍<strong class="bold"> TensorFlow </strong>，它的起源，以及这个框架在ML社区中取得的成就<a id="_idIndexMarker586"/>。</p>
+			<p><strong class="bold"> TensorFlow </strong>是一个用于开发ML模型的开源库。它非常灵活，可用于解决各种各样的用例及业务场景。由于TensorFlow基于数学函数，其名称来自于张量的数学概念。</p>
+			<p>在数学中，<strong class="bold">张量</strong>是一个<a id="_idIndexMarker587"/>代数对象，它描述了其他代数对象集合之间的关系。张量的一些例子是向量和矩阵。</p>
+			<p>TensorFlow库最初是由谷歌的工程师创建的，然后在2015年在Apache许可下发布。现在，由于它的潜力和灵活性，它被认为是最流行的ML框架之一。事实上，TensorFlow模型可以在本地机器、本地服务器、云中或边缘(如手机和视频监控摄像机)上执行。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout"><strong class="bold">边缘计算</strong>是一种<a id="_idIndexMarker588"/>计算范式，它使业务逻辑的计算更接近所需的位置。当ML模型在边缘运行时，它通常直接在为模型运行收集数据的传感器或摄像机上执行，而无需连接到其他系统。</p>
+			<p>TensorFlow被ML社区广泛使用，用于解决人工智能领域的不同挑战，例如:</p>
+			<ul>
+				<li>Airbnb利用TensorFlow对客户的照片进行分类，从而改善了房屋租赁的虚拟旅行。更多详情可以访问以下链接:https://medium . com/Airbnb-工程/分类-列表-照片-at-airbnb-f9483f3ab7e3。</li>
+				<li>谷歌使用TensorFlow为其产品(如谷歌搜索、Gmail和翻译)提供人工智能功能。更多详情，可以访问以下链接:<a href="https://ai.googleblog.com/search/label/TensorFlow">https://ai.googleblog.com/search/label/TensorFlow</a>。</li>
+				<li>PayPal使用TensorFlow来防止欺诈，并应用ML来提高其欺诈检测模型的准确性。更多详情，可以访问以下链接:<a href="https://medium.com/paypal-engineering">https://medium.com/paypal-engineering</a>。</li>
+				<li>Twitter利用TensorFlow来识别并向用户展示最相关的推文。更多详情可访问以下链接:https://blog . tensor flow . org/2019/03/ranking-tweets-with-tensor flow . html。</li>
+				<li>其他有趣的用例可以在https://www.tensorflow.org/about/case-studies?hl=en的TensorFlow案例研究网页上找到。</li>
+			</ul>
+			<p>与BigQuery ML相比，使用TensorFlow开发ML模型需要高级编程技能。事实上，TensorFlow库的高灵活性是通过需要在代码开发中投入一定的时间来创建模型来平衡的。现在，用TensorFlow开发ML模型的建议编程语言是Python。</p>
+			<p>一旦TensorFlow模型的开发和训练阶段完成，就可以将其导出为<strong class="bold"> SavedModel </strong>格式。</p>
+			<p><strong class="bold"> SavedModel </strong>格式包含<a id="_idIndexMarker590"/>整个TensorFlow模型。这种格式允许我们部署模型，而不需要在所有兼容的环境中再次运行代码。SavedModel由存储在同一父文件夹中的多个文件和文件夹组成:</p>
+			<ul>
+				<li>SavedModel文件存储张量流逻辑。这个文件叫做<code>saved_model.pb</code>。</li>
+				<li><code>variables</code>目录包含训练模型的参数。</li>
+				<li><code>assets</code>文件夹可以包含ML模型使用的外部和附加文件。</li>
+			</ul>
+			<p>当TensorFlow模型是SavedModel格式时，它可以很容易地在我们想要使用该模型的<a id="_idIndexMarker591"/>平台上加载和使用。该平台可以是物理服务器、云实例、智能手机或物联网设备。</p>
+			<p>在本节中，我们介绍了张量流的基础知识。在下一节中，我们将发现BigQuery ML是如何链接到TensorFlow的。</p>
+			<h1 id="_idParaDest-185"><a id="_idTextAnchor187"/>发现BigQuery ML和TensorFlow之间的关系</h1>
+			<p>在本节中，我们将了解BigQuery ML和TensorFlow之间的关系。在<a id="_idIndexMarker593"/>完成本节之后，我们将<a id="_idIndexMarker594"/>能够根据我们的用例理解何时使用BigQuery ML和TensorFlow，以及当它们一起使用时，如何最好地利用这两种技术。</p>
+			<h2 id="_idParaDest-186"><a id="_idTextAnchor188"/>了解共性和差异</h2>
+			<p>BigQuery ML <a id="_idIndexMarker595"/>和TensorFlow有一些相似的<a id="_idIndexMarker596"/>方面，但是也有一些相关的区别需要强调。</p>
+			<p>在下表中，我们总结了这两个框架的主要相似之处和不同之处:</p>
+			<div><div><img src="img/B16722_13_001.jpg" alt="Figure 13.1 – Comparing BigQuery ML and TensorFlow&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图13.1-比较BigQuery ML和TensorFlow</p>
+			<p>首先，强调TensorFlow在可以实现的ML <a id="_idIndexMarker597"/>模型方面提供了更大的灵活性是很重要的。虽然BigQuery ML的特征在于支持的模型类型的特定列表(https://cloud . Google . com/big query-ML/docs/introduction # supported _ models _ in)，但TensorFlow提供了更广泛的ML技术。</p>
+			<p>BigQuery ML <a id="_idIndexMarker599"/>是作为BigQuery的扩展而设计的，因此它只关注结构化数据，这些数据可以用表格格式表示。所有的BigQuery ML技术都是基于对存储在BigQuery表中的行训练和应用模型的可能性。另一方面，TensorFlow对不同的格式开放，包括自由文本、图像、音频和视频。</p>
+			<p>为了训练、评估和测试BigQuery ML模型，用户应该知道SQL语法并具有最少的ML经验。另一方面，实现TensorFlow模型需要良好的编程技能和ML主题知识，因为该框架在定制方面提供了更高的灵活性。</p>
+			<p>考虑到这两种技术的特点，很明显它们是针对公司中不同的利益相关者的。虽然熟悉数据分析任务和SQL查询的业务分析师和数据分析师可以轻松使用BigQuery ML，但TensorFlow是为高级程序员设计的，如经验丰富的数据科学家和ML工程师。</p>
+			<p>既然我们已经了解了BigQuery ML和TensorFlow的共性和差异，在下一节中，我们将学习这两个框架如何互补。</p>
+			<h2 id="_idParaDest-187"><a id="_idTextAnchor189"/>与BigQuery ML和TensorFlow合作</h2>
+			<p>在本节<a id="_idIndexMarker601"/>中，我们将发现如何结合使用<a id="_idIndexMarker602"/> BigQuery ML和TensorFlow来从这两种技术中获得最大价值。</p>
+			<p>下图显示了使用BigQuery ML和TensorFlow的业务分析师和数据科学家之间的交互:</p>
+			<div><div><img src="img/B16722_13_002.jpg" alt="Figure 13.2 – Interactions between BigQuery ML and TensorFlow&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图13.2–big query ML和TensorFlow之间的交互</p>
+			<p>正如我们在<a href="B16722_01_Final_ASB_ePub.xhtml#_idTextAnchor016"> <em class="italic">第1章</em> </a>、<em class="italic">Google Cloud和BigQuery简介</em>中所描述的，ML开发周期的第一步是探索数据并完全理解它。</p>
+			<p>在分析的第一阶段之后，需要清理数据，并为训练ML算法做好准备。这个阶段是创建一个有价值的ML模型并进入培训阶段的基础。</p>
+			<p>当<a id="_idIndexMarker603"/>到了实际开发<a id="_idIndexMarker604"/> ML模型的时候，根据我们的知识、背景和以前的经验，我们有两个选择:</p>
+			<ul>
+				<li>如果您是业务分析师或数据分析师，您会更喜欢使用BigQuery ML，因为它的简单性和即时性得益于SQL语法。</li>
+				<li>如果你是一名数据科学家或ML工程师，你会选择训练一个TensorFlow模型，因为它的灵活性，因为它提供了更多的定制机会。</li>
+			</ul>
+			<p>如上图所示，上面的分支代表业务或数据分析师的典型工作流，他们利用BigQuery ML SQL语句来创建、评估和使用已经存储在BigQuery中的数据的ML模型。这个分支要求你对SQL语言、ML基础和底层数据有很好的了解。</p>
+			<p>另一方面，图表的下分支代表了基于TensorFlow库的开发过程，tensor flow库是由数据科学家或ML工程师开发的，他们在编程和ML算法方面经验丰富。</p>
+			<p>通常，数据分析师非常了解数据，但对最先进的编程技术知之甚少，而数据科学家和ML工程师具有深入的编码技能，但对业务数据的理解有限。由于员工具有不同的专业背景，这种情况通常发生在更成熟的公司。这可能会在那些非常了解行业的人和其他人更关注编程的业务流程之间造成摩擦。</p>
+			<p>为了减少这种差距并降低摩擦的风险，BigQuery ML允许我们做以下事情:</p>
+			<ul>
+				<li>将使用BigQuery ML开发的ML模型导出为TensorFlow SavedModel格式。</li>
+				<li>以SavedModel格式导入TensorFlow ML模型。</li>
+			</ul>
+			<p>查看前面的图表，我们可以看到业务分析师可以导出BigQuery ML模型，并将它们部署到不同于BigQuery并与TensorFlow兼容的其他环境中。</p>
+			<p>另一方面，<a id="_idIndexMarker605"/>的数据科学家<a id="_idIndexMarker606"/>已经实现了先进的TensorFlow模型，可以将它们保存到谷歌云存储桶中，这意味着它们可以导入到BigQuery ML中。</p>
+			<p>BigQuery ML和TensorFlow框架之间的这种双向交互允许我们做以下事情:</p>
+			<ul>
+				<li>扩展BigQuery ML模型的适用性，不再局限于使用存储在BigQuery中的数据。</li>
+				<li>导入BigQuery ML语法最初不支持的BigQuery ML高级TensorFlow模型，并通过SQL查询对存储在BigQuery中的数据使用它们。</li>
+			</ul>
+			<p>在本节中，我们学习了BigQuery ML和TensorFlow如何交互，以及为什么利用这种集成如此重要。在下一节中，我们将训练一个BigQuery ML模型，并将其导出为TensorFlow格式。</p>
+			<h1 id="_idParaDest-188"><a id="_idTextAnchor190"/>将BigQuery ML模型转换为TensorFlow</h1>
+			<p>在此<a id="_idIndexMarker607"/>部分，我们将训练我们在<a href="B16722_11_Final_ASB_ePub.xhtml#_idTextAnchor160"> <em class="italic">第11章</em> </a>、<em class="italic">实现深度神经网络</em>中训练的同一深度神经网络，然后将此模型导出为TensorFlow SavedModel格式。</p>
+			<h2 id="_idParaDest-189"><a id="_idTextAnchor191"/>训练BigQuery ML以将其导出</h2>
+			<p>在我们开始训练模型之前，让我们访问BigQuery来创建将用于训练和预测的数据集和表:</p>
+			<ol>
+				<li>登录我们的谷歌云控制台，从导航菜单访问<strong class="bold"> BigQuery </strong>用户界面。</li>
+				<li>在我们在第2章 、<em class="italic">设置您的GCP和BigQuery环境</em>中创建的项目下创建一个新的数据集。对于这个用例，我们将使用默认选项创建一个名为<code>13_tensorflow_model</code>的数据集。</li>
+				<li>Now, we're <a id="_idIndexMarker609"/>ready to create the table that will contain the training dataset. Let's execute the following SQL statement:<pre>CREATE OR REPLACE TABLE `13_tensorflow_model.training_table` AS
+              SELECT
+                   tripduration/60 tripduration,
+                   start_station_name,
+                   end_station_name,
+                   IF (EXTRACT(DAYOFWEEK FROM starttime)=1 OR EXTRACT(DAYOFWEEK FROM starttime)=7, true, false) is_weekend,
+                   EXTRACT(YEAR FROM starttime)-birth_year as age
+              FROM
+                    `bigquery-public-data.new_york_citibike.citibike_trips`
+              WHERE
+                    (
+                        (EXTRACT (YEAR FROM starttime)=2017 AND
+                          (EXTRACT (MONTH FROM starttime)&gt;=04 OR EXTRACT (MONTH FROM starttime)&lt;=10))
+                        OR (EXTRACT (YEAR FROM starttime)=2018 AND
+                          (EXTRACT (MONTH FROM starttime)&gt;=01 OR EXTRACT (MONTH FROM starttime)&lt;=02))
+                    )
+                    AND (tripduration&gt;=3*60 AND tripduration&lt;=3*60*60)
+                    AND  birth_year is not NULL
+                    AND birth_year &lt; 2007; </pre><p>该查询的结果存储在新的<code>`13_tensorflow_model.training_table`</code>表中，我们创建该表是为了支持用例的后续步骤。</p><p>该查询的业务逻辑与我们在第十一章<a href="B16722_11_Final_ASB_ePub.xhtml#_idTextAnchor160"><em class="italic"/></a><em class="italic">实现深度神经网络</em>的<em class="italic">准备数据集</em>部分中应用的相同。</p></li>
+				<li>Now, we will <a id="_idIndexMarker610"/>create the table that will be used to test our ML model: <pre>CREATE OR REPLACE TABLE  `13_tensorflow_model.prediction_table` AS
+              SELECT
+                   tripduration/60 tripduration,
+                   start_station_name,
+                   end_station_name,
+                   IF (EXTRACT(DAYOFWEEK FROM starttime)=1 OR EXTRACT(DAYOFWEEK FROM starttime)=7, true, false) is_weekend,
+                   EXTRACT(YEAR FROM starttime)-birth_year as age
+                        FROM
+                    `bigquery-public-data.new_york_citibike.citibike_trips`
+              WHERE
+                    EXTRACT (YEAR FROM starttime)=2018
+                    AND EXTRACT (MONTH FROM starttime)=05
+                     AND (tripduration&gt;=3*60 AND tripduration&lt;=3*60*60)
+                    AND  birth_year is not NULL
+                    AND birth_year &lt; 2007;</pre><p>该查询应用了用于创建培训表的相同逻辑，但只考虑了2018年5月。</p></li>
+				<li>Now, let's <a id="_idIndexMarker611"/>train our ML model, which will be exported into TensorFlow format in the <em class="italic">Exporting the BigQuery ML model</em> section:<pre>CREATE OR REPLACE MODEL `13_tensorflow_model.bigquery_ml_model_to_export`
+OPTIONS
+  (model_type='DNN_REGRESSOR',
+        ACTIVATION_FN = 'CRELU') AS
+SELECT
+  start_station_name,
+  end_station_name,
+  is_weekend,
+  age,
+  tripduration as label
+FROM
+  `13_tensorflow_model.training_table`;</pre><p>用于创建<code>`13_tensorflow_model.bigquery_ml_model_to_export`</code> ML模型的业务逻辑与我们在<a href="B16722_11_Final_ASB_ePub.xhtml#_idTextAnchor160"> <em class="italic">第11章</em> </a>、<em class="italic">实现深度神经网络</em>的<em class="italic">训练深度神经网络模型</em>部分中用于训练<code>CRELU</code>深度神经网络的逻辑相同。</p></li>
+			</ol>
+			<p>现在我们已经训练了一个ML模型，在下一节中，我们将学习如何将其导出为TensorFlow SavedModel格式。</p>
+			<h2 id="_idParaDest-190"><a id="_idTextAnchor192"/>导出大查询ML模型</h2>
+			<p>在本节中，我们将以TensorFlow <a id="_idIndexMarker612"/> SavedModel格式将BigQuery ML模型导出到Google云存储桶中。让我们开始吧:</p>
+			<ol>
+				<li value="1">First, we need to access to the Cloud Shell from the Google Cloud Console:<div><img src="img/B16722_13_003.jpg" alt="Figure 13.3 – The Activate Cloud Shell button in the Google Cloud Console&#13;&#10;"/></div><p class="figure-caption">图13.3–谷歌云控制台中的激活云外壳按钮</p><p class="callout-heading">重要说明</p><p class="callout"><strong class="bold">云外壳</strong>是一个<a id="_idIndexMarker613"/>基于Linux的在线环境，可以从谷歌云控制台的网络浏览器访问。有了云外壳，你可以通过利用预装的工具来管理谷歌云资源，比如gcloud命令行工具。</p></li>
+				<li>After clicking on the <strong class="bold">Cloud Shell</strong> button, a Linux command line will be provisioned and presented at the bottom of the screen. If this is the first time you're using the Google Cloud Shell, the following banner will be presented:<div><img src="img/B16722_13_004.jpg" alt="Figure 13.4 – The Cloud Shell information box&#13;&#10;"/></div><p class="figure-caption">图13.4–云壳信息框</p><p>点击蓝色<strong class="bold">继续</strong>按钮上的<a id="_idIndexMarker615"/>后，将会提供Linux命令行，如下图所示:</p><div><img src="img/B16722_13_005.jpg" alt="Figure 13.5 – The Cloud Shell environment&#13;&#10;"/></div><p class="figure-caption">图13.5–云壳环境</p></li>
+				<li>We need to authenticate our account for the Google Cloud SDK by running the following command:<pre>gcloud auth login</pre><p>命令行中将显示一个web URL。通过单击此URL，我们将授权我们的帐户使用Cloud SDK。在这个过程的最后，您将在网页上看到一个代码，您可以将它复制并粘贴到您的云Shell中，以完成授权过程。</p></li>
+				<li>然后，我们可以运行以下命令，在新的<code>PROJECT</code>变量中设置当前项目名称:<pre>PROJECT=$(gcloud config get-value project)</pre></li>
+				<li>Using the <code>PROJECT</code> variable, we'll create a second variable, <code>BUCKET</code>, that will <a id="_idIndexMarker616"/>contain the name of the Google Cloud storage bucket to create, which is where the BigQuery ML model will be exported:<pre>BUCKET=${PROJECT}-us-bigqueryml-export-tf</pre><p>Google云存储空间名称将由我们的项目名称和<code>-us-bigqueryml-export-tf</code>字符串连接而成。</p></li>
+				<li>Now that we have the name of the bucket stored in a variable, we can create the new bucket by running the following command:<pre>gsutil mb -l us gs://${BUCKET}</pre><p class="callout-heading">重要说明</p><p class="callout"><code>gsutil mb</code>命令是<a id="_idIndexMarker617"/>用于创建一个新的bucket，而<code>–l US</code>选项指定了我们想要创建bucket的地理位置。在这种情况下，这个桶将在美国创建。</p><p>如果这是您第一次使用Cloud Shell创建Google云存储桶，那么在创建桶之前会出现以下横幅:</p><div><img src="img/B16722_13_006.jpg" alt="Figure 13.6 – The Cloud Shell authorization box"/></div><p class="figure-caption">图13.6–云外壳授权框</p><p>点击蓝色的<strong class="bold">授权</strong>按钮，将会创建一个存储桶。</p></li>
+				<li>Now, let's <a id="_idIndexMarker618"/>execute the command that will export the BigQuery ML model into the Google Cloud storage bucket in the TensorFlow SavedModel format. Let's run the following command:<pre>     bq extract -m 13_tensorflow_model.bigquery_ml_model_to_export gs://${BUCKET}/bqml_exported_model</pre><p><code>bq extract</code>命令用于提取在<code>–m</code>选项之后指定的BigQuery ML模型。命令的最后一部分指出了我们想要提取模型和相关子文件夹的Google云存储桶的路径；也就是<code>bqml_exported_model</code>。或者，也可以使用以下SQL查询导出BigQuery ML模型:</p><pre>EXPORT MODEL 13_tensorflow_model.bigquery_ml_model_to_export
+OPTIONS (URI = "gs://${BUCKET}/bqml_exported_model" );</pre></li>
+				<li>为了验证导出模型的存在，我们可以浏览Google Cloud控制台菜单，访问<strong class="bold">存储</strong>下的<strong class="bold">浏览器</strong>功能，如下截图所示:<div> <img src="img/B16722_13_007.jpg" alt="Figure 13.7 – Google Cloud Storage – Browser&#13;&#10;"/> </div></li>
+			</ol>
+			<p class="figure-caption"> </p>
+			<p class="figure-caption">图13.7–谷歌云存储–浏览器</p>
+			<p>在<a id="_idIndexMarker619"/>访问我们在<em class="italic">步骤6 </em>中创建的Google云存储桶并进入<code>bqml_exported_model</code>子文件夹后，我们将看到BigQuery ML模型的导出版本，如以下截图所示:</p>
+			<div><div><img src="img/B16722_13_008.jpg" alt="Figure 13.8 – The BigQuery ML model exported into the TensorFlow SavedModel format&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图13.8–导出为TensorFlow SavedModel格式的BigQuery ML模型</p>
+			<p>从这个<a id="_idIndexMarker620"/>文件列表中，我们可以很容易地识别出我们在本章的<em class="italic">介绍TensorFlow </em>一节中提到的TensorFlow SavedModel格式的主要组件。我们可以看到<code>saved_model.pb</code>文件，它包含TensorFlow程序、<code>assets</code>和<code>variables</code>文件夹，以及一些额外的元数据文件。</p>
+			<p>既然模型已经导出为TensorFlow SavedModel格式，就可以与其他人共享它，并在BigQuery之外的TensorFlow兼容环境中运行它。</p>
+			<p>在本节中，我们学习了如何使用TensorFlow SavedModel格式将BigQuery ML模型导出到Google云存储桶中。在下一节中，我们将学习如何将现有的TensorFlow模型导入BigQuery ML。</p>
+			<h1 id="_idParaDest-191"><a id="_idTextAnchor193"/>使用BigQuery ML运行TensorFlow模型</h1>
+			<p>在本节中，我们将导入在<em class="italic">将BigQuery ML模型转换为TensorFlow </em>部分中导出的TensorFlow模型。一旦模型被导入，我们将通过BigQuery ML语法使用它。</p>
+			<p>首先，我们<a id="_idIndexMarker621"/>需要记住，我们的BigQuery ML模型已经被导出到Google云存储桶的文件夹中。ML模型以TensorFlow SavedModel格式存储，其格式与数据科学家使用TensorFlow开发的任何其他ML模型相同。</p>
+			<p>如果我们想在BigQuery ML中使用TensorFlow模型，我们需要执行以下步骤:</p>
+			<ol>
+				<li value="1">First, let's run the <code>CREATE OR REPLACE MODEL</code> SQL statement. Keep in mind that the path of the bucket –  <code>'gs://&lt;PROJECT_NAME&gt;-us-bigqueryml-export-tf/bqml_exported_model/*'</code> – is based on the name of your current project, so you need to replace the <code>&lt;PROJECT_NAME&gt;</code> placeholder with the name of the project you're working on:<pre>CREATE OR REPLACE MODEL `13_tensorflow_model.trip_duration_tf_imported_model`
+OPTIONS (model_type='tensorflow',
+         model_path='gs://&lt;PROJECT_NAME&gt;-us-bigqueryml-export-tf/bqml_exported_model/*');</pre><p>查询的语法由<code>CREATE OR REPLACE MODEL</code>关键字组成，后跟新ML模型的标识符；也就是<code>`13_tensorflow_model.trip_duration_tf_imported_model`</code>。</p><p>在<code>OPTIONS</code>子句中，我们在<code>model_type</code>选项中指定了<code>'tensorflow'</code>。使用<code>model_path</code>参数，我们已经指定了TensorFlow SavedModel将存储在Google云存储桶中的文件夹。</p></li>
+				<li>To verify that BigQuery ML successfully loaded the TensorFlow model, we can browse the BigQuery navigation menu and check that the model is present in the <code>13_tensorflow_model</code> dataset.<p>下面的<a id="_idIndexMarker622"/>截图显示TensorFlow模型已经导入到BigQuery ML中。它的名字叫<code>trip_duration_tf_imported_model</code>:</p><div><img src="img/B16722_13_009.jpg" alt="Figure 13.9 – The TensorFlow model imported into BigQuery&#13;&#10;"/></div><p class="figure-caption">图13.9–导入BigQuery的TensorFlow模型</p></li>
+				<li>If we click on <code>trip_duration_tf_imported_model</code>, we'll be able to access the ML model's details.<p>下面的屏幕截图显示了导入的ML模型的详细信息:</p><div><img src="img/B16722_13_010.jpg" alt="Figure 13.10 – The details of the ML model we've imported into BigQuery&#13;&#10;"/></div><p class="figure-caption">图13.10–我们导入到BigQuery中的ML模型的细节</p><p>在模型的<strong class="bold">详情</strong>页面，我们可以清楚的看到模型类型为<strong class="bold"> TENSORFLOW </strong>。这个特性确认了ML模型最初是TensorFlow SavedModel格式的，并且已经被导入到BigQuery ML中。</p></li>
+				<li>Now, we <a id="_idIndexMarker623"/>can use the imported TensorFlow model with the BigQuery ML <code>ML.PREDICT</code> function. Let's run the following SQL statement:<pre>SELECT
+  *
+FROM
+  ML.PREDICT(MODEL `13_tensorflow_model.trip_duration_tf_imported_model`,
+    (
+    SELECT
+         start_station_name,
+          end_station_name,
+          is_weekend,
+          age,
+          tripduration
+    FROM
+           `13_tensorflow_model.prediction_table`));</pre><p>几秒钟后，查询结果将显示在BigQuery UI中。</p><p>下面的<a id="_idIndexMarker624"/>截屏显示了执行查询的结果，以及由ML模型生成的预测:</p></li>
+			</ol>
+			<div><div><img src="img/B16722_13_011.jpg" alt="Figure 13.11 – The predictions that were generated by the TensorFlow model, imported into BigQuery"/>
+				</div>
+			</div>
+			<p class="figure-caption">图13.11–tensor flow模型生成的预测，导入到BigQuery中</p>
+			<p>正如我们所看到的，预测值存储在<code>predictions</code>列中，代表使用自行车共享服务从<code>start_station_name</code>到<code>end_station_name</code>的预测行程持续时间。</p>
+			<p>在本节<a id="_idIndexMarker625"/>中，我们学习了如何将TensorFlow模型导入BigQuery ML，以及如何利用BigQuery ML SQL语法来使用它。</p>
+			<h1 id="_idParaDest-192"><a id="_idTextAnchor194"/>摘要</h1>
+			<p>在本章中，我们学习了什么是张量流，以及它为什么对ML行业如此重要。</p>
+			<p>首先，我们分析了BigQuery ML和TensorFlow之间的主要共性和差异，我们知道它们针对ML社区中不同的目标人物角色。</p>
+			<p>然后，我们发现了如何通过组合这两个框架来补充BigQuery ML和TensorFlow以获得最大价值。</p>
+			<p>通过采取循序渐进的方法，我们学习了如何将BigQuery ML模型导出为TensorFlow格式，以便我们可以将它们部署到BigQuery以外的环境中。</p>
+			<p>之后，我们测试了如何在BigQuery ML中导入和使用TensorFlow模型。这种方法使数据分析师能够轻松访问和使用由数据科学家和ML工程师开发的高级TensorFlow ML模型。最后，在导入ML模型后，我们在BigQuery表上测试了导入的ML模型，以预测纽约市自行车共享服务的自行车骑行持续时间。</p>
+			<p>在下一章中，我们将关注一些大查询技巧和最佳实践，这样我们可以进一步提高我们的ML技能。</p>
+			<h1 id="_idParaDest-193"><a id="_idTextAnchor195"/>更多资源</h1>
+			<ul>
+				<li><strong class="bold">纽约市自行车共享公共数据集</strong>:<a href="https://console.cloud.google.com/marketplace/product/city-of-new-york/nyc-citi-bike">https://console . cloud . Google . com/market place/product/city-of-new York/NYC-Citi-Bike</a></li>
+				<li><strong class="bold"> BigQuery ML为TensorFlow创建模型</strong>:https://cloud . Google . com/big query-ML/docs/reference/standard-SQL/bigqueryml-syntax-Create-tensor flow</li>
+				<li><strong class="bold"> BigQuery ML评估模型</strong>:<a href="https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-evaluate">https://cloud . Google . com/big query-ML/docs/reference/standard-SQL/bigqueryml-syntax-Evaluate</a></li>
+				<li><strong class="bold">big query ML Predict</strong>:<a href="https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict">https://cloud . Google . com/big query-ML/docs/reference/standard-SQL/bigqueryml-syntax-Predict</a></li>
+				<li><strong class="bold"> TensorFlow官网</strong>:https://www.tensorflow.org/</li>
+			</ul>
+		</div>
+	
+
+</body></html>

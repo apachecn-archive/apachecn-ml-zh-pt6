@@ -1,0 +1,170 @@
+<html><head/><body>
+
+
+	
+		<title>B16783_07_Final_SB_epub</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-101"><em class="italic"> <a id="_idTextAnchor119"/> <a id="_idTextAnchor120"/>第七章</em>:数据和特征管理</h1>
+			<p>在本章中，我们将在正在构建的机器学习平台中添加一个特征管理数据层。我们将利用MLflow项目模块的功能来构建我们的数据管道。</p>
+			<p>具体来说，我们将了解本章的以下部分:</p>
+			<ul>
+				<li>构建您的数据管道项目</li>
+				<li>获取股票数据</li>
+				<li>检查数据质量</li>
+				<li>管理功能</li>
+			</ul>
+			<p>在本章中，我们将获取相关数据，为训练提供数据集。我们的主要资源将是雅虎财经BTC数据集的数据。除了这些数据，我们还将获得以下额外的数据集。</p>
+			<p>利用我们在<a href="B16783_06_Final_SB_epub.xhtml#_idTextAnchor106"> <em class="italic">第6章</em> </a>、<em class="italic">介绍ML系统架构</em>中介绍的生产化架构，如图<em class="italic">图7.1 </em>所示，特性和数据组件负责从来源获取数据，并使数据以平台不同组件可消费的格式可用:</p>
+			<div><div><img src="img/image0013.jpg" alt="Figure 7.1 – High-level architecture with a data layer reference&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图7.1–带有数据层参考的高级架构</p>
+			<p>让我们深入研究这一章，看看我们将如何用相关数据构建和填充数据层，以用于训练模型和生成特征。</p>
+			<h1 id="_idParaDest-102"><a id="_idTextAnchor121"/>技术要求</h1>
+			<p>对于本章，您将需要以下先决条件:</p>
+			<ul>
+				<li>最新版本的Docker安装在您的机器上。如果您尚未安装，请按照<a href="https://docs.docker.com/get-docker/">https://docs.docker.com/get-docker/</a>中的说明进行操作。</li>
+				<li>安装了docker-compose的最新版本。请按照<a href="https://docs.docker.com/compose/install/">https://docs.docker.com/compose/install/</a>的指示。</li>
+				<li>在命令行上访问Git，并按照<a href="https://git-scm.com/book/en/v2/Getting-Started-Installing-Git">https://Git-SCM . com/book/en/v2/Getting-Started-Installing-Git</a>中的描述进行安装。</li>
+				<li>访问Bash终端(Linux或Windows)。</li>
+				<li>访问浏览器。</li>
+				<li>Python 3.5以上版本已安装。</li>
+				<li>本地安装您的机器学习的最新版本，如第三章 、<em class="italic">您的数据科学工作台</em>中所述。</li>
+			</ul>
+			<p>在下一节中，我们将描述数据管道的结构、数据源，以及我们将执行的不同步骤，以实现利用MLflow项目特性打包项目的实际示例。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">直接从代码片段中复制和粘贴可能会导致编辑器出现问题。请参考位于https://GitHub . com/packt publishing/Machine-Learning-Engineering-with-ml flow/tree/master/chapter 07的章节的GitHub知识库</p>
+			<h1 id="_idParaDest-103"><a id="_idTextAnchor122"/>构建您的数据管道项目</h1>
+			<p>在高层次上，我们的数据管道将每周运行，收集前7天的数据，并以机器学习作业可以运行的方式存储这些数据<a id="_idIndexMarker239"/>,以生成上游模型。我们将把数据文件夹分为三种类型的数据:</p>
+			<ul>
+				<li><strong class="bold">原始数据</strong>:从Yahoo Finance API中检索过去90天的数据生成的数据集<a id="_idIndexMarker240"/>。我们将以CSV格式存储数据——与从API接收的格式相同。我们将在MLflow中记录运行，并提取收集的行数。</li>
+				<li><strong class="bold">阶段数据</strong>:在<a id="_idIndexMarker241"/>原始数据上，我们将运行质量检查、模式验证，并确认数据可以用于生产。有关数据质量的信息将记录在MLflow Tracking中。</li>
+				<li><strong class="bold">训练数据</strong>:训练数据是数据管道的最终产品。必须对被认为干净且适合执行模型的数据执行<a id="_idIndexMarker242"/>。该数据包含被处理成可直接用于训练过程的特征的数据。</li>
+			</ul>
+			<p>这个文件夹结构最初将在文件系统上实现，并在部署期间转移到相关的环境(例如:AWS S3、Kubernetes PersistentVolume等等)。</p>
+			<p>为了执行我们的数据管道项目，我们将使用<strong class="bold"> MLflow项目</strong>模块将<a id="_idIndexMarker243"/>数据管道打包成独立于执行环境的格式。我们将使用Docker格式来封装<strong class="bold"> MLflow项目</strong>。Docker <a id="_idIndexMarker244"/>格式为我们提供了不同的选项，根据部署我们项目的可用基础设施，在云中或内部部署我们的项目:</p>
+			<div><div><img src="img/image0024.jpg" alt=""/>
+				</div>
+			</div>
+			<p class="figure-caption">图7.2–带有数据层参考的高级架构</p>
+			<p>我们的工作流程将执行以下步骤，如图<em class="italic">图7.2 </em>所示:</p>
+			<ol>
+				<li><code>data/raw/data.csv folder</code>。</li>
+				<li><code>data/staged/data.csv file</code>。</li>
+				<li><code>data/training/data.csv location</code>。</li>
+			</ol>
+			<p>通过这三个不同的阶段，我们确保了训练数据生成过程的可再现性、可见性以及该过程的不同步骤的清晰分离。</p>
+			<p>我们将从将MLflow项目组织成步骤并为管道的每个组件创建占位符开始<a id="_idIndexMarker245"/>:</p>
+			<ol>
+				<li value="1">在本地机器上创建一个名为<code>psytock-data-features</code>的新文件夹。</li>
+				<li>添加<code>MLProject file</code> : <pre>name: pystock_data_features conda:   file: conda.yaml entry_points:   data_acquisition:     command: "python data_acquisition.py"   clean_validate_data:     command: "python clean_validate_data.py "   feature_set_generation:     command: "python feature_set_generation.py"   main:     command: "python main.py"</pre></li>
+				<li>添加以下<code>conda.yaml</code>文件:<pre>    name: pystock-data-features channels:   - defaults dependencies:   - python=3.8   - numpy   - scipy   - pandas   - cloudpickle   - pip:     - git+git://github.com/mlflow/mlflow     - pandas_datareader     - great-expectations==0.13.15     </pre></li>
+				<li>您现在可以<a id="_idIndexMarker246"/>添加一个示例<code>main.py</code>文件到文件夹中，以确保项目的基本结构是工作的:<pre>import mlflow import click def _run(entrypoint, parameters={}, source_version=None, use_cache=True):     #existing_run = _already_ran(entrypoint, parameters, source_version)     #if use_cache and existing_run:     #    print("Found existing run for entrypoint=%s and parameters=%s" % (entrypoint, parameters))      #   return existing_run     print("Launching new run for entrypoint=%s and parameters=%s" % (entrypoint, parameters))     submitted_run = mlflow.run(".", entrypoint, parameters=parameters)     return submitted_run @click.command() def workflow():     with mlflow.start_run(run_name ="pystock-data-pipeline") as active_run:         mlflow.set_tag("mlflow.runName", "pystock-data-pipeline")         _run("load_raw_data")         _run("clean_validate_data")         _run("feature_set_generation")                   if __name__=="__main__":     workflow()</pre></li>
+				<li>Test the <a id="_idIndexMarker247"/>basic structure by running the following command:<pre>mlflow run .</pre><p>这个命令将基于您的<code>conda.yaml</code>文件创建的环境构建您的项目，并运行您刚刚创建的基本项目。它应该会出错，因为我们需要添加丢失的文件。未找到<em class="italic">文件</em>错误将如下所示:</p><pre>python: can't open file 'check_verify_data.py': [Errno 2] No such file or directory</pre></li>
+			</ol>
+			<p>在这个阶段，我们有了<a id="_idIndexMarker248"/>我们将在本章中构建的数据管道的MLflow项目的基本模块。接下来，我们将填写Python脚本来获取下一节中的数据。</p>
+			<h1 id="_idParaDest-104"><a id="_idTextAnchor123"/>采集股票数据</h1>
+			<p>我们获取数据的脚本将基于<code>pandas-datareader Python package</code>。它为远程财务API提供了一个简单的抽象，我们可以在未来的管道中加以利用。抽象非常简单。给定一个数据源，比如Yahoo Finance，您提供股票代码/对和日期范围，数据在DataFrame中提供。</p>
+			<p>我们现在将创建<code>load_raw_data.py file</code>，它将负责加载数据并将其保存在<code>raw</code>文件夹中。您可以在位于https://github . com/packt publishing/Machine-Learning-Engineering-with-ml flow/blob/master/chapter 07/psy stock-data-features-main/load _ raw _ data . py的存储库中查看该文件的内容。</p>
+			<ol>
+				<li value="1">我们将从导入相关的包开始:<pre>import mlflow from datetime import date from dateutil.relativedelta import relativedelta import pprint import pandas import pandas_datareader.data as web</pre></li>
+				<li>接下来，您应该添加一个函数来检索数据:<pre>if __name__ == "__main__":          with mlflow.start_run(run_name="load_raw_data") as  run:         mlflow.set_tag("mlflow.runName", "load_raw_data")         end = date.today()         start = end + relativedelta(months=-3)                  df = web.DataReader("BTC-USD", 'yahoo', start, end)         df.to_csv("./data/raw/data.csv")     </pre></li>
+			</ol>
+			<p>现在我们已经<a id="_idIndexMarker250"/>获得了数据，我们需要应用我们将在下一节中介绍的最佳实践——一种检查所获得数据的数据质量的方法。</p>
+			<h1 id="_idParaDest-105"><a id="_idTextAnchor124"/>检查数据质量</h1>
+			<p>作为机器学习系统的一部分，检查数据质量对于确保模型训练和推理的完整性<a id="_idIndexMarker251"/>和正确性极其重要。应该借鉴软件测试和质量的原则，用在机器学习平台的数据层。</p>
+			<p>从数据质量的角度来看，在数据集中有几个关键的维度用于评估和描述我们的数据，即:</p>
+			<ul>
+				<li><strong class="bold">模式一致性</strong>:确保<a id="_idIndexMarker252"/>数据来自预期的类型；确保数值不包含任何其他类型的数据</li>
+				<li><strong class="bold">有效数据</strong>:从数据角度评估<a id="_idIndexMarker253"/>数据从业务角度是否有效</li>
+				<li><strong class="bold">缺失数据</strong>:评估<a id="_idIndexMarker254"/>运行分析和算法所需的所有数据是否可用</li>
+			</ul>
+			<p>对于数据验证，我们将使用<em class="italic">远大前程</em> Python包(可在<a href="https://github.com/great-expectations/great_expectations">https://github.com/great-expectations/great_expectations</a>获得)。它允许使用许多数据兼容包对数据进行断言，比如pandas、Spark和云环境。它在JSON中提供了一个DSL，用它来声明我们希望我们的数据符合的规则。</p>
+			<p>对于我们当前的项目，我们希望以下规则/约束是可验证的:</p>
+			<ul>
+				<li>日期值应为有效日期，不能缺失。</li>
+				<li>检查数值和长值是否正确键入。</li>
+				<li>所有列都出现在数据集中。</li>
+			</ul>
+			<p>我们现在将创建<code>check_verify_data.py file</code>，它将负责加载数据并<a id="_idIndexMarker255"/>将其保存在<code>staging</code>文件夹中，其中所有数据都是有效的，并准备好用于ML训练。您可以在https://github . com/packt publishing/Machine-Learning-Engineering-with-ml flow/blob/master/chapter 07/psy stock-data-features-main/check _ verify _ data . py的存储库中查看文件的内容。</p>
+			<ol>
+				<li value="1">为了转换前面的规则，以便我们的系统可以依赖它们，我们需要导入以下依赖项:<pre>import mlflow from datetime import date from dateutil.relativedelta import relativedelta import pprint import pandas_datareader import pandas from pandas_profiling import ProfileReport import great_expectations as ge from great_expectations.profile.basic_dataset_profiler import BasicDatasetProfiler</pre></li>
+				<li>接下来，我们<a id="_idIndexMarker256"/>将实现脚本:<pre>if __name__ == "__main__":     with mlflow.start_run(run_name="check_verify_data") as run:         mlflow.set_tag("mlflow.runName", "check_verify_data")         df = pandas.read_csv("./data/raw/data.csv")         describe_to_dict=df.describe().to_dict()         mlflow.log_dict(describe_to_dict,"describe_data.json")         pd_df_ge = ge.from_pandas(df)         assert pd_df_ge.expect_column_values_to_match_ strftime_format("Date", "%Y-%m-%d").success == True         assert pd_df_ge.expect_column_values_to_be_of_ type("High", "float").success == True         assert pd_df_ge.expect_column_values_to_be_of_type("Low", "float").success == True         assert pd_df_ge.expect_column_values_to_be_of_type("Open", "float").success == True         assert pd_df_ge.expect_column_values_to_be_of_type("Close", "float").success == True         assert pd_df_ge.expect_column_values_to_be_of_type("Volume", "long").success == True         assert pd_df_ge.expect_column_values_to_be_of_type("Adj Close", "float").success == True</pre></li>
+				<li>现在我们可以进展到做一点清洁:<pre>        #we can do some basic cleaning by dropping the null values         df.dropna(inplace=True)         #if data_passes_quality_can_go_to_features:         df.to_csv("data/staging/data.csv")</pre></li>
+			</ol>
+			<p>验证了要使用的数据和阶段的质量后，现在可以很有把握地将其用于特征生成。</p>
+			<h1 id="_idParaDest-106"><a id="_idTextAnchor125"/>生成特征集和训练数据</h1>
+			<p>我们将重构之前在本地环境中开发的一些代码，以生成用于培训的功能，从而将我们的MLflow项目的数据管道添加到我们的MLflow项目中。</p>
+			<p>我们现在将<a id="_idIndexMarker258"/>创建<code>feature_set_generation.py file</code>，它将负责<a id="_idIndexMarker259"/>生成我们的特征并将它们保存在<code>training</code>文件夹中，其中所有的数据都是有效的，并准备好用于ML训练。可以在资源库https://github . com/packt publishing/Machine-Learning-Engineering-with-ml flow/blob/master/chapter 07/psy stock-data-features-main/feature _ set _ generation . py中查看文件中的内容:</p>
+			<ol>
+				<li value="1">我们需要导入以下依赖项:<pre>import mlflow from datetime import date from dateutil.relativedelta import relativedelta import pprint import pandas as pd import pandas_datareader import pandas_datareader.data as web import numpy as np</pre></li>
+				<li>在深入研究代码的主要组成部分之前，我们现在将继续实现一个关键函数，通过将前一天与每一天的<em class="italic"> n </em>的差异转换成一个我们将用来预测第二天的特性来生成特性，非常类似于我们在本书前面的<a id="_idIndexMarker261"/>章节中为我们的运行用例使用的方法<pre>def rolling_window(a, window):     """         Takes np.array 'a' and size 'window' as parameters         Outputs an np.array with all the ordered sequences of values of 'a' of size 'window'         e.g. Input: ( np.array([1, 2, 3, 4, 5, 6]), 4 )              Output:                       array([[1, 2, 3, 4],                            [2, 3, 4, 5],                            [3, 4, 5, 6]])     """     shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)     strides = a.strides + (a.strides[-1],)     return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)</pre></li>
+				<li>接下来，我们将继续读取被视为干净并准备好供上游进程使用的暂存文件:<pre>    with mlflow.start_run() as run:         mlflow.set_tag("mlflow.runName", "feature_set_ generation")         btc_df = pd.read_csv("data/staging/data.csv")         btc_df['delta_pct'] = (btc_df['Close'] - btc_df['Open'])/btc_df['Open']         btc_df['going_up'] = btc_df['delta_pct'].apply(lambda d: 1 if d&gt;0.00001 else 0).to_numpy()         element=btc_df['going_up'].to_numpy()         WINDOW_SIZE=15         training_data = rolling_window(element, WINDOW_SIZE)         pd.DataFrame(training_data).to_csv("data/training/da<a id="_idTextAnchor126"/>ta.csv", index=False)</pre></li>
+			</ol>
+			<p>我们生成<a id="_idIndexMarker262"/>特征集和特征。我们现在能够运行从数据采集到特征生成的所有<a id="_idIndexMarker263"/>端到端管道。</p>
+			<h2 id="_idParaDest-107"><a id="_idTextAnchor127"/>运行您的端到端管道</h2>
+			<p>在这一节中，我们将运行<a id="_idIndexMarker264"/>完整的示例，您可以从以下地址检索到该书在<code>/Chapter07/psytock-data-features-main</code>文件夹中的GitHub资源库。<em class="italic">图7.3 </em>展示了项目的完整文件夹结构，您可以在GitHub中查看并与您的本地版本进行比较:</p>
+			<div><div><img src="img/image0034.jpg" alt="Figure 7.3 – Folder structure&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图7.3–文件夹结构</p>
+			<p>要端到端地运行管道<a id="_idIndexMarker265"/>，您应该在目录中执行以下命令，代码如下:</p>
+			<pre>mlflow run . --experiment-name=psystock_data_pipelines</pre>
+			<p>它将基本上执行端到端管道，您可以直接在MLflow UI中检查它，按顺序运行管道的每个步骤:</p>
+			<pre>mlflow ui</pre>
+			<p>您可以在<a href="http://localhost:5000"> http://localhost:5000 </a>运行并浏览MLflow中的跟踪信息。</p>
+			<p>在<em class="italic">图7.4 </em>中，您可以在嵌套的工作流格式中看到主项目和管道阶段的子项目的不同运行，您可以浏览以检查细节:</p>
+			<div><div><img src="img/image0044.jpg" alt="Figure 7.4 – High-level architecture with a data layer reference&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图7.4–带有数据层参考的高级架构</p>
+			<p>在<em class="italic">图7.5 </em>中，您可以看到<a id="_idIndexMarker266"/>对数据管道<code>load_raw_data</code>阶段的引用，并检查其开始和停止的时间以及使用的参数:</p>
+			<div><div><img src="img/image0054.jpg" alt="Figure 7.5 – High-level architecture with a data layer reference&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图7.5–带有数据层参考的高级架构</p>
+			<p>在<em class="italic">图7.6 </em>中，您可以看到对数据管道<code>check_verify_data</code>阶段的引用，在此阶段，我们记录了获得的数据集的一些基本统计信息:</p>
+			<div><div><img src="img/image0063.jpg" alt="Figure 7.6 – High-level architecture with a data layer reference&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图7.6–带有数据层参考的高级架构</p>
+			<p>如果检测到任何数据<a id="_idIndexMarker267"/>质量问题，工作流将失败，并清楚地指示哪个部分失败，如图<em class="italic">图7.7 </em>所示:</p>
+			<div><div><img src="img/image0073.jpg" alt="Figure 7.7 – Checking errors&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图7.7–检查错误</p>
+			<p>在本节中，我们总结了使用MLflow中的<code>MLProjects</code>模块实现的数据管道中的数据管理和特征生成过程的描述。我们现在来看看如何管理特征存储中的数据。</p>
+			<h1 id="_idParaDest-108"><a id="_idTextAnchor128"/>使用功能商店</h1>
+			<p>特征库是数据之上的一个<a id="_idIndexMarker268"/>软件层，通过为推理系统提供一个接口来检索可用于推理或训练的特征集，从而抽象出数据的所有<a id="_idIndexMarker269"/>生产和管理过程。</p>
+			<p>在本节中，我们将通过使用Feast(特征存储)来说明特征存储的概念，Feast是一种用于管理机器学习特征并将其提供给生产模型的操作数据系统:</p>
+			<div><div><img src="img/image0083.jpg" alt="Figure 7.8 – Feast Architecture (retrieved from https://docs.feast.dev/)&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图7.8–盛宴建筑(取自https://docs.feast.dev/)</p>
+			<p>为了理解Feast如何工作以及它如何适合您的数据层组件(代码可从https://github . com/packt publishing/Machine-Learning-Engineering-with-ml flow/tree/master/chapter 07/psy stock _ feature _ store获得),请执行以下步骤:</p>
+			<ol>
+				<li value="1">安装<code>feast</code> : <pre>pip install feast==0.10</pre></li>
+				<li>初始化特征库:<pre>feast init</pre></li>
+				<li>通过替换自动生成的<code>yaml</code>文件来创建您的特征定义:<pre>project: psystock_feature_store registry: data/registry.db provider: local online_store:     path: data/online_store.db</pre></li>
+				<li>我们现在将导入特征定义的依赖关系:<pre>from google.protobuf.duration_pb2 import Duration from feast import Entity, Feature, FeatureView, ValueType from feast.data_source import FileSource</pre></li>
+				<li>我们现在可以<a id="_idIndexMarker270"/>加载特征文件:<pre>token_features = FileSource(     path="/data/features.csv",     event_timestamp_column="create_date",     created_timestamp_column="event_date", ) token= Entity(name="token", value_type=ValueType.STRING, description="token id",)</pre></li>
+				<li>我们现在可以添加一个特征视图:<pre>hourly_view_features_token = FeatureView(     name="token_hourly_features",     entities=["token"],     ttl=Duration(seconds=3600 * 1),     features=[         Feature(name="prev_10days", dtype=ValueType.INT64),         Feature(name="prev_11days", dtype=ValueType.INT64),         Feature(name="prev_12days", dtype=ValueType.INT64),         Feature(name="prev_13days", dtype=ValueType.INT64)     ],     online=True,     input=token_features,     tags={}, )</pre></li>
+				<li>To deploy the feature store with the configurations added so far, we need to run the following command:<pre>feast apply</pre><p>在此阶段，要素存储部署在您的环境中(在本例中为本地),并且要素存储可用于您的MLflow作业。</p></li>
+				<li>我们现在可以<a id="_idIndexMarker271"/>进行特征检索，因为所有的特征都存储在特征库中:<pre>import pandas as pd from datetime import datetime from feast import FeatureStore # entity_df generally comes from upstream systems event_data_point = pd.DataFrame.from_dict({     "token": ["btc","btc"],     "event_date": [         datetime(2021, 4, 12, 10, 59, 42),         datetime(2021, 4, 12, 8,  12, 10),     ] }) store = FeatureStore(repo_path=".") feature_loading_df = store.get_historical_features(     entity_df=entity_df,      feature_refs = [         'token_hourly_features:prev_3days',         'token_hourly_features:prev_4days',         'token_hourly_features:prev_5days'             ], ).to_df()</pre></li>
+			</ol>
+			<p>您现在可以<a id="_idIndexMarker272"/>将您的特性存储库集成到您的MLflow工作负载中。</p>
+			<p>在本节中，我们总结了使用MLflow中的<code>MLProjects module</code>实现的数据管道中的数据管理和特征生成过程的描述。我们现在准备在后续章节中处理生产环境部署。</p>
+			<h1 id="_idParaDest-109"><a id="_idTextAnchor129"/>总结</h1>
+			<p>在本章中，我们介绍了MLflow及其与参考架构的功能管理数据层的集成。我们利用MLflow项目模块的功能来构建我们的数据管道。</p>
+			<p>介绍了重要的数据和要素管理层，明确了要素生成的需求，以及数据质量、验证和数据准备的概念。</p>
+			<p>我们将生产数据管道的不同阶段应用到我们自己的项目中。然后，我们将数据采集和质量检查正式化。在上一节中，我们介绍了特性库的概念以及如何创建和使用特性库。</p>
+			<p>在本书的下一章和下一节中，我们将重点关注将数据管道和功能应用于在生产中培训和部署数据管道的过程。</p>
+			<h1 id="_idParaDest-110"><a id="_idTextAnchor130"/>延伸阅读</h1>
+			<p>为了加深您的知识，您可以参考以下链接中的文档:</p>
+			<p><a href="https://github.com/mlflow/mlflow/blob/master/examples/multistep_workflow/MLproject">https://github . com/ml flow/ml flow/blob/master/examples/multi step _ workflow/ml project</a></p>
+		</div>
+	
+
+</body></html>

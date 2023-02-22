@@ -1,0 +1,2303 @@
+<html><head/><body>
+
+
+    
+        <title>Machine Learning-Based Malware Detection</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">基于机器学习的恶意软件检测</h1>
+                
+            
+            
+                
+<p>在这一章中，我们开始认真对待将数据科学应用于网络安全。我们将从学习如何对样品进行静态和动态分析开始。基于这一知识，我们将学习如何特征化样本，以构建一个具有丰富特征的数据集。本章的重点是学习如何使用我们所学的特征化技巧来构建一个静态恶意软件检测器。最后，您将学习如何应对网络安全领域出现的重要机器学习挑战，如类别不平衡和<strong>误报率</strong> ( <strong> FPR </strong>)约束。</p>
+<p class="mce-root">本章包括以下配方:</p>
+<ul>
+<li>恶意软件静态分析</li>
+<li>恶意软件动态分析</li>
+<li>使用机器学习来检测文件类型</li>
+<li>测量两个字符串之间的相似性</li>
+<li>测量两个文件之间的相似性</li>
+<li>提取N元语法</li>
+<li>选择最佳N元文法</li>
+<li>构建静态恶意软件检测器</li>
+<li>解决阶级失衡</li>
+<li>处理第一类和第二类错误</li>
+</ul>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Technical requirements</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">技术要求</h1>
+                
+            
+            
+                
+<p>在本章中，我们将使用以下内容:</p>
+<ul>
+<li>YARA</li>
+<li><kbd>pefile</kbd></li>
+<li><kbd>PyGitHub</kbd></li>
+<li>布谷鸟沙盒</li>
+<li><strong>自然语言工具包</strong> ( <strong> NLTK </strong>)</li>
+<li><kbd>imbalanced-learn</kbd></li>
+</ul>
+<p>代码和数据集可以在<a href="https://github.com/PacktPublishing/Machine-Learning-for-Cybersecurity-Cookbook/tree/master/Chapter02">https://github . com/packt publishing/Machine-Learning-for-cyber security-Cookbook/tree/master/chapter 02</a>找到。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Malware static analysis</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">恶意软件静态分析</h1>
+                
+            
+            
+                
+<p class="mce-root">在静态分析中，我们检查样本而不执行它。通过这种方式可以获得的信息量很大，从简单的文件名到更复杂的内容，如专门的YARA签名。我们将介绍通过静态分析样品可以获得的大量特征。尽管静态分析功能强大且方便，但它并不是灵丹妙药，主要是因为软件可能会被混淆。出于这个原因，我们将在后面的章节中使用动态分析和其他技术。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Computing the hash of a sample</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">计算样本的散列值</h1>
+                
+            
+            
+                
+<p class="mce-root">不去深究散列的复杂性，散列本质上是一个简短且唯一的字符串签名。例如，我们可以散列一个文件的字节序列，以获得该文件的一个本质上唯一的代码。这使我们能够快速比较两个文件，看它们是否相同。</p>
+<p class="mce-root">存在许多散列过程，所以我们将集中讨论最重要的，即SHA256和MD5。请注意，众所周知，MD5因哈希冲突而存在漏洞，即两个不同的对象具有相同的哈希，因此应谨慎使用。在这个方法中，我们取一个可执行文件并计算它的MD5和SHA256散列。</p>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>该方法的准备工作包括下载一个测试文件，该文件是来自<a href="https://www.python.org/ftp/python/3.7.2/python-3.7.2-amd64.exe">https://www . Python . org/FTP/Python/3 . 7 . 2/Python-3 . 7 . 2-amd64 . exe</a>的Python可执行文件。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">在以下步骤中，我们将了解如何获取文件的哈希:</p>
+<ol>
+<li class="mce-root">首先导入库并选择您想要散列的文件:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import sys<br/>import hashlib<br/><br/>filename = "python-3.7.2-amd64.exe"</pre>
+<ol start="2">
+<li class="mce-root">实例化MD5和SHA256对象，并指定我们将读取的块的大小:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">BUF_SIZE = 65536<br/>md5 = hashlib.md5()<br/>sha256 = hashlib.sha256()</pre>
+<ol start="3">
+<li class="mce-root">然后，我们读入64 KB的文件块，并逐步构建我们的哈希:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">with open(filename, "rb") as f:<br/>    while True:<br/>        data = f.read(BUF_SIZE)<br/>        if not data:<br/>            break<br/>        md5.update(data)<br/>        sha256.update(data)</pre>
+<ol start="4">
+<li class="mce-root">最后，打印出结果散列:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">print("MD5: {0}".format(md5.hexdigest()))<br/>print("SHA256: {0}".format(sha256.hexdigest()))</pre>
+<p style="padding-left: 60px" class="mce-root">这会产生以下输出:</p>
+<pre style="padding-left: 60px" class="mce-root"><strong>MD5: ff258093f0b3953c886192dec9f52763</strong><br/><strong>SHA256: 0fe2a696f5a3e481fed795ef6896ed99157bcef273ef3c4a96f2905cbdb3aa13</strong></pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mceNonEditable"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的...</h1>
+                
+            
+            
+                
+<p>本节将解释上一节中提供的步骤:</p>
+<ul>
+<li class="mce-root">在步骤1中，我们导入了<kbd>hashlib</kbd>，这是一个用于哈希计算的标准Python库。我们还指定了将要散列的文件——在本例中，文件是<kbd>python-3.7.2-amd64.exe</kbd>。</li>
+<li class="mce-root">在第2步中，我们实例化一个<kbd>md5</kbd>对象和一个<kbd>sha256</kbd>对象，并指定我们将要读取的块的大小。</li>
+<li>在第三步，我们利用<kbd>.update(data)</kbd>方法。这个方法允许我们递增地计算散列，因为它计算连接的散列。换句话说，<kbd>hash.update(a)</kbd>后跟<kbd>hash.update(b)</kbd>相当于<kbd>hash.update(a+b)</kbd>。</li>
+<li>在第4步中，我们打印出十六进制数字的哈希值。</li>
+</ul>
+<p>我们还可以验证我们的计算与其他来源(如VirusTotal和官方Python网站)给出的哈希计算一致。MD5散列显示在Python网页上(<a href="https://www.python.org/downloads/release/python-372/">https://www.python.org/downloads/release/python-372/</a>):</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1082 image-border" src="img/b284d160-12e6-4289-8b11-4c1c3f4bea6b.png" style="width:114.67em;height:3.50em;"/></p>
+<p class="mce-root CDPAlignLeft CDPAlign">SHA256哈希通过将文件上传到virus total(<a href="https://www.virustotal.com/gui/home">https://www.virustotal.com/gui/home</a>)来计算:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1078 image-border" src="img/12683aeb-2465-444a-8c15-582da8136d2d.png" style="width:39.67em;height:20.92em;"/></p>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>YARA</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">YARA</h1>
+                
+            
+            
+                
+<p class="mce-root">YARA是一种计算机语言，它允许安全专家方便地指定一个规则，然后用于对所有匹配该规则的样本进行分类。最小规则由名称和条件组成，例如:</p>
+<pre class="mce-root"> rule my_rule_name { condition: false }</pre>
+<p class="mce-root">此规则将不匹配任何文件。相反，以下规则将匹配每个样本:</p>
+<pre class="mce-root"> Rule my_rule_name { condition: true }</pre>
+<p class="mce-root">一个更有用的例子将匹配任何超过100 KB的文件:</p>
+<pre class="mce-root"> Rule over_100kb { condition: filesize &gt; 100KB }</pre>
+<p class="mce-root">另一个例子是检查一个特定的文件是否是PDF。为此，我们检查文件的幻数是否对应于PDF。幻数是出现在文件开头的几个字节的序列，表示文件的类型。对于PDF，顺序是<kbd>25 50 44 46</kbd>:</p>
+<pre class="mce-root"> rule is_a_pdf {<br/>  <br/> strings:<br/>   $pdf_magic = {25 50 44 46}<br/>  <br/> condition:<br/>   $pdf_magic at 0<br/> }</pre>
+<p class="mce-root">现在，让我们看看如何对文件运行我们的规则。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>这个食谱的准备工作包括在你的设备上安装YARA。可以在<a href="https://yara.readthedocs.io/en/stable/">https://yara.readthedocs.io/en/stable/</a>找到说明。对于Windows，您需要下载一个YARA的可执行文件。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做…</h1>
+                
+            
+            
+                
+<p class="mce-root">在以下步骤中，我们将向您展示如何创建YARA规则并根据文件测试它们:</p>
+<ol>
+<li class="mce-root">将您的规则复制到一个文本文件中，并将其命名为<kbd>rules.yara</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root"> rule is_a_pdf<br/> {<br/>        strings:<br/>               $pdf_magic = {25 50 44 46}<br/>        condition:<br/>               $pdf_magic at 0<br/> }<br/>  <br/> rule dummy_rule1<br/> {<br/>        condition:<br/>               false<br/> }<br/>  <br/> rule dummy_rule2<br/> {<br/>        condition:<br/>               true<br/> }</pre>
+<ol start="2">
+<li class="mce-root">接下来，选择您想要检查规则的文件。称之为<kbd>target_file</kbd>。在终端中，如下执行<kbd>Yara rules.yara target_file</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root"><strong>Yara rule.yara PythonBrochure</strong></pre>
+<p style="padding-left: 60px" class="mce-root">结果应该如下所示:</p>
+<pre style="padding-left: 60px" class="mce-root"><strong>is_a_pdf target_file</strong><br/><strong>dummy_rule2 target_rule</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p class="mce-root">正如你所观察到的，在<em>步骤1 </em>中，我们复制了几条YARA规则。第一个规则检查文件的幻数，看它们是否与PDF的幻数匹配。另外两个规则是普通规则—一个匹配所有文件，另一个不匹配任何文件。然后，在<em>步骤2 </em>中，我们使用YARA程序对目标文件运行规则。我们从打印输出中看到，该文件符合一些规则，但不符合其他规则，这与有效的YARA规则集的预期相符。</p>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Examining the PE header</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">检查PE头</h1>
+                
+            
+            
+                
+<p class="mce-root"><strong>可移植可执行文件</strong> ( <strong> PE </strong>)是一种常见的Windows文件类型。PE文件包括<kbd>.exe</kbd>、<kbd>.dll</kbd>和<kbd>.sys</kbd>文件。所有PE文件都有一个PE头，这是代码的头部分，指示Windows如何解析后续代码。PE报头中的字段通常用作恶意软件检测中的特征。为了方便地提取PE头的多个值，我们将利用<kbd>pefile</kbd> Python模块。在这个菜谱中，我们将解析一个文件的pe文件头，然后打印出其中值得注意的部分。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>该配方的准备工作包括在<kbd>pip</kbd>中安装<kbd>pefile</kbd>包。在Python环境的终端中，运行以下命令:</p>
+</div>
+<div><pre><strong>pip install pefile</strong></pre>
+<p>另外，从<a href="https://www.python.org/ftp/python/3.7.2/python-3.7.2-amd64.exe">https://www . Python . org/FTP/Python/3 . 7 . 2/Python-3 . 7 . 2-amd64 . exe</a>下载测试文件Python可执行文件。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">在下面的步骤中，我们将解析文件的PE头，然后打印出它的重要部分:</p>
+<ol>
+<li class="mce-root">导入PE文件，并使用它来解析所需文件的PE头:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import pefile<br/><br/>desired_file = "python-3.7.2-amd64.exe"<br/>pe = pefile.PE(desired_file)</pre>
+<ol start="2">
+<li class="mce-root">列出PE文件的导入:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">for entry in pe.DIRECTORY_ENTRY_IMPORT:<br/>    print(entry.dll)<br/>    for imp in entry.imports:<br/>        print("\t", hex(imp.address), imp.name)</pre>
+<p style="padding-left: 60px" class="mce-root">这里显示了一小部分输出:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1079 image-border" src="img/ab7af973-2df6-4626-9f0c-071d90b86067.png" style="width:26.92em;height:20.42em;"/></p>
+<ol start="3">
+<li class="mce-root">列出PE文件的各个部分:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">for section in pe.sections:<br/>    print(<br/>        section.Name,<br/>        hex(section.VirtualAddress),<br/>        hex(section.Misc_VirtualSize),<br/>        section.SizeOfRawData,<br/>    )</pre>
+<p style="padding-left: 60px" class="mce-root">前面代码的输出如下:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1080 image-border" src="img/494806e9-3dab-4482-890a-e74329520e6f.png" style="width:19.58em;height:6.00em;"/></p>
+<ol start="4">
+<li class="mce-root">打印解析信息的完整转储:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">print(pe.dump_info())</pre>
+<p style="padding-left: 60px">这里显示了一小部分输出:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1081 image-border" src="img/b237281e-fa9c-4bcc-ae48-672e34331f3f.png" style="width:37.42em;height:28.83em;"/></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的...</h1>
+                
+            
+            
+                
+<p class="mce-root">我们从<em>步骤1 </em>开始，导入<kbd>pefile</kbd>库并指定我们将要分析的文件。在这种情况下，文件是<kbd>python-3.7.2-amd64.exe</kbd>，尽管分析任何其他PE文件也很容易。然后，我们继续检查文件导入的dll，以便理解文件可能在<em>步骤2 </em>中使用了哪些方法。DLL回答了这个问题，因为DLL是其他应用程序可能调用的代码库。例如，<kbd>USER32.dll</kbd>是一个包含Windows USER的库，Windows USER是微软Windows操作系统的一个组件，为构建用户界面提供核心功能。该组件允许其他应用程序利用窗口管理、消息传递、输入处理和标准控件的功能。从逻辑上讲，如果我们看到一个文件正在导入一个方法，比如<kbd>GetCursorPos</kbd>，那么它很可能正在寻找确定光标的位置。继续第三步，我们打印出PE文件的各个部分。这些为程序的不同部分提供了逻辑和物理上的分离，因此为分析员提供了有关程序的有价值的信息。最后，我们从文件中打印出所有解析过的PE头信息，为以后在特性工程中使用它做准备(<em>步骤4 </em>)。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Featurizing the PE header</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">PE头的特征</h1>
+                
+            
+            
+                
+<p class="mce-root">在这一节中，我们将从PE头中提取特征，用于构建一个<kbd>malware/benign</kbd>样本分类器。我们将继续利用<kbd>pefile</kbd> Python模块。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>该食谱的准备工作包括在<kbd>pip</kbd>中安装<kbd>pefile</kbd>包。该命令如下所示:</p>
+</div>
+<div><pre><strong>pip install pefile</strong></pre>
+<p>此外，在存储库根目录下的<kbd>PE Samples Dataset</kbd>文件夹中已经为您提供了良性和恶意文件。将所有名为<kbd>Benign PE Samples*.7z</kbd>的档案解压到名为<kbd>Benign PE Samples</kbd>的文件夹中。将所有名为<kbd>Malicious PE Samples*.7z</kbd>的档案解压到名为<kbd>Malicious PE Samples</kbd>的文件夹中。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">在下面的步骤中，我们将收集PE头中值得注意的部分:</p>
+<ol>
+<li class="mce-root">导入<kbd>pefile</kbd>和用于枚举样本的模块:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import pefile<br/>from os import listdir<br/>from os.path import isfile, join<br/><br/>directories = ["Benign PE Samples", "Malicious PE Samples"]</pre>
+<ol start="2">
+<li>我们定义了一个函数来收集文件各部分的名称，并对它们进行预处理以提高可读性和规范化:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def get_section_names(pe):<br/>    """Gets a list of section names from a PE file."""<br/>    list_of_section_names = []<br/>    for sec in pe.sections:<br/>        normalized_name = sec.Name.decode().replace("\x00", "").lower()<br/>        list_of_section_names.append(normalized_name)<br/>    return list_of_section_names</pre>
+<ol start="3">
+<li>我们定义了一个便利函数来预处理和标准化我们的导入:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def preprocess_imports(list_of_DLLs):<br/>    """Normalize the naming of the imports of a PE file."""<br/>    return [x.decode().split(".")[0].lower() for x in list_of_DLLs]</pre>
+<ol start="4">
+<li>然后我们定义一个函数，使用<kbd>pefile</kbd>从文件中收集导入:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def get_imports(pe):<br/>    """Get a list of the imports of a PE file."""<br/>    list_of_imports = []<br/>    for entry in pe.DIRECTORY_ENTRY_IMPORT:<br/>        list_of_imports.append(entry.dll)<br/>    return preprocess_imports(list_of_imports)</pre>
+<ol start="5">
+<li class="mce-root">最后，我们准备遍历所有文件并创建列表来存储我们的特性:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">imports_corpus = []<br/>num_sections = []<br/>section_names = []<br/>for dataset_path in directories:<br/>    samples = [f for f in listdir(dataset_path) if isfile(join(dataset_path, f))]<br/>    for file in samples:<br/>        file_path = dataset_path + "/" + file<br/>        try:</pre>
+<ol start="6">
+<li class="mce-root">除了收集上述特性，我们还收集文件的节数:</li>
+</ol>
+<pre class="mce-root">            pe = pefile.PE(file_path)<br/>            imports = get_imports(pe)<br/>            n_sections = len(pe.sections)<br/>            sec_names = get_section_names(pe)<br/>            imports_corpus.append(imports)<br/>            num_sections.append(n_sections)<br/>            section_names.append(sec_names)</pre>
+<ol start="7">
+<li class="mce-root">如果不能解析文件的PE头，我们定义一个try-catch子句:</li>
+</ol>
+<pre class="mce-root">        except Exception as e:<br/>            print(e)<br/>            print("Unable to obtain imports from " + file_path)</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的...</h1>
+                
+            
+            
+                
+<p>可以看到，在<em>步骤1 </em>中，我们导入了<kbd>pefile</kbd>模块来枚举样本。一旦完成，我们定义便利函数，正如你在<em>步骤2 </em>中看到的。原因是它经常使用不同的大小写(大写/小写)来导入。这导致相同的导入显示为不同的导入。</p>
+<p>在对导入进行预处理之后，我们定义另一个函数来将一个文件的所有导入收集到一个列表中。我们还将定义一个函数来收集文件各部分的名称，以便标准化这些名称，例如<kbd>.text</kbd>、<kbd>.rsrc</kbd>和<kbd>.reloc</kbd>，同时包含文件的不同部分(<em>步骤3 </em>)。然后在我们的文件夹中枚举这些文件，并创建空列表来保存我们将要提取的特征。然后，预定义函数将收集导入(<em>步骤4 </em>)、节名以及每个文件的节数(<em>步骤5 </em>和<em> 6 </em>)。最后，将定义一个try-catch子句，以防无法解析文件的PE头(<em> Step 7 </em>)。发生这种情况的原因有很多。一个原因是该文件实际上不是PE文件。另一个原因是它的PE报头有意或无意地格式错误。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Malware dynamic analysis</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">恶意软件动态分析</h1>
+                
+            
+            
+                
+<p class="mce-root">与静态分析不同，动态分析是一种恶意软件分析技术，其中专家执行样本，然后在样本运行时研究样本的行为。动态分析相对于静态分析的主要优势在于，它允许您通过简单地观察样本的行为来绕过模糊处理，而不是试图破译样本的内容和行为。由于恶意软件本质上是不安全的，研究人员求助于在<strong>虚拟机</strong> ( <strong> VM </strong>)中执行样本。这叫做<strong>沙盒</strong>。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<p class="mce-root">在VM中自动分析样本的最著名的工具之一是Cuckoo沙箱。布谷鸟沙盒的初始安装很简单；只需运行以下命令:</p>
+<pre class="mce-root"><strong>pip install -U cuckoo</strong></pre>
+<p class="mce-root">您必须确保您还有一个您的机器可以控制的虚拟机。配置沙盒可能是一个挑战，但是在https://cuckoo.sh/docs/可以得到指导。</p>
+<p class="mce-root">我们现在展示如何利用Cuckoo沙箱来获得样本的动态分析。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">一旦您的Cuckoo沙箱设置好了，并且运行了一个web界面，请按照以下步骤收集关于示例的运行时信息:</p>
+<ol>
+<li class="mce-root CDPAlignLeft CDPAlign">打开您的web界面(默认位置为<kbd>127.0.0.1:8000</kbd>，点击<strong>提交分析文件</strong>，选择您想要分析的样品:</li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1083 image-border" src="img/291e48cd-c544-4e1e-a6a6-db1011cdb26d.png" style="width:125.58em;height:81.83em;"/></p>
+<ol start="2">
+<li class="mce-root CDPAlignLeft CDPAlign">将自动出现以下屏幕。在其中，选择您希望对样品执行的分析类型:</li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1084 image-border" src="img/e3968f76-8e95-4f15-b910-28254321e6da.png" style="width:50.75em;height:34.92em;"/></p>
+<ol start="3">
+<li class="mce-root CDPAlignLeft CDPAlign">点击<strong>分析</strong>在您的沙盒中分析样本。结果应该如下所示:</li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1085 image-border" src="img/8f250a32-58bd-4c91-82bf-2c007cfaee3d.png" style="width:146.42em;height:70.08em;"/></p>
+<ol start="4">
+<li class="mce-root CDPAlignLeft CDPAlign">接下来，打开已分析样本的报告:</li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1086 image-border" src="img/9bb0c653-8e33-4dee-9e86-434341350844.png" style="width:150.08em;height:77.17em;"/></p>
+<ol start="5">
+<li class="mce-root CDPAlignLeft CDPAlign">选择<strong>行为分析</strong>选项卡:</li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1179 image-border" src="img/01b72b50-2410-48d1-8f35-fb5aeb472c81.png" style="width:128.83em;height:75.08em;"/></p>
+<p class="mce-root CDPAlignLeft CDPAlign">API调用、注册表项更改和其他事件的显示序列都可以用作分类器的输入。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的...</h1>
+                
+            
+            
+                
+<p class="mce-root">在概念层面上，获取动态分析结果包括在允许分析师收集运行时信息的环境中运行样本。Cuckoo Sandbox是一个灵活的框架，带有预构建的模块来完成这一任务。我们通过打开门户网站开始了使用Cuckoo Sandbox的方法(<em>步骤1 </em>)。还有一个<strong>命令行接口</strong> ( <strong> CLI </strong>)。我们继续提交样品并选择我们希望进行的分析类型(<em>步骤2 </em>和<em> 3 </em>)。这些步骤也可以通过Cuckoo CLI执行。我们继续检查分析报告(<em>步骤4 </em>)。你可以在这个阶段看到布谷鸟沙盒的众多模块是如何体现在最终的分析输出中的。例如，如果安装并使用了用于捕获流量的模块，则报告将包含在网络选项卡中捕获的数据。我们继续将我们的分析视角集中到行为分析上(<em>步骤5 </em>，特别是观察API调用的顺序。API调用基本上是由操作系统执行的操作。这个序列构成了一个奇妙的特征集，我们将在未来的食谱中利用它来检测恶意软件。最后，请注意，在生产环境中，创建一个带有自定义数据收集模块的自定义沙箱，并为其配备反虚拟机检测软件以促进成功的分析可能是有意义的。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Using machine learning to detect the file type</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">使用机器学习来检测文件类型</h1>
+                
+            
+            
+                
+<p class="mce-root">黑客用来将他们的恶意文件偷偷放入安全系统的技术之一是混淆他们的文件类型。例如，(恶意)PowerShell脚本应该有一个扩展名，<kbd>.ps1</kbd>。系统管理员可以通过阻止执行所有扩展名为<kbd>.ps1</kbd>的文件来阻止所有PowerShell脚本在系统上的执行。然而，恶作剧的黑客可以删除或更改扩展名，使文件的身份成为一个谜。只有通过检查文件的内容，才能将其与普通的文本文件区分开来。出于实际原因，人类不可能检查系统上的所有文本文件。因此，求助于自动化方法是有利的。在本章中，我们将演示如何使用机器学习来检测未知文件的文件类型。我们的第一步是管理数据集。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Scraping GitHub for files of a specific type</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">抓取特定类型文件的GitHub</h1>
+                
+            
+            
+                
+<p>为了管理数据集，我们将从GitHub中抓取我们感兴趣的特定文件类型。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>该菜谱的准备工作包括通过运行以下命令在<kbd>pip</kbd>中安装<kbd>PyGitHub</kbd>包:</p>
+</div>
+<div><pre><strong>pip install PyGitHub</strong></pre>
+<p>此外，您还需要GitHub帐户凭证。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">在下面的步骤中，我们整理一个数据集，然后用它创建一个分类器来确定文件类型。出于演示目的，我们展示了如何通过抓取GitHub来获取PowerShell脚本、Python脚本和JavaScript文件的集合。以这种方式获得的样本集合可以在附带的库中找到，分别为<kbd>PowerShellSamples.7z</kbd>、<kbd>PythonSamples.7z</kbd>和<kbd>JavascriptSamples.7z</kbd>。首先，我们将为JavaScript scraper编写代码:</p>
+<ol>
+<li class="mce-root">首先导入<kbd>PyGitHub</kbd>库，以便能够调用GitHub API。我们还导入了用于解码<kbd>base64</kbd>编码文件的<kbd>base64</kbd>模块:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import os<br/>from github import Github<br/>import base64</pre>
+<ol start="2">
+<li class="mce-root">我们必须提供我们的凭证，然后指定一个查询——在本例中是JavaScript——来选择我们的存储库:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">username = "your_github_username"<br/>password = "your_password"<br/>target_dir = "/path/to/JavascriptSamples/"<br/>g = Github(username, password)<br/>repositories = g.search_repositories(query='language:javascript')<br/>n = 5<br/>i = 0</pre>
+<ol start="3">
+<li class="mce-root">我们遍历符合我们标准的存储库:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">for repo in repositories:<br/>    repo_name = repo.name<br/>    target_dir_of_repo = target_dir+"\\"+repo_name<br/>    print(repo_name)<br/>    try:</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<ol start="4">
+<li class="mce-root">我们为每个符合搜索条件的存储库创建一个目录，然后读入其内容:</li>
+</ol>
+<pre class="mce-root">        os.mkdir(target_dir_of_repo)<br/>        i += 1<br/>        contents = repo.get_contents("")</pre>
+<ol start="5">
+<li>我们将存储库的所有目录添加到一个队列中，以便列出目录中包含的所有文件:</li>
+</ol>
+<pre class="mce-root">        while len(contents) &gt; 1:<br/>            file_content = contents.pop(0)<br/>            if file_content.type == "dir":<br/>                contents.extend(repo.get_contents(file_content.path))<br/>            else:</pre>
+<ol start="6">
+<li class="mce-root">如果我们发现一个非目录文件，我们检查它的扩展名是否是<kbd>.js</kbd>:</li>
+</ol>
+<pre class="mce-root">                st = str(file_content)<br/>                filename = st.split("\"")[1].split("\"")[0]<br/>                extension = filename.split(".")[-1]<br/>                if extension == "js":</pre>
+<ol start="7">
+<li class="mce-root">如果扩展名是<kbd>.js</kbd>，我们写出文件的副本:</li>
+</ol>
+<pre class="mce-root">                    file_contents = repo.get_contents(file_content.path)<br/>                    file_data = base64.b64decode(file_contents.content)<br/>                    filename = filename.split("/")[-1]<br/>                    file_out = open(target_dir_of_repo+"/"+filename, "wb")<br/>                    file_out.write(file_data)<br/>      except:<br/>        pass<br/>    if i==n:<br/>        break</pre>
+<ol start="8">
+<li class="mce-root">完成后，将所有JavaScript文件移动到一个文件夹中会很方便。<br/> <br/>要获取PowerShell示例，运行相同的代码，更改以下内容:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">target_dir = "/path/to/JavascriptSamples/"<br/>repositories = g.search_repositories(query='language:javascript')</pre>
+<p style="padding-left: 60px" class="mce-root">致以下内容:</p>
+<pre style="padding-left: 60px" class="mce-root">target_dir = "/path/to/PowerShellSamples/"<br/>repositories = g.search_repositories(query='language:powershell').</pre>
+<p style="padding-left: 60px" class="mce-root">类似地，对于Python文件，我们执行以下操作:</p>
+<pre style="padding-left: 60px" class="mce-root">target_dir = "/path/to/PythonSamples/"<br/>repositories = g.search_repositories(query='language:python').</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的...</h1>
+                
+            
+            
+                
+<p class="mce-root">我们首先在<em>步骤1 </em>中导入<kbd>PyGitHub</kbd>库，以便能够方便地调用GitHub APIs。这些将允许我们刮和探索仓库的宇宙。我们还导入了<kbd>base64</kbd>模块，用于解码我们将从GitHub下载的<kbd>base64</kbd>编码文件。请注意，普通用户可以对GitHub进行的API调用的数量有一个速率限制。因此，您会发现，如果您试图在短时间内下载太多文件，您的脚本将无法获得所有文件。我们的下一步是向GitHub提供我们的凭证(<em>步骤2 </em>)，并使用<kbd>query='language:javascript'</kbd>命令指定我们正在寻找带有JavaScript的存储库。我们列举符合与JavaScript相关联的标准的存储库，如果符合，我们在这些存储库中搜索以<kbd>.js</kbd>结尾的文件，并创建本地副本(步骤3到6)。由于这些文件是在<kbd>base64</kbd>中编码的，我们确保在第7步中将其解码为明文。最后，我们向您展示如何调整脚本以抓取其他文件类型，如Python和PowerShell(步骤8)。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Classifying files by type</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">按类型对文件进行分类</h1>
+                
+            
+            
+                
+<p>现在我们有了一个数据集，我们想训练一个分类器。由于所讨论的文件是脚本，我们把这个问题当作一个NLP问题来处理。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>该食谱的准备工作包括在<kbd>pip</kbd>中安装<kbd>scikit-learn</kbd>包。说明如下:</p>
+</div>
+<div><pre><strong>pip install sklearn</strong></pre>
+<p>此外，我们为您提供了<kbd>JavascriptSamples.7z</kbd>、<kbd>PythonSamples.7z</kbd>和<kbd>PowerShellSamples.7z</kbd>档案中每种文件类型的样本，以防您想要补充自己的数据集。将这些内容提取到单独的文件夹中，用于下面的食谱。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">下面的代码可以在https://github . com/packt publishing/Machine-Learning-for-cyber security-Cookbook/blob/master/chapter 02/classified % 20 files % 20 by % 20 type/File % 20 type % 20 classifier . ipynb上找到。我们使用这些数据构建一个分类器来预测JavaScript、Python或PowerShell文件:</p>
+<ol>
+<li class="mce-root">首先导入必要的库，并指定我们将用于训练和测试的样本的路径:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import os<br/>from sklearn.feature_extraction.text import HashingVectorizer, TfidfTransformer<br/>from sklearn.ensemble import RandomForestClassifier<br/>from sklearn.model_selection import train_test_split<br/>from sklearn.metrics import accuracy_score, confusion_matrix<br/>from sklearn.pipeline import Pipeline<br/>  <br/>javascript_path = "/path/to/JavascriptSamples/"<br/>python_path = "/path/to/PythonSamples/"<br/>powershell_path = "/path/to/PowerShellSamples/"</pre>
+<ol start="2">
+<li class="mce-root">接下来，我们读入所有文件类型。我们还创建了一个标签数组，其中-1、0和1分别代表JavaScript、Python和PowerShell脚本:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">corpus = []<br/>labels = []<br/>file_types_and_labels = [(javascript_path, -1), (python_path, 0), (powershell_path, 1)]<br/>for files_path, label in file_types_and_labels:<br/>    files = os.listdir(files_path)<br/>    for file in files:<br/>        file_path = files_path + "/" + file<br/>        try:<br/>            with open(file_path, "r") as myfile:<br/>                data = myfile.read().replace("\n", "")<br/>        except:<br/>            pass<br/>        data = str(data)<br/>        corpus.append(data)<br/>        labels.append(label)</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mceNonEditable"/>
+<ol start="3">
+<li class="mce-root">我们继续创建一个训练测试分割和一个将对文件执行基本NLP的管道，然后是一个随机森林分类器:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">X_train, X_test, y_train, y_test = train_test_split(<br/>    corpus, labels, test_size=0.33, random_state=11<br/>)<br/>text_clf = Pipeline(<br/>    [<br/>        ("vect", HashingVectorizer(input="content", ngram_range=(1, 3))),<br/>        ("tfidf", TfidfTransformer(use_idf=True,)),<br/>        ("rf", RandomForestClassifier(class_weight="balanced")),<br/>    ]<br/>)</pre>
+<ol start="4">
+<li class="mce-root">我们用管道来拟合训练数据，然后用它来预测测试数据。最后，我们打印出准确度和混淆矩阵:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">text_clf.fit(X_train, y_train)<br/>y_test_pred = text_clf.predict(X_test)<br/>print(accuracy_score(y_test, y_test_pred))<br/>print(confusion_matrix(y_test, y_test_pred))</pre>
+<p style="padding-left: 60px" class="mce-root CDPAlignLeft CDPAlign">这会产生以下输出:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1088 image-border" src="img/cb75e173-58ff-41db-a345-5959d5436b5d.png" style="width:6.42em;height:3.33em;"/></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的...</h1>
+                
+            
+            
+                
+<p class="mce-root">利用我们在<em> Scraping GitHub中为特定类型的文件构建的数据集</em> recipe，我们根据文件类型将文件放在不同的目录中，然后指定路径以准备构建我们的分类器(步骤1)。这个配方的代码假设<kbd>"JavascriptSamples"</kbd>目录和其他目录包含示例，并且没有子目录。我们将所有文件读入一个语料库，并记录它们的标签(步骤2)。我们对数据进行训练测试分割，并准备一个管道对文件执行基本的NLP，然后是一个随机森林分类器(步骤3)。这里的分类器的选择是为了说明的目的，而不是暗示对于这种类型的数据的分类器的最佳选择。最后，我们在创建机器学习分类器的过程中执行基本但重要的步骤，包括将管道拟合到训练数据，然后通过测量其准确性和混淆矩阵来评估其在测试集上的性能(步骤4)。</p>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Measuring the similarity between two strings</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">测量两个字符串之间的相似性</h1>
+                
+            
+            
+                
+<p class="mce-root">为了检查两个文件是否相同，我们使用标准的加密散列函数，如SHA256和MD5。然而，有时我们也想知道两个文件相似的程度。为此，我们利用相似性散列算法。我们将在这里演示的是<kbd>ssdeep</kbd>。</p>
+<p class="mce-root">首先，让我们看看如何使用<kbd>ssdeep</kbd>来比较两个字符串。这有助于检测文本或脚本中的篡改以及剽窃。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>该食谱的准备工作包括在<kbd>pip</kbd>安装<kbd>ssdeep</kbd>包。安装有点棘手，并不总是在Windows上工作。相关说明可在<a href="https://python-ssdeep.readthedocs.io/en/latest/installation.html">https://python-ss deep . readthedocs . io/en/latest/installation . html找到</a></p>
+<p>如果您只有一台Windows机器并且安装<kbd>ssdeep</kbd>不起作用，那么一个可能的解决方案是在Ubuntu VM上运行<kbd>ssdeep</kbd>，然后使用以下命令将其安装在<kbd>pip</kbd>中:</p>
+<pre><strong>pip install ssdeep</strong></pre></div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<ol>
+<li class="mce-root">首先导入<kbd>ssdeep</kbd>库并创建三个字符串:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import ssdeep<br/><br/>str1 = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."<br/>str2 = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore Magna aliqua."<br/>str3 = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore aliqua."<br/>str4 = "Something completely different from the other strings."</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<ol start="2">
+<li class="mce-root">散列字符串:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">hash1 = ssdeep.hash(str1)<br/>hash2 = ssdeep.hash(str2)<br/>hash3 = ssdeep.hash(str3)<br/>hash4 = ssdeep.hash(str4)</pre>
+<p>作为参考，<br/> hash1是<kbd>u'3:f4oo8MRwRJFGW1gC6uWv6MQ2MFSl+JuBF8BSnJi:f4kPvtHMCMubyFtQ'</kbd>，<br/> hash2是<kbd>u'3:f4oo8MRwRJFGW1gC6uWv6MQ2MFSl+JuBF8BS+EFECJi:f4kPvtHMCMubyFIsJQ'</kbd>，<br/> hash3是<kbd>u'3:f4oo8MRwRJFGW1gC6uWv6MQ2MFSl+JuBF8BS6:f4kPvtHMCMubyF0'</kbd>，<br/> hash4是<kbd>u'3:60QKZ+4CDTfDaRFKYLVL:ywKDC2mVL'</kbd>。</p>
+<ol start="3">
+<li class="mce-root">接下来，我们看看字符串的相似性得分:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">ssdeep.compare(hash1, hash1)<br/>ssdeep.compare(hash1, hash2)<br/>ssdeep.compare(hash1, hash3)<br/>ssdeep.compare(hash1, hash4)<br/> </pre>
+<p style="padding-left: 60px" class="mce-root">数值结果如下:</p>
+<pre style="padding-left: 60px" class="mce-root"><strong>100</strong><br/><strong>39</strong><br/><strong>37</strong><br/><strong>0</strong></pre>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的...</h1>
+                
+            
+            
+                
+<p><kbd>ssdeep</kbd>背后的基本思想是组合一些传统的散列，它们的边界由输入的上下文决定。该散列集合然后可以用于识别已知文件的修改版本，即使它们已经通过插入、修改或删除而被修改。</p>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p>对于我们的配方，我们首先创建一组四个测试字符串，作为一个玩具示例来说明字符串的变化将如何影响其相似性度量(步骤1)。第一个，<kbd>str1</kbd>，简直就是Lorem Ipsum的第一句话。第二个字符串<kbd>str2</kbd>，在magna中<kbd>m</kbd>的大写不同。第三个字符串，<kbd>str3</kbd>，完全没有magna这个词。最后，第四根弦是完全不同的弦。我们的下一步，步骤2，是使用相似性散列库<kbd>ssdeep</kbd>散列字符串。观察相似的字符串有明显相似的相似性散列。这应该与传统的散列形成对比，在传统的散列中，即使很小的改变也会产生完全不同的散列。接下来，我们使用<kbd>ssdeep</kbd>获得不同字符串之间的相似性得分(步骤3)。特别要注意的是，两个字符串之间的<kbd>ssdeep</kbd>相似性得分是一个介于0和100之间的整数，100表示相同，0表示不同。两个相同的字符串的相似性得分为100。改变字符串中一个字母的大小写将相似性得分显著降低到39，因为字符串相对较短。删除一个单词会降低到37。两个完全不同的字符串相似度为0。</p>
+<p>虽然其他的，在某些情况下更好的，模糊散列是可用的，<kbd>ssdeep</kbd>仍然是一个主要的选择，因为它的速度和事实上的标准。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Measuring the similarity between two files</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">测量两个文件之间的相似性</h1>
+                
+            
+            
+                
+<p class="mce-root">现在，我们将看到如何应用<kbd>ssdeep</kbd>来测量两个二进制文件之间的相似性。这个概念的应用有很多，但一个特别的应用是在聚类中使用相似性度量作为距离。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>该配方的准备工作包括在<kbd>pip</kbd>中安装<kbd>ssdeep</kbd>包。安装有点棘手，并不总是在Windows上工作。说明可以在<a href="https://python-ssdeep.readthedocs.io/en/latest/installation.html">https://python-ss deep . readthe docs . io/en/latest/installation . html</a>找到。</p>
+<p>如果你只有一台Windows机器并且它不能工作，那么一个可能的解决方案是在Ubuntu虚拟机上运行<kbd>ssdeep</kbd>,安装<kbd>pip</kbd>,命令如下:</p>
+<pre><strong>pip install ssdeep</strong></pre>
+<p>另外，从<a href="https://www.python.org/ftp/python/3.7.2/python-3.7.2-amd64.exe">https://www . Python . org/FTP/Python/3 . 7 . 2/Python-3 . 7 . 2-amd64 . exe</a>下载一个测试文件，比如Python可执行文件。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">在下面的食谱中，我们篡改了一个二进制文件。然后，我们将其与原始文件进行比较，发现<kbd>ssdeep</kbd>确定这两个文件非常相似，但不完全相同:</p>
+<ol>
+<li class="mce-root">首先，我们下载最新版本的Python，<kbd>python-3.7.2-amd64.exe</kbd>。我将创建一个副本，将其重命名为<kbd>python-3.7.2-amd64-fake.exe</kbd>，并在末尾添加一个空字节:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root"><strong>truncate -s +1 python-3.7.2-amd64-fake.exe</strong></pre>
+<ol start="2">
+<li class="mce-root">使用<kbd>hexdump</kbd>，我可以通过查看之前和之后的文件来验证操作是否成功:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root"><strong>hexdump -C python-3.7.2-amd64.exe |tail -5</strong></pre>
+<p style="padding-left: 60px">这会产生以下输出:</p>
+<pre style="padding-left: 60px" class="mce-root"><br/><strong>018ee0f0  e3 af d6 e9 05 3f b7 15  a1 c7 2a 5f b6 ae 71 1f  |.....?....*_..q.|</strong><br/><strong>018ee100  6f 46 62 1c 4f 74 f5 f5  a1 e6 91 b7 fe 90 06 3e  |oFb.Ot.........&gt;|</strong><br/><strong>018ee110  de 57 a6 e1 83 4c 13 0d  b1 4a 3d e5 04 82 5e 35  |.W...L...J=...^5|</strong><br/><strong>018ee120  ff b2 e8 60 2d e0 db 24  c1 3d 8b 47 b3 00 00 00  |...`-..$.=.G....|</strong><br/><br/></pre>
+<p style="padding-left: 60px">可以使用以下命令用第二个文件验证这一点:</p>
+<pre style="padding-left: 60px" class="mce-root"><strong>hexdump -C python-3.7.2-amd64-fake.exe |tail -5</strong></pre>
+<p style="padding-left: 60px">这会产生以下输出:</p>
+<pre style="padding-left: 60px" class="mce-root"><strong>018ee100  6f 46 62 1c 4f 74 f5 f5  a1 e6 91 b7 fe 90 06 3e  |oFb.Ot.........&gt;|</strong><br/><strong>018ee110  de 57 a6 e1 83 4c 13 0d  b1 4a 3d e5 04 82 5e 35  |.W...L...J=...^5|</strong><br/><strong>018ee120  ff b2 e8 60 2d e0 db 24  c1 3d 8b 47 b3 00 00 00  |...`-..$.=.G....|</strong><br/><strong>018ee130  00                                                |.|</strong><br/><strong>018ee131</strong></pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<ol start="3">
+<li class="mce-root">现在，我将使用<kbd>ssdeep</kbd>散列这两个文件并比较结果:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import ssdeep<br/><br/>hash1 = ssdeep.hash_from_file("python-3.7.2-amd64.exe")<br/>hash2 = ssdeep.hash_from_file("python-3.7.2-amd64-fake.exe")<br/>ssdeep.compare(hash1, hash2)<br/> </pre>
+<p class="mce-root">前一代码的输出为<kbd>99</kbd>。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的...</h1>
+                
+            
+            
+                
+<p class="mce-root">这个场景模拟篡改文件，然后利用相似性散列来检测篡改的存在，以及测量增量的大小。我们从一个普通的Python可执行文件开始，然后通过在末尾添加一个空字节来篡改它(步骤1)。在现实生活中，黑客可能会获取一个合法的程序，并在样本中插入恶意代码。我们再次检查回火是否成功，并在步骤2中使用<kbd>hexdump</kbd>检查其性质。然后，我们使用相似性散列对原始和调整后的文件运行相似性计算，以观察发生的微小变化(步骤3)。仅利用标准散列，我们将不知道这两个文件是如何相关的，除了断定它们不是同一个文件。知道如何比较文件使我们能够在机器学习算法中聚类恶意软件和良性文件，以及将它们分组为家族。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Extracting N-grams</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">提取N元语法</h1>
+                
+            
+            
+                
+<p class="mce-root">在标准的文本定量分析中，N元语法是N个标记的序列(例如，单词或字符)。例如，给定文本<em>快速的棕色狐狸跳过了懒惰的狗，</em>如果我们的令牌是单词，那么1-grams是<em>快速的</em>、<em>快速的</em>、<em>棕色的</em>、<em>狐狸</em>、<em>跳过了</em>、<em>跳过了</em>、<em>懒惰的</em>、<em>懒惰的</em>和<em>狗</em>。2克是<em>快速</em>、<em>快速棕色</em>、<em>棕色狐狸</em>等等。3克分别是<em>快褐</em>、<em>快褐狐</em>、<em>褐狐跳</em>等等。就像文本的局部统计允许我们构建马尔可夫链来执行统计预测和从语料库生成文本一样，N元语法允许我们对我们的语料库的局部统计属性进行建模。我们的最终目标是利用N-gram的计数来帮助我们预测样本是恶意的还是良性的。在本食谱中，我们演示了如何从样本中提取N-gram计数。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>该配方的准备工作包括在<kbd>pip</kbd>中安装<kbd>nltk</kbd>包。说明如下:</p>
+<pre><strong>pip install nltk</strong></pre>
+<p>另外，下载一个测试文件，比如来自<a href="https://www.python.org/ftp/python/3.7.2/python-3.7.2-amd64.exe">https://www . Python . org/FTP/Python/3 . 7 . 2/Python-3 . 7 . 2-amd64 . exe</a>的Python可执行文件。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">在以下步骤中，我们将列举样本文件的所有4个字母，并选择50个最常用的字母:</p>
+<ol>
+<li class="mce-root">我们首先从导入<kbd>collections</kbd>库来简化计数，从<kbd>nltk</kbd>导入<kbd>ngrams</kbd>库来简化N-gram的提取:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import collections<br/>from nltk import ngrams</pre>
+<ol start="2">
+<li class="mce-root">我们指定要分析的文件:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">file_to_analyze = "python-3.7.2-amd64.exe"</pre>
+<ol start="3">
+<li>我们定义了一个方便的函数来读入文件的字节:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def read_file(file_path):<br/>    """Reads in the binary sequence of a binary file."""<br/>    with open(file_path, "rb") as binary_file:<br/>        data = binary_file.read()<br/>    return data</pre>
+<ol start="4">
+<li>我们编写一个方便的函数来获取一个字节序列并获得N元语法:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def byte_sequence_to_Ngrams(byte_sequence, N):<br/>    """Creates a list of N-grams from a byte sequence."""<br/>    Ngrams = ngrams(byte_sequence, N)<br/>    return list(Ngrams)</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<ol start="5">
+<li>我们编写一个函数来获取一个文件，并获得它的N元文法计数:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def binary_file_to_Ngram_counts(file, N):<br/>    """Takes a binary file and outputs the N-grams counts of its binary sequence."""<br/>    filebyte_sequence = read_file(file)<br/>    file_Ngrams = byte_sequence_to_Ngrams(filebyte_sequence, N)<br/>    return collections.Counter(file_Ngrams)</pre>
+<ol start="6">
+<li>我们指定我们想要的值是N=4，并获得文件中所有4-gram的计数:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">extracted_Ngrams = binary_file_to_Ngram_counts(file_to_analyze, 4)</pre>
+<ol start="7">
+<li>我们列出了文件中最常见的10个4-gram:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">print(extracted_Ngrams.most_common(10))</pre>
+<p style="padding-left: 60px" class="mce-root">结果如下:</p>
+<pre style="padding-left: 60px"><strong>[((0, 0, 0, 0), 24201), ((139, 240, 133, 246), 1920), ((32, 116, 111, 32), 1791), ((255, 255, 255, 255), 1663), ((108, 101, 100, 32), 1522), ((100, 32, 116, 111), 1519), ((97, 105, 108, 101), 1513), ((105, 108, 101, 100), 1513), ((70, 97, 105, 108), 1505), ((101, 100, 32, 116), 1503)]</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的...</h1>
+                
+            
+            
+                
+<p>在文献和行业中，已经确定最频繁的N元文法也是恶意软件分类算法的最有信息量的N元文法。出于这个原因，在这个菜谱中，我们将编写一些函数来提取它们并保存到一个文件中。我们首先导入一些对提取N元语法有用的库(步骤1)。特别是，我们从<kbd>nltk</kbd>引入了收藏库和<kbd>ngrams</kbd>库。collections库允许我们将N-gram的列表转换为N-gram的频率计数，而<kbd>ngrams</kbd>库允许我们获取有序的字节列表并获得N-gram的列表。我们指定想要分析的文件，并编写一个函数来读取给定文件的所有字节(步骤2和3)。在开始提取之前，我们定义了几个更方便的函数。具体来说，我们编写一个函数来获取文件的字节序列并输出其N元语法的列表(步骤4)，以及一个函数来获取文件并输出其N元语法的计数(步骤5)。我们现在准备传入一个文件并提取它的N-gram。我们这样做是为了提取我们的文件的4-grams的计数(步骤6)，然后显示它们中最常见的10个，以及它们的计数(步骤7)。我们看到一些N-gram序列，如(0，0，0，0)和(255，255，255，255)可能不太能提供信息。出于这个原因，我们将在下一个食谱中利用特征选择方法来删除信息量较少的N-gram。</p>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Selecting the best N-grams</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">选择最佳N元文法</h1>
+                
+            
+            
+                
+<p class="mce-root">不同N-gram的数量在N中呈指数增长，即使对于一个固定的微小N，比如N=3，也有<em> 256x256x256=16，777，216 </em>个可能的N-gram。这意味着N-gram特征的数量大得不切实际。因此，我们必须选择对我们的分类器最有价值的N元文法的较小子集。在这一节中，我们展示了三种不同的方法来选择最顶端的信息N元文法。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><p>该配方的准备工作包括在<kbd>pip</kbd>安装<kbd>scikit-learn</kbd>和<kbd>nltk</kbd>包。说明如下:</p>
+</div>
+<div><pre><strong>pip install sklearn nltk</strong></pre>
+<p>此外，在存储库根目录下的<kbd>PE Samples Dataset</kbd>文件夹中已经为您提供了良性和恶意文件。将所有名为<kbd>Benign PE Samples*.7z</kbd>的档案解压到名为<kbd>Benign PE Samples</kbd>的文件夹中。将所有名为<kbd>Malicious PE Samples*.7z</kbd>的档案解压到名为<kbd>Malicious PE Samples</kbd>的文件夹中。</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p class="mce-root">在下面的步骤中，我们展示了三种不同的方法来选择最具信息量的N元文法。该配方假定<kbd>binaryFileToNgramCounts(file, N)</kbd>和前一配方的所有其他辅助功能都已包括在内:</p>
+<ol>
+<li class="mce-root">首先指定包含我们的示例的文件夹，指定我们的<kbd>N</kbd>，并导入模块来枚举文件:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from os import listdir<br/>from os.path import isfile, join<br/><br/>directories = ["Benign PE Samples", "Malicious PE Samples"]<br/>N = 2</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<ol start="2">
+<li class="mce-root">接下来，我们计算所有文件中的所有N元语法:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">Ngram_counts_all_files = collections.Counter([])<br/>for dataset_path in directories:<br/>    all_samples = [f for f in listdir(dataset_path) if isfile(join(dataset_path, f))]<br/>    for sample in all_samples:<br/>        file_path = join(dataset_path, sample)<br/>        Ngram_counts_all_files += binary_file_to_Ngram_counts(file_path, N)</pre>
+<ol start="3">
+<li class="mce-root">我们将<kbd>K1=1000</kbd>最常见的N元文法收集到一个列表中:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">K1 = 1000<br/>K1_most_frequent_Ngrams = Ngram_counts_all_files.most_common(K1)<br/>K1_most_frequent_Ngrams_list = [x[0] for x in K1_most_frequent_Ngrams]</pre>
+<ol start="4">
+<li class="mce-root">助手方法<kbd>featurize_sample</kbd>将用于获取样本，并输出最常见的N元语法在其字节序列中出现的次数:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def featurize_sample(sample, K1_most_frequent_Ngrams_list):<br/>    """Takes a sample and produces a feature vector.<br/>    The features are the counts of the K1 N-grams we've selected.<br/>    """<br/>    K1 = len(K1_most_frequent_Ngrams_list)<br/>    feature_vector = K1 * [0]<br/>    file_Ngrams = binary_file_to_Ngram_counts(sample, N)<br/>    for i in range(K1):<br/>        feature_vector[i] = file_Ngrams[K1_most_frequent_Ngrams_list[i]]<br/>    return feature_vector</pre>
+<ol start="5">
+<li class="mce-root">我们遍历我们的目录，并使用前面的<kbd>featurize_sample</kbd>函数来描述我们的样本。我们还创建了一组标签:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">directories_with_labels = [("Benign PE Samples", 0), ("Malicious PE Samples", 1)]<br/>X = []<br/>y = []<br/>for dataset_path, label in directories_with_labels:<br/>    all_samples = [f for f in listdir(dataset_path) if isfile(join(dataset_path, f))]<br/>    for sample in all_samples:<br/>        file_path = join(dataset_path, sample)<br/>        X.append(featurize_sample(file_path, K1_most_frequent_Ngrams_list))<br/>        y.append(label)</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mceNonEditable"/>
+<ol start="6">
+<li class="mce-root">我们导入将用于功能选择的库，并指定我们希望缩小到的功能数量:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from sklearn.feature_selection import SelectKBest, mutual_info_classif, chi2<br/><br/>K2 = 10</pre>
+<ol start="7">
+<li class="mce-root">我们对N元语法执行三种类型的特征选择:</li>
+</ol>
+<ul>
+<li style="padding-left: 30px"><strong>频率</strong>—选择最频繁的N元语法:<strong> <br/> </strong></li>
+</ul>
+<pre style="padding-left: 120px">X = np.asarray(X)<br/>X_top_K2_freq = X[:,:K2]</pre>
+<ul>
+<li style="padding-left: 30px"><strong>互</strong> <strong>信息</strong>—选择互信息算法排名最高的N元文法:</li>
+</ul>
+<pre style="padding-left: 120px" class="mce-root">mi_selector = SelectKBest(mutual_info_classif, k=K2)<br/>X_top_K2_mi = mi_selector.fit_transform(X, y)</pre>
+<ul>
+<li style="padding-left: 30px"><strong>卡方</strong>—选择卡方算法排名最高的N个字母:<strong> <br/> </strong></li>
+</ul>
+<pre style="padding-left: 120px" class="mce-root">chi2_selector = SelectKBest(chi2, k=K2)<br/>X_top_K2_ch2 = chi2_selector.fit_transform(X, y)</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>与前面的方法不同，在前面的方法中，我们分析了单个文件的N元语法，在这个方法中，我们查看了大量的文件集合，以了解哪些N元语法是最具信息性的特征。我们首先指定包含样本的文件夹、N值，并导入一些模块来枚举文件(步骤1)。我们继续从数据集中的<em>所有</em>文件中计数<em>所有</em> N元文法(步骤2)。这允许我们找到全局最频繁的N元文法。其中，我们筛选出最常见的<kbd>K1=1000</kbd>(步骤3)。接下来，我们引入一个助手方法<kbd>featurizeSample</kbd>，用于获取一个样本并输出K1个最常见的N元语法在其字节序列中的出现次数(步骤4)。然后，我们遍历我们的文件目录，并使用前面的<kbd>featurizeSample</kbd>函数来描述我们的样本，并记录它们的标签，是恶意的还是良性的(步骤5)。标签的重要性在于，对N-gram是否有信息性的评估取决于是否能够基于它来区分恶意和良性类别。</p>
+<p class="mce-root">我们导入<kbd>SelectKBest</kbd>库，通过一个得分函数和两个得分函数——互信息和卡方——来选择最佳特征(步骤6)。最后，我们应用三种不同的特征选择方案来选择最佳N元文法，并应用该知识来转换我们的特征(步骤7)。在第一种方法中，我们简单地选择K2个最频繁的N元文法。注意，这种方法的选择在文献中经常被推荐，并且因为不需要标签或大量计算而更容易。在第二种方法中，我们使用互信息来缩小K2特征的范围，而在第三种方法中，我们使用卡方来缩小范围。</p>
+<p class="mce-root">构建静态恶意软件检测器</p>
+<p>在这一节中，我们将看到如何把我们在前面几节中讨论的方法组合在一起，以构建一个恶意软件检测器。我们的恶意软件检测器将接受从PE头中提取的特征以及从N-gram中导出的特征。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Building a static malware detector</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<p class="mce-root">该菜谱的准备工作包括在<kbd>pip</kbd>中安装<kbd>scikit-learn</kbd>、<kbd>nltk</kbd>和<kbd>pefile</kbd>包。说明如下:</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">此外，在存储库根目录下的<kbd>"PE Samples Dataset"</kbd>文件夹中已经为您提供了良性和恶意文件。将所有名为<kbd>"Benign PE Samples*.7z"</kbd>的档案解压到名为<kbd>"Benign PE Samples".</kbd>的文件夹中。</h1>
+                
+            
+            
+                
+<div><div><div><div><p>怎么做...</p>
+<pre><strong>pip install sklearn nltk pefile</strong></pre>
+<p>在以下步骤中，我们将演示一个完整的工作流程，其中我们从原始样本开始，对它们进行特征分析，对它们的结果进行矢量化，将它们放在一起，最后训练和测试一个分类器:</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">首先列举我们的样品并给它们贴上标签:</h1>
+                
+            
+            
+                
+<p class="mce-root">我们执行分层训练测试分割:</p>
+<ol>
+<li class="mce-root">我们引入前面章节中的便利函数，以获得以下特性:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import os<br/>from os import listdir<br/><br/>directories_with_labels = [("Benign PE Samples", 0), ("Malicious PE Samples", 1)]<br/>list_of_samples = []<br/>labels = []<br/>for dataset_path, label in directories_with_labels:<br/>    samples = [f for f in listdir(dataset_path)]<br/>    for sample in samples:<br/>        file_path = os.path.join(dataset_path, sample)<br/>        list_of_samples.append(file_path)<br/>        labels.append(label)</pre>
+<ol start="2">
+<li class="mce-root">我们选择100个最常见的2-gram作为我们的特征:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from sklearn.model_selection import train_test_split<br/><br/>samples_train, samples_test, labels_train, labels_test = train_test_split(<br/>    list_of_samples, labels, test_size=0.3, stratify=labels, random_state=11<br/>)</pre>
+<ol start="3">
+<li class="mce-root">We introduce convenience functions from prior sections in order to obtain features:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import collection<br/>from nltk import ngrams<br/>import numpy as np<br/>import pefile<br/><br/><br/>def read_file(file_path):<br/>    """Reads in the binary sequence of a binary file."""<br/>    with open(file_path, "rb") as binary_file:<br/>        data = binary_file.read()<br/>    return data<br/><br/><br/>def byte_sequence_to_Ngrams(byte_sequence, N):<br/>    """Creates a list of N-grams from a byte sequence."""<br/>    Ngrams = ngrams(byte_sequence, N)<br/>    return list(Ngrams)<br/><br/><br/>def binary_file_to_Ngram_counts(file, N):<br/>    """Takes a binary file and outputs the N-grams counts of its binary sequence."""<br/>    filebyte_sequence = read_file(file)<br/>    file_Ngrams = byte_sequence_to_Ngrams(filebyte_sequence, N)<br/>    return collections.Counter(file_Ngrams)<br/><br/><br/>def get_NGram_features_from_sample(sample, K1_most_frequent_Ngrams_list):<br/>    """Takes a sample and produces a feature vector.<br/>    The features are the counts of the K1 N-grams we've selected.<br/>    """<br/>    K1 = len(K1_most_frequent_Ngrams_list)<br/>    feature_vector = K1 * [0]<br/>    file_Ngrams = binary_file_to_Ngram_counts(sample, N)<br/>    for i in range(K1):<br/>        feature_vector[i] = file_Ngrams[K1_most_frequent_Ngrams_list[i]]<br/>    return feature_vector<br/><br/><br/>def preprocess_imports(list_of_DLLs):<br/>    """Normalize the naming of the imports of a PE file."""<br/>    temp = [x.decode().split(".")[0].lower() for x in list_of_DLLs]<br/>    return " ".join(temp)<br/><br/><br/>def get_imports(pe):<br/>    """Get a list of the imports of a PE file."""<br/>    list_of_imports = []<br/>    for entry in pe.DIRECTORY_ENTRY_IMPORT:<br/>        list_of_imports.append(entry.dll)<br/>    return preprocess_imports(list_of_imports)<br/><br/><br/>def get_section_names(pe):<br/>    """Gets a list of section names from a PE file."""<br/>    list_of_section_names = []<br/>    for sec in pe.sections:<br/>        normalized_name = sec.Name.decode().replace("\x00", "").lower()<br/>        list_of_section_names.append(normalized_name)<br/>    return "".join(list_of_section_names)</pre>
+<ol start="4">
+<li class="mce-root">We select the 100 most frequent 2-grams as our features:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">N = 2<br/>Ngram_counts_all = collections.Counter([])<br/>for sample in samples_train:<br/>    Ngram_counts_all += binary_file_to_Ngram_counts(sample, N)<br/>K1 = 100<br/>K1_most_frequent_Ngrams = Ngram_counts_all.most_common(K1)<br/>K1_most_frequent_Ngrams_list = [x[0] for x in K1_most_frequent_Ngrams]</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root">我们提取训练测试中每个样本的N-gram计数、节名、导入和节数，并跳过PE头无法解析的样本:</p>
+<p class="mceNonEditable">我们使用一个哈希矢量器，后跟<kbd>tfidf</kbd>来将导入和节名(都是文本特征)转换成数字形式:</p>
+<ol start="5">
+<li class="mce-root">我们将矢量化的特征组合成一个数组:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">imports_corpus_train = []<br/>num_sections_train = []<br/>section_names_train = []<br/>Ngram_features_list_train = []<br/>y_train = []<br/>for i in range(len(samples_train)):<br/>    sample = samples_train[i]<br/>    try:<br/>        NGram_features = get_NGram_features_from_sample(<br/>            sample, K1_most_frequent_Ngrams_list<br/>        )<br/>        pe = pefile.PE(sample)<br/>        imports = get_imports(pe)<br/>        n_sections = len(pe.sections)<br/>        sec_names = get_section_names(pe)<br/>        imports_corpus_train.append(imports)<br/>        num_sections_train.append(n_sections)<br/>        section_names_train.append(sec_names)<br/>        Ngram_features_list_train.append(NGram_features)<br/>        y_train.append(labels_train[i])<br/>    except Exception as e:<br/>        print(sample + ":")<br/>        print(e)</pre>
+<ol start="6">
+<li class="mce-root">我们在训练集上训练一个随机森林分类器，并打印出它的分数:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from sklearn.feature_extraction.text import HashingVectorizer, TfidfTransformer<br/>from sklearn.pipeline import Pipeline<br/><br/>imports_featurizer = Pipeline(<br/>    [<br/>       ("vect", HashingVectorizer(input="content", ngram_range=(1, 2))),<br/>        ("tfidf", TfidfTransformer(use_idf=True,)),<br/>    ]<br/>)<br/>section_names_featurizer = Pipeline(<br/>    [<br/>        ("vect", HashingVectorizer(input="content", ngram_range=(1, 2))),<br/>        ("tfidf", TfidfTransformer(use_idf=True,)),<br/>    ]<br/>)<br/>imports_corpus_train_transformed = imports_featurizer.fit_transform(<br/>    imports_corpus_train<br/>)<br/>section_names_train_transformed = section_names_featurizer.fit_transform(<br/>    section_names_train<br/>)</pre>
+<ol start="7">
+<li class="mce-root">我们收集测试集的特征，就像我们收集训练集的特征一样:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from scipy.sparse import hstack, csr_matrix<br/><br/>X_train = hstack(<br/>    [<br/>        Ngram_features_list_train,<br/>        imports_corpus_train_transformed,<br/>        section_names_train_transformed,<br/>        csr_matrix(num_sections_train).transpose(),<br/>    ]<br/>)</pre>
+<ol start="8">
+<li class="mce-root">我们应用先前训练的转换器来矢量化文本特征，然后在结果测试集上测试我们的分类器:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from sklearn.ensemble import RandomForestClassifier<br/><br/>clf = RandomForestClassifier(n_estimators=100)<br/>clf = clf.fit(X_train, y_train)</pre>
+<ol start="9">
+<li class="mce-root">我们的分类器的分数如下:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">imports_corpus_test = []<br/>num_sections_test = []<br/>section_names_test = []<br/>Ngram_features_list_test = []<br/>y_test = []<br/>for i in range(len(samples_test)):<br/>    file = samples_test[i]<br/>    try:<br/>        NGram_features = get_NGram_features_from_sample(<br/>            sample, K1_most_frequent_Ngrams_list<br/>        )<br/>        pe = pefile.PE(file)<br/>        imports = get_imports(pe)<br/>        n_sections = len(pe.sections)<br/>        sec_names = get_section_names(pe)<br/>        imports_corpus_test.append(imports)<br/>        num_sections_test.append(n_sections)<br/>        section_names_test.append(sec_names)<br/>        Ngram_features_list_test.append(NGram_features)<br/>        y_test.append(labels_test[i])<br/>    except Exception as e:<br/>        print(sample + ":")<br/>        print(e)</pre>
+<ol start="10">
+<li class="mce-root">它是如何工作的…</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">imports_corpus_test_transformed = imports_featurizer.transform(imports_corpus_test)<br/>section_names_test_transformed = section_names_featurizer.transform(section_names_test)<br/>X_test = hstack(<br/>    [<br/>        Ngram_features_list_test,<br/>        imports_corpus_test_transformed,<br/>        section_names_test_transformed,<br/>        csr_matrix(num_sections_test).transpose(),<br/>    ]<br/>)<br/>print(clf.score(X_test, y_test))</pre>
+<p>这一部分有几个值得注意的新观点。我们首先列举我们的样本，并给它们分配各自的标签(步骤1)。因为我们的数据集是不平衡的，所以使用分层训练测试分割(步骤2)是有意义的。在分层训练测试拆分中，创建训练测试拆分，其中每个类在训练集、测试集和原始集中的比例相同。这确保了我们的训练集不会因为偶然事件而只包含一个类。接下来，我们加载将用于表征样本的函数。我们使用我们的特征提取技术，就像在前面的食谱中一样，来计算最佳的N-gram特征(步骤4)，然后遍历所有的文件来提取所有的特征(步骤5)。然后，我们获取之前获得的PE头特征，比如节名和导入，并使用基本的NLP方法对它们进行矢量化(步骤6)。</p>
+<pre style="padding-left: 60px" class="p-Widget jp-RenderedText jp-mod-trusted jp-OutputArea-output"><strong>0.8859649122807017</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">获得所有这些不同的特征后，我们现在准备组合它们，我们使用<kbd>scipy</kbd> hstack将不同的特征合并成一个大的稀疏<kbd>scipy</kbd>数组(步骤7)。我们继续用默认参数训练一个随机森林分类器(步骤8)，然后为我们的测试集重复提取过程(步骤9)。在步骤10中，我们最终测试了我们训练过的分类器，获得了一个有希望的起始分数。总的来说，这种方法为恶意软件分类器提供了基础，可以扩展为高性能的解决方案。</h1>
+                
+            
+            
+                
+<p class="mce-root">解决阶级失衡</p>
+<p class="mce-root">在将机器学习应用于网络安全时，我们经常会面临高度不平衡的数据集。例如，访问大量良性样本可能比收集恶意样本更容易。相反，您可能在一家企业工作，出于法律原因，该企业禁止保存良性样本。无论哪种情况，您的数据集都将高度偏向一个类。因此，旨在最大化准确性的朴素机器学习将导致分类器预测几乎所有样本都来自过度代表的类别。有几种技术可以用来解决阶级不平衡的挑战。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Tackling class imbalance</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<p>该配方的准备工作包括安装<kbd>scikit-learn</kbd>和<kbd>imbalanced-learn</kbd> pip包。说明如下:</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<div><div><div><div><p>在以下步骤中，我们将演示几种处理不平衡数据的方法:</p>
+</div>
+<div><pre><strong>pip install sklearn imbalanced-learn</strong></pre></div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">首先加载训练和测试数据，导入一个决策树，以及一些我们将用来评估性能的库:</h1>
+                
+            
+            
+                
+<p>训练和测试一个简单的决策树分类器:</p>
+<ol start="1">
+<li>这会产生以下输出:</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn import tree<br/>from sklearn.metrics import balanced_accuracy_score<br/>import numpy as np<br/>import scipy.sparse<br/>import collections<br/><br/>X_train = scipy.sparse.load_npz("training_data.npz")<br/>y_train = np.load("training_labels.npy")<br/>X_test = scipy.sparse.load_npz("test_data.npz")<br/>y_test = np.load("test_labels.npy")</pre>
+<ol start="2">
+<li>接下来，我们测试几种提高性能的技术。</li>
+</ol>
+<pre style="padding-left: 60px">dt = tree.DecisionTreeClassifier()<br/>dt.fit(X_train, y_train)<br/>dt_pred = dt.predict(X_test)<br/>print(collections.Counter(dt_pred))<br/>print(balanced_accuracy_score(y_test, dt_pred))</pre>
+<p style="padding-left: 60px"><strong>加权:</strong>我们将分类器的类权重设置为<kbd>"balanced"</kbd>，并训练和测试这个新的分类器:</p>
+<pre style="padding-left: 60px" class="mce-root"><strong>Counter({0: 121, 1: 10})</strong><br/><strong>0.8333333333333333</strong></pre>
+<p style="padding-left: 60px">这会产生以下输出:</p>
+<ol start="3">
+<li><strong>对次要类别进行上采样:</strong>我们从类别0和类别1中提取所有测试样本:</li>
+</ol>
+<pre style="padding-left: 60px">dt_weighted = tree.DecisionTreeClassifier(class_weight="balanced")<br/>dt_weighted.fit(X_train, y_train)<br/>dt_weighted_pred = dt_weighted.predict(X_test)<br/>print(collections.Counter(dt_weighted_pred))<br/>print(balanced_accuracy_score(y_test, dt_weighted_pred))</pre>
+<p style="padding-left: 60px">This results in the following output:</p>
+<pre style="padding-left: 60px" class="output_subarea output_text output_stream output_stdout"><strong>Counter({0: 114, 1: 17})</strong><br/><strong>0.9913793103448276</strong></pre>
+<ol start="4">
+<li><strong>Upsampling the minor class: </strong>We extract all test samples from class 0 and class 1:</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn.utils import resample<br/><br/>X_train_np = X_train.toarray()<br/>class_0_indices = [i for i, x in enumerate(y_train == 0) if x]<br/>class_1_indices = [i for i, x in enumerate(y_train == 1) if x]<br/>size_class_0 = sum(y_train == 0)<br/>X_train_class_0 = X_train_np[class_0_indices, :]<br/>y_train_class_0 = [0] * size_class_0<br/>X_train_class_1 = X_train_np[class_1_indices, :]</pre>
+<p class="mce-root">我们用替换对类1的元素进行上采样，直到类1和类0的样本数量相等:</p>
+<p class="mce-root">我们将新的上采样样本合并到单个训练集中:</p>
+<ol start="5">
+<li>我们在向上采样的训练集上训练和测试随机森林分类器:</li>
+</ol>
+<pre style="padding-left: 60px">X_train_class_1_resampled = resample(<br/>    X_train_class_1, replace=True, n_samples=size_class_0<br/>)<br/>y_train_class_1_resampled = [1] * size_class_0</pre>
+<ol start="6">
+<li>这会产生以下输出:</li>
+</ol>
+<pre style="padding-left: 60px">X_train_resampled = np.concatenate([X_train_class_0, X_train_class_1_resampled])<br/>y_train_resampled = y_train_class_0 + y_train_class_1_resampled</pre>
+<ol start="7">
+<li><strong>对主要类进行下采样:</strong>我们执行与前面的上采样类似的步骤，除了这次我们对主要类进行下采样，直到它的大小与次要类相同:</li>
+</ol>
+<pre style="padding-left: 60px">from scipy import sparse<br/><br/>X_train_resampled = sparse.csr_matrix(X_train_resampled)<br/>dt_resampled = tree.DecisionTreeClassifier()<br/>dt_resampled.fit(X_train_resampled, y_train_resampled)<br/>dt_resampled_pred = dt_resampled.predict(X_test)<br/>print(collections.Counter(dt_resampled_pred))<br/>print(balanced_accuracy_score(y_test, dt_resampled_pred))</pre>
+<p style="padding-left: 60px">我们从下采样数据中创建新的训练集:</p>
+<pre style="padding-left: 60px" class="mce-root"><strong>Counter({0: 114, 1: 17})</strong><br/><strong>0.9913793103448276</strong></pre>
+<ol start="8">
+<li>我们在这个数据集上训练一个随机森林分类器:</li>
+</ol>
+<pre style="padding-left: 60px">X_train_np = X_train.toarray()<br/>class_0_indices = [i for i, x in enumerate(y_train == 0) if x]<br/>class_1_indices = [i for i, x in enumerate(y_train == 1) if x]<br/>size_class_1 = sum(y_train == 1)<br/>X_train_class_1 = X_train_np[class_1_indices, :]<br/>y_train_class_1 = [1] * size_class_1<br/>X_train_class_0 = X_train_np[class_0_indices, :]<br/>X_train_class_0_downsampled = resample(<br/>    X_train_class_0, replace=False, n_samples=size_class_1<br/>)<br/>y_train_class_0_downsampled = [0] * size_class_1</pre>
+<ol start="9">
+<li>这会产生以下输出:</li>
+</ol>
+<pre style="padding-left: 60px">X_train_downsampled = np.concatenate([X_train_class_1, X_train_class_0_downsampled])<br/>y_train_downsampled = y_train_class_1 + y_train_class_0_downsampled</pre>
+<ol start="10">
+<li><strong>包括内部平衡采样器的分类器:</strong>我们利用不平衡学习包分类器，该分类器在训练估计器之前对数据子集进行重新采样:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">X_train_downsampled = sparse.csr_matrix(X_train_downsampled)<br/>dt_downsampled = tree.DecisionTreeClassifier()<br/>dt_downsampled.fit(X_train_downsampled, y_train_downsampled)<br/>dt_downsampled_pred = dt_downsampled.predict(X_test)<br/>print(collections.Counter(dt_downsampled_pred))<br/>print(balanced_accuracy_score(y_test, dt_downsampled_pred))</pre>
+<p style="padding-left: 60px">这会产生以下输出:</p>
+<pre style="padding-left: 60px" class="mce-root"><strong>Counter({0: 100, 1: 31})</strong><br/><strong>0.9310344827586207</strong></pre>
+<ol start="11">
+<li><strong>Classifier including inner balancing samplers: </strong>We utilize the imbalanced-learn package classifiers that resample subsets of data before the training estimators:</li>
+</ol>
+<pre style="padding-left: 60px">from imblearn.ensemble import BalancedBaggingClassifier<br/><br/>balanced_clf = BalancedBaggingClassifier(<br/>    base_estimator=tree.DecisionTreeClassifier(),<br/>    sampling_strategy="auto",<br/>    replacement=True,<br/>)<br/>balanced_clf.fit(X_train, y_train)<br/>balanced_clf_pred = balanced_clf.predict(X_test)<br/>print(collections.Counter(balanced_clf_pred))<br/>print(balanced_accuracy_score(y_test, balanced_clf_pred))</pre>
+<div><p style="padding-left: 60px" class="output_area">This results in the following output:</p>
+</div>
+<pre style="padding-left: 60px"><strong>Counter({0: 113, 1: 18})</strong><br/><strong>0.9494252873563218</strong></pre>
+<p class="mce-root">它是如何工作的…</p>
+<p class="mce-root">我们首先使用<kbd>scipy.sparse.load_npz</kbd>加载函数加载预先定义的数据集(步骤1 ),以加载之前保存的稀疏矩阵。我们的下一步是根据我们的数据训练一个基本的决策树模型(步骤2)。为了测量性能，我们使用了平衡准确度分数，这是一种在不平衡数据集的分类问题中经常使用的度量。根据定义，平衡准确度是每个类别的平均回忆率。最佳值是1，而最差值是0。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">在接下来的步骤中，我们采用不同的技术来解决班级不平衡的问题。我们的第一种方法是利用类权重来调整我们的决策树以适应不平衡的数据集(步骤3)。平衡模式使用<em> y </em>的值自动调整与输入数据中的类别频率成反比的权重，如<em>n _ samples/(n _ classes * NP . bin count(y))</em>。在步骤4到7中，我们利用上采样来解决类不平衡问题。这是一个随机复制少数类观察结果的过程，目的是加强少数类的信号。</h1>
+                
+            
+            
+                
+<p>有几种方法可以做到这一点，但最常用的方法是像我们所做的那样简单地用替换重新采样。上采样的两个主要问题是，它增加了数据集的大小，并且由于对同一样本进行多次训练，它可能导致过拟合。在步骤8到10中，我们对主类进行下采样。这仅仅意味着我们没有使用我们所有的样本，而是足够平衡我们的类。</p>
+<p>这种技术的主要问题是我们被迫使用较小的训练集。我们最后的方法，也是最复杂的方法，是利用一个包括内部平衡采样器的分类器，即来自<kbd>imbalanced-learn</kbd>的<kbd>BalancedBaggingClassifier</kbd>(步骤11)。总的来说，我们看到每一个解决班级不平衡的方法都增加了平衡准确度分数。</p>
+<p>处理第一类和第二类错误</p>
+<p>在机器学习的许多情况下，一种类型的错误可能比另一种更重要。例如，在一个多层防御系统中，以牺牲一些检测率为代价，要求一个层具有较低的误报警(低误报)率可能是有意义的。在这一部分中，我们提供了一个通过使用阈值来确保FPR不会超过期望极限的方法。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Handling type I and type II errors</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<p>该配方的准备工作包括在<kbd>pip</kbd>中安装<kbd>scikit-learn</kbd>和<kbd>xgboost</kbd>。说明如下:</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<div><div><div><div><p>在以下步骤中，我们将加载数据集，训练分类器，然后调整阈值以满足误报率约束:</p>
+</div>
+<div><pre><strong>pip install sklearn xgboost</strong></pre></div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">我们加载一个数据集，并指定所需的FPR等于或低于1%:</h1>
+                
+            
+            
+                
+<p>我们编写计算<kbd>FPR</kbd>和<kbd>TPR</kbd>的方法:</p>
+<ol>
+<li>We load a dataset and specify that the desired FPR is at or below 1%:</li>
+</ol>
+<pre style="padding-left: 60px">import numpy as np<br/>from scipy import sparse<br/>import scipy<br/><br/>X_train = scipy.sparse.load_npz("training_data.npz")<br/>y_train = np.load("training_labels.npy")<br/>X_test = scipy.sparse.load_npz("test_data.npz")<br/>y_test = np.load("test_labels.npy")<br/>desired_FPR = 0.01</pre>
+<ol start="2">
+<li>We write methods to calculate  <kbd>FPR</kbd> and <kbd>TPR</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn.metrics import confusion_matrix<br/><br/><br/>def FPR(y_true, y_pred):<br/>    """Calculate the False Positive Rate."""<br/>    CM = confusion_matrix(y_true, y_pred)<br/>    TN = CM[0][0]<br/>    FP = CM[0][1]<br/>    return FP / (FP + TN)<br/><br/><br/>def TPR(y_true, y_pred):<br/>    """Calculate the True Positive Rate."""<br/>    CM = confusion_matrix(y_true, y_pred)<br/>    TP = CM[1][1]<br/>    FN = CM[1][0]<br/>    return TP / (TP + FN)</pre>
+<p class="mce-root">我们编写了一个使用阈值将概率向量转换为布尔向量的方法:</p>
+<p class="mce-root">我们训练一个XGBoost模型，并根据训练数据计算概率预测:</p>
+<ol start="3">
+<li>让我们检查一下我们的预测概率向量:</li>
+</ol>
+<pre style="padding-left: 60px">def perform_thresholding(vector, threshold):<br/>    """Threshold a vector."""<br/>    return [0 if x &gt;= threshold else 1 for x in vector]</pre>
+<ol start="4">
+<li>这会产生以下输出:</li>
+</ol>
+<pre style="padding-left: 60px">from xgboost import XGBClassifier<br/><br/>clf = XGBClassifier()<br/>clf.fit(X_train, y_train)<br/>clf_pred_prob = clf.predict_proba(X_train)</pre>
+<ol start="5">
+<li>我们循环1000个不同的阈值，计算每个阈值的FPR，当我们满足<kbd>FPR&lt;=desiredFPR</kbd>时，我们选择该阈值:</li>
+</ol>
+<pre style="padding-left: 60px">print("Probabilities look like so:")<br/>print(clf_pred_prob[0:5])<br/>print()</pre>
+<p style="padding-left: 60px">这会产生以下输出:</p>
+<pre style="padding-left: 60px" class="mce-root"><strong>Probabilities look like so:</strong><br/><strong>[[0.9972162 0.0027838 ]</strong><br/><strong>[0.9985584 0.0014416 ]</strong><br/><strong>[0.9979202 0.00207978]</strong><br/><strong>[0.96858877 0.03141126]</strong><br/><strong>[0.91427565 0.08572436]]</strong></pre>
+<ol start="6">
+<li>它是如何工作的…</li>
+</ol>
+<pre style="padding-left: 60px">M = 1000<br/>print("Fitting threshold:")<br/>for t in reversed(range(M)):<br/>    scaled_threshold = float(t) / M<br/>    thresholded_prediction = perform_thresholding(clf_pred_prob[:, 0], scaled_threshold)<br/>    print(t, FPR(y_train, thresholded_prediction), TPR(y_train, thresholded_prediction))<br/>    if FPR(y_train, thresholded_prediction) &lt;= desired_FPR:<br/>        print()<br/>        print("Selected threshold: ")<br/>        print(scaled_threshold)<br/>        break</pre>
+<p style="padding-left: 60px">我们从加载一个先前特征化的数据集并指定1%的期望FPR约束开始这个配方(步骤1)。实际使用的值在很大程度上取决于所考虑的情况和文件类型。有一些需要考虑的事项:如果文件非常常见，但很少是恶意的，例如PDF，则所需的FPR必须设置得非常低，例如0.01%。</p>
+<pre style="padding-left: 60px"><strong>Fitting threshold:</strong><br/><strong>999 1.0 1.0</strong><br/><strong>998 0.6727272727272727 1.0</strong><br/><strong>997 0.4590909090909091 1.0</strong><br/><strong>996 0.33181818181818185 1.0</strong><br/><strong> &lt;snip&gt;</strong><br/><strong> 649 0.05454545454545454 1.0</strong><br/><strong>648 0.004545454545454545 0.7857142857142857</strong><br/><strong>Selected threshold: 0.648</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">如果该系统得到其他系统的支持，这些系统将在没有人工干预的情况下对其判断进行双重检查，那么高的FPR可能不会造成损害。最后，客户可能有偏好，这将建议一个推荐值。在步骤2中，我们为FPR和TPR定义了一对便利函数——这些函数非常方便且可重用。我们定义的另一个便利函数是一个函数，它将获取我们的阈值，并使用它来阈值化一个数字向量(步骤3)。</h1>
+                
+            
+            
+                
+<p>在步骤4中，我们根据训练数据训练一个模型，并确定训练集的预测概率。您可以在步骤5中看到这些内容。当大型数据集可用时，使用验证集来确定适当的阈值将减少过度拟合的可能性。最后，我们计算用于未来分类的阈值，以确保满足FPR约束(步骤6)。</p>
+<p>If the system is supported by additional systems that will double-check its verdict without human effort, then a high FPR might not be detrimental. Finally, a customer may have a preference, which will suggest a recommended value. We define a pair of convenience functions for FPR and TPR in step 2—these functions are very handy and reusable. Another convenience function we define is a function that will take our threshold value and use it to threshold a numerical vector (step 3).</p>
+<p>In step 4, we train a model on the training data, and determine prediction probabilities on the training set as well. You can see what these look like in step 5. When a large dataset is available, using a validation set for determining the proper threshold will reduce the likelihood of overfitting. Finally, we compute the threshold to be used in future classification in order to ensure that the FPR constraint will be satisfied (step 6).</p>
+
+
+            
+
+            
+        
+    
+
+
+</body></html>

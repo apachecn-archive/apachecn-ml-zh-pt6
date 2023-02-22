@@ -1,0 +1,1363 @@
+<html><head/><body>
+
+
+
+
+
+
+
+
+
+<title>Chapter 11: Machine Learning Pipelines with SageMaker Pipelines</title>
+
+
+
+
+
+
+
+<div><div><h1 class="chapter-number" id="_idParaDest-216"><a id="_idTextAnchor231"/> <a id="_idTextAnchor232"/> 11</h1>
+
+<h1 id="_idParaDest-217"><a id="_idTextAnchor233"/>带有SageMaker管道的机器学习管道</h1>
+
+<p>在<a href="B18638_10.xhtml#_idTextAnchor215"> <em class="italic">第十章</em> </a>，<em class="italic">亚马逊EKS </em>上的Kubeflow机器学习管道中，我们使用了<strong class="bold"> Kubeflow </strong>，<strong class="bold"> Kubernetes </strong>和<strong class="bold">亚马逊EKS </strong>来构建和运行一个端到端的<strong class="bold">机器学习</strong> ( <strong class="bold"> ML </strong>)管道。在这里，我们能够在运行的Kubernetes集群中自动化ML过程中的几个步骤。如果您想知道我们是否也可以使用<strong class="bold"> SageMaker </strong>的不同特性和功能来构建ML管道，那么简单的回答就是<em class="italic">是的</em>！</p>
+
+<p>在本章中，我们将使用<strong class="bold"> SageMaker Pipelines </strong>来构建和运行自动化的ML工作流。除此之外，我们将演示如何在管道执行期间利用<strong class="bold"> AWS Lambda </strong>函数将训练好的模型部署到新的(或现有的)ML推理端点。</p>
+
+<p>也就是说，在本章中，我们将讨论以下主题:</p>
+
+<ul>
+
+<li>深入SageMaker管道</li>
+
+<li>准备必要的先决条件</li>
+
+<li>使用SageMaker管道运行我们的第一条管道</li>
+
+<li>为部署创建Lambda函数</li>
+
+<li>测试我们的ML推理端点</li>
+
+<li>完成端到端的ML管道</li>
+
+<li>清理</li>
+
+<li>推荐的策略和最佳实践</li>
+
+</ul>
+
+<p>完成本章的动手解决方案后，我们应该掌握了使用<strong class="bold"> Amazon SageMaker </strong>的不同功能在AWS上构建更复杂的ML管道和工作流所需的技能！</p>
+
+<h1 id="_idParaDest-218"><a id="_idTextAnchor234"/>技术要求</h1>
+
+<p>开始之前，我们必须准备好以下内容:</p>
+
+<ul>
+
+<li>网络浏览器(最好是Chrome或Firefox)</li>
+
+<li>访问AWS帐户和本书前面章节中使用的<strong class="bold"> SageMaker Studio </strong>域</li>
+
+<li>本地机器上的一个文本编辑器(例如，<strong class="bold"> VS Code </strong>)，我们将使用它来存储和复制字符串值，供本章后面使用</li>
+
+</ul>
+
+<p>Jupyter笔记本、源代码和其他用于每章的文件都可以在<a href="https://github.com/PacktPublishing/Machine-Learning-Engineering-on-AWS">https://github . com/packt publishing/Machine-Learning-Engineering-on-AWS</a>的资源库中获得。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">建议您在运行本书中的示例时，使用具有有限权限的IAM用户，而不是root帐户。如果您刚刚开始使用AWS，可以同时使用root帐户。</p>
+
+<h1 id="_idParaDest-219"><a id="_idTextAnchor235"/>深入SageMaker管道</h1>
+
+<p>通常，数据科学团队从手动执行ML实验和部署开始。一旦他们<a id="_idIndexMarker1415"/>需要标准化工作流程并使<strong class="bold">自动化模型再培训</strong>能够定期更新部署的模型，这些<a id="_idIndexMarker1416"/>团队将开始考虑使用ML管道来自动化他们的部分工作。在<a href="B18638_06.xhtml#_idTextAnchor132"> <em class="italic">第六章</em> </a>、<em class="italic"> SageMaker训练调试解决方案</em>中，我们学习了如何使用<strong class="bold"> SageMaker Python SDK </strong>训练一个ML模型。通常，使用SageMaker Python SDK训练ML模型需要运行几行代码，类似于下面的代码块:</p>
+
+<pre class="source-code">estimator = <strong class="bold">Estimator</strong>(...) 
+
+estimator.<strong class="bold">set_hyperparameters</strong>(...)
+
+estimator.<strong class="bold">fit</strong>(...)</pre>
+
+<p><em class="italic">如果我们想准备一个自动化的ML管道，并将其作为一个步骤，会怎么样？你会惊讶地发现，我们需要做的只是添加几行代码，将这转换成一个可以包含在管道中的步骤！使用类似于下面代码块中的<code>TrainingStep</code>对象将其转换成一个步骤:</em></p>
+
+<pre class="source-code"><strong class="bold">step_train</strong> = <strong class="bold">TrainingStep</strong>(
+
+    name="TrainModel",
+
+    estimator=<strong class="bold">estimator</strong>,
+
+    inputs=...
+
+)</pre>
+
+<p><em class="italic">哇！是不是很神奇？</em>这将<a id="_idIndexMarker1417"/>意味着使用<strong class="bold"> SageMaker Python SDK </strong>来手动训练和部署ML模型的现有笔记本可以很容易地转换为使用SageMaker管道，只需几行额外的代码！其他步骤呢？我们也有以下几个类:</p>
+
+<ul>
+
+<li><code>ProcessingStep</code>–这是使用<strong class="bold"> SageMaker处理</strong>处理数据的<a id="_idIndexMarker1418"/>。</li>
+
+<li><code>TuningStep</code>–这是为了<a id="_idIndexMarker1419"/>使用SageMaker的<strong class="bold">自动模型调整</strong>功能创建一个超参数调整作业。</li>
+
+<li><code>ModelStep</code>–这是<a id="_idIndexMarker1420"/>，用于创建SageMaker模型并将其注册到<strong class="bold"> SageMaker模型注册表</strong>。</li>
+
+<li><code>TransformStep</code>–这是使用SageMaker的<strong class="bold">批量转换</strong>功能在数据集上运行推理的<a id="_idIndexMarker1421"/>。</li>
+
+<li><code>ConditionStep</code>–这是对管道步骤执行的条件分支支持。</li>
+
+<li><code>CallbackStep</code>–这是用于合并SageMaker管道中不直接可用或不支持的自定义步骤。</li>
+
+<li><code>LambdaStep</code>–这是用于运行<strong class="bold"> AWS Lambda </strong>功能的<a id="_idIndexMarker1422"/>。</li>
+
+</ul>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">请注意，这并不是详尽的步骤列表，因为还有其他步骤可用于更具体的<a id="_idIndexMarker1423"/>用例。你可以在<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/build-and-manage-steps.xhtml">https://docs . AWS . Amazon . com/SageMaker/latest/DG/build-and-manage-Steps . XHTML</a>找到<strong class="bold"> SageMaker管道步骤</strong>的完整列表。</p>
+
+<p>在<a href="B18638_04.xhtml#_idTextAnchor079"> <em class="italic">第4章</em> </a>、<em class="italic">AWS上的无服务器数据管理</em>中，我们在红移集群和Athena表中存储和查询我们的数据。如果我们需要直接从这些数据源中查询数据，我们可以使用<code>ProcessingStep</code>对象，它将在稍后添加到管道中。处理作业完成后，它会将输出文件存储在S3中，然后训练作业或自动模型调整作业可以拾取并处理这些文件。如果我们需要将它转换成一个步骤，我们可以创建一个相应的<code>TrainingStep</code>对象(如果我们将运行一个训练任务)或者一个<code>TuningStep</code>对象(如果我们将运行一个自动模型调整任务)，然后将它们添加到管道中。<em class="italic">培训(或调整)工作完成后会发生什么？</em>我们可以选择将生成的模型存储在<code>ModelStep</code>对象中，该对象稍后也将被添加到管道中。让我们参考<em class="italic">图11.1 </em>来帮助我们在准备好管道的不同步骤后直观地了解这一切是如何工作的:</p>
+
+<div><div><img alt="Figure 11.1 – Using SageMaker Pipelines&#10;&#10;" height="713" src="img/B18638_11_001.jpg" width="1028"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.1–使用SageMaker管道</p>
+
+<p>在<em class="italic">图11.1 </em>中，我们可以看到<code>Pipeline</code>对象，它映射到ML管道定义:</p>
+
+<pre class="source-code"><strong class="bold">pipeline</strong> = <strong class="bold">Pipeline</strong>(
+
+    name=...,
+
+    parameters=...,
+
+    <strong class="bold">steps</strong>=[
+
+        ..., 
+
+        <strong class="bold">step_train</strong>,
+
+        ...
+
+    ],
+
+)
+
+# create (or update) the ML pipeline
+
+<strong class="bold">pipeline.upsert</strong>(...)</pre>
+
+<p>然后，要运行管道，我们需要做的就是调用<code>start()</code>方法:</p>
+
+<pre class="source-code">execution = <strong class="bold">pipeline.start()</strong></pre>
+
+<p>一旦流水线启动，我们将不得不等待所有步骤执行完毕(一次一个步骤),或者等待<a id="_idIndexMarker1436"/>流水线停止(如果其中一个步骤出错)。为了调试和排除运行管道的故障，我们可以很容易地导航到<strong class="bold"> SageMaker Studio </strong>的<strong class="bold"> SageMaker Resources </strong>窗格，并定位相应的管道资源。我们应该会看到一个与管道执行相对应的图表，类似于<em class="italic">图11.2 </em>中的图表。</p>
+
+<div><div><img alt="Figure 11.2 – Pipeline execution&#10;&#10;" height="498" src="img/B18638_11_002.jpg" width="527"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.2–管道执行</p>
+
+<p>在这里，我们可以看到管道中的所有步骤都已经成功完成，我们训练的模型也已经注册到SageMaker模型注册中心。如果我们希望再次运行管道(例如，使用不同的输入数据集)，我们可以简单地触发另一个管道执行，并传递一个指向新输入数据集存储位置的不同管道参数值。<em class="italic">很酷吧？</em>除此之外，我们还可以通过点击我们希望检查的步骤的相应圆角矩形，然后查看输入参数、输出值、最大似然度量值、用于训练模型的超参数以及步骤执行期间生成的日志，来更深入地了解每个步骤中正在发生的事情。这使我们能够了解管道执行过程中发生的情况，并在管道执行过程中遇到错误时解决问题。</p>
+
+<p>到目前为止，我们一直在讨论一个相对简单的管道，包括三个或四个顺序执行的步骤。此外，<strong class="bold"> SageMaker Pipelines </strong>允许我们构建更复杂的ML管道，利用类似于<em class="italic">图11.3 </em>中的条件步骤:</p>
+
+<div><div><img alt="" height="591" src="img/B18638_11_003.jpg" width="834"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.3–带条件步骤的ML管道</p>
+
+<p>这里，使用<code>ConditionStep</code>，管道检查ML推理端点是否已经存在(给定端点名称)，并根据端点的存在执行以下步骤之一:</p>
+
+<ul>
+
+<li><em class="italic">将模型部署到一个新的端点</em>–使用<code>LambdaStep</code>，它映射到一个<strong class="bold"> AWS Lambda </strong>函数，如果<a id="_idIndexMarker1438"/>端点还不存在，它将ML模型部署到一个新的ML推理端点</li>
+
+<li><em class="italic">将模型部署到现有端点</em>——使用<code>LambdaStep</code>，它映射到<strong class="bold"> AWS Lambda </strong>函数，如果端点已经存在，该函数将ML模型部署到现有的ML推理端点(使用<strong class="bold">零停机部署</strong></li>
+
+</ul>
+
+<p><em class="italic">酷吧？</em> <em class="italic">更酷的是，这是我们将在本章构建的管道！</em>起初，建立一个ML管道可能看起来令人生畏。然而，只要我们迭代地构建和测试管道，并使用正确的工具集，我们应该能够提出自动化手动过程所需的ML管道。</p>
+
+<p>现在我们对SageMaker Pipelines 的工作原理有了更好的理解，让我们继续本章的实践部分。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">在这一点上，你可能想知道为什么我们应该使用<strong class="bold"> SageMaker管道</strong>而不是<strong class="bold"> Kubeflow </strong>和<strong class="bold"> Kubernetes </strong>。SageMaker Pipelines和Kubeflow之间的主要区别之一是，用于在SageMaker中训练ML模型的实例会在训练步骤完成后自动删除<a id="_idIndexMarker1439"/>。这有助于降低<a id="_idIndexMarker1440"/>的总成本，因为这些训练实例仅在模型需要训练时运行。另一方面，Kubeflow所需的基础设施需要在任何培训步骤开始之前启动并运行。请注意，这只是其中的一个区别，在为工作选择“正确”的工具时，还有其他需要考虑的事情。当然，在有些情况下，数据科学团队会选择Kubeflow，因为成员们已经习惯使用Kubernetes(或者他们已经在运行生产Kubernetes工作负载)。为了帮助您和您的团队正确地评估这些工具，我建议，首先，您尝试使用这两个选项来构建示例ML管道。</p>
+
+<h1 id="_idParaDest-220"><a id="_idTextAnchor236"/>准备必要的先决条件</h1>
+
+<p>在本节中，我们<a id="_idIndexMarker1441"/>将确保以下先决条件已准备就绪:</p>
+
+<ul>
+
+<li>SageMaker Studio域执行角色附带了<code>AWSLambda_FullAccess</code> AWS托管权限策略——这将允许Lambda函数在完成本章的端到端ML管道部分的<em class="italic">中没有问题地运行。</em></li>
+
+<li>IAM角色(<code>pipeline-lambda-role</code>)–这将用于运行本章<em class="italic">为部署</em>创建Lambda函数一节中的Lambda函数。</li>
+
+<li><code>processing.py</code>文件——这将被<strong class="bold"> SageMaker处理</strong>作业用来处理输入数据，并将其分成训练、验证和测试集。</li>
+
+<li><code>bookings.all.csv</code>文件——这将用作ML管道的输入数据集。</li>
+
+</ul>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">在本章中，我们将在<code>us-west-2</code>区域创建和管理我们的资源。在继续下一步之前，请确保您已经设置了正确的区域。</p>
+
+<p>准备这些必要的先决条件是至关重要的，以确保我们在本章准备和运行ML管道时不会遇到意外的阻塞。也就是说，让我们继续准备下一组步骤中的先决条件:</p>
+
+<ol>
+
+<li>让我们首先导航到AWS管理控制台搜索栏中的<code>sagemaker studio</code>，悬停在<strong class="bold">亚马逊SageMaker </strong>的搜索结果框上，然后点击<strong class="bold">顶级功能</strong>下的<strong class="bold"> SageMaker Studio </strong>链接。</li>
+
+<li>在SageMaker Studio <strong class="bold">控制面板</strong>页面上，找到<strong class="bold">域</strong>框附带的<strong class="bold">执行角色</strong>部分(如图<em class="italic">图11.4 </em>中高亮显示的部分):</li>
+
+</ol>
+
+<div><div><img alt="Figure 11.4 – Copying the Execution role name&#10;&#10;" height="546" src="img/B18638_11_004.jpg" width="1002"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.4–复制执行角色名称</p>
+
+<p class="list-inset">找到以下值，并将其复制到本地计算机上的文本编辑器中:</p>
+
+<ul>
+
+<li><code>arn:aws:iam::&lt;ACCOUNT ID&gt;:role/service-role/</code>)。执行角色名称可能遵循<code>AmazonSageMaker-ExecutionRole-&lt;DATETIME&gt;</code>格式，类似于<em class="italic">图11.4 </em>中的格式。确保在复制执行角色名称时排除了<code>arn:aws:iam::&lt;ACCOUNT ID&gt;:role/service-role/</code>。</li>
+
+<li><code>arn:aws:iam::&lt;ACCOUNT ID&gt;:role/service-role/</code>)。执行角色ARN应遵循<code>arn:aws:iam::&lt;ACCOUNT ID&gt;:role/service-role/AmazonSageMaker-ExecutionRole-&lt;DATETIME&gt;</code>格式。</li>
+
+</ul>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">在本章的<em class="italic">为部署创建Lambda函数</em>一节中，我们将在测试Lambda函数时使用执行角色ARN。</p>
+
+<ol>
+
+<li value="3">导航到AWS管理控制台的搜索栏中的<code>iam</code>，将鼠标悬停在<strong class="bold"> IAM </strong>的搜索结果框上，然后单击<strong class="bold">顶级功能</strong>下的<strong class="bold">角色</strong>链接。</li>
+
+<li>在<strong class="bold">角色</strong>页面上，通过在搜索框中键入执行角色名称(复制到您本地机器上的文本编辑器中)来搜索并定位执行角色(如图<em class="italic">图11.5 </em>中突出显示的):</li>
+
+</ol>
+
+<div><div><img alt="Figure 11.5 – Navigating to the specific role page&#10;&#10;" height="249" src="img/B18638_11_005.jpg" width="962"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.5–导航到特定角色页面</p>
+
+<p class="list-inset">这将过滤结果并显示类似于图11.5 中的单行。单击<strong class="bold">角色名称</strong>列下的链接，导航到可以修改角色权限的页面。</p>
+
+<ol>
+
+<li value="5">找到<strong class="bold">权限策略</strong>表(在<strong class="bold">权限</strong>选项卡内)，然后点击<strong class="bold">添加权限</strong>打开选项下拉菜单。从可用选项列表中选择<strong class="bold">附加策略</strong>。这应该会将我们重定向到页面<a id="_idIndexMarker1443"/>，在这里我们可以看到<strong class="bold">当前权限策略</strong>部分，并在<strong class="bold">其他权限策略</strong>下附加其他策略。</li>
+
+<li>使用搜索栏找到<code>AWSLambda_FullAccess</code> AWS管理权限策略(在<code>AWSLambda_FullAccess</code>策略下)。之后，点击<strong class="bold">附加策略</strong>按钮。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">单击<strong class="bold">附加策略</strong>按钮后，您应该会看到以下成功通知消息，<strong class="bold">策略已成功附加到角色</strong>。</p>
+
+<ol>
+
+<li value="7">现在，让我们创建IAM角色，我们将在稍后创建Lambda函数时使用它。导航到<strong class="bold">角色</strong>页面(使用侧栏)，然后点击<strong class="bold">创建角色</strong>按钮。</li>
+
+<li>在<strong class="bold">选择可信实体</strong>页面上(<em class="italic">步骤1 </em>，执行以下步骤:<ul><li>在<strong class="bold">可信实体类型</strong>下，从可用选项列表中选择<strong class="bold"> AWS服务</strong>。</li>
+
+<li>在<strong class="bold">用例</strong>下，选择<strong class="bold">常用用例</strong>下的<strong class="bold">λ</strong>。</li>
+
+<li>之后，点击<strong class="bold">下一个</strong>按钮。</li>
+
+</ul></li>
+
+<li>在<code>AmazonSageMakerFullAccess</code>政策中。</li>
+
+<li>搜索<a id="_idIndexMarker1444"/>并选择<code>AWSLambdaExecute</code>策略。</li>
+
+<li>打开两个策略的单选按钮后，点击下一个按钮<strong class="bold">。</strong></li>
+
+
+
+<li>在<strong class="bold">下的<code>pipeline-lambda-role</code>上角色名称</strong>。</li>
+
+<li>向下滚动到页面底部，然后单击<strong class="bold">创建角色</strong>按钮。</li>
+
+
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">点击<strong class="bold">创建角色</strong>按钮后，您应该会看到以下成功通知消息:<strong class="bold">角色管道-lambda-角色创建</strong>。</p>
+
+<ol>
+
+<li value="11">导航回到AWS管理控制台的搜索栏中的<code>sagemaker studio</code>，然后点击<strong class="bold">顶级功能</strong>下的<strong class="bold"> SageMaker Studio </strong>链接(悬停在<strong class="bold"> Amazon SageMaker </strong>的搜索结果框上之后)。</li>
+
+<li>点击<strong class="bold">启动应用</strong>，然后从下拉选项列表中选择<strong class="bold">工作室</strong>。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">这将把你重定向到<strong class="bold"> SageMaker工作室</strong>。等待几秒钟，让接口加载。</p>
+
+<ol>
+
+<li value="13">现在，让我们继续创建<code>CH11</code>文件夹，在这里我们将存储与本章中的<a id="_idIndexMarker1445"/>ML管道相关的文件。右键单击<strong class="bold">文件浏览器</strong>侧栏窗格中的空白区域，打开类似于<em class="italic">图11.6 </em>所示的上下文菜单:</li>
+
+</ol>
+
+<div><div><img alt="Figure 11.6 – Creating a new folder&#10;&#10;" height="366" src="img/B18638_11_006.jpg" width="833"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.6–创建新文件夹</p>
+
+<p class="list-inset">选择<code>CH11</code>。之后，双击侧边栏中相应的文件夹名称，导航到<code>CH11</code>目录。</p>
+
+<ol>
+
+<li value="14">通过点击<code>CH11</code>目录中的<code>.ipynb</code>文件创建一个新的笔记本，在这里我们可以运行我们的Python代码。</li>
+
+<li>在【Sagemaker图像下的选项)</li>
+
+<li><code>Python 3</code></li>
+
+<li><code>No script</code></li>
+
+
+
+<li>之后，点击<strong class="bold">选择</strong>按钮。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">等待内核启动。在配置ML实例以运行Jupyter笔记本单元时，此步骤可能需要大约3-5分钟。确保在完成本章中的所有动手解决方案后(或者如果您不使用它)，停止此实例。欲了解更多信息，请随时查看本章末尾的<em class="italic">清理</em>部分。</p>
+
+<ol>
+
+<li value="17">右键单击选项卡名称，然后选择<code>Machine Learning Pipelines with SageMaker Pipelines.ipynb</code>。</li>
+
+<li>在<code>Machine Learning Pipelines with SageMaker Pipelines.ipynb</code>笔记本的第一个单元格中，运行以下命令:<pre class="source-code"><strong class="bold">!wget -O processing.py https://bit.ly/3QiGDQO</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这将下载一个<code>processing.py</code>文件，该文件执行以下操作:</p>
+
+<ul>
+
+<li>加载<code>dataset.all.csv</code>文件并将数据存储在数据帧中</li>
+
+<li>执行<strong class="bold">训练-测试分割</strong>，该分割<a id="_idIndexMarker1447"/>会将数据帧分成三个数据帧(包含训练、验证和测试集)</li>
+
+<li>确保在保存输出CSV文件之前已经创建了输出目录</li>
+
+<li>将包含定型集、验证集和测试集的数据帧保存到输出目录中相应的CSV文件中</li>
+
+</ul>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">请随意检查下载的<code>processing.py</code>文件的内容。此外，您可以在<a href="https://github.com/PacktPublishing/Machine-Learning-Engineering-on-AWS/blob/main/chapter11/processing.py">https://github . com/packt publishing/Machine-Learning-Engineering-on-AWS/blob/main/chapter 11/processing . py</a>中找到<code>processing.py</code>脚本文件的副本。</p>
+
+<ol>
+
+<li value="19">接下来，让我们使用<code>mkdir</code>命令创建一个<code>tmp</code>目录，如果它还不存在的话:<pre class="source-code">!<strong class="bold">mkdir -p tmp</strong></pre></li>
+
+<li>之后，使用<code>wget</code>命令:<pre class="source-code">!<strong class="bold">wget -O tmp/bookings.all.csv https://bit.ly/3BUcMK4</strong></pre>下载<code>bookings.all.csv</code>文件</li>
+
+</ol>
+
+<p class="list-inset">在这里，我们下载一个干净(er)版本的合成<code>bookings.all.csv</code>文件，类似于我们在<a href="B18638_01.xhtml#_idTextAnchor017"> <em class="italic">第1章</em> </a>，<em class="italic">AWS上的ML工程介绍</em>中使用的。然而，这一次，已经应用了多个数据清理和转换步骤<a id="_idIndexMarker1448"/>来产生更高质量的模型。</p>
+
+<ol>
+
+<li value="21">指定唯一的S3时段名称和前缀。确保在运行下面的代码块之前，用唯一的S3存储桶名称替换了<code>&lt;INSERT S3 BUCKET NAME HERE&gt;</code>的值:<pre class="source-code">s3_bucket = '<strong class="bold">&lt;INSERT S3 BUCKET NAME HERE&gt;</strong>'</pre> <pre class="source-code">prefix = 'pipeline'</pre></li>
+
+</ol>
+
+<p class="list-inset">您可以使用在前几章中创建的一个S3桶，并用S3桶名更新<code>s3_bucket</code>的值。如果您计划创建和使用一个新的S3存储桶，请确保使用一个尚不存在的存储桶名称来更新<code>s3_bucket</code>的值。之后，运行以下命令:</p>
+
+<pre class="list-inset1 source-code">!<strong class="bold">aws s3 mb s3://{s3_bucket}</strong></pre>
+
+<p class="list-inset">注意，只有当我们计划创建一个新的S3存储桶时，才应该执行这个命令。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">将S3存储桶名称复制到本地机器上的文本编辑器中。我们将在本章的<em class="italic">测试我们的ML推理端点</em>部分使用它。</p>
+
+<ol>
+
+<li value="22">让我们准备上传CSV文件的路径:<pre class="source-code"><strong class="bold">source_path</strong> = f's3://{s3_bucket}/{prefix}' + \</pre> <pre class="source-code">               '/source/<strong class="bold">dataset.all.csv</strong>'</pre></li>
+
+<li>最后，让<a id="_idIndexMarker1449"/>使用<code>aws s3 cp</code>命令:<pre class="source-code">!aws s3 cp tmp/bookings.all.csv {source_path}</pre>将<code>bookings.all.csv</code>文件上传到S3 bucket</li>
+
+</ol>
+
+<p class="list-inset">这里，CSV文件在上传到S3存储桶时被重命名为<code>dataset.all.csv</code>文件(因为我们在<code>source_path</code>变量中指定了这一点)。</p>
+
+<p>准备好先决条件后，我们现在可以开始运行我们的第一个管道了！</p>
+
+<h1 id="_idParaDest-221"><a id="_idTextAnchor237"/>使用SageMaker管道运行我们的第一条管道</h1>
+
+<p>在<a href="B18638_01.xhtml#_idTextAnchor017"> <em class="italic">第一章</em> </a>、<em class="italic">AWS上的ML工程介绍</em>中，我们安装并使用<strong class="bold">autoglon</strong>在一个AWS Cloud9环境中训练多个ML模型(使用<strong class="bold"> AutoML </strong>)。在<a id="_idIndexMarker1450"/>除此之外，我们使用各种工具和库手动执行了<a id="_idIndexMarker1451"/>ML过程的不同步骤。在本章中，我们将把这些手动执行的步骤转换成一个自动化的管道，这样我们所需要做的就是提供一个输入数据集，ML管道将为我们完成剩下的工作(并将训练好的模型存储在模型注册表中)。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">我们将使用内置的<strong class="bold">自动增长表格</strong>算法，而不是准备一个定制的Docker容器映像来使用自动增长来训练ML模型。有了可用的内置算法<a id="_idIndexMarker1452"/>，我们需要担心的只是超参数值和我们将用于配置训练作业的额外配置参数。</p>
+
+<p>也就是说，本节分为两部分:</p>
+
+<ul>
+
+<li><em class="italic">定义和准备我们的第一个ML管道</em>——这是我们将通过以下步骤定义和准备管道的地方:<ul><li><code>PrepareData</code>–这利用一个<strong class="bold"> SageMaker处理</strong>作业来处理输入数据集，并将其分成训练、验证和测试集。</li>
+
+<li><code>TrainModel</code>–这利用<strong class="bold">自动生成表格</strong>内置算法来训练分类模型。</li>
+
+<li><code>RegisterModel</code>–将训练好的ML模型注册到<strong class="bold"> SageMaker模型注册表</strong>。</li>
+
+</ul></li>
+
+<li><em class="italic">运行我们的第一个ML管道</em>——这是我们将使用<code>start()</code>方法来执行管道的地方。</li>
+
+</ul>
+
+<p>记住这些，让我们从准备ML管道开始。</p>
+
+<h2 id="_idParaDest-222"><a id="_idTextAnchor238"/>定义和准备我们的第一条ML管道</h2>
+
+<p>我们将准备的第一个管道是一个相对简单的管道，有三个步骤——包括<a id="_idIndexMarker1453"/>数据准备步骤、模型训练步骤和<a id="_idIndexMarker1454"/>模型注册步骤。为了帮助我们想象我们第一个使用<strong class="bold"> SageMaker管道</strong>的ML管道将会是什么样子，让我们快速查看<em class="italic">图11.7 </em>:</p>
+
+<div><div><img alt="Figure 11.7 – Our first ML pipeline using SageMaker Pipelines&#10;&#10;" height="213" src="img/B18638_11_007.jpg" width="1182"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.7–我们第一个使用SageMaker管道的ML管道</p>
+
+<p>在这里，我们可以看到我们的管道接受一个输入数据集，并将这个数据集分成训练集、验证集和测试集。然后，训练和验证集用于训练一个ML模型，然后注册到<strong class="bold"> SageMaker模型注册表</strong>。</p>
+
+<p>现在我们对管道的样子有了一个很好的想法，让我们在下一组步骤中运行我们的<code>Machine Learning Pipelines with SageMaker Pipelines.ipynb</code> Jupyter笔记本中的以下代码块:</p>
+
+<ol>
+
+<li value="1">让我们从<code>boto3</code>和<code>sagemaker</code>开始导入构建模块:<pre class="source-code">import <strong class="bold">boto3</strong></pre><pre class="source-code">import <strong class="bold">sagemaker</strong></pre><pre class="source-code">from sagemaker import <strong class="bold">get_execution_role</strong></pre><pre class="source-code">from sagemaker.sklearn.processing import (</pre><pre class="source-code">    <strong class="bold">SKLearnProcessor</strong></pre><pre class="source-code">)</pre><pre class="source-code">from sagemaker.workflow.steps import (</pre><pre class="source-code">    <strong class="bold">ProcessingStep</strong>, </pre><pre class="source-code">    <strong class="bold">TrainingStep</strong></pre><pre class="source-code">)</pre><pre class="source-code">from sagemaker.workflow.step_collections import (</pre><pre class="source-code">    <strong class="bold">RegisterModel</strong></pre><pre class="source-code">)</pre><pre class="source-code">from sagemaker.processing import (</pre><pre class="source-code">    <strong class="bold">ProcessingInput</strong>, </pre><pre class="source-code">    <strong class="bold">ProcessingOutput</strong></pre><pre class="source-code">)</pre><pre class="source-code">from sagemaker.workflow.parameters import (</pre><pre class="source-code">    <strong class="bold">ParameterString</strong></pre><pre class="source-code">)</pre><pre class="source-code">from sagemaker.inputs import <strong class="bold">TrainingInput</strong></pre><pre class="source-code">from sagemaker.estimator import <strong class="bold">Estimator</strong></pre><pre class="source-code">from sagemaker.workflow.pipeline import <strong class="bold">Pipeline</strong></pre></li>
+
+<li>将<a id="_idIndexMarker1455"/>SageMaker<a id="_idIndexMarker1456"/>执行角色ARN存储在<code>role</code>变量:<pre class="source-code">role = <strong class="bold">get_execution_role()</strong></pre>中</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout"><code>get_execution_role()</code>函数应该返回我们在本章的<em class="italic">准备必要的先决条件</em>一节中修改的IAM角色的ARN。</p>
+
+<ol>
+
+<li value="3">此外，让我们准备SageMaker <code>Session</code>对象:<pre class="source-code">session = <strong class="bold">sagemaker.Session()</strong></pre></li>
+
+<li>让我们初始化一个<code>ParameterString</code>对象，它映射到指向输入数据集存储位置的<code>Pipeline</code>参数:<pre class="source-code"><strong class="bold">input_data</strong> = <strong class="bold">ParameterString</strong>(</pre> <pre class="source-code">    name="RawData",</pre> <pre class="source-code">    default_value=source_path, </pre> <pre class="source-code">)</pre></li>
+
+<li>让我们<a id="_idIndexMarker1457"/>准备<code>ProcessingInput</code>对象，它包含<code>ProcessingOutput</code>对象输入源的<a id="_idIndexMarker1458"/>配置，映射到<strong class="bold"> SageMaker处理</strong>作业的输出结果的配置:<pre class="source-code"><strong class="bold">input_raw</strong> = <strong class="bold">ProcessingInput</strong>(</pre><pre class="source-code">    source=input_data,</pre><pre class="source-code">    destination='/opt/ml/processing/input/'</pre><pre class="source-code">)</pre><pre class="source-code"><strong class="bold">output_split</strong> = <strong class="bold">ProcessingOutput</strong>(</pre><pre class="source-code">    output_name="split",</pre><pre class="source-code">    source='/opt/ml/processing/output/', </pre><pre class="source-code">    destination=f's3://{s3_bucket}/{prefix}/output/'</pre><pre class="source-code">)</pre></li>
+
+<li>让我们初始化<code>SKLearnProcessor</code>对象以及相应的<code>ProcessingStep</code>对象:<pre class="source-code"><strong class="bold">processor</strong> = <strong class="bold">SKLearnProcessor</strong>(</pre><pre class="source-code">    framework_version='0.20.0',</pre><pre class="source-code">    role=role,</pre><pre class="source-code">    instance_count=1,</pre><pre class="source-code">    instance_type='ml.m5.large'</pre><pre class="source-code">)</pre><pre class="source-code"><strong class="bold">step_process</strong> = <strong class="bold">ProcessingStep</strong>(</pre><pre class="source-code">    name="PrepareData",  </pre><pre class="source-code">    processor=<strong class="bold">processor</strong>,</pre><pre class="source-code">    inputs=[<strong class="bold">input_raw</strong>],</pre><pre class="source-code">    outputs=[<strong class="bold">output_split</strong>],</pre><pre class="source-code">    code="<strong class="bold">processing.py</strong>",</pre><pre class="source-code">)</pre></li>
+
+</ol>
+
+<p class="list-inset">为了帮助我们可视化<a id="_idIndexMarker1459"/>我们如何配置<code>ProcessingStep</code>对象，让我们<a id="_idIndexMarker1460"/>快速检查<em class="italic">图11.8 </em>:</p>
+
+<div><div><img alt="Figure 11.8 – Configuring and preparing the ProcessingStep&#10;&#10;" height="651" src="img/B18638_11_008.jpg" width="1281"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.8–配置和准备处理步骤</p>
+
+<p class="list-inset">这里，我们使用已配置的<code>SKLearnProcessor</code>对象以及<code>inputs</code>、<code>outputs</code>和<code>code</code>参数的参数值来初始化<code>ProcessingStep</code>对象。</p>
+
+<ol>
+
+<li value="7">接下来，让我们准备好<code>model_path</code>变量，以指向SageMaker训练任务完成后模型将被上传到的位置(当ML管道在后面的步骤中被执行时):<pre class="source-code"><strong class="bold">model_path</strong> = f"s3://{s3_bucket}/{prefix}/model/"</pre></li>
+
+<li>此外，让我们<a id="_idIndexMarker1461"/>准备<code>model_id</code>变量来存储我们将使用的ML模型的<a id="_idIndexMarker1462"/>ID:<pre class="source-code"><strong class="bold">model_id</strong> = "<strong class="bold">autogluon-classification-ensemble</strong>"</pre></li>
+
+<li>让我们在<code>region_name</code> : <pre class="source-code"><strong class="bold">region_name</strong> = "us-west-2"</pre>中指定我们正在使用的区域</li>
+
+<li>使用<code>image_uris.retrieve()</code>得到我们训练图像的ECR容器图像URI:<pre class="source-code">from sagemaker import image_uris</pre><pre class="source-code"><strong class="bold">train_image_uri</strong> = <strong class="bold">image_uris.retrieve</strong>(</pre><pre class="source-code">    region=region_name,</pre><pre class="source-code">    framework=None,</pre><pre class="source-code">    model_id=<strong class="bold">model_id</strong>,</pre><pre class="source-code">    model_version="*",</pre><pre class="source-code">    image_scope="<strong class="bold">training</strong>",</pre><pre class="source-code">    instance_type="ml.m5.xlarge",</pre><pre class="source-code">)</pre></li>
+
+</ol>
+
+<p class="list-inset">如果您想知道<code>train_image_uri</code>的值是什么，它应该有一个等于(或类似于):<code>'763104351884.dkr.ecr.us-west-2.amazonaws.com/autogluon-training:0.4.0-cpu-py38'.</code>的字符串值</p>
+
+<ol>
+
+<li value="11">使用<code>script_uris.retrieve()</code>来获得与模型相关联的脚本S3·URI(给定<code>model_id</code>、<code>model_version</code>和<code>script_scope</code>的值):<pre class="source-code">from sagemaker import script_uris</pre> <pre class="source-code"><strong class="bold">train_source_uri</strong> = <strong class="bold">script_uris.retrieve</strong>(</pre> <pre class="source-code">    model_id=<strong class="bold">model_id</strong>, </pre> <pre class="source-code">    model_version="*", </pre> <pre class="source-code">    script_scope="<strong class="bold">training</strong>"</pre> <pre class="source-code">)</pre></li>
+
+</ol>
+
+<p class="list-inset">注意<code>train_source_uri</code>应该有一个等于(或类似于)于<code>'s3://jumpstart-cache-prod-us-west-2/source-directory-tarballs/autogluon/transfer_learning/classification/v1.0.1/sourcedir.tar.gz'</code>的字符串值。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">这个<code>sourcedir.tar.gz</code>文件里面是什么？如果调用<code>script_uris.retrieve()</code>时使用的<code>script_scope</code>值是<code>"training"</code>，<code>sourcedir.tar.gz</code>文件应该包含训练ML模型时使用<code>autogluon.tabular.TabularPredictor</code>的代码。请注意，<code>sourcedir.tar.gz</code>的内容根据调用<code>script_uris.retrieve()</code>时指定的参数而变化。</p>
+
+<ol>
+
+<li value="12">使用<code>model_uris.retrieve()</code>到<a id="_idIndexMarker1463"/>得到与模型相关联的模型工件S3 URI <a id="_idIndexMarker1464"/>(给定<code>model_id</code>、<code>model_version</code>、<code>model_scope</code>):<pre class="source-code">from sagemaker import model_uris</pre><pre class="source-code"><strong class="bold">train_model_uri</strong> = <strong class="bold">model_uris.retrieve</strong>(</pre><pre class="source-code">    model_id=<strong class="bold">model_id</strong>, </pre><pre class="source-code">    model_version="*", </pre><pre class="source-code">    model_scope="<strong class="bold">training</strong>"</pre><pre class="source-code">)</pre></li>
+
+</ol>
+
+<p class="list-inset">注意<code>train_model_uri</code>应该有一个与<code>'s3://jumpstart-cache-prod-us-west-2/autogluon-training/train-autogluon-classification-ensemble.tar.gz'</code>相等(或相似)的字符串值。</p>
+
+<ol>
+
+<li value="13">有了<code>train_image_uri</code>、<code>train_source_uri</code>、<code>train_model_uri</code>和<code>model_path</code>的<a id="_idIndexMarker1465"/>值，我们现在可以<a id="_idIndexMarker1466"/>初始化<code>Estimator</code>对象:<pre class="source-code">from sagemaker.estimator import Estimator</pre><pre class="source-code">estimator = <strong class="bold">Estimator</strong>(</pre><pre class="source-code">    image_uri=<strong class="bold">train_image_uri</strong>,</pre><pre class="source-code">    source_dir=<strong class="bold">train_source_uri</strong>,</pre><pre class="source-code">    model_uri=<strong class="bold">train_model_uri</strong>,</pre><pre class="source-code">    entry_point="transfer_learning.py",</pre><pre class="source-code">    instance_count=1,</pre><pre class="source-code">    instance_type="ml.m5.xlarge",</pre><pre class="source-code">    max_run=900,</pre><pre class="source-code">    output_path=<strong class="bold">model_path</strong>,</pre><pre class="source-code">    session=session,</pre><pre class="source-code">    role=role</pre><pre class="source-code">)</pre></li>
+
+</ol>
+
+<p class="list-inset">这里，<code>entry_point</code>值指向存储在<code>sourcedir.tar.gz</code>中的<code>transfer_learning.py</code>脚本文件，该文件包含用于训练模型的相关脚本。</p>
+
+<ol>
+
+<li value="14">接下来，让我们使用<code>retrieve_default()</code>函数来检索我们的<strong class="bold">自动引导</strong>分类模型的默认<a id="_idIndexMarker1467"/>超参数集:<pre class="source-code">from sagemaker.hyperparameters import <strong class="bold">retrieve_default</strong></pre><pre class="source-code">hyperparameters = <strong class="bold">retrieve_default</strong>(</pre><pre class="source-code">    model_id=model_id, </pre><pre class="source-code">    model_version="*"</pre><pre class="source-code">)</pre><pre class="source-code">hyperparameters["verbosity"] = "3"</pre><pre class="source-code"><strong class="bold">estimator.set_hyperparameters(**hyperparameters)</strong> </pre></li>
+
+<li>准备<a id="_idIndexMarker1468"/>初始化时使用<code>Estimator</code>对象<a id="_idIndexMarker1469"/>作为参数值之一的<code>TrainingStep</code>对象:<pre class="source-code"><strong class="bold">s3_data</strong> = <strong class="bold">step_process</strong>         \</pre><pre class="source-code">    .properties                \</pre><pre class="source-code">    .ProcessingOutputConfig    \</pre><pre class="source-code">    .Outputs["split"]          \</pre><pre class="source-code">    .S3Output.<strong class="bold">S3Uri</strong>            \</pre><pre class="source-code"><strong class="bold">step_train</strong> = <strong class="bold">TrainingStep</strong>(</pre><pre class="source-code">    name="<strong class="bold">TrainModel</strong>",</pre><pre class="source-code">    estimator=estimator,</pre><pre class="source-code">    inputs={</pre><pre class="source-code">        "training": TrainingInput(</pre><pre class="source-code">            s3_data=<strong class="bold">s3_data</strong>,</pre><pre class="source-code">        )</pre><pre class="source-code">    },</pre><pre class="source-code">)</pre></li>
+
+</ol>
+
+<p class="list-inset">这里，<code>s3_data</code>包含一个<code>Properties</code>对象，指向<code>s3_data</code>的输出文件所在的路径。使用<code>s3_data.__dict__</code>，我们应该得到一个类似如下的字典:</p>
+
+<pre class="list-inset1 source-code">{'<strong class="bold">step_name</strong>': 'PrepareData',
+
+ '<strong class="bold">path</strong>':  "ProcessingOutputConfig.Outputs['split']
+
+           .S3Output.S3Uri",
+
+ '<strong class="bold">_shape_names</strong>': ['S3Uri'],
+
+ '__str__': 'S3Uri'} </pre>
+
+<p class="list-inset">为了帮助<a id="_idIndexMarker1470"/>我们直观地了解如何配置<code>TrainingStep</code>对象，让<a id="_idIndexMarker1471"/>快速检查<em class="italic">图11.9 </em>:</p>
+
+<div><div><img alt="Figure 11.9 – Configuring and preparing the TrainingStep object&#10;&#10;" height="649" src="img/B18638_11_009.jpg" width="1438"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.9–配置和准备训练步骤对象</p>
+
+<p class="list-inset">这里，我们使用已配置的<code>Estimator</code>对象以及<code>name</code>和<code>inputs</code>参数的参数值来初始化<code>TrainingStep</code>对象。</p>
+
+<ol>
+
+<li value="16">现在，让<a id="_idIndexMarker1472"/>使用<code>image_uris.retrieve()</code>和<code>script_uris.retrieve()</code>来检索容器图像URI和脚本URI，用于<a id="_idIndexMarker1473"/>部署自动分类模型:<pre class="source-code"><strong class="bold">deploy_image_uri</strong> = <strong class="bold">image_uris.retrieve</strong>(</pre><pre class="source-code">    region=region_name,</pre><pre class="source-code">    framework=None,</pre><pre class="source-code">    image_scope="inference",</pre><pre class="source-code">    model_id=model_id,</pre><pre class="source-code">    model_version="*",</pre><pre class="source-code">    instance_type="ml.m5.xlarge",</pre><pre class="source-code">)</pre><pre class="source-code"><strong class="bold">deploy_source_uri</strong> = <strong class="bold">script_uris.retrieve</strong>(</pre><pre class="source-code">    model_id=model_id, </pre><pre class="source-code">    model_version="*", </pre><pre class="source-code">    script_scope="<strong class="bold">inference</strong>"</pre><pre class="source-code">)</pre></li>
+
+<li>使用<code>aws s3 cp</code>命令将<code>sourcedir.tar.gz</code>文件下载到<code>tmp</code>目录:<pre class="source-code">!<strong class="bold">aws s3 cp</strong> {deploy_source_uri} tmp/sourcedir.tar.gz</pre></li>
+
+<li>接下来，将<code>sourcedir.tar.gz</code>文件从<code>tmp</code>目录上传到你的S3桶:<pre class="source-code"><strong class="bold">updated_source_uri</strong> = f's3://{s3_bucket}/{prefix}' + \</pre> <pre class="source-code">                      '/sourcedir/sourcedir.tar.gz'</pre> <pre class="source-code">!<strong class="bold">aws s3 cp</strong> tmp/sourcedir.tar.gz {<strong class="bold">updated_source_uri</strong>}</pre></li>
+
+<li>我们来定义一下<code>random_string()</code>的功能:<pre class="source-code">import uuid</pre> <pre class="source-code">def <strong class="bold">random_string()</strong>:</pre> <pre class="source-code">    return uuid.uuid4().hex.upper()[0:6]</pre></li>
+
+</ol>
+
+<p class="list-inset">这个函数应该返回一个随机的字母数字字符串(6个字符)。</p>
+
+<ol>
+
+<li value="20">有了<code>deploy_image_uri</code>、<code>updated_source_uri</code>和<code>model_data</code>的<a id="_idIndexMarker1474"/>值，我们<a id="_idIndexMarker1475"/>现在可以初始化<code>Model</code>对象:<pre class="source-code">from sagemaker.model import Model</pre><pre class="source-code">from sagemaker.workflow.pipeline_context import \</pre><pre class="source-code">    PipelineSession</pre><pre class="source-code">pipeline_session = PipelineSession()</pre><pre class="source-code"><strong class="bold">model_data</strong> = <strong class="bold">step_train</strong>    \</pre><pre class="source-code">    .properties            \</pre><pre class="source-code">    .<strong class="bold">ModelArtifacts</strong>        \</pre><pre class="source-code">    .<strong class="bold">S3ModelArtifacts</strong>      \</pre><pre class="source-code">model = <strong class="bold">Model</strong>(image_uri=<strong class="bold">deploy_image_uri</strong>, </pre><pre class="source-code">              source_dir=<strong class="bold">updated_source_uri</strong>,</pre><pre class="source-code">              model_data=<strong class="bold">model_data</strong>,</pre><pre class="source-code">              role=role,</pre><pre class="source-code">              entry_point=<strong class="bold">"inference.py"</strong>,</pre><pre class="source-code">              sagemaker_session=pipeline_session,</pre><pre class="source-code">              name=<strong class="bold">random_string()</strong>)</pre></li>
+
+</ol>
+
+<p class="list-inset">这里，我们使用在上一步中定义的<code>random_string()</code>函数作为<code>Model</code>对象的名称标识符。</p>
+
+<ol>
+
+<li value="21">接下来，我们准备初始化时使用<code>model.register()</code>输出的<code>ModelStep</code>对象:<pre class="source-code">from sagemaker.workflow.model_step import ModelStep</pre><pre class="source-code">model_package_group_name = "<strong class="bold">AutoGluonModelGroup</strong>"</pre><pre class="source-code"><strong class="bold">register_args</strong> = model.<strong class="bold">register</strong>(</pre><pre class="source-code">    content_types=["text/csv"],</pre><pre class="source-code">    response_types=["application/json"],</pre><pre class="source-code">    inference_instances=["ml.m5.xlarge"],</pre><pre class="source-code">    transform_instances=["ml.m5.xlarge"],</pre><pre class="source-code">    model_package_group_name=model_package_group_name,</pre><pre class="source-code">    approval_status="Approved",</pre><pre class="source-code">)</pre><pre class="source-code">step_model_create = <strong class="bold">ModelStep</strong>(</pre><pre class="source-code">    name="CreateModel",</pre><pre class="source-code">    step_args=<strong class="bold">register_args</strong></pre><pre class="source-code">)</pre></li>
+
+<li>现在，让<a id="_idIndexMarker1476"/>使用我们在前面步骤中准备的不同步骤<a id="_idIndexMarker1477"/>对象来初始化<code>Pipeline</code>对象:<pre class="source-code">pipeline_name = f"PARTIAL-PIPELINE"</pre><pre class="source-code">partial_pipeline = <strong class="bold">Pipeline</strong>(</pre><pre class="source-code">    name=pipeline_name,</pre><pre class="source-code">    parameters=[</pre><pre class="source-code">        <strong class="bold">input_data</strong></pre><pre class="source-code">    ],</pre><pre class="source-code">    steps=[</pre><pre class="source-code">        <strong class="bold">step_process</strong>, </pre><pre class="source-code">        <strong class="bold">step_train</strong>,</pre><pre class="source-code">        <strong class="bold">step_model_create</strong>,</pre><pre class="source-code">    ],</pre><pre class="source-code">)</pre></li>
+
+<li>最后，让我们<a id="_idIndexMarker1478"/>使用<code>upsert()</code>方法来创建我们的ML <a id="_idIndexMarker1479"/>管道:<pre class="source-code"><strong class="bold">partial_pipeline.upsert(role_arn=role)</strong></pre></li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">请注意，<code>upsert()</code>方法也可以用来更新现有的ML管道。</p>
+
+<p>现在我们的初始管道已经准备好了，我们可以继续运行ML管道了！</p>
+
+<h2 id="_idParaDest-223"><a id="_idTextAnchor239"/>运行我们的首个ML管道</h2>
+
+<p>一旦<code>Pipeline</code>对象<a id="_idIndexMarker1480"/>被初始化和创建，我们就可以使用<code>start()</code>方法立即运行它，这类似于我们在下面的代码行中所做的:</p>
+
+<pre class="source-code">execution = <strong class="bold">partial_pipeline.start()</strong></pre>
+
+<p>如果我们希望覆盖管道输入的默认参数(例如，使用的输入数据)，我们可以在调用<code>start()</code>方法时指定参数值，类似于下面的代码块:</p>
+
+<pre class="source-code">execution = <strong class="bold">partial_pipeline.start</strong>(
+
+    parameters=dict(
+
+        RawData="<strong class="bold">&lt;INSERT NEW SOURCE PATH&gt;</strong>",
+
+    )
+
+)</pre>
+
+<p>一旦管道执行开始，我们就可以使用<code>execution.wait()</code>来等待管道完成运行。</p>
+
+<p>记住这一点，让我们在下一组步骤中运行ML管道:</p>
+
+<ol>
+
+<li value="1">一切准备就绪后，让我们使用<code>start()</code>方法运行(部分)ML管道:<pre class="source-code">execution = <strong class="bold">partial_pipeline.start()</strong></pre> <pre class="source-code">execution.<strong class="bold">describe()</strong></pre></li>
+
+<li>让我们使用<code>wait()</code>方法等待管道完成，然后再继续:<pre class="source-code">execution.<strong class="bold">wait()</strong></pre></li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">这大约需要10-15分钟才能完成。在等待的时候，请随意喝杯咖啡或茶！</p>
+
+<ol>
+
+<li value="3">运行下面的<a id="_idIndexMarker1481"/>代码块来获得最终的模型包ARN: <pre class="source-code">steps = execution.<strong class="bold">list_steps()</strong></pre> <pre class="source-code">steps[0]['Metadata']['RegisterModel']['Arn']</pre></li>
+
+</ol>
+
+<p class="list-inset">这将产生一个格式类似于<code>arn:aws:sagemaker:us-west-2:&lt;ACCOUNT ID&gt;:model-package/autogluonmodelgroup/1</code>的ARN。将该值复制到文本编辑器中。我们将在本章的<em class="italic">为部署</em>创建Lambda函数一节中测试我们的Lambda函数时使用这个模型包ARN。</p>
+
+<ol>
+
+<li value="4">找到并点击SageMaker Studio左侧边栏底部附近的三角形图标(<strong class="bold"> SageMaker资源</strong>)(如图<em class="italic">图11.10 </em>中突出显示的内容):</li>
+
+</ol>
+
+<div><div><img alt="Figure 11.10 – Opening the SageMaker resources pane &#10;&#10;" height="453" src="img/B18638_11_010.jpg" width="729"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.10–打开SageMaker资源窗格</p>
+
+<p class="list-inset">这将打开<strong class="bold"> SageMaker resources </strong>窗格，我们可以在其中查看和检查各种SageMaker资源。</p>
+
+<ol>
+
+<li value="5">从<strong class="bold"> SageMaker resources </strong>窗格的下拉菜单中的可用选项列表中选择<strong class="bold"> Pipelines </strong>。</li>
+
+<li>之后，双击映射到我们刚刚<a id="_idIndexMarker1482"/>创建的<code>PARTIAL-PIPELINE</code>管道的行。之后，双击映射到我们调用<code>partial_pipeline.start()</code>后触发的管道执行的行。</li>
+
+<li>一旦执行完成，您应该会看到一个类似于<em class="italic">图11.11 </em>所示的图形:</li>
+
+</ol>
+
+<div><div><img alt="Figure 11.11 – Completed pipeline execution&#10;&#10;" height="572" src="img/B18638_11_011.jpg" width="863"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.11-完成的管道执行</p>
+
+<p class="list-inset">请随意<a id="_idIndexMarker1483"/>点击圆角矩形，查看以下每个步骤的详细信息:</p>
+
+<ul>
+
+<li><strong class="bold">输入</strong>–输入文件、参数和配置</li>
+
+<li><strong class="bold">输出</strong>–输出文件和指标(如果有)</li>
+
+<li><strong class="bold">日志</strong>–生成的日志</li>
+
+<li><strong class="bold">信息</strong>–任何附加信息/元数据</li>
+
+</ul>
+
+<ol>
+
+<li value="8">导航回与带有SageMaker Pipelines.ipynb 笔记本的<strong class="bold">机器学习管道对应的选项卡。</strong></li>
+
+<li>让我们回顾一下使用<code>list_steps()</code>方法在(部分)管道运行期间执行的步骤:<pre class="source-code">execution.<strong class="bold">list_steps()</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这应该会返回映射到管道执行步骤的字典列表。</p>
+
+<p>我们还没完呢！此时，我们只完成了ML管道的一半。确保您<a id="_idIndexMarker1484"/>没有关闭SageMaker Studio中正在运行的应用程序和实例，因为我们稍后将在<code>Machine Learning Pipelines with SageMaker Pipelines.ipynb</code>笔记本中运行更多代码块来完成我们的管道。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果您需要休息，您可以关闭正在运行的实例和应用程序(以管理成本)，然后在使用<em class="italic">完成本章的端到端ML管道</em>部分之前，再次运行<code>Machine Learning Pipelines with SageMaker Pipelines.ipynb</code>笔记本中的所有单元。</p>
+
+<h1 id="_idParaDest-224"><a id="_idTextAnchor240"/>创建用于部署的Lambda函数</h1>
+
+<p>我们的第二个(更完整的)管道将需要一些额外的资源来帮助我们部署ML模型。在此<a id="_idIndexMarker1485"/>部分，我们将创建以下Lambda函数:</p>
+
+<ul>
+
+<li><code>check-if-endpoint-exists</code>–这是一个Lambda函数，接受ML推理端点的名称作为输入，如果端点已经存在，则返回<code>True</code>。</li>
+
+<li><code>deploy-model-to-new-endpoint</code>–这是一个Lambda函数，它接受模型包ARN作为输入(以及角色和端点名称)，并将模型部署到一个新的推理端点中</li>
+
+<li><code>deploy-model-to-existing-endpoint</code>–这是一个Lambda函数，它接受模型包ARN作为输入(以及角色和端点名称)，并将模型部署到一个现有的推理端点中(通过更新ML实例中部署的模型)</li>
+
+</ul>
+
+<p>我们将在<em class="italic">完成端到端ML管道</em>部分使用这些函数来部署我们将在SageMaker模型注册表中注册的ML模型(使用<code>ModelStep</code>)。</p>
+
+<h2 id="_idParaDest-225"><a id="_idTextAnchor241"/>准备用于将模型部署到新端点的Lambda函数</h2>
+
+<p>我们将创建的第一个<strong class="bold"> AWS Lambda </strong>函数<a id="_idIndexMarker1486"/>将被配置和编程为将<a id="_idIndexMarker1487"/>模型部署到新的端点。为了帮助我们形象化我们的函数将如何工作，让我们快速检查一下<em class="italic">图11.12 </em>:</p>
+
+<div><div><img alt="Figure 11.12 – Deploying a model to a new endpoint&#10;&#10;" height="634" src="img/B18638_11_012.jpg" width="1031"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.12–将模型部署到新的端点</p>
+
+<p>该函数将接受以下输入参数:IAM角色、端点名称和模型包ARN。在接收到这些输入参数之后，该函数将创建将模型(从模型包)部署到新的ML推断端点所需的相应资源集。</p>
+
+<p>在下一组步骤中，我们将创建一个Lambda函数，用于将ML模型部署到一个新的推理端点:</p>
+
+<ol>
+
+<li value="1">导航到AWS管理控制台搜索栏中的<code>lambda</code>，然后单击搜索结果列表中的<strong class="bold">λ</strong>链接。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">在本章中，我们将在<code>us-west-2</code>区域创建和管理我们的资源。在继续下一步之前，请确保您已经设置了正确的区域。</p>
+
+<ol>
+
+<li value="2">找到<a id="_idIndexMarker1488"/>并点击<code>deploy-model-to-new-endpoint</code></li>
+
+<li><code>Python 3.9</code></li>
+
+<li><strong class="bold">权限</strong> &gt; <strong class="bold">改变默认执行角色</strong></li>
+
+<li><code>Use an existing role</code></li>
+
+<li><code>pipeline-lambda-role</code></li>
+
+
+
+<li>向下滚动到页面底部，然后点击<strong class="bold">创建功能</strong>按钮。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">单击<strong class="bold">创建函数</strong>按钮后，您应该会看到以下成功通知:<strong class="bold">成功创建了函数deploy-model-to-new-endpoint</strong>。<strong class="bold"> </strong>你现在可以改变它的代码和配置。要用测试事件调用您的函数，选择<strong class="bold">测试</strong>。</p>
+
+<ol>
+
+<li value="4">导航到<code>1024</code> MB</li>
+
+<li><code>15</code>分钟<code>0</code>秒</li>
+
+
+
+</ol>
+
+<p class="list-inset">之后，点击<strong class="bold">保存</strong>按钮。</p>
+
+<ol>
+
+<li value="5">在另一个浏览器标签中打开以下链接:<a href="https://raw.githubusercontent.com/PacktPublishing/Machine-Learning-Engineering-on-AWS/main/chapter11/utils.py">https://raw . githubusercontent . com/packt publishing/Machine-Learning-Engineering-on-AWS/main/chapter 11/utils . py</a>。使用<em class="italic"> Ctrl </em> + <em class="italic"> A </em>然后<em class="italic"> Ctrl </em> + <em class="italic"> C </em>将页面内容复制到剪贴板中(或者，如果您使用的是Mac，也可以使用<em class="italic"> CMD </em> + <em class="italic"> A </em>然后<em class="italic"> CMD </em> + <em class="italic"> C </em>)。</li>
+
+<li>回到<a id="_idIndexMarker1490"/>显示Lambda控制台的浏览器选项卡，导航到<code>Untitled1</code>。</li>
+
+<li>在新选项卡(不包含代码)中，粘贴复制到剪贴板的代码。打开<code>utils.py</code>作为<strong class="bold">文件名</strong>字段值，然后点击<strong class="bold">保存</strong>。</li>
+
+<li>导航到选项卡，在这里我们可以修改<code>lambda_function.py</code>中的代码。继续之前，删除当前存储在<code>lambda_function.py</code>中的样板代码。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">在<code>lambda_function.py</code>内的后续步骤中键入(或复制)代码块。你可以在<a href="https://github.com/PacktPublishing/Machine-Learning-Engineering-on-AWS/blob/main/chapter11/deploy-model-to-new-endpoint.py">https://github . com/packt publishing/Machine-Learning-Engineering-on-AWS/blob/main/chapter 11/deploy-model-to-new-endpoint . py</a>找到Lambda函数的代码副本。</p>
+
+<ol>
+
+<li value="9">在<code>lambda_function.py</code>文件中，导入我们将训练好的ML模型部署到新的ML推理端点所需的函数:<pre class="source-code">import json</pre><pre class="source-code">from utils import (</pre><pre class="source-code">    <strong class="bold">create_model</strong>, </pre><pre class="source-code">    <strong class="bold">create_endpoint_config</strong>, </pre><pre class="source-code">    <strong class="bold">create_endpoint</strong>, </pre><pre class="source-code">    <strong class="bold">random_string</strong>,</pre><pre class="source-code">    <strong class="bold">block</strong></pre><pre class="source-code">)</pre></li>
+
+<li>现在，让我们用<a id="_idIndexMarker1492"/>定义一下<code>lambda_handler()</code>的功能:<pre class="source-code">def <strong class="bold">lambda_handler</strong>(event, context):</pre><pre class="source-code">    role = event['role']</pre><pre class="source-code">    endpoint_name = event['endpoint_name']</pre><pre class="source-code">    package_arn = event['package_arn']</pre><pre class="source-code">    </pre><pre class="source-code">    model_name = 'model-' + random_string()</pre><pre class="source-code">    </pre><pre class="source-code">    with block('CREATE MODEL'):</pre><pre class="source-code">        <strong class="bold">create_model</strong>(</pre><pre class="source-code">            model_name=model_name,</pre><pre class="source-code">            package_arn=package_arn,</pre><pre class="source-code">            role=role</pre><pre class="source-code">        )</pre><pre class="source-code">    </pre><pre class="source-code">    with block('CREATE ENDPOINT CONFIG'):</pre><pre class="source-code">        endpoint_config_name = <strong class="bold">create_endpoint_config</strong>(</pre><pre class="source-code">            model_name</pre><pre class="source-code">        )</pre><pre class="source-code">    </pre><pre class="source-code">    with block('CREATE ENDPOINT'):</pre><pre class="source-code">        <strong class="bold">create_endpoint</strong>(</pre><pre class="source-code">            endpoint_name=endpoint_name, </pre><pre class="source-code">            endpoint_config_name=endpoint_config_name</pre><pre class="source-code">        )</pre><pre class="source-code">        </pre><pre class="source-code">    return {</pre><pre class="source-code">        'statusCode': 200,</pre><pre class="source-code">        'body': json.dumps(event),</pre><pre class="source-code">        'model': model_name</pre><pre class="source-code">    }</pre></li>
+
+<li>点击<strong class="bold">部署</strong>按钮。</li>
+
+<li>点击<strong class="bold">测试</strong>按钮。</li>
+
+<li>在<a id="_idIndexMarker1493"/>事件名称<strong class="bold">下的<code>test</code>中，然后<a id="_idIndexMarker1494"/>事件JSON </strong>下指定以下JSON值:<pre class="source-code">{</pre> <pre class="source-code">  "role": "<strong class="bold">&lt;INSERT SAGEMAKER EXECUTION ROLE ARN&gt;</strong>",</pre> <pre class="source-code">  "endpoint_name": "AutoGluonEndpoint",</pre> <pre class="source-code">  "package_arn": "<strong class="bold">&lt;INSERT MODEL PACKAGE ARN&gt;</strong>"</pre> <pre class="source-code">}</pre></li>
+
+</ol>
+
+<p class="list-inset">请确保替换以下值:</p>
+
+<ul>
+
+<li><code>&lt;INSERT SAGEMAKER EXECUTION ROLE ARN&gt;</code>–用<code>arn:aws:iam::1234567890:role/service-role/AmazonSageMaker-ExecutionRole-20220000T000000</code>替换该占位符值。</li>
+
+<li><code>&lt;INSERT MODEL PACKAGE ARN&gt;</code>–用<code>arn:aws:sagemaker:us-west-2:1234567890:model-package/autogluonmodelgroup/1</code>替换该占位符值。</li>
+
+</ul>
+
+<ol>
+
+<li value="14">将这个测试事件JSON值复制到本地机器上的文本编辑器中。稍后当测试我们的<code>deploy-model-to-existing-endpoint</code> Lambda函数时，我们将<a id="_idIndexMarker1498"/>再次使用这个测试事件JSON。</li>
+
+<li>之后，点击<strong class="bold">保存</strong>按钮。</li>
+
+<li>一切准备就绪后，让我们点击<strong class="bold">测试</strong>按钮。这将打开一个新的选项卡，显示几分钟后的执行结果。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">完成此步骤可能需要5-15分钟。请随意喝杯咖啡或茶！</p>
+
+<ol>
+
+<li value="17">等待时，向上滚动并找到<strong class="bold">功能概述</strong>窗格。将<strong class="bold">函数ARN </strong>值复制到你的文本编辑器中。我们将在本章的<em class="italic">完成端到端ML管道</em>部分使用这个<strong class="bold">函数ARN </strong>值。</li>
+
+</ol>
+
+<p>一旦<code>deploy-model-to-new-endpoint</code> Lambda函数完成运行，我们<a id="_idIndexMarker1499"/>应该已经在ML推理端点中部署了ML模型。注意<a id="_idIndexMarker1500"/>我们只是在测试Lambda函数，在运行完整的ML管道之前，我们将在后面的步骤中删除ML推断端点(由<code>deploy-model-to-new-endpoint</code> Lambda函数启动)。</p>
+
+<h2 id="_idParaDest-226"><a id="_idTextAnchor242"/>准备用于检查端点是否存在的Lambda函数</h2>
+
+<p>我们将创建的第二个<strong class="bold"> AWS Lambda </strong>函数将被配置和编程，以检查<a id="_idIndexMarker1501"/>端点是否已经存在(给定端点名称)。为了帮助我们直观地了解<a id="_idIndexMarker1502"/>我们的函数将如何工作，让我们快速检查一下<em class="italic">图11.13 </em>:</p>
+
+<div><div><img alt="Figure 11.13 – Check whether an endpoint exists already&#10;&#10;" height="562" src="img/B18638_11_013.jpg" width="1062"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.13–检查端点是否已经存在</p>
+
+<p>该函数将接受一个输入参数—ML推理端点的名称。接收到输入参数后，该函数将使用<code>boto3</code>库列出该区域中所有正在运行的端点，并检查这些端点之一的名称是否与输入参数值匹配。</p>
+
+<p>在下一组<a id="_idIndexMarker1504"/>步骤<a id="_idIndexMarker1503"/>中，我们将创建一个Lambda函数，用于检查ML推理端点是否已经存在:</p>
+
+<ol>
+
+<li value="1">打开一个新的浏览器选项卡，导航到Lambda管理控制台的<strong class="bold">功能</strong>页面。</li>
+
+<li>找到并点击<strong class="bold">创建功能</strong>按钮(位于<strong class="bold">功能</strong>页面的左上角)，然后指定以下配置值:<ul><li><strong class="bold">作者从零开始</strong></li>
+
+<li><code>check-if-endpoint-exists</code></li>
+
+<li><code>Python 3.9</code></li>
+
+<li><strong class="bold">权限</strong> &gt; <strong class="bold">改变默认执行角色</strong></li>
+
+<li><code>Use an existing role</code></li>
+
+<li><code>pipeline-lambda-role</code></li>
+
+</ul></li>
+
+<li>向下滚动到页面底部，然后点击<strong class="bold">创建功能</strong>按钮。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">将代码块键入(或复制)到<code>lambda_function.py</code>内的后续步骤中。你可以在<a href="https://github.com/PacktPublishing/Machine-Learning-Engineering-on-AWS/blob/main/chapter11/check-if-endpoint-exists.py">https://github . com/packt publishing/Machine-Learning-Engineering-on-AWS/blob/main/chapter 11/check-if-endpoint-exists . py</a>找到Lambda函数的代码副本。</p>
+
+<ol>
+
+<li value="4">在<code>lambda_function.py</code>文件中，导入<code>boto3</code>并初始化SageMaker服务的客户端:<pre class="source-code">import boto3</pre> <pre class="source-code"><strong class="bold">sm_client = boto3.client('sagemaker')</strong></pre></li>
+
+<li>接下来，我们来定义一下<code>endpoint_exists()</code>的功能:<pre class="source-code">def <strong class="bold">endpoint_exists</strong>(endpoint_name):</pre><pre class="source-code">    response = <strong class="bold">sm_client.list_endpoints</strong>(</pre><pre class="source-code">        NameContains=endpoint_name</pre><pre class="source-code">    )</pre><pre class="source-code">    </pre><pre class="source-code">    results = list(</pre><pre class="source-code">        filter(</pre><pre class="source-code">            lambda x: \</pre><pre class="source-code">            x['EndpointName'] == endpoint_name, </pre><pre class="source-code">            </pre><pre class="source-code">            response['Endpoints']</pre><pre class="source-code">        )</pre><pre class="source-code">    )</pre><pre class="source-code">    </pre><pre class="source-code">    return len(results) &gt; 0</pre></li>
+
+<li>现在，让我们用<a id="_idIndexMarker1505"/>来定义<code>lambda_handler()</code>函数，它利用<code>endpoint_exists()</code>函数来检查一个ML推理端点是否存在<a id="_idIndexMarker1506"/>(给定端点名称):<pre class="source-code">def <strong class="bold">lambda_handler</strong>(event, context):</pre><pre class="source-code">    endpoint_name = event['endpoint_name']</pre><pre class="source-code">    </pre><pre class="source-code">    return {</pre><pre class="source-code">        'endpoint_exists': <strong class="bold">endpoint_exists</strong>(</pre><pre class="source-code">            endpoint_name=endpoint_name</pre><pre class="source-code">        )</pre><pre class="source-code">    }</pre></li>
+
+<li>点击<strong class="bold">部署</strong>按钮。</li>
+
+<li>点击<strong class="bold">事件名称</strong>下的<code>test</code>，然后在<strong class="bold">事件JSON </strong>下指定以下JSON值:<pre class="source-code">{</pre> <pre class="source-code">  "endpoint_name": "<strong class="bold">AutoGluonEndpoint</strong>"</pre> <pre class="source-code">}</pre></li>
+
+<li>之后，点击<strong class="bold">保存</strong>按钮。</li>
+
+<li>一切准备就绪后，让我们点击<strong class="bold">测试</strong>按钮。这将打开一个新的<a id="_idIndexMarker1508"/>选项卡，几秒钟后将显示执行结果。我们应该在测试Lambda函数后得到如下响应值:<pre class="source-code">{</pre> <pre class="source-code">  "endpoint_exists": <strong class="bold">true</strong></pre> <pre class="source-code">}</pre></li>
+
+<li>最后，向上滚动并找到<strong class="bold">功能概述</strong>窗格。将<strong class="bold">函数ARN </strong>值复制到你的文本编辑器中。我们将在本章的<em class="italic">完成端到端ML管道</em>部分使用这个<strong class="bold">函数ARN </strong>值。</li>
+
+</ol>
+
+<p>现在我们<a id="_idIndexMarker1509"/>已经完成了准备和测试<code>check-if-endpoint-exists</code> Lambda <a id="_idIndexMarker1510"/>函数，我们可以继续创建最后一个Lambda函数(<code>deploy-model-to-existing-endpoint</code>)。</p>
+
+<h2 id="_idParaDest-227"><a id="_idTextAnchor243"/>准备用于将模型部署到现有端点的Lambda函数</h2>
+
+<p>我们将创建的第三个<strong class="bold"> AWS Lambda </strong>函数将被配置和编程为将模型部署到现有的端点。为了帮助我们形象化我们的函数将如何工作，让我们<a id="_idIndexMarker1512"/>快速检查一下<em class="italic">图11.14 </em>:</p>
+
+<div><div><img alt="Figure 11.14 – Deploying a model to an existing endpoint&#10;&#10;" height="634" src="img/B18638_11_014.jpg" width="1025"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.14–将模型部署到现有的端点</p>
+
+<p>该函数将接受三个输入参数IAM角色、端点名称和模型包ARN。在接收到这些输入参数之后，该函数将执行必要的步骤，以使用所提供的模型包中的模型来更新部署在现有ML推断端点中的模型。</p>
+
+<p>在下一组步骤中，我们将创建一个Lambda函数，用于将ML模型部署到现有的推理端点:</p>
+
+<ol>
+
+<li value="1">打开一个新的浏览器选项卡，导航到Lambda管理控制台的<strong class="bold">功能</strong>页面。</li>
+
+<li>找到并点击<strong class="bold">创建功能</strong>按钮(位于<strong class="bold">功能</strong>页面的左上角)，然后指定以下配置值:<ul><li><strong class="bold">作者从零开始</strong></li>
+
+<li><code>deploy-model-to-existing-endpoint</code></li>
+
+<li><code>Python 3.9</code></li>
+
+<li><strong class="bold">权限</strong> &gt; <strong class="bold">改变默认执行角色</strong></li>
+
+<li><code>Use an existing role</code></li>
+
+<li><code>pipeline-lambda-role</code></li>
+
+</ul></li>
+
+<li>向下滚动到页面底部，然后点击<strong class="bold">创建功能</strong>按钮。</li>
+
+<li>将<a id="_idIndexMarker1513"/>导航至<code>1024</code> MB</li>
+
+<li><code>15</code>分钟<code>0</code>秒</li>
+
+
+
+<li>之后，点击<strong class="bold">保存</strong>按钮。</li>
+
+<li>在另一个浏览器标签中打开以下链接:<a href="https://raw.githubusercontent.com/PacktPublishing/Machine-Learning-Engineering-on-AWS/main/chapter11/utils.py">https://raw . githubusercontent . com/packt publishing/Machine-Learning-Engineering-on-AWS/main/chapter 11/utils . py</a>。使用<em class="italic"> Ctrl </em> + <em class="italic"> A </em>然后<em class="italic"> Ctrl </em> + <em class="italic"> C </em>将页面内容复制到剪贴板中(或者，如果您使用的是Mac，也可以使用<em class="italic"> CMD </em> + <em class="italic"> A </em>然后<em class="italic"> CMD </em> + <em class="italic"> C </em>)。</li>
+
+<li>回到显示Lambda控制台的浏览器选项卡，导航到<code>Untitled1</code>。在新选项卡(不包含代码)中，粘贴复制到剪贴板的代码。</li>
+
+<li>打开<code>utils.py</code>作为<strong class="bold">文件名</strong>字段值，然后点击<strong class="bold">保存</strong>。</li>
+
+<li>导航<a id="_idIndexMarker1515"/>到选项卡，在这里我们可以修改<code>lambda_function.py</code>中的代码。继续之前，删除当前存储在<code>lambda_function.py</code>中的样板代码。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">在<code>lambda_function.py</code>内的后续步骤中键入(或复制)代码块。你可以在<a href="https://github.com/PacktPublishing/Machine-Learning-Engineering-on-AWS/blob/main/chapter11/deploy-model-to-existing-endpoint.py">https://github . com/packt publishing/Machine-Learning-Engineering-on-AWS/blob/main/chapter 11/deploy-model-to-existing-endpoint . py</a>找到Lambda函数的代码副本。</p>
+
+<ol>
+
+<li value="10">在<code>lambda_function.py</code>文件中，导入我们需要更新已部署模型的现有端点的函数:<pre class="source-code">import json</pre><pre class="source-code">from utils import (</pre><pre class="source-code">    <strong class="bold">create_model</strong>, </pre><pre class="source-code">    <strong class="bold">create_endpoint_config</strong>, </pre><pre class="source-code">    <strong class="bold">update_endpoint</strong>, </pre><pre class="source-code">    random_string,</pre><pre class="source-code">    block</pre><pre class="source-code">)</pre></li>
+
+<li>现在，让我们用下面的<a id="_idIndexMarker1518"/>代码块<pre class="source-code">def <strong class="bold">lambda_handler</strong>(event, context):</pre><pre class="source-code">    role = event['role']</pre><pre class="source-code">    endpoint_name = event['endpoint_name']</pre><pre class="source-code">    package_arn = event['package_arn']</pre><pre class="source-code">    </pre><pre class="source-code">    model_name = 'model-' + random_string()</pre><pre class="source-code">    </pre><pre class="source-code">    with block('CREATE MODEL'):</pre><pre class="source-code">        <strong class="bold">create_model</strong>(</pre><pre class="source-code">            model_name=model_name,</pre><pre class="source-code">            package_arn=package_arn,</pre><pre class="source-code">            role=role</pre><pre class="source-code">        )</pre><pre class="source-code">    </pre><pre class="source-code">    with block('CREATE ENDPOINT CONFIG'):</pre><pre class="source-code">        endpoint_config_name = <strong class="bold">create_endpoint_config</strong>(</pre><pre class="source-code">            model_name</pre><pre class="source-code">        )</pre><pre class="source-code">    </pre><pre class="source-code">    with block('UPDATE ENDPOINT'):</pre><pre class="source-code">        <strong class="bold">update_endpoint</strong>(</pre><pre class="source-code">            endpoint_name=endpoint_name, </pre><pre class="source-code">            endpoint_config_name=endpoint_config_name</pre><pre class="source-code">        )</pre><pre class="source-code">        </pre><pre class="source-code">    return {</pre><pre class="source-code">        'statusCode': 200,</pre><pre class="source-code">        'body': json.dumps(event),</pre><pre class="source-code">        'model': model_name</pre><pre class="source-code">    } </pre>来定义<code>lambda_handler()</code>函数</li>
+
+<li>点击<strong class="bold">部署</strong>按钮。</li>
+
+<li>点击<a id="_idIndexMarker1519"/>事件名称和<a id="_idIndexMarker1520"/>下的<code>test</code>，然后在<strong class="bold">事件JSON </strong>下指定以下JSON值:<pre class="source-code">{</pre> <pre class="source-code">  "role": "<strong class="bold">&lt;INSERT SAGEMAKER EXECUTION ROLE ARN&gt;</strong>",</pre> <pre class="source-code">  "endpoint_name": "AutoGluonEndpoint",</pre> <pre class="source-code">  "package_arn": "<strong class="bold">&lt;INSERT MODEL PACKAGE ARN&gt;</strong>"</pre> <pre class="source-code">}</pre></li>
+
+</ol>
+
+<p class="list-inset">请确保替换以下值:</p>
+
+<ul>
+
+<li><code>&lt;INSERT SAGEMAKER EXECUTION ROLE ARN&gt;</code>–在本章的<em class="italic">准备必要先决条件</em>一节中，将此占位符值替换为复制到您的文本编辑器中的<strong class="bold">执行角色ARN </strong>。</li>
+
+<li><code>&lt;INSERT MODEL PACKAGE ARN&gt;</code>–在本章的<em class="italic">使用SageMaker管道</em>运行我们的第一条管道一节中，用复制到您的文本编辑器中的<strong class="bold">模型包ARN </strong>替换该占位符值。</li>
+
+</ul>
+
+<p class="list-inset">此外，在测试我们的<code>deploy-model-to-new-endpoint</code> Lambda函数时，您可以使用我们复制到文本编辑器中的相同测试事件JSON值。</p>
+
+<ol>
+
+<li value="14">之后，点击<strong class="bold">保存</strong>按钮。</li>
+
+<li>一切准备就绪后，让我们点击<strong class="bold">测试</strong>按钮。这将打开一个新的标签<a id="_idIndexMarker1522"/>，几分钟后将显示执行结果。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">完成此步骤可能需要5-15分钟。请随意喝杯咖啡或茶！</p>
+
+<ol>
+
+<li value="16">等待时，向上滚动并找到<strong class="bold">功能概述</strong>窗格。将<strong class="bold">函数ARN </strong>值复制到你的文本编辑器中。我们将在本章的<em class="italic">完成端到端ML管道</em>部分使用这个<strong class="bold">函数ARN </strong>值。</li>
+
+</ol>
+
+<p>准备好所有的Lambda函数后，我们现在可以继续测试我们的ML推理端点(在完成端到端ML管道之前)。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">此时，我们应该有3个λ函数、<code>deploy-model-to-new-endpoint</code>λ函数和<code>deploy-model-to-existing-endpoint</code>λ函数。我们将在本章的<em class="italic">完成端到端ML流水线</em>部分使用这些ARN值。</p>
+
+<h1 id="_idParaDest-228"><a id="_idTextAnchor244"/>测试我们的ML推理端点</h1>
+
+<p>当然，我们需要<a id="_idIndexMarker1523"/>检查ML推理端点是否工作！在下一组步骤中，我们将下载并运行一个Jupyter笔记本(名为<code>Test Endpoint and then Delete.ipynb</code>)，它使用测试数据集测试我们的ML推理端点:</p>
+
+<ol>
+
+<li value="1">让我们首先在另一个浏览器标签中打开以下链接:<a href="https://bit.ly/3xyVAXz">https://bit.ly/3xyVAXz</a>T22】</li>
+
+<li>右键单击页面的任何部分以打开上下文菜单，然后选择<code>Test Endpoint then Delete.ipynb</code>，然后将其下载到本地机器上的<code>Downloads</code>文件夹(或类似的文件夹)中。</li>
+
+<li>导航回您的<code>CH11</code>文件夹，类似于我们在<em class="italic">图11.15 </em>中看到的:</li>
+
+</ol>
+
+<div><div><img alt="Figure 11.15 – Uploading the test endpoint and then the Delete.ipynb file&#10;&#10;" height="275" src="img/B18638_11_015.jpg" width="619"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.15–上传测试端点，然后是Delete.ipynb文件</p>
+
+<ol>
+
+<li value="4">点击<a id="_idIndexMarker1524"/>上传按钮(在<em class="italic">图11.15 </em>中高亮显示)，然后选择我们在之前的步骤中下载的<code>Test Endpoint then Delete.ipynb</code>文件。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">这将把<code>Test Endpoint then Delete.ipynb</code>笔记本文件从你的本地机器上传到SageMaker Studio环境中(在<code>CH11</code>文件夹中)。</p>
+
+<ol>
+
+<li value="5">双击<strong class="bold">文件树</strong>中的<code>Test Endpoint then Delete.ipynb</code>文件，在<strong class="bold">主工作区</strong>打开笔记本(包含打开的笔记本、文件、终端的标签)。</li>
+
+<li>用<code>Machine Learning Pipelines with SageMaker Pipelines.ipynb</code>笔记本中使用的S3桶的名称更新第一个单元格:<pre class="source-code">s3_bucket = '<strong class="bold">&lt;INSERT S3 BUCKET HERE&gt;</strong>'</pre></li>
+
+</ol>
+
+<p class="list-inset">确保用我们在本章的<em class="italic">准备必要的先决条件</em>一节中复制到我们的文本编辑器的S3桶名替换<code>&lt;INSERT S3 BUCKET HERE&gt;</code>。</p>
+
+<ol>
+
+<li value="7">打开<code>Test Endpoint then Delete.ipynb</code>笔记本。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">运行Jupyter笔记本中的所有单元大约需要1-2分钟。在等待的时候，请随意喝杯咖啡或茶！</p>
+
+<ol>
+
+<li value="8">一旦<code>Test Endpoint then Delete.ipynb</code>笔记本中的所有单元格都被<a id="_idIndexMarker1525"/>执行，定位包含以下代码块的单元格(以及返回的输出):<pre class="source-code">from sklearn.metrics import accuracy_score</pre> <pre class="source-code"><strong class="bold">accuracy_score</strong>(actual_list, predicted_list)</pre></li>
+
+</ol>
+
+<p class="list-inset">验证模型的准确度得分等于或接近<code>0.88</code>(或88%)。</p>
+
+<p>此时，ML推断端点应该处于删除状态，因为<code>Test</code> <code>Endpoint then Delete.ipynb</code> Jupyter笔记本在计算ML模型指标后也运行<code>predictor.delete_endpoint()</code>行。</p>
+
+<h1 id="_idParaDest-229"><a id="_idTextAnchor245"/>完成端到端ML管道</h1>
+
+<p>在本节中，我们<a id="_idIndexMarker1526"/>将在本章<em class="italic">使用SageMaker管道</em>运行我们的第一个管道一节中准备的(部分)管道的基础上进行构建。除了用于构建我们的部分管道的步骤和资源，我们还将利用我们创建的Lambda函数(在<em class="italic">创建用于部署的Lambda函数</em>部分)来完成我们的ML管道。</p>
+
+<h2 id="_idParaDest-230"><a id="_idTextAnchor246"/>定义和准备完整的ML管道</h2>
+
+<p>我们准备的第二条<a id="_idIndexMarker1527"/>管道将比第一条<a id="_idIndexMarker1528"/>管道稍长。为了帮助我们形象化使用<strong class="bold"> SageMaker管道</strong>的第二个ML管道，让我们快速查看<em class="italic">图11.16 </em>:</p>
+
+<div><div><img alt="Figure 11.16 – Our second ML pipeline using SageMaker Pipelines&#10;&#10;" height="268" src="img/B18638_11_016.jpg" width="1128"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.16–我们使用SageMaker管道的第二个ML管道</p>
+
+<p>这里，我们可以看到我们的管道接受两个输入参数——输入数据集和端点名称。当管道运行时，输入数据集首先被分成定型集、验证集和测试集。然后使用训练和验证集来训练一个ML模型，然后将其注册到<strong class="bold"> SageMaker模型注册表</strong>。之后，管道检查具有所提供端点名称的ML推断端点是否已经存在。如果<a id="_idIndexMarker1529"/>端点还不存在，那么模型被<a id="_idIndexMarker1530"/>部署到一个新的端点。否则，使用在管道执行期间训练的模型来更新现有端点的模型(具有所提供的端点名称)。</p>
+
+<p>在下一组步骤中，我们将使用<code>Machine Learning Pipelines with SageMaker Pipelines.ipynb</code>笔记本中配置的步骤和资源创建一个新的ML管道:</p>
+
+<ol>
+
+<li value="1">导航回与<code>Machine Learning Pipelines with SageMaker Pipelines.ipynb</code>笔记本对应的选项卡。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">我们将在<code>Machine Learning Pipelines with SageMaker Pipelines.ipynb</code>笔记本中的后续步骤中运行代码块(在现有的一组单元格之后)。如果您在运行了<em class="italic">使用SageMaker管道运行我们的第一个管道</em>部分中的命令后关闭了内核和/或SageMaker Studio实例，请确保您通过从<strong class="bold"> Run </strong>菜单下的选项列表中选择<strong class="bold"> Run All Cells </strong>再次运行所有单元(并等待管道完成运行)。</p>
+
+<ol>
+
+<li value="2">让我们将映射到<code>Pipeline</code>参数的<code>ParameterString</code>对象初始化为ML推断端点的名称(将在ML管道运行结束后创建或更新):<pre class="source-code"><strong class="bold">input_endpoint_name</strong> = ParameterString(</pre> <pre class="source-code">    name="<strong class="bold">EndpointName</strong>",</pre> <pre class="source-code">    default_value=f'<strong class="bold">AutoGluonEndpoint</strong>', </pre> <pre class="source-code">)</pre></li>
+
+<li>接下来，让我们导入<a id="_idIndexMarker1531"/>我们将需要<a id="_idIndexMarker1532"/>完成端到端ML管道的类:<pre class="source-code">from sagemaker.workflow.lambda_step import (</pre><pre class="source-code">    <strong class="bold">LambdaStep</strong>, </pre><pre class="source-code">    <strong class="bold">LambdaOutput</strong>, </pre><pre class="source-code">    <strong class="bold">LambdaOutputTypeEnum</strong></pre><pre class="source-code">)</pre><pre class="source-code">from sagemaker.lambda_helper import (</pre><pre class="source-code">    <strong class="bold">Lambda</strong></pre><pre class="source-code">)</pre><pre class="source-code">from sagemaker.workflow.conditions import (</pre><pre class="source-code">    <strong class="bold">ConditionEquals</strong></pre><pre class="source-code">)</pre><pre class="source-code">from sagemaker.workflow.condition_step import (</pre><pre class="source-code">    <strong class="bold">ConditionStep</strong>, </pre><pre class="source-code">    <strong class="bold">JsonGet</strong></pre><pre class="source-code">)</pre></li>
+
+<li>准备<code>LambdaOutput</code>对象，该对象将(稍后)映射到<code>LambdaStep</code>对象的输出:<pre class="source-code"><strong class="bold">output_endpoint_exists</strong> = <strong class="bold">LambdaOutput</strong>(</pre> <pre class="source-code">    output_name="<strong class="bold">endpoint_exists</strong>", </pre> <pre class="source-code">    output_type=LambdaOutputTypeEnum.Boolean</pre> <pre class="source-code">)</pre></li>
+
+<li>初始化<a id="_idIndexMarker1533"/><code>LambdaStep</code>对象，该对象映射到<a id="_idIndexMarker1534"/>Lambda函数，该函数检查指定的ML推断端点是否已经存在(给定端点名称):<pre class="source-code"><strong class="bold">package_arn</strong> = <strong class="bold">step_model_create</strong> \</pre><pre class="source-code">    .properties.<strong class="bold">ModelPackageArn</strong></pre><pre class="source-code"><strong class="bold">endpoint_exists_lambda</strong> = <strong class="bold">LambdaStep</strong>(</pre><pre class="source-code">    name="<strong class="bold">CheckIfEndpointExists</strong>",</pre><pre class="source-code">    lambda_func=Lambda(</pre><pre class="source-code">        function_arn="<strong class="bold">&lt;INSERT FUNCTION ARN&gt;</strong>"</pre><pre class="source-code">    ),</pre><pre class="source-code">    inputs={</pre><pre class="source-code">        "endpoint_name": input_endpoint_name,</pre><pre class="source-code">        "package_arn": package_arn</pre><pre class="source-code">    },</pre><pre class="source-code">    outputs=[output_endpoint_exists]</pre><pre class="source-code">)</pre></li>
+
+</ol>
+
+<p class="list-inset">确保将<code>&lt;INSERT FUNCTION ARN&gt;</code>替换为我们复制到文本编辑器中的<code>check-if-endpoint-exists</code> Lambda函数的ARN。它应该具有类似于<code>arn:aws:lambda:us-west-2:&lt;ACCOUNT ID&gt;:function:check-if-endpoint-exists</code>的格式。</p>
+
+<ol>
+
+<li value="6">接下来，初始化<a id="_idIndexMarker1535"/>对象<code>LambdaStep</code>，该对象<a id="_idIndexMarker1536"/>映射到Lambda函数，该函数将经过训练的ML模型部署到现有的ML推理端点:<pre class="source-code"><strong class="bold">step_lambda_deploy_to_existing_endpoint</strong> = <strong class="bold">LambdaStep</strong>(</pre><pre class="source-code">    name="<strong class="bold">DeployToExistingEndpoint</strong>",</pre><pre class="source-code">    lambda_func=Lambda(</pre><pre class="source-code">        function_arn="<strong class="bold">&lt;INSERT FUNCTION ARN&gt;</strong>"</pre><pre class="source-code">    ),</pre><pre class="source-code">    inputs={</pre><pre class="source-code">        "role": role,</pre><pre class="source-code">        "endpoint_name": input_endpoint_name,</pre><pre class="source-code">        "package_arn": package_arn</pre><pre class="source-code">    },</pre><pre class="source-code">    outputs=[]</pre><pre class="source-code">)</pre></li>
+
+</ol>
+
+<p class="list-inset">确保用我们复制到文本编辑器中的<code>deploy-model-to-existing-endpoint</code> Lambda函数的ARN替换<code>&lt;INSERT FUNCTION ARN&gt;</code>。它的格式应该类似于<code>arn:aws:lambda:us-west-2:&lt;ACCOUNT ID&gt;:function:</code> <code>deploy-model-to-existing-endpoint</code>。</p>
+
+<ol>
+
+<li value="7">之后，初始化<code>LambdaStep</code>对象，该对象映射到Lambda函数，该函数将经过训练的ML模型部署到新的ML推理端点:<pre class="source-code"><strong class="bold">step_lambda_deploy_to_new_endpoint</strong> = <strong class="bold">LambdaStep</strong>(</pre><pre class="source-code">    name="<strong class="bold">DeployToNewEndpoint</strong>",</pre><pre class="source-code">    lambda_func=Lambda(</pre><pre class="source-code">        function_arn="<strong class="bold">&lt;INSERT FUNCTION ARN&gt;</strong>"</pre><pre class="source-code">    ),</pre><pre class="source-code">    inputs={</pre><pre class="source-code">        "role": role,</pre><pre class="source-code">        "endpoint_name": input_endpoint_name,</pre><pre class="source-code">        "package_arn": package_arn</pre><pre class="source-code">    },</pre><pre class="source-code">    outputs=[]</pre><pre class="source-code">)</pre></li>
+
+</ol>
+
+<p class="list-inset">确保用我们复制到文本编辑器中的<code>deploy-model-to-new-endpoint</code> Lambda函数的ARN替换<code>&lt;INSERT FUNCTION ARN&gt;</code>。它应该具有类似于<code>arn:aws:lambda:us-west-2:&lt;ACCOUNT ID&gt;:function: deploy-model-to-new-endpoint</code>的格式。</p>
+
+<ol>
+
+<li value="8">准备好<a id="_idIndexMarker1537"/>三个<code>LambdaStep</code>对象后，让<a id="_idIndexMarker1538"/>准备<code>ConditionStep</code>对象，它检查一个端点是否已经存在(使用<code>endpoint_exists_lambda</code> <code>LambdaStep</code>对象的输出):<pre class="source-code"><strong class="bold">left</strong> = <strong class="bold">endpoint_exists_lambda</strong> \</pre><pre class="source-code">    .properties               \</pre><pre class="source-code">    .<strong class="bold">Outputs['endpoint_exists']</strong></pre><pre class="source-code"><strong class="bold">cond_equals</strong> = <strong class="bold">ConditionEquals</strong>(</pre><pre class="source-code">    left=<strong class="bold">left</strong>,</pre><pre class="source-code">    right=<strong class="bold">True</strong></pre><pre class="source-code">)</pre><pre class="source-code"><strong class="bold">if_steps</strong> = [<strong class="bold">step_lambda_deploy_to_existing_endpoint</strong>]</pre><pre class="source-code"><strong class="bold">else_steps</strong> = [<strong class="bold">step_lambda_deploy_to_new_endpoint</strong>]</pre><pre class="source-code"><strong class="bold">step_endpoint_exists_condition</strong> = <strong class="bold">ConditionStep</strong>(</pre><pre class="source-code">    name="<strong class="bold">EndpointExists</strong>",</pre><pre class="source-code">    conditions=[<strong class="bold">cond_equals</strong>],</pre><pre class="source-code">    if_steps=if_steps,</pre><pre class="source-code">    else_steps=else_steps</pre><pre class="source-code">)</pre></li>
+
+</ol>
+
+<p class="list-inset">这一步告诉ML管道执行以下操作:</p>
+
+<ul>
+
+<li>如果<a id="_idIndexMarker1540"/>端点尚不存在，则将<a id="_idIndexMarker1539"/>模型部署到新的端点。</li>
+
+<li>如果端点已经存在，则将模型部署到现有端点。</li>
+
+</ul>
+
+<p class="list-inset">为了帮助我们直观地了解如何配置<code>ConditionStep</code>对象，让我们快速检查一下<em class="italic">图11.17 </em>:</p>
+
+<div><div><img alt="Figure 11.17 – Configuring and preparing the ConditionStep object&#10;&#10;" height="615" src="img/B18638_11_017.jpg" width="1072"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.17–配置和准备ConditionStep对象</p>
+
+<p class="list-inset">在这里，我们可以看到<code>ConditionStep</code>对象是用几个参数初始化的——<code>conditions</code>、<code>if_steps</code>和<code>else_steps</code>(除了端点的<code>name</code>)。如果<code>EndpointExists</code> <code>LambdaStep</code>返回<code>True</code>，则执行<code>DeployToExistingEndpoint</code> <code>LambdaStep</code>。否则，改为执行<code>DeployToNewEndpoint</code> <code>LambdaStep</code>。</p>
+
+<ol>
+
+<li value="9">准备好所有的<a id="_idIndexMarker1541"/>步骤后，让我们使用我们准备的不同步骤对象来初始化一个<a id="_idIndexMarker1542"/>新的<code>Pipeline</code>对象:<pre class="source-code">pipeline_name = f"COMPLETE-PIPELINE"</pre><pre class="source-code">complete_pipeline = <strong class="bold">Pipeline</strong>(</pre><pre class="source-code">    name=<strong class="bold">pipeline_name</strong>,</pre><pre class="source-code">    parameters=[</pre><pre class="source-code">        <strong class="bold">input_data</strong>,</pre><pre class="source-code">        <strong class="bold">input_endpoint_name</strong></pre><pre class="source-code">    ],</pre><pre class="source-code">    steps=[</pre><pre class="source-code">        <strong class="bold">step_process</strong>, </pre><pre class="source-code">        <strong class="bold">step_train</strong>,</pre><pre class="source-code">        <strong class="bold">step_model_create</strong>,</pre><pre class="source-code">        <strong class="bold">endpoint_exists_lambda</strong>, </pre><pre class="source-code">        <strong class="bold">step_endpoint_exists_condition</strong></pre><pre class="source-code">    ],</pre><pre class="source-code">)</pre><pre class="source-code"><strong class="bold">complete_pipeline.upsert(role_arn=role)</strong></pre></li>
+
+</ol>
+
+<p>请注意，该管道<a id="_idIndexMarker1543"/>不同于我们在本章<em class="italic">使用SageMaker管道</em>运行第一条管道一节中准备的(部分)管道<a id="_idIndexMarker1544"/>。一旦我们在下一节中运行这个管道，我们应该会看到它还有一些额外的步骤。</p>
+
+<h2 id="_idParaDest-231"><a id="_idTextAnchor247"/>运行完整的ML管道</h2>
+
+<p>万事俱备，我们现在可以运行端到端的ML管道了。与我们在本章的<em class="italic">使用SageMaker管道</em>运行我们的第一个管道一节中执行的(部分)管道相比，我们的(完整)管道允许我们指定ML推理端点的可选名称(<em class="italic">注意:不要运行下面的代码块</em>):</p>
+
+<pre class="source-code">execution = <strong class="bold">complete_pipeline.start</strong>(
+
+    parameters=dict(
+
+        EndpointName="<strong class="bold">&lt;INSERT NEW ENDPOINT NAME&gt;</strong>",
+
+    )
+
+)</pre>
+
+<p>如果未指定端点名称，管道将在管道执行过程中继续使用默认端点名称值(即<code>AutoGluonEndpoint</code>)。</p>
+
+<p>在下一组步骤中，我们将运行我们的管道，等待它将经过训练的ML模型部署到新的推理端点，然后使用测试数据集测试部署的模型:</p>
+
+<ol>
+
+<li value="1">在运行完<code>Machine Learning Pipelines with SageMaker Pipelines.ipynb</code>笔记本中的最后一个代码块后，继续<a id="_idIndexMarker1546"/>，让我们使用下面的代码块运行端到端ML管道:<pre class="source-code">execution = <strong class="bold">complete_pipeline.start()</strong></pre> <pre class="source-code">execution.<strong class="bold">describe()</strong></pre></li>
+
+<li>接下来，让我们使用<code>wait()</code>方法等待整个管道完成:<pre class="source-code">execution.<strong class="bold">wait()</strong></pre></li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">完成管道执行大约需要15-30分钟。在等待的时候，请随意喝杯咖啡或茶！</p>
+
+<ol>
+
+<li value="3">等待时，找到并点击SageMaker Studio左侧边栏底部附近的三角形图标(<strong class="bold"> SageMaker resources </strong>)。这将打开<strong class="bold"> SageMaker资源</strong>窗格，我们可以在其中查看和检查各种SageMaker资源。</li>
+
+<li>从<strong class="bold"> SageMaker resources </strong>面板的下拉菜单中的可用选项列表中选择<strong class="bold"> Pipelines </strong>。</li>
+
+<li>之后，双击映射到我们刚刚创建的<code>COMPLETE-PIPELINE</code>管道的行。之后，双击映射到我们触发的管道执行的行。您应该会看到类似于<em class="italic">图11.18 </em>所示的图表:</li>
+
+</ol>
+
+<div><div><img alt="Figure 11.18 – The ML pipeline is currently running the TrainModel step&#10;&#10;" height="612" src="img/B18638_11_018.jpg" width="678"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.18–ML管道当前正在运行TrainModel步骤</p>
+
+<p class="list-inset">在这里，我们可以看到<code>COMPLETE-PIPELINE</code>管道比我们在本章的<em class="italic">使用SageMaker管道</em>运行我们的第一个管道一节中执行的<code>PARTIAL-PIPELINE</code>管道有更多的步骤。</p>
+
+<ol>
+
+<li value="6">几分钟后,<a id="_idIndexMarker1547"/>图中应该有更多完成的步骤，类似于<em class="italic">图11.19 </em>中的步骤:</li>
+
+</ol>
+
+<div><div><img alt="Figure 11.19 – The ML pipeline proceeds with running the DeployToNewEndpoint step &#10;&#10;" height="1137" src="img/B18638_11_019.jpg" width="1388"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图11.19–ML管道继续运行部署新端点步骤</p>
+
+<p class="list-inset">在这里，我们可以看到，由于ML端点还不存在(因为我们之前在运行<code>Test Endpoint then Delete.ipynb</code>笔记本时<a id="_idIndexMarker1548"/>删除了它)，ML管道继续运行<strong class="bold">部署新端点</strong>步骤。请注意，对于后续运行，如果ML端点已经存在，则应该改为运行<strong class="bold">deploytexistingendpoint</strong>步骤。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">如果在运行Lambda函数时遇到以下错误，请确保执行角色(附加到附加的<code>AWSLambda_FullAccess</code>权限策略:<strong class="bold">client error:User:&lt;ARN&gt;无权对资源执行lambda:InvokeFunction:&lt;arn&gt;，因为没有基于身份的策略允许Lambda:invoke function操作</strong>。请随意查看本章的<em class="italic">准备基本先决条件</em>一节，了解如何更新执行角色权限的分步说明。</p>
+
+<ol>
+
+<li value="7">等待管道执行完成。一旦管道完成运行，我们的自动机模型应该部署在一个ML推理端点(名为<code>AutoGluonEndpoint</code>)中。</li>
+
+<li>导航回与<code>Test Endpoint then Delete.ipynb</code>笔记本对应的选项卡。打开<code>Test Endpoint then Delete.ipynb</code>笔记本。请注意，运行笔记本中的所有单元还会在所有单元完成运行后删除<a id="_idIndexMarker1549"/>现有的ML推断端点(名为<code>AutoGluonEndpoint</code>)。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">运行Jupyter笔记本中的所有单元需要1-2分钟。在等待的时候，请随意喝杯咖啡或茶！</p>
+
+<ol>
+
+<li value="9">一旦执行完<code>Test Endpoint then Delete.ipynb</code>笔记本中的所有单元格，定位包含以下代码块的单元格(以及返回的输出):<pre class="source-code">from sklearn.metrics import accuracy_score</pre> <pre class="source-code"><strong class="bold">accuracy_score</strong>(actual_list, predicted_list)</pre></li>
+
+</ol>
+
+<p class="list-inset">验证我们的模型获得了等于或接近<code>0.88</code>(或88%)的准确度分数。注意，这应该类似于我们在本章前面的<em class="italic">测试我们的ML推断端点</em>部分中获得的结果。</p>
+
+<p>我们可以用这条管道做什么？有了这个管道，通过为每个管道运行指定不同的端点名称，我们将能够训练和部署一个模型到多个端点。这将有助于我们处理需要为不同环境(比如<code>production</code>和<code>staging</code>环境)管理专用ML推理端点的场景。例如，我们可以同时拥有两个正在运行的ML推理端点— <code>AutoGluonEndpoint-production</code>和<code>AutoGluonEndpoint-staging</code>。如果我们希望从新的数据集生成一个新的模型，我们可以触发一个管道运行，并为<code>staging</code>环境而不是<code>production</code>环境指定端点名称。这将帮助我们测试和验证部署在<code>staging</code>环境中的新模型的<a id="_idIndexMarker1550"/>质量，并确保<code>production</code>环境始终处于稳定状态。一旦我们需要更新<code>production</code>环境，我们可以简单地触发另一个管道运行，并在训练和部署新模型时指定与<code>production</code>环境相关联的端点名称。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">有几种方法来管理这些类型的部署，这是ML工程师和数据科学家可用的选项之一。</p>
+
+<p>差不多就是这样！恭喜你能够完成一个相对更复杂的ML管道！在这一章中，我们已经完成了很多，我们应该准备好设计和构建我们自己的定制管道。</p>
+
+<h1 id="_idParaDest-232"><a id="_idTextAnchor248"/>清理</h1>
+
+<p>现在我们已经完成了本章的动手解决方案，是时候清理并关闭我们不再使用的资源了。在下一组步骤中，我们将定位并关闭<strong class="bold"> SageMaker Studio </strong>中任何剩余的运行实例:</p>
+
+<ol>
+
+<li value="1">确保检查并删除<strong class="bold"> SageMaker resources </strong>下所有正在运行的推理端点(如果有)。要检查是否有正在运行的推理端点，点击<strong class="bold"> SageMaker资源</strong>图标，然后从下拉菜单的选项列表中选择<strong class="bold">端点</strong>。</li>
+
+<li>打开<strong class="bold">文件</strong>菜单，从可用选项列表中选择<strong class="bold">关闭</strong>。这应该会关闭SageMaker Studio中所有正在运行的实例。</li>
+
+</ol>
+
+<p>需要注意的是，这个清理操作需要在使用<strong class="bold"> SageMaker Studio </strong>之后进行。这些资源不会被SageMaker自动关闭，即使是在不活动的<a id="_idIndexMarker1552"/>期间。在继续下一部分之前，请确保检查所有删除操作是否都已成功。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">也可以随意清理和删除AWS帐户中的所有其他资源(例如，Cloud9环境和我们创建的VPCs和Lambda函数)。</p>
+
+<h1 id="_idParaDest-233"><a id="_idTextAnchor249"/>推荐的策略和最佳实践</h1>
+
+<p>在我们结束本章(和这本书)之前，让我们快速讨论一下当使用SageMaker管道来准备自动化ML工作流时的一些推荐策略和最佳实践。<em class="italic">我们可以对初始版本的管道进行哪些改进？</em>以下是我们可以实施的一些可能的升级，以使我们的设置更具可扩展性、更安全，并更有能力处理不同类型的ML和ML工程要求:</p>
+
+<ul>
+
+<li>在<a id="_idIndexMarker1554"/>创建时配置和设置ML推断端点的<strong class="bold">自动缩放</strong>(自动缩放)，以动态调整用于处理(ML推断请求的)传入流量的资源数量。</li>
+
+<li>允许ML模型<a id="_idIndexMarker1555"/>也部署在<strong class="bold">无服务器</strong>和<strong class="bold">异步</strong>端点中(取决于附加<a id="_idIndexMarker1556"/>管道输入参数的值),以帮助为各种用例提供附加的模型部署选项。</li>
+
+<li>在流水线中添加额外的步骤(或多个步骤),该步骤使用测试集自动评估已训练的ML模型，并且如果目标度量值低于指定的阈值分数，则拒绝模型的部署。</li>
+
+<li>在管道中增加一个额外的<a id="_idIndexMarker1557"/>步骤，使用<strong class="bold"> SageMaker Clarify </strong>检查偏差和漂移。</li>
+
+<li>一旦通过<strong class="bold"> Amazon EventBridge </strong>发生事件(比如一个文件被上传到Amazon S3桶中)，就触发管道<a id="_idIndexMarker1558"/>执行。</li>
+
+<li>缓存特定的管道步骤，以加速重复的管道执行。</li>
+
+<li>当管道执行过程中出现异常和错误时，利用<strong class="bold">重试策略</strong>自动重试特定的管道步骤。</li>
+
+<li>使用<strong class="bold"> SageMaker管道</strong>和<strong class="bold"> SageMaker项目</strong>构建完整的ML <a id="_idIndexMarker1559"/>工作流，其中<a id="_idIndexMarker1560"/>可能涉及CI/CD功能(使用AWS服务，如<strong class="bold"> AWS CodeCommit </strong>和<strong class="bold"> AWS CodePipeline </strong>)。</li>
+
+<li>使用更严格的权限集更新本章中使用的IAM角色，以提高设置的安全性。</li>
+
+<li>为了管理运行SageMaker资源的长期成本，我们可以利用<strong class="bold">机器学习节约计划</strong>，这涉及到在做出长期承诺(例如，1年或3年的承诺)后降低运行资源的总体成本</li>
+
+</ul>
+
+<p>还有更多的我们可以添加到这个列表，但这些应该做了！请务必查看并检查<a href="B18638_09.xhtml#_idTextAnchor187"> <em class="italic">第9章</em> </a>、<em class="italic">安全、治理和合规性策略</em>中分享的建议解决方案和策略。</p>
+
+<h1 id="_idParaDest-234"><a id="_idTextAnchor250"/>总结</h1>
+
+<p>在本章中，我们使用<strong class="bold"> SageMaker管道</strong>来构建端到端的自动化ML管道。我们首先准备了一个相对简单的管道，包含三个步骤——包括数据准备步骤、模型训练步骤和模型注册步骤。在准备和定义管道后，我们继续触发管道执行，在管道执行完成运行后，将新训练的模型注册到<strong class="bold"> SageMaker模型注册表</strong>。</p>
+
+<p>然后，我们准备了三个AWS Lambda函数，用于第二个ML管道的模型部署步骤。在准备好Lambda函数之后，我们通过添加一些额外的步骤来完成端到端的ML管道，以将模型部署到新的或现有的ML推理端点。最后，我们讨论了使用我们在本章中使用的技术栈来保护、扩展和管理ML管道的相关最佳实践和策略。</p>
+
+<p>你终于看到这本书的结尾了！祝贺您完成了本书中讨论的所有章节，包括实践示例和解决方案。从开始到结束，这是一个令人惊奇的旅程，如果你也能和别人分享这个旅程，那就太好了。</p>
+
+<h1 id="_idParaDest-235"><a id="_idTextAnchor251"/>延伸阅读</h1>
+
+<p>在这一点上，你可能想要通过检查前面每一章的<em class="italic">进一步阅读</em>部分中列出的参考资料来更深入地探讨相关的子主题。除此之外，您还可以查看以下资源:</p>
+
+<ul>
+
+<li><em class="italic">亚马逊SageMaker模型构建管道——管道步骤</em>(<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/build-and-manage-steps.xhtml">https://docs . AWS . Amazon . com/sage maker/latest/DG/build-and-manage-Steps . XHTML</a>)</li>
+
+<li><em class="italic">boto 3–SageMaker客户端</em>(<a href="https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.xhtml">https://boto 3 . Amazon AWS . com/v1/documentation/API/latest/reference/services/SageMaker . XHTML</a>)</li>
+
+<li><em class="italic">亚马逊SageMaker–autoglon-Tabular算法</em>(<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/autogluon-tabular.xhtml">https://docs . AWS . Amazon . com/SageMaker/latest/DG/autoglon-Tabular . XHTML</a>)</li>
+
+<li><em class="italic">使用SageMaker项目自动执行mlop</em>(<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-projects.xhtml">https://docs . AWS . Amazon . com/SageMaker/latest/DG/SageMaker-Projects . XHTML</a>)</li>
+
+<li><em class="italic">机器学习储蓄计划</em>(<a href="https://aws.amazon.com/savingsplans/ml-pricing/">https://aws.amazon.com/savingsplans/ml-pricing/</a>)</li>
+
+<li><em class="italic">SageMaker-Amazon event bridge集成</em>(<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/pipeline-eventbridge.xhtml">https://docs . AWS . Amazon . com/SageMaker/latest/DG/pipeline-event bridge . XHTML</a>)</li>
+
+</ul>
+
+</div>
+
+</div>
+
+
+
+</body></html>

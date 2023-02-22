@@ -1,0 +1,1779 @@
+<html><head/><body>
+
+
+    
+        <title>Linear and Logistic Regression</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">线性和逻辑回归</h1>
+                
+            
+            
+                
+<p class="mce-root">在我们通过使用共同特征对类似信息进行分组而获得洞察力之后，是时候变得更加数学化，并开始搜索一种通过使用独特的函数来描述数据的方法，该函数将浓缩大量信息，并允许我们预测未来的结果，假设数据样本保持其先前的属性。</p>
+<p>在本章中，我们将讨论以下主题:</p>
+<ul>
+<li>逐步实施的线性回归</li>
+<li>多项式回归</li>
+<li>逻辑回归及其实现</li>
+<li>Softmax回归</li>
+</ul>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Regression analysis</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">回归分析</h1>
+                
+            
+            
+                
+<p>这一章将从一般原理的解释开始。所以，让我们问一个基本问题:什么是回归？</p>
+<p>在所有考虑因素之前，回归基本上是一个<strong/><em><strong>的统计过程。</strong> </em>正如我们在引言部分看到的，回归将涉及一组具有某种特定概率分布的数据。总之，我们有大量的数据需要描述。</p>
+<p>在回归的情况下，我们特别在寻找什么元素？我们希望确定自变量和因变量之间的关系，以便根据提供的数据进行最佳调整。当我们在所描述的变量之间找到这样一个函数<em> <strong> </strong> </em>时，就称之为<strong>回归函数</strong>。</p>
+<p>有大量的函数类型可以帮助我们对当前数据建模，最常见的例子是线性、多项式和指数函数。</p>
+<p>这些技术旨在确定一个目标函数，在我们的例子中，该目标函数将输出函数的有限数量的未知最佳参数，称为<strong>参数回归</strong>技术。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Applications of regression</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">回归的应用</h1>
+                
+            
+            
+                
+<p>回归通常用于预测未来的变量值，它是数据分析项目中用于初始数据建模的一种非常常用的技术，但它也可用于优化流程，在相关但分散的数据之间找到共同点。</p>
+<p>这里我们将列举回归分析的一些可能的应用:</p>
+<ul>
+<li>在社会科学中，预测各种指标的未来值，如失业率和人口</li>
+<li>在经济学中，预测未来的通货膨胀率、利率和类似的指标</li>
+<li>在地球科学中，预测未来的现象，如臭氧层的厚度</li>
+<li>为了有助于正常公司仪表板的所有元素，添加了对生产吞吐量、收入、支出等的概率估计</li>
+<li>证明两个现象之间的依赖性和相关性</li>
+<li>在反应实验中寻找组分的最佳组合</li>
+<li>最小化风险组合</li>
+<li>理解公司的销售对广告支出的变化有多敏感</li>
+<li>观察股票价格如何受到利率变化的影响</li>
+</ul>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Quantitative versus qualitative variables</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">定量与定性变量</h1>
+                
+            
+            
+                
+<p>在日常的数据工作中，我们遇到的元素并不都是相同的，因此它们需要特殊的处理，这取决于它们的属性。为了识别问题变量的适当程度，我们可以做出一个非常重要的区分，即使用以下标准将数据类型分为定量和定性数据变量:</p>
+<ul>
+<li><strong>数量变量</strong>:在物理变量或测量领域，我们通常使用实数或质量变量，因为最重要的是我们测量的数量。在这个组中，我们有顺序变量，即当我们在一个活动中处理顺序和排名时。这两种变量类型都属于数量变量范畴。</li>
+<li><strong>定性变量:</strong>另一方面，我们有显示样本属于哪一类的测量值。这不能用一个数字来表达，在数量的意义上；通常为其分配一个标签、标记或分类值，代表样本所属的组。我们称这些变量为定性变量。</li>
+</ul>
+<div><img height="222" width="369" src="img/0a815a32-cec0-4afd-adbd-043f0be978dd.png"/></div>
+<p>说明定量和定性分析之间差异的参考表</p>
+<p>现在让我们来解决哪种类型的变量适合应用于回归问题的问题。</p>
+<p>明确的答案是定量变量，因为数据分布的建模只能通过我们用来检测这些变量之间的规则对应关系的函数来完成，而不是基于元素的类或类型。回归需要一个连续的输出变量，这只是定量指标的情况。</p>
+<p>在定性变量的情况下，我们将数据分配给分类问题，因为它的定义就是搜索非数字标签或标记以分配给样本。这就是分类的使命，我们将在下一章看到。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Linear regression</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">线性回归</h1>
+                
+            
+            
+                
+<p>所以，是时候从最简单但仍然非常有用的数据抽象开始了——线性回归函数。</p>
+<p>在线性回归中，我们试图找到一个线性方程来最小化数据点和建模线之间的距离。模型函数采用以下形式:</p>
+<p>y<sub>I</sub>=σx<sub>I</sub>+α+ε<sub>I</sub></p>
+<p class="mce-root">这里，<em> α </em>是截距，<em>和</em>是模型线的斜率。变量<em> x </em>通常称为自变量，<em> y </em>通常称为因变量，但也可以称为回归变量和响应变量。</p>
+<p>ε <sub> i </sub>变量是一个非常有趣的元素，它是从样本<em> i </em>到回归线的误差或距离。</p>
+<div><img height="279" width="314" src="img/7b75fbf6-d475-493d-91d9-c7426807bc65.png"/></div>
+<p>对回归线组成部分的描述，包括原始元素、估计元素(红色)和误差(ε)</p>
+<p>所有这些距离的集合，以称为<em>成本</em>函数的函数形式计算，作为求解过程的结果，将为我们提供最小化成本的未知参数值。让我们开始工作吧。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Determination of the cost function</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">成本函数的确定</h1>
+                
+            
+            
+                
+<p>与所有机器学习技术一样，学习的过程取决于最小化的损失函数，它向我们显示了我们在预测结果时的正确或错误程度，这取决于我们所处的学习阶段。</p>
+<p>线性回归最常用的成本函数叫做<em>最小二乘法</em>。</p>
+<p>为了简化起见，让我们用2D回归来定义这个成本函数，其中我们有一个数字元组列表<em> (x <sub> 0 </sub>，y <sub> 0 </sub> ) </em>，<em> (x <sub> 1 </sub>，y <sub> 1 </sub> ) </em>...<em> (x <sub> n </sub>，y <sub> n </sub> ) </em>和要查找的值，分别是<em>β<sub>0</sub>T25】和<em>β<sub>1</sub>T29】。在这种情况下，最小二乘成本函数可以定义如下:</em></em></p>
+<div><img height="74" width="270" src="img/68886061-ae2a-4eb5-954c-92219745fc37.png"/></div>
+<p>线性方程的最小平方函数，使用标准变量β <sub> 0 </sub>和β <sub> 1 </sub>，它们将在下一节中使用</p>
+<p>每个元素的总和给出了一个唯一的全局数，它给出了所有值(y <sub> i </sub>)与我们的理想回归线中的对应点(β<sub>0</sub>+β1<em>x</em><sub>I</sub>)之间的总差异的全局概念。</p>
+<p>这个操作的基本原理非常清楚:</p>
+<ul>
+<li>求和给了我们一个唯一的全局数</li>
+<li>差分模型-实点给我们的距离或L1误差</li>
+<li>平方得到一个正数，这也以非线性方式惩罚距离，超过了一个错误的限制，所以我们犯的错误越多，我们就越愿意增加惩罚率</li>
+</ul>
+<p>另一种表述方式是，此过程将最小化残差平方和，残差是我们从数据集获得的值与模型计算的预期值之间的差值，对于相同的输入值。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>The many ways of minimizing errors</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">减少误差的许多方法</h1>
+                
+            
+            
+                
+<p>最小二乘误差函数有几种求解方法:</p>
+<ul>
+<li>分析方法</li>
+<li>使用协方差和相关值</li>
+<li>机器学习方法家族中最熟悉的方法—梯度下降法</li>
+</ul>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Analytical approach</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">分析方法</h1>
+                
+            
+            
+                
+<p>为了得到精确解，分析方法采用了几种线性代数技术。</p>
+<p>我们以非常简洁的方式介绍这项技术，因为它与我们在本书中讨论的机器学习技术没有直接关系。我们呈现它是为了完整性。</p>
+<p>首先，我们以矩阵形式表示函数中的误差:</p>
+<div><img height="33" width="162" src="img/a982ccbd-7d43-4efa-9f55-564990c6a257.png"/></div>
+<p>矩阵形式的线性回归方程的标准形</p>
+<p>这里，<em> J </em>是成本函数，并具有以下解析解:</p>
+<div><img height="27" width="98" src="img/26ba2a70-39a9-468f-88f9-ab93374edb34.png"/></div>
+<p>线性回归矩阵形式的解析解</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Pros and cons of the analytical approach</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">分析方法的利弊</h1>
+                
+            
+            
+                
+<p>使用线性代数技术来计算最小误差解的方法是一种更简单的方法，因为我们可以给出一个非常简单的确定性表示，所以在应用运算后不需要额外的猜测。</p>
+<p>但是这种方法可能存在一些问题:</p>
+<ul>
+<li>首先，矩阵求逆和乘法是非常计算密集型的操作。它们通常有一个大约为<em> O(n <sup> 2 </sup> </em> <em> ) </em>到<em> O(n <sup> 3 </sup> ) </em>的下界，所以当样本数量增加时，问题会变得棘手。</li>
+<li>此外，根据具体实现，这种直接方法也可能具有有限的准确性，因为我们通常可以使用当前硬件浮点能力的限制。</li>
+</ul>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Covariance/correlation method</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">协方差/相关方法</h1>
+                
+            
+            
+                
+<p>现在是时候介绍一种估计我们的回归线系数的新方法了，在这个过程中，我们将学习其他统计方法，如协方差和相关性，这也将有助于我们第一次分析数据集并得出我们的第一个结论。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Covariance</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">协方差</h1>
+                
+            
+            
+                
+<p><strong>协方差</strong>是一个统计术语，可以规范地定义如下:</p>
+<p>一对随机变量之间系统关系的一种度量，其中一个变量的变化对应于另一个变量的相应变化。</p>
+<p class="mce-root">协方差可以取-∞到+∞之间的任何值，其中负值表示负关系，而正值表示正关系。它还确定了变量之间的线性关系。</p>
+<p class="mce-root">因此，当值为零时，表示没有直接的线性关系，并且这些值倾向于形成斑点状分布。</p>
+<p class="mce-root">协方差不受度量单位的影响，即在改变单位时，两个变量之间的关系强度没有变化。然而，协方差的值会改变。它有以下公式，需要每个轴的平均值作为先决条件:</p>
+<div><img height="34" width="178" src="img/fa14cc01-27e4-4d77-b042-68aaa589d1cc.png"/></div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Correlation</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">相互关系</h1>
+                
+            
+            
+                
+<p>还记得我们描述变量的规范化过程吗？我们通过减去平均值，并用数据集的标准偏差对变量进行缩放，使变量居中，公式如下:</p>
+<div><img height="41" width="64" src="img/3cf792e8-9f8e-456e-ae89-880e7c5e2ddb.png"/></div>
+<p>数据规范化操作的分析形式</p>
+<p>这将是我们分析的起点，我们将用相关值将它扩展到每个轴。</p>
+<p>相关值决定了两个或多个随机变量协同移动的程度。在研究两个变量的过程中，如果观察到一个变量的运动与另一个变量的等效运动一致，则称这些变量相关，确切的相关值由以下公式给出:</p>
+<div><img height="52" width="167" src="img/0d9fb1b3-720a-4fd9-97fa-ef1a5326c698.png"/></div>
+<p>相关性的典型定义</p>
+<p class="mce-root">作为一个真正的基于价值的指标，它可以有两种类型，积极或消极。当两个变量同向移动时，变量是正相关或直接相关的。当两个变量反向移动时，相关性为负或相反。</p>
+<p class="mce-root">相关值在<em> -1 </em>到<em> +1 </em>之间，其中接近<em> +1 </em>的值表示强正相关，接近<em> -1 </em>的值表示强负相关；</p>
+<div><img height="582" width="716" src="img/0c75050d-fd72-437f-b0e2-21759ec14479.png"/></div>
+<p>样本分布如何影响相关值的图形描述</p>
+<p>还有其他测量相关性的方法。在本书中，我们将主要讨论线性相关性。还有其他研究非线性相关的方法，本书不会涉及。</p>
+<div><img height="255" width="578" src="img/ec163393-6f45-416d-bba8-1238a9438b08.png"/></div>
+<p>描述线性相关和非线性相关测量之间的差异</p>
+<p>在本章的实际练习中，你会发现线性协方差和相关性的实现。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Searching for the slope and intercept with covariance and correlation</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">用协方差和相关性搜索斜率和截距</h1>
+                
+            
+            
+                
+<p>正如我们从一开始就知道的，我们需要的是找到一条线的方程，以下面的形式表示基础数据:</p>
+<div><img height="31" width="97" src="img/d10261e6-ae1e-43dd-9245-aed8cb9f4cde.png"/></div>
+<p>线性方程的近似定义</p>
+<p>因为我们知道这条线通过所有点的平均值，我们可以估计截距，唯一未知的是估计的斜率:</p>
+<div><img height="37" width="115" src="img/63f6700e-7d98-4c47-b89e-f2d66fd10257.png"/></div>
+<p>截距的导出定义</p>
+<p>斜率代表因变量的变化除以自变量的变化。在这种情况下，我们处理的是数据的变化，而不是坐标之间的绝对差异。</p>
+<p>由于数据具有非均匀性，我们将斜率定义为自变量中随因变量协变的方差的比例:</p>
+<div><img height="56" width="103" src="img/c12db851-a7b6-4b75-aca2-47ea376f313f.png"/></div>
+<p>估计斜率系数</p>
+<p>碰巧的是，如果我们的数据在绘制时实际上看起来像一个圆形云，我们的斜率将变成<em>零</em>，这表明<em> x和<em> y </em>、</em>的变化之间没有因果关系，如下表所示:</p>
+<div><img height="63" width="192" src="img/c519abdc-078f-4cd4-aa61-4077e22947a9.png"/></div>
+<p>估计坡度系数的扩展形式</p>
+<p>应用前面给出的公式，我们最终可以将估计回归线斜率的表达式简化为以下表达式:</p>
+<div><img height="62" width="89" src="img/4fde6a3d-5fab-4bb1-a91c-c7db6eda7d31.png"/></div>
+<p>斜率系数的最终形式</p>
+<p>这里，<em>S<sub>y</sub>T17】是<em> y </em>中的标准差，<em>S<sub>x</sub>T23】是<em> x. </em>中的标准差</em></em></p>
+<p>在等式中剩余元素的帮助下，我们可以基于线将到达平均数据集点的知识简单地导出截距:</p>
+<div><img height="34" width="106" src="img/c0d9968f-f485-406a-bd3b-5f974da7435c.png"/></div>
+<p>近似截距系数的最终形式</p>
+<p>因此，我们完成了两种回归的初步形式的非常概括的表达，这也留下了许多分析元素供我们使用。现在是时候介绍当前机器学习技术的明星了，作为从业者，你肯定会在许多项目中使用它，称为<strong>梯度下降</strong>。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Gradient descent</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">梯度下降</h1>
+                
+            
+            
+                
+<p>是时候谈谈将带我们进入现代机器学习核心的方法了。这里解释的方法将以类似的方式用于许多更复杂的模型，难度增加但原理相同。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Some intuitive background</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">一些直观的背景</h1>
+                
+            
+            
+                
+<p>为了介绍梯度下降法，我们首先来看看我们的目标——用一个直线函数来拟合一组提供的数据。我们有什么元素？</p>
+<ul>
+<li>模型函数</li>
+<li>误差函数</li>
+</ul>
+<p>我们可以得到的另一个元素是任何参数组合的所有可能误差的表示。那会很酷，对吧？但是看看这样一个函数，对于一个简单的直线作为解的问题是什么样子的。这条曲线代表<em> z= x <sup> 2 </sup> + y <sup> 2 </sup> </em>，它遵循最小二乘误差函数的形式:</p>
+<div><img height="361" width="563" src="img/a1b2619c-d444-44e4-bb91-5876156fa5ad.png"/></div>
+<p>两个变量情况下的最小二乘误差曲面。在线性回归的情况下，它们是斜率和交点</p>
+<p>如您所见，计算每行参数的所有可能结果会消耗太多的CPU时间。但是我们有一个优势:我们知道这样一条曲线的曲面是<strong>c</strong>T10】onvex(超出本书范围的讨论)，所以它大致看起来像一个碗，而且它有一个唯一的最小值(如前一个文件夹所见)。这将省去我们定位局部点的问题，这些点看起来像最小值，但实际上只是表面上的凸起。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>The gradient descent loop</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">梯度下降循环</h1>
+                
+            
+            
+                
+<p>所以是时候寻找一种方法来收敛到一个函数的最小值，只知道我在曲面上的位置，可能还有我所站的曲面上的点的梯度:</p>
+<ul>
+<li>从一个随机的位置开始(记住，我们对表面还一无所知)</li>
+<li>寻找最大变化的方向(由于函数是凸的，我们知道它将引导我们到最小值)</li>
+<li>在误差曲面上沿该方向前进，与误差量成比例</li>
+<li>将下一步的起点调整到我们着陆的表面上的新点，并重复该过程</li>
+</ul>
+<p>与蛮力方法相比，这种方法允许我们以迭代的方式在有限的时间内发现最小化我们的值的路径。</p>
+<p>两个参数和最小二乘函数的过程如下:</p>
+<div><img height="365" width="565" src="img/8b1ff442-6ed4-42e6-9ce5-eb2d53028ba7.png"/></div>
+<p>梯度下降算法的描述，从起始高误差点开始，向最大变化方向下降</p>
+<p>当我们使用和选择好的和适当的初始参数时，这给我们一个过程函数在正常设置下如何工作的概念。</p>
+<p>在接下来的章节中，我们将更详细地介绍梯度下降的过程，包括选择不同的元素(我们称之为超参数)如何改变过程的行为。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Formalizing our concepts</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">形式化我们的概念</h1>
+                
+            
+            
+                
+<p>现在让我们回顾一下这个过程的数学方面，这样在实际使用之前，我们就有了所有相关部分的参考。</p>
+<p>我们方程的元素如下:</p>
+<ul>
+<li>线性函数变量，<em>β</em><sub>T3】0T5<em>β<sub>1</sub>T9】</em></sub></li>
+<li>样本集中的样本数，<em> m </em></li>
+<li>样本集中的不同元素，<em> x <sup> (i) </sup> </em>和<em> y <sup> (i) </sup> </em></li>
+</ul>
+<p>让我们从误差函数开始，<em> J </em>。它在前面的章节中被定义为最小二乘函数。为了实用，我们将在等式的开头添加1/2m项，如下所示:</p>
+<div><img height="32" width="355" src="img/487739d9-a92a-4574-b71b-7a8f7976693c.png"/></div>
+<p>最小平方误差函数</p>
+<p>下面介绍一个新的算子，它是后面所有工作的基础，梯度。</p>
+<p>为了构建it概念，我们有以下内容:</p>
+<ul>
+<li>一个或多个独立变量的函数</li>
+<li>函数对所有自变量的偏导数</li>
+</ul>
+<p>我们已经知道偏导数是如何工作的，只要说梯度是一个包含所有已经提到的偏导数的向量就足够了；在我们的例子中，它将如下:</p>
+<div><img height="78" width="179" src="img/aaf9f35f-f5c2-4095-88a8-921b55522b1d.png"/></div>
+<p>误差函数的梯度</p>
+<p>这样的操作符目的是什么？如果我们能够计算它，它会给我们整个函数在单个点的变化方向。</p>
+<p>首先，我们计算偏导数。你可以试着推导一下；基本上，它使用推导平方表达式的链式法则，然后乘以原始表达式。</p>
+<p>在方程的第二部分，我们通过模型函数的名称来简化线性函数，<em>h<sub>a</sub>T25】:</em></p>
+<div><img height="57" width="460" src="img/c81125f1-7fcb-4559-91a4-40788b068f26.png"/></div>
+<p>β <sub> 1 </sub>变量的误差函数的偏导数</p>
+<p>在<em> β <sub> 1 </sub> </em>的情况下，我们得到了<em> x <sup> (i) </sup> </em>元素的附加因子，因为<em>β<sub>1</sub>x</em><sup><em>(I)</em></sup>的导数是<em> x <sup> (i) </sup> </em>:</p>
+<div><img height="56" width="456" src="img/5c6376e9-d5cd-4a6e-8629-82cd539945c7.png"/></div>
+<p>β <sub> 1 </sub>变量的误差函数的偏导数</p>
+<p>现在我们引入递归表达式，它将提供(迭代时和满足条件时)以收敛方式减少总误差的参数组合。</p>
+<p>这里，我们引入一个非常重要的元素:步长，名为α。它的目的是什么？这将允许我们衡量一步能前进多少。我们会发现，没有选择合适的功率量会导致灾难性的后果，包括误差发散到无穷大。</p>
+<p>注意，第二个公式只有乘以当前<em> x </em>值的微小差别:</p>
+<div><img height="135" width="410" src="img/e90f1ce1-08a6-4af4-9111-125caf313f1a.png"/></div>
+<p>模型函数的递归方程</p>
+<p>所以，我们准备好了！现在，我们将添加一点数学香料，以产生一个更紧凑的算法表示。现在让我们用向量的形式来表示未知量，所以所有的表达式将作为一个整体来表示:</p>
+<div><img height="57" width="77" src="img/f828048c-302b-4b06-a2c2-f67d83f54625.png"/></div>
+<p>β在载体中的表达</p>
+<p>有了这个新的表达式，我们的递归步骤可以用这个简单易记的表达式来表示:</p>
+<div><img height="48" width="185" src="img/6ad85c8a-f5a5-432c-a237-d03e03297180.png"/></div>
+<p>梯度下降递归的向量表示</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Expressing recursion as a process</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">将递归表示为一个过程</h1>
+                
+            
+            
+                
+<p>寻找最小误差的整个方法也可以用流程图来表示，这样我们就可以将所有元素放在同一个地方，并理解如果我们暂时不考虑有些复杂的分析机制，这看起来是多么容易:</p>
+<div><img height="293" width="156" src="img/5b239fa1-5f80-47f7-bcf6-70b9f2ff0d7e.png"/></div>
+<p>梯度下降法的流程图。请注意简单的构建模块，不要考虑它涉及的微妙数学</p>
+<p>所以，有了梯度下降过程的最后一个程序性的观点，我们准备好继续本章更实际的部分。我们希望您喜欢这个寻找问题答案的旅程:以简单的方式表示我们的数据的最佳方式是什么？请放心，我们将在接下来的部分中使用更强大的工具。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Going practical – new tools for new methods</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">走向实用——新方法的新工具</h1>
+                
+            
+            
+                
+<p>在本节中，我们将介绍一个新的库，它将帮助我们处理协方差和相关性，尤其是在数据可视化领域。</p>
+<p>什么是<strong> Seaborn </strong>？</p>
+<p>Seaborn是一个用Python制作有吸引力和信息丰富的统计图形的库。此外，它还提供了非常有用的多元分析原语，这将帮助您决定是否以及如何对您的数据应用确定性回归分析。</p>
+<p class="mce-root">Seaborn提供的一些功能如下:</p>
+<ul>
+<li class="mce-root">几个非常高质量的内置主题</li>
+<li class="mce-root">用于选择调色板的工具，以制作揭示数据中模式的美丽绘图</li>
+<li class="mce-root">非常重要的函数，用于可视化单变量和双变量分布，或者在数据子集之间进行比较</li>
+<li class="mce-root">用于拟合和可视化不同种类自变量和因变量的线性回归模型的工具</li>
+<li class="mce-root">当用最小的参数集调用时，试图做一些有用的事情的绘图函数；它们通过附加参数公开了许多可定制的选项</li>
+</ul>
+<p>一个重要的附加特性是，鉴于Seaborn使用matplotlib，可以使用这些工具进一步调整图形，并使用任何matplotlib后端进行渲染。</p>
+<p>现在让我们来探索Seaborn将带来的最有用的实用程序。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Useful diagrams for variable explorations – pairplot</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">变量探索的有用图表——成对图</h1>
+                
+            
+            
+                
+<p>对于数据探索阶段，我们可以采用的最有用的方法之一是对数据集中所有要素如何相互作用进行图形化描述，并以直观的方式发现联合变化:</p>
+<div><img height="497" width="494" class="alignnone size-full wp-image-690 image-border" src="img/09c1ba22-b1bf-49f0-a9f6-c2ac41f11b70.png"/></div>
+<p>Iris数据集中变量的配对图</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Correlation plot</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">相关图</h1>
+                
+            
+            
+                
+<p>相关图允许我们以更简洁的方式总结变量相关性，因为它使用调色板显示变量对之间的直接相关性。对角线值当然是1，因为所有变量都与自身具有最大相关性:</p>
+<div><img height="580" width="665" src="img/21467333-0c02-4339-9102-565e8c79026e.png"/></div>
+<p>旧金山住房数据集的相关图。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Data exploration and linear regression in practice</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">实践中的数据探索和线性回归</h1>
+                
+            
+            
+                
+<p>在本节中，我们将开始使用最著名的<em> toy </em>数据集之一，探索它，并选择其中一个维度，以了解如何为其值构建线性回归模型。<br/>让我们首先导入所有的库(<kbd>scikit-learn</kbd>、<kbd>seaborn</kbd>和<kbd>matplotlib</kbd>)；Seaborn的一个优秀特性是它能够定义非常专业的样式设置。在这种情况下，我们将使用<kbd>whitegrid</kbd>样式:</p>
+<pre class="mce-root">import numpy as np from sklearn import datasets import seaborn.apionly as sns %matplotlib inline import matplotlib.pyplot as plt sns.set(style='whitegrid', context='notebook')</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>The Iris dataset</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">虹膜数据集</h1>
+                
+            
+            
+                
+<p>是时候加载<em>虹膜</em>数据集了。这是最著名的历史数据集之一。你会在许多书籍和出版物中找到它。鉴于数据的良好属性，它对于分类和回归示例非常有用。虹膜数据集(<a href="https://archive.ics.uci.edu/ml/datasets/Iris">https://archive.ics.uci.edu/ml/datasets/Iris</a>)包含三种类型虹膜中每一种的50条记录，总共150条线超过5个字段。每条线都是以下各项的测量值:</p>
+<ul>
+<li>萼片长度，单位为厘米</li>
+<li>萼片宽度，单位为厘米</li>
+<li>花瓣长度(厘米)</li>
+<li>花瓣宽度(厘米)</li>
+</ul>
+<p>最后一个字段是花的类型(<em> setosa </em>、<em> versicolor </em>或<em> virginica </em>)。让我们使用<kbd>load_dataset</kbd>方法从数据集中创建一个值矩阵:</p>
+<pre>iris2 = sns.load_dataset('iris')</pre>
+<p>为了理解变量之间的依赖关系，我们将实现协方差运算。它将接收两个数组作为参数，并将返回<kbd>covariance(x,y)</kbd>值:</p>
+<pre>def covariance (X, Y):
+    xhat=np.mean(X)
+    yhat=np.mean(Y)
+    epsilon=0
+    for x,y in zip (X,Y):
+        epsilon=epsilon+(x-xhat)*(y-yhat)
+    return epsilon/(len(X)-1)</pre>
+<p>让我们尝试一下实现的函数，并将其与NumPy函数进行比较。注意，我们计算了<kbd>cov(a,b)</kbd>，NumPy生成了所有组合<kbd>cov(a,a)</kbd>、<kbd>cov(a,b)</kbd>的矩阵，所以我们的结果应该等于该矩阵的值<kbd>(1,0)</kbd>和<kbd>(0,1)</kbd>:</p>
+<pre>print (covariance ([1,3,4], [1,0,2]))
+print (np.cov([1,3,4], [1,0,2]))<br/><br/>0.5
+[[ 2.33333333  0.5       ]
+ [ 0.5         1.        ]]</pre>
+<p>对前面定义的相关函数做了最少量的测试后，接收两个数组，比如<kbd>covariance</kbd>，并使用它们获得最终值:</p>
+<pre>def correlation (X, Y):
+    return (covariance(X,Y)/(np.std(X,  ddof=1)*np.std(Y,  ddof=1))) ##We have to indicate ddof=1 the unbiased std</pre>
+<p>让我们用两个样本数组测试这个函数，并将其与NumPy的相关矩阵的<kbd>(0,1)</kbd>和<kbd>(1,0)</kbd>值进行比较:</p>
+<pre>print (correlation ([1,1,4,3], [1,0,2,2]))
+print (np.corrcoef ([1,1,4,3], [1,0,2,2]))<br/><br/>0.870388279778
+[[ 1.          0.87038828]
+ [ 0.87038828  1.        ]]</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting an intuitive idea with Seaborn pairplot</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">通过Seaborn pairplot获得直观的想法</h1>
+                
+            
+            
+                
+<p>开始处理一个问题时，一个非常好的想法是得到所有可能变量组合的图形表示。</p>
+<p>Seaborn的<kbd>pairplot</kbd>函数提供了所有变量对的完整图形摘要，表示为散点图，以及矩阵对角线的单变量分布的表示。</p>
+<p>让我们看看这种绘图类型如何显示所有变量的相关性，并尝试寻找一种线性关系作为测试我们的回归方法的基础:</p>
+<pre>sns.pairplot(iris2, size=3.0)<br/>&lt;seaborn.axisgrid.PairGrid at 0x7f8a2a30e828&gt;<br/></pre>
+<div><img height="613" width="608" class="alignnone size-full wp-image-690 image-border" src="img/00ae62c1-69b8-41b1-8105-3989b5102bdf.png"/></div>
+<p>数据集中所有变量的配对图。</p>
+<p>让我们从最初的分析中选择两个变量，它们具有线性相关的性质。他们是<kbd>petal_width</kbd>和<kbd>petal_length</kbd>:</p>
+<pre>X=iris2['petal_width']
+Y=iris2['petal_length']</pre>
+<p class="mce-root">现在让我们来看看这个变量组合，它显示了一个明显的线性趋势:</p>
+<pre>plt.scatter(X,Y)</pre>
+<p>这是所选变量在散点图中的表示:</p>
+<div><img height="366" width="526" class="alignnone size-full wp-image-691 image-border" src="img/492acb6c-06e9-40f5-9a6c-9261ab328337.png"/></div>
+<p>这是我们将尝试使用线性预测函数建模的当前数据分布。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Creating the prediction function</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">创建预测函数</h1>
+                
+            
+            
+                
+<p>首先，让我们以线性函数的形式定义抽象表示建模数据的函数，其形式为<em> y=beta*x+alpha </em>:</p>
+<pre>def predict(alpha, beta, x_i):
+    return beta * x_i + alpha</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Defining the error function</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">定义误差函数</h1>
+                
+            
+            
+                
+<p>现在是定义函数的时候了，该函数将向我们展示训练期间预测和预期输出之间的差异。正如我们将在下一章深入解释的，我们有两个主要的选择:测量值之间的绝对差(或L1)，或测量差的平方的变量(或L2)。让我们定义两个版本，包括第二个版本中的第一个公式:</p>
+<pre>def error(alpha, beta, x_i, y_i): #L1
+    return y_i - predict(alpha, beta, x_i)
+
+def sum_sq_e(alpha, beta, x, y): #L2
+    return sum(error(alpha, beta, x_i, y_i) ** 2
+               for x_i, y_i in zip(x, y))</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Correlation fit</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">相关拟合</h1>
+                
+            
+            
+                
+<p>现在，我们将定义一个实现相关方法的函数，以找到我们回归的参数:</p>
+<pre>def correlation_fit(x, y):
+    beta = correlation(x, y) * np.std(y, ddof=1) / np.std(x,ddof=1)
+    alpha = np.mean(y) - beta * np.mean(x)
+    return alpha, beta</pre>
+<p>然后让我们运行拟合函数并打印猜测的参数:</p>
+<pre>alpha, beta = correlation_fit(X, Y)
+print(alpha)
+print(beta)<br/><br/>1.08355803285
+2.22994049512</pre>
+<p>现在让我们用数据绘制回归直线，以便直观地显示解决方案的适当性:</p>
+<pre>plt.scatter(X,Y)
+xr=np.arange(0,3.5)
+plt.plot(xr,(xr*beta)+alpha)</pre>
+<p>这是我们用最近计算的斜率和截距得到的最终图:</p>
+<div><img height="381" width="548" class="alignnone size-full wp-image-692 image-border" src="img/0873604a-4bd0-4782-ac23-c86db29e98fa.png"/></div>
+<p>最终回归直线。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Polynomial regression and an introduction to underfitting and overfitting</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">多项式回归以及欠拟合和过拟合介绍</h1>
+                
+            
+            
+                
+<p>在寻找模型时，我们寻找的一个主要特征是用简单的函数表达式进行概括的能力。当我们增加模型的复杂性时，我们可能正在构建一个对训练数据有益的模型，但对于特定的数据子集来说，它将过于优化。</p>
+<p>另一方面，欠拟合适用于模型过于简单的情况，例如这种情况，可以用简单的线性模型很好地表示。</p>
+<p>在下面的示例中，我们将像以前一样处理相同的问题，使用scikit-learn库搜索高阶多项式，以拟合越来越复杂的输入数据。</p>
+<p>超出二次函数的正常阈值，我们将看到该函数如何拟合数据中的每一条皱纹，但当我们外推时，正常范围之外的值显然超出了范围:</p>
+<div><pre class="sourceCode python">from sklearn.linear_model import Ridge
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.pipeline import make_pipeline
+
+ix=iris2['petal_width']
+iy=iris2['petal_length']
+
+# generate points used to represent the fitted function 
+x_plot = np.linspace(0, 2.6, 100)
+
+# create matrix versions of these arrays
+X = ix[:, np.newaxis]
+X_plot = x_plot[:, np.newaxis]
+
+plt.scatter(ix, iy, s=30, marker='o', label="training points")
+
+for count, degree in enumerate([3, 6, 20]):
+    model = make_pipeline(PolynomialFeatures(degree), Ridge())
+    model.fit(X, iy)
+    y_plot = model.predict(X_plot)
+    plt.plot(x_plot, y_plot, label="degree %d" % degree)
+
+plt.legend(loc='upper left')
+plt.show()</pre></div>
+<p>组合图显示了不同的多项式系数如何以不同的方式描述数据总体。20次多项式清楚地显示了它如何完美地适应训练数据集，并且在已知值之后，它几乎惊人地发散，违背了对未来数据进行概化的目标。</p>
+<div><img height="358" width="521" class="alignnone size-full wp-image-716 image-border" src="img/bf696898-ba33-4679-a61a-b6eb42ed6443.png"/></div>
+<p>初始数据集的曲线拟合，具有递增值的多项式。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Linear regression with gradient descent in practice</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">梯度下降线性回归在实践中的应用</h1>
+                
+            
+            
+                
+<p class="mce-root">所以现在我们第一次在实践中使用梯度下降技术！我们现在练习的概念将在本书的剩余部分很好地为我们服务。像往常一样，让我们从导入必备库开始。我们将使用NumPy进行数值处理，使用Seaborn和matplotlib进行表示:</p>
+<div><pre class="sourceCode python">import numpy as np
+import seaborn as sns
+%matplotlib inline
+import matplotlib.pyplot as plt
+sns.set(style='whitegrid', context='notebook')</pre></div>
+<p>损失函数将是我们知道我们做得有多好的向导。正如我们在理论部分看到的，将使用最小二乘法。</p>
+<p>您可以查看前面章节中的<em> J </em>或损失函数定义和属性。</p>
+<p>因此，这个<kbd>least_squares</kbd>函数将接收当前回归线参数，<em> b <sub> 0 </sub>和b <sub> 0 </sub>，以及用于测量我们对现实的表示有多好的数据元素:</em></p>
+<div><pre class="sourceCode python">def least_squares(b0, b1, points):
+    totalError = 0
+    N=float(len(points))
+    for x,y in points:
+        totalError += (y - (b1 * x + b0)) ** 2
+    return totalError / 2.*N</pre></div>
+<p>这里，我们将定义循环的每个步骤。作为参数，我们将接收当前的<em> b </em> <sub> 0 </sub>和<em>b</em>T25】1，用于训练模型的点数，以及学习率。在<kbd>step_gradient</kbd>函数的第五行，我们看到了两个梯度的计算，然后我们创建了<kbd>new_b0</kbd>和<kbd>new_b1</kbd>变量，在误差方向上更新它们的值，通过学习率进行缩放。在最后一行，我们返回更新的值和当前的误差水平，在所有的点都被用于梯度之后:</p>
+<div><pre class="sourceCode python">def step_gradient(b0_current, b1_current, points, learningRate):
+    b0_gradient = 0
+    b1_gradient = 0
+    N = float(len(points))
+    for x,y in points:
+        b0_gradient += (1/N) * (y - ((b1_current * x) + b0_current))
+        b1_gradient += (1/N) * x * (y - ((b1_current * x) + b0_current))
+    new_b0 = b0_current + (learningRate * b0_gradient)
+    new_b1 = b1_current + (learningRate * b1_gradient)
+    return [new_b0, new_b1, least_squares(new_b0, new_b1, points)]</pre></div>
+<p>然后，我们定义一个函数，它将在模型之外运行完整的训练，这样我们就可以在一个地方检查所有的参数组合。该函数将初始化参数，并将梯度步骤重复固定次数:</p>
+<div><pre class="sourceCode python">def run_gradient_descent(points, starting_b0, starting_b1, learning_rate, num_iterations):
+    b0 = starting_b0
+    b1 = starting_b1
+    slope=[]
+    intersect=[]
+    error=[]
+    for i in range(num_iterations):
+        b0, b1 , e= step_gradient(b0, b1, np.array(points), learning_rate)
+        slope.append(b1)
+        intersect.append(b0)
+        error.append(e)
+    return [b0, b1, e, slope, intersect,error]</pre></div>
+<p>当收敛速度很高时，这个过程可能被证明是低效的，浪费了宝贵的CPU迭代。一个更聪明的停止条件是添加一个可接受的误差值，这将停止迭代。</p>
+<p>好了，是时候试试我们的模型了！让我们再次开始加载Iris数据集，以供参考，并作为检查结果正确性的一种手段。我们将使用<kbd>petal_width</kbd>和<kbd>petal_length</kbd>参数，我们已经看到并决定它们是线性回归的良好候选。NumPy的<kbd>dstack</kbd>命令允许我们合并两列，我们将其转换为一个列表以丢弃列标题。唯一需要注意的是，结果列表有一个未使用的额外维度，我们使用<kbd>[0]</kbd>索引选择器将其丢弃:</p>
+<div><pre class="sourceCode python">iris = sns.load_dataset('iris')
+X=iris['petal_width'].tolist()
+Y=iris['petal_length'].tolist()
+points=np.dstack((X,Y))[0]</pre></div>
+<p>所以，让我们用看起来很好的初始参数来尝试我们的模型，一个<kbd>0.0001</kbd>学习率，在<kbd>0</kbd>的初始参数，和<kbd>1000</kbd>迭代；让我们看看它是如何表现的:</p>
+<div><pre class="sourceCode python">learning_rate = 0.0001
+initial_b0 = 0 
+initial_b1 = 0 
+num_iterations = 1000
+[b0, b1, e, slope, intersect, error] = run_gradient_descent(points, initial_b0, initial_b1, learning_rate, num_iterations)<br/><br/>plt.figure(figsize=(7,5))
+plt.scatter(X,Y)
+xr=np.arange(0,3.5)
+plt.plot(xr,(xr*b1)+b0);
+plt.title('Regression, alpha=0.001, initial values=(0,0), it=1000');</pre></div>
+<div><img height="361" width="476" src="img/1bddad51-5230-49f5-b989-aad474339736.png"/>
+<p>嗯，那就不好了；显然，我们还没有到那一步。让我们看看在培训过程中发生了什么错误:</p>
+</div>
+<div><pre class="sourceCode python">plt.figure(figsize=(7,5))
+xr=np.arange(0,1000)
+plt.plot(xr,np.array(error).transpose());
+plt.title('Error for 1000 iterations');</pre></div>
+<div><img height="346" width="487" src="img/c854daf0-1fef-458e-ab5a-507a2bd34a3d.png"/></div>
+<p>这个过程似乎在起作用，但是有点慢。也许我们可以尝试将步长增加10倍，看看它是否快速收敛？让我们检查一下:</p>
+<div><pre class="sourceCode python">learning_rate = 0.001 #Last one was 0.0001
+initial_b0 = 0 
+initial_b1 = 0 
+num_iterations = 1000
+[b0, b1, e, slope, intersect, error] = run_gradient_descent(points, initial_b0, initial_b1, learning_rate, num_iterations)
+plt.figure(figsize=(7,5))
+xr=np.arange(0,1000)
+plt.plot(xr,np.array(error).transpose());
+plt.title('Error for 1000 iterations, increased step by tenfold');<br/></pre></div>
+<div><img height="368" width="519" src="img/41808f98-370f-4132-824a-ac418872dc86.png"/></div>
+<p>那更好！该过程收敛得更快。让我们看看现在回归的线是什么样子的:</p>
+<div><pre class="sourceCode python">plt.figure(figsize=(7,5))
+plt.scatter(X,Y)
+xr=np.arange(0,3.5)
+plt.plot(xr,(xr*b1)+b0);
+plt.title('Regression, alpha=0.01, initial values=(0,0), it=1000');</pre></div>
+<div><img height="359" width="474" src="img/dace0203-d296-4d39-8683-b5beae83a51b.png"/></div>
+<p>是啊！看起来好多了。我们可能认为我们已经完成了，但是开发人员总是想走得更快。让我们来看看如果我们想走得更快会发生什么，例如，一大步<kbd>2</kbd>:</p>
+<div><pre class="sourceCode python">learning_rate = 0.85 #LAst one was 0.0001
+initial_b0 = 0 
+initial_b1 = 0 
+num_iterations = 1000
+[b0, b1, e, slope, intersect, error] = run_gradient_descent(points, initial_b0, initial_b1, learning_rate, num_iterations)
+plt.figure(figsize=(7,5))
+xr=np.arange(0,1000)
+plt.plot(xr,np.array(error).transpose());
+plt.title('Error for 1000 iterations, big step');</pre></div>
+<div><img height="355" width="477" src="img/0ba9dc83-0d77-4b5c-9a5c-093df03947ea.png"/></div>
+<p>这是一个糟糕的举动；如你所见，误差最终趋于无穷大！这里发生了什么？简单地说，我们正在采取的步骤是如此激进，以至于我们没有切开我们之前描述的想象中的碗，我们只是在表面上跳来跳去，随着迭代的推进，我们开始不受控制地升级累积的错误。另一个可以采取的措施是提高我们的种子值，正如你已经看到的，它的值是<kbd>0</kbd>。对于这种技术来说，这通常是一个非常糟糕的想法，尤其是当您处理的数据没有被规范化的时候。还有更多原因，你可以在更高级的文献中找到。因此，让我们尝试在一个伪随机位置初始化参数，以使图形在代码示例中是相同的，看看会发生什么:</p>
+<div><pre class="sourceCode python">learning_rate = 0.001 #Same as last time
+initial_b0 = 0.8 #pseudo random value
+initial_b1 = 1.5 #pseudo random value
+num_iterations = 1000
+[b0, b1, e, slope, intersect, error] = run_gradient_descent(points, initial_b0, initial_b1, learning_rate, num_iterations)
+plt.figure(figsize=(7,5))
+xr=np.arange(0,1000)
+plt.plot(xr,np.array(error).transpose());
+plt.title('Error for 1000 iterations, step 0.001, random initial parameter values');</pre></div>
+<div><img height="297" width="412" src="img/6cd0d7cb-29fd-4ecd-8c3d-d72f9df03d12.png"/></div>
+<p>正如你所看到的，即使你有相同的草率错误率，初始误差值减少了10倍(从2e5到2e4)。现在，让我们尝试最后一种技术，基于输入值的归一化来提高参数的收敛性。正如您在<a href="fa27740b-e9e0-4ad1-ab13-dfe57b30a956.xhtml" target="_blank">第2章</a>、<em>中已经学习的，学习过程</em>包括对数据进行居中和缩放。该操作对数据有什么影响？使用图形图像，当数据未被归一化时，误差表面往往较浅，并且值振荡较大。归一化将该数据转换到更深的表面，具有更明确的朝向中心的梯度:</p>
+<div><pre>learning_rate = 0.001 #Same as last time
+initial_b0 = 0.8 #pseudo random value
+initial_b1 = 1.5 #pseudo random value
+num_iterations = 1000
+x_mean =np.mean(points[:,0])
+y_mean = np.mean(points[:,1])
+x_std = np.std(points[:,0])
+y_std = np.std(points[:,1])
+
+X_normalized = (points[:,0] - x_mean)/x_std
+Y_normalized = (points[:,1] - y_mean)/y_std
+
+plt.figure(figsize=(7,5))
+plt.scatter(X_normalized,Y_normalized)<br/><br/>&lt;matplotlib.collections.PathCollection at 0x7f9cad8f4240&gt;</pre></div>
+<div><img height="289" width="412" src="img/35b4c6f1-dc4f-4b94-820d-f884d3b3a0e1.png"/></div>
+<p>现在我们有了这组干净整洁的数据，让我们用最后的慢收敛参数再试一次，看看误差最小化速度会发生什么变化:</p>
+<div><pre class="sourceCode python">points=np.dstack((X_normalized,Y_normalized))[0]
+learning_rate = 0.001 #Same as last time
+initial_b0 = 0.8 #pseudo random value
+initial_b1 = 1.5 #pseudo random value
+num_iterations = 1000
+[b0, b1, e, slope, intersect, error] = run_gradient_descent(points, initial_b0, initial_b1, learning_rate, num_iterations)
+plt.figure(figsize=(7,5))
+xr=np.arange(0,1000)</pre>
+<pre class="sourceCode python">plt.plot(xr,np.array(error).transpose());
+plt.title('Error for 1000 iterations, step 0.001, random initial parameter values, normalized initial values');</pre></div>
+<div><img height="289" width="467" src="img/fd5f8a31-a6a3-40d4-bfa7-a795cc34616d.png"/></div>
+<p>的确是一个很好的起点！仅仅通过标准化数据，我们就有了一半的初始误差值，在1000次迭代后，误差下降了20%。我们唯一要记住的是，在我们有了结果之后，去规格化，才能有初始的规模和数据中心。这就是梯度下降的全部内容。我们将在接下来的章节中再次讨论新的挑战。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Logistic regression</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">逻辑回归</h1>
+                
+            
+            
+                
+<p>这本书的方式是一种概括。在第一章中，我们从现实的更简单的表示开始，因此分组或预测信息结构的标准也更简单。</p>
+<p>在回顾了线性回归(主要用于预测模型化线性函数后的真实值)之后，我们将进一步推广线性回归，这将允许我们从之前拟合的线性函数开始，分离二元结果(表明样本属于某个类别)。所以让我们从这项技术开始吧，它将在本书接下来的几乎所有章节中发挥重要作用。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Problem domain of linear regression and logistic regression</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">线性回归和逻辑回归的问题域</h1>
+                
+            
+            
+                
+<p>为了直观地理解逻辑回归的问题域，我们将使用图形表示。</p>
+<p>首先，我们展示了线性拟合函数，这是整个模型构建过程的主要目标，在底部，我们展示了目标数据分布。正如你清楚看到的，数据现在是二元的，一个样本属于一个或另一个选项，中间没有任何东西。此外，我们看到建模功能是一种新的类型；我们稍后将命名它并研究它的性质。你可能想知道这和线性函数有什么关系？正如我们稍后会看到的，它会在类s函数内部，调整它的形状。</p>
+<div><img height="376" width="355" src="img/08c9647f-ab32-48d8-8a56-c50c4190de98.png"/></div>
+<p>应用线性或逻辑回归的常见数据分布的简化描述。</p>
+<p>总之，线性回归可以被想象成一个不断增长的值的连续体。另一个是基于<em> x </em>值的输出可以只有两个不同值的域。在图中所示的特殊情况下，随着自变量的增加，我们可以看到一个朝向可能结果之一的明显趋势，sigmoid函数允许我们从两个结果转换，这两个结果在时间上没有明确的间隔，这为我们提供了非发生/发生区重叠区的估计概率。</p>
+<p>在某些方面，该术语有点令人困惑，因为我们正在进行一个获得连续值的回归，但实际上，最终目标是为具有离散变量的分类问题构建一个预测。</p>
+<p>这里的关键是理解我们将获得一个项目属于一个类的概率，而不是一个完全离散的值。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Logistic function predecessor – the logit functions</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">逻辑函数的前身logit函数</h1>
+                
+            
+            
+                
+<p>在我们研究逻辑函数之前，我们将回顾它所基于的原始函数，logit函数，它赋予了它一些更一般的性质。</p>
+<p>本质上，当我们谈论logit函数时，我们是在处理一个随机变量的函数<em>p</em>；更具体地说，对应于伯努利分布。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Link function</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">链接功能</h1>
+                
+            
+            
+                
+<p>当我们试图建立一个<strong>广义线性模型</strong>时，我们希望从一个线性函数开始，并从因变量获得一个概率分布的映射。</p>
+<p>由于我们模型的输出类型是二元的，通常选择的分布是伯努利分布，倾向于逻辑函数的链接函数是<strong> logit函数</strong>。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Logit function</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">Logit函数</h1>
+                
+            
+            
+                
+<p>我们可以利用的一个可能的变量是概率的自然对数，即<em> p </em>等于1。该函数称为logit函数:</p>
+<div><img height="43" width="131" src="img/2ee45e25-bf32-4991-aad0-1ca557eab066.png"/></div>
+<p>我们也可以将logit函数称为对数奇函数，因为我们正在计算给定概率<em> p </em>的概率<em> (p/1-p) </em>的对数。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Logit function properties</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">Logit函数属性</h1>
+                
+            
+            
+                
+<p>因此，正如我们可以直观地推断的那样，我们用独立变量的组合来替换<em> x </em>，而不管它们的值是多少，并用从负无穷大到无穷大的任何值来替换<em> x </em>。我们正在将响应缩放到<em> 0 </em>和<em> 1 </em>之间。</p>
+<div><img height="304" width="177" src="img/580123ba-396c-452e-8ff2-5ad2f6b8979b.png"/></div>
+<p>描述logit函数的主要范围特征</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>The importance of the logit inverse</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">logit逆的重要性</h1>
+                
+            
+            
+                
+<p>假设我们计算logit函数的反函数。logit的简单逆变换将给出以下表达式:</p>
+<div><img height="47" width="322" src="img/fadf7d1d-7327-4ac1-af90-14a2c064d5d7.png"/></div>
+<p>logit函数的解析定义</p>
+<p>这个函数不亚于一个<strong> sigmoid函数</strong>。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>The sigmoid or logistic function</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">乙状结肠或逻辑函数</h1>
+                
+            
+            
+                
+<p>逻辑函数将表示我们在新的回归任务中表示的二元选项。逻辑函数定义如下(为清晰起见，将自变量从α改为<em> t </em>):</p>
+<div><img height="49" width="157" src="img/55f11a91-4e1a-4fc9-815c-d1c3a170bb38.png"/></div>
+<p class="CDPAlignCenter CDPAlignLeft CDPAlign">你会发现这个新的数字在下面的章节中很常见，因为它会非常频繁地被用作神经网络和其他应用程序的激活函数。在下图中，您将找到sigmoid函数的图形表示:</p>
+<div><div><img height="228" width="342" src="img/f6177f95-f5bc-4103-8581-894a78bd5007.png"/></div>
+Standard sigmoid</div>
+<p>对于我们的建模任务，我们如何解释并赋予这个函数一个意义呢？这个方程通常的解释是<em> t </em>代表一个简单的自变量，但是我们将改进这个模型，假设<em> t </em>是单个解释变量<em> x </em>的线性函数(类似地处理<em> t </em>是多个解释变量的线性组合的情况)，表达如下:</p>
+<div><img height="30" width="98" src="img/bc0dc978-01a0-44d4-a46e-efed47460598.png"/></div>
+<p>所以，我们可以从原始的logit方程重新开始:</p>
+<div><img height="52" width="218" src="img/7d527bcb-6f1d-4939-a9d8-43d56d3e170c.png"/></div>
+<p>我们将到达回归方程，该方程将通过以下方程给出回归概率:</p>
+<div><img height="67" width="143" src="img/0bd65ee9-f49d-45f8-8033-7480823ef98d.png"/></div>
+<p>注意，<em> p </em> (hat)表示一个估计的概率。什么会给我们一个度量，我们有多接近解决方案？当然是精心选择的损失函数！</p>
+<p>下图显示了如何从可能结果的无限域映射到最终缩减到<em>【0，1】</em>范围，其中<em> p </em>是所表示事件发生的概率。这显示在一个简单的模式中，该模式是logit函数的结构和域转换(从线性到由Sigmoid建模的概率):</p>
+<div><img height="119" width="444" src="img/d0643bfd-984e-4cb5-8beb-7adfc19ae8c1.png"/></div>
+<p>线性方程的对数的函数映射，产生s形曲线</p>
+<p>什么变化会影响线性函数的参数？它们是将改变sigmoid函数的中心斜率和从零开始的位移的值，允许它更精确地减少回归值和真实数据点之间的误差。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Properties of the logistic function</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">逻辑函数的性质</h1>
+                
+            
+            
+                
+<p>函数空间中的每条曲线都可以用它可能应用的目标来描述。就后勤职能而言，它们如下:</p>
+<ul>
+<li>根据一个或多个独立变量，对事件<em> p </em>的概率进行建模。例如，给定以前的资格，获得奖励的概率</li>
+<li>估计(这是回归部分)<em> p </em>对于确定的观察，与事件不发生的可能性有关。</li>
+<li>使用二元响应预测独立变量变化的影响。</li>
+<li>通过计算某个项目属于某个确定类别的概率来对观察结果进行分类。</li>
+</ul>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Multiclass application – softmax regression</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">多类应用–soft max回归</h1>
+                
+            
+            
+                
+<p>到目前为止，我们一直是在只有两个类别的情况下进行分类，或者用概率语言来说，事件发生概率<em> p </em>。但是这种逻辑回归也可以方便地推广到许多类别。</p>
+<p>正如我们之前看到的，在逻辑回归中，我们假设标签是二元的(<em> y(i)∈{0，1}) </em>，但是softmax回归允许我们处理<em> y(i)∈{1，…，K} </em>，其中<em> K </em>是类的数量，标签<em> y </em>可以采用<em> K </em>不同的值，而不是只有两个。</p>
+<p>给定一个测试输入<em> x </em>，我们要估计<em> k=1，…，K </em>的每个值的<em> P(y=k|x) </em>的概率。softmax回归将使该输出成为一个<em> K </em>维向量(其元素总和为1)，从而给出我们的<em> K </em>估计概率:</p>
+<div><img height="549" width="338" src="img/ea26194c-e41f-48e6-8a94-de9c5a9e6376.png"/></div>
+<p>单变量逻辑回归结果与N类softmax回归结果的比较</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Practical example – cardiac disease modeling with logistic regression</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">实际例子——用逻辑回归进行心脏病建模</h1>
+                
+            
+            
+                
+<p>是时候在非常有用的逻辑回归的帮助下最终解决一个实际的例子了。在第一个练习中，我们将根据人群的年龄预测患冠心病的概率。很经典的问题，对于理解这类回归分析会是一个很好的开始。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>The CHDAGE dataset</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">CHDAGE数据集</h1>
+                
+            
+            
+                
+<p>对于第一个简单的例子，我们将使用一个非常简单且经常被研究的数据集，该数据集发表在<em>应用逻辑回归</em>中，来自<em> David W. Hosmer </em>、<em> Jr. Stanley Lemeshow和</em><em>Rodney x . Sturdivant</em>。我们在一项心脏病风险因素的假设性研究中列出了100名受试者的年龄(<kbd>AGE</kbd>)以及是否存在明显的<strong>冠心病</strong> ( <strong> CHD </strong>)。该表还包含一个标识符变量(<kbd>ID</kbd>)和一个年龄组变量(<kbd>AGEGRP</kbd>)。</p>
+<p>结果变量是<kbd>CHD</kbd>，用值<kbd>0</kbd>编码表示<kbd>CHD</kbd>不存在，或<kbd>1</kbd>表示在个体中存在。一般来说，可以使用任何两个值，但是我们发现使用0和1最方便。我们将这个数据集称为<kbd>CHDAGE</kbd>数据。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Dataset format</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">数据集格式</h1>
+                
+            
+            
+                
+<p><kbd>CHDAGE</kbd>数据集是一个两列的CSV文件，我们将从外部存储库下载它。在第一章中，我们使用本地TensorFlow方法读取数据集。在这一章中，我们将选择使用一个互补的和流行的库来获取数据。这一新增加的原因是，鉴于数据集只有100个元组，只在一行中读取它是可行的，而且，我们可以从pandas库中免费获得简单而强大的分析方法。</p>
+<p>在这个项目的第一阶段，我们将开始加载一个<kbd>CHDAGE</kbd>数据集的实例。然后，我们将打印关于数据的重要统计数据，然后进行预处理。在对数据做了一些绘图后，我们将建立一个由激活函数组成的模型，这将是一个softmax函数，用于它成为标准逻辑回归的特殊情况，即当只有两个类别(疾病的存在与否)时。</p>
+<p>让我们从导入所需的库开始:</p>
+<div><pre class="sourceCode python">import numpy as np
+import pandas as pd
+from sklearn import datasets
+from sklearn import linear_model
+import seaborn.apionly as sns
+%matplotlib inline
+import matplotlib.pyplot as plt
+sns.set(style='whitegrid', context='notebook')</pre></div>
+<p>让我们使用熊猫的<kbd>read_csv</kbd>从CSV原始文件中读取数据集，并使用matplotlib的散点函数绘制数据分布。正如我们所看到的，随着年龄的增长，心脏病的出现有一个明确的模式:</p>
+<div><pre class="sourceCode python">df = pd.read_csv("data/CHD.csv", header=0)
+plt.figure() # Create a new figure
+plt.axis ([0,70,-0.2,1.2])
+plt.title('Original data')
+plt.scatter(df['age'],df['chd']) #Plot a scatter draw of the random datapoints</pre></div>
+<div><p>这是当前绘图的原始数据:</p>
+</div>
+<div><img height="290" width="416" src="img/5f4526d5-8e60-43e6-830f-fecc8d7db99c.png"/></div>
+<div><p>现在，我们将使用scikit-learn中的逻辑回归对象创建一个逻辑回归模型，然后我们将调用<kbd>fit</kbd>函数，该函数将创建一个优化的sigmoid来最小化我们的训练数据的预测误差:</p>
+</div>
+<div><pre>logistic = linear_model.LogisticRegression(C=1e5)
+logistic.fit(df['age'].reshape(100,1),df['chd'].reshape(100,1))<br/><br/>LogisticRegression(C=100000.0, class_weight=None, dual=False,
+          fit_intercept=True, intercept_scaling=1, max_iter=100,
+          multi_class='ovr', n_jobs=1, penalty='l2', random_state=None,
+          solver='liblinear', tol=0.0001, verbose=0, warm_start=False)</pre></div>
+<p>现在是表现结果的时候了。这里，我们将生成一个从10年到90年的线性空间，有100个细分。</p>
+<p>对于领域的每个样本，我们将显示出现的概率(1)和不出现的概率(0，或前一个的倒数)。</p>
+<p>此外，我们将显示预测和原始数据点，这样我们就可以在单个图形中匹配所有元素:</p>
+<div><pre class="sourceCode python">x_plot = np.linspace(10, 90, 100)
+oneprob=[]
+zeroprob=[]
+predict=[]
+plt.figure(figsize=(10,10))
+for i in x_plot:
+    oneprob.append (logistic.predict_proba(i)[0][1]);
+    zeroprob.append (logistic.predict_proba(i)[0][0]);
+    predict.append (logistic.predict(i)[0]);
+
+plt.plot(x_plot, oneprob);
+plt.plot(x_plot, zeroprob)
+plt.plot(x_plot, predict);
+plt.scatter(df['age'],df['chd'])</pre></div>
+<div><img height="428" width="442" class="alignnone size-full wp-image-722 image-border" src="img/73dd7c53-d8cc-4c9a-afe2-a8b01d1e1c8c.png"/></div>
+<p>原始数据分布、建模逻辑曲线及其倒数的同步绘图</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Summary</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">摘要</h1>
+                
+            
+            
+                
+<p>在这一章中，我们回顾了使用简单明确的函数来处理数据建模问题的主要方法。</p>
+<p>在下一章中，我们将使用更复杂的模型，这些模型可以达到更高的复杂性并处理更高层次的抽象，对于最近出现的令人惊讶的各种数据集非常有用，从简单的<strong>前馈网络</strong>开始。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>References</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">参考</h1>
+                
+            
+            
+                
+<p>弗朗西斯·高尔顿(Galton，Francis)，<em>世袭地位的退化。</em>《大不列颠及爱尔兰人类学研究所杂志》15卷(1886): 246-263页。</p>
+<p>沃克、斯特罗瑟h .和戴维b .邓肯，<em>将一个事件的概率估计为几个独立变量的函数。生物计量学54.1-2 (1967): 167-179。</em></p>
+<p>戴维·R·考克斯，<em>二元序列的回归分析。</em>《皇家统计学会杂志》。系列B(方法论)(1958): 215-242。</p>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+</body></html>

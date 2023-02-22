@@ -1,0 +1,144 @@
+<html><head/><body>
+
+
+	
+		<title>B16783_09_Final_SB_epub</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-120"><a id="_idTextAnchor141"/> <em class="italic">第九章</em>:用MLflow进行部署和推理</h1>
+			<p>在本章中，您将了解我们的<strong class="bold">机器学习</strong> ( <strong class="bold"> ML </strong>)系统的端到端部署基础设施，包括使用MLflow的推理组件。然后，我们将把我们的模型部署到一个云原生ML系统(AWS SageMaker)和一个带有Kubernetes的混合环境中。接触这些不同环境的主要目的是让您具备在不同项目的不同环境(云本地和内部)约束下部署ML模型的技能。</p>
+			<p>本章的核心是部署PsyStock模型，根据您在整本书中到目前为止所研究的前14天的市场行为来预测比特币(BTC/美元)的价格。我们将借助工作流在多个环境中部署它。</p>
+			<p>具体来说，我们将了解本章的以下部分:</p>
+			<ul>
+				<li>启动本地模型注册中心</li>
+				<li>设置批处理推理作业</li>
+				<li>创建用于推理的API流程</li>
+				<li>在Kubernetes中部署您的批量评分模型</li>
+				<li>使用AWS SageMaker进行云部署</li>
+			</ul>
+			<h1 id="_idParaDest-121"><a id="_idTextAnchor142"/>技术要求</h1>
+			<p>对于本章，您将需要以下先决条件:</p>
+			<ul>
+				<li>最新版本的Docker安装在您的机器上。如果您还没有安装，请按照https://docs.docker.com/get-docker/<a href="https://docs.docker.com/get-docker/">的说明进行操作。</a></li>
+				<li>安装了最新版本的<code>docker-compose </code>。请按照https://docs.docker.com/compose/install/.的指示</li>
+				<li>在命令行访问Git，可以按照<a href="https://git-scm.com/book/en/v2/Getting-Started-Installing-Git">https://Git-SCM . com/book/en/v2/Getting-Started-Installing-Git</a>中的描述进行安装。</li>
+				<li>访问Bash终端(Linux或Windows)。</li>
+				<li>访问浏览器。</li>
+				<li>Python 3.5以上版本已安装。</li>
+				<li>如第3章  <em class="italic">、您的数据科学工作台</em>中所述，本地安装您的ML平台的最新版本。</li>
+				<li>配置为运行MLflow模型的AWS帐户。</li>
+			</ul>
+			<h1 id="_idParaDest-122">启动本地模型注册中心</h1>
+			<p>在执行本章的以下部分之前，您将需要设置一个集中式的模型<a id="_idIndexMarker313"/>注册和跟踪服务器。我们不需要完整的数据科学工作台，所以我们可以直接使用内置于模型中的工作台的一个更轻便的变体，我们将在下面的部分中部署它。你应该在本章代码的根文件夹中，可以在https://github . com/packt publishing/Machine-Learning-Engineering-with-ml flow/tree/master/chapter 09找到。</p>
+			<p>接下来，移动到<code>gradflow</code>目录，启动一个轻量级的环境来服务您的模型，如下所示:</p>
+			<pre>$ cd gradflow
+$ export MLFLOW_TRACKING_URI=http://localhost:5000 
+$ make gradflow-light</pre>
+			<p>在用MLflow和从ML registry中检索的模型建立了API部署的基础设施之后，我们接下来将转移到需要对一些批量输入数据进行评分的情况。我们将用MLflow为手头的预测问题准备一个批量推理作业。</p>
+			<h1 id="_idParaDest-123"><a id="_idTextAnchor144"/>设置批量推理作业</h1>
+			<p>本节所需的代码在<code>pystock-inference-api folder</code>中。MLflow基础设施<a id="_idIndexMarker314"/>在Docker镜像中提供，如下图所示:</p>
+			<div><div><img src="img/image0015.jpg" alt="Figure 9.1 – Layout of a batch scoring deployment&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图9.1–批量评分部署的布局</p>
+			<p>如果您可以直接访问工件，那么您可以执行以下操作。代码在<code>pystock-inference-batch</code>目录下。为了设置一个批量推理作业，我们将遵循以下步骤:</p>
+			<ol>
+				<li>导入批处理作业的依赖项；在相关的依赖关系中，我们包括<code>pandas</code>、<code>mlflow,</code>和<code>xgboost</code> : <pre>import pandas as pd import mlflow import xgboost as xgb import mlflow.xgboost import mlflow.pyfunc</pre></li>
+				<li>接下来，我们将通过调用<code>mlflow.start_run</code>来加载<code>start_run</code>，并从<code>input.csv</code>得分输入文件:<pre>if __name__ == "__main__":     with mlflow.start_run(run_name="batch_scoring") as run:         data=pd.read_csv("data/input.csv",header=None)</pre>中加载数据</li>
+				<li>接下来，我们通过指定<code>model_uri</code>值从注册表中加载模型，基于模型的细节:<pre>        model_name = "training-model-psystock"         stage = 'Production'         model = mlflow.pyfunc.load_model(                 model_uri=f"models:/{model_name}/{stage}"         )</pre></li>
+				<li>我们现在准备好通过运行<code>model.predict</code> : <pre>        y_probas=model.predict(data)</pre>来预测我们刚刚读取的数据集</li>
+				<li>保存<a id="_idIndexMarker315"/>批量预测。这基本上包括将<code>y_preds</code>变量中的(市场上涨的)概率目标映射到一个从0到1的值:<pre>    y_preds = [1 if  y_proba &gt; 0.5 else 0 for y_proba in y_probas]              data[len(data.columns)] =y_preds              result = data     result.to_csv("data/output.csv")</pre></li>
+				<li>我们现在需要将作业打包成Docker映像，这样我们就可以轻松地在生产中运行它:<pre>FROM continuumio/miniconda3 WORKDIR /batch-scoring/ RUN pip install mlflow==1.16.0 RUN pip install pandas==1.2.4 COPY batch_scoring.py   /batch-scoring/ COPY MLproject          /batch-scoring/ ENV MLFLOW_TRACKING_URI=http://localhost:5000 ENTRYPOINT ["mlflow run . --no-conda"]</pre></li>
+				<li>构建您的<a id="_idIndexMarker316"/> Docker图像并标记它，以便您可以引用它:<pre>docker build . -t pystock-inference-batch</pre></li>
+				<li>通过执行以下命令运行Docker映像:<pre>docker run -i pystock-inference-batch</pre></li>
+			</ol>
+			<p>在这种情况下，Docker映像为您提供了一种在任何支持云中或内部Docker映像的计算环境中运行批量评分作业的机制。</p>
+			<p>我们现在将说明MLflow的码头化API推理环境的生成。</p>
+			<h1 id="_idParaDest-124"><a id="_idTextAnchor145"/>创建用于推理的API流程</h1>
+			<p>本节所需的代码在<code>pystock-inference-api folder</code>中。MLflow基础设施<a id="_idIndexMarker317"/>在Docker映像中提供，伴随如下图所示的<a id="_idIndexMarker318"/>代码:</p>
+			<div><div><img src="img/image0026.jpg" alt="Figure 9.2 – The structure of the API job&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图9.2–API作业的结构</p>
+			<p>依靠MLflow内置的REST API环境，建立一个API系统相当容易。我们将依靠本地文件系统上的工件存储来测试API。</p>
+			<p>使用下面这组命令，其核心是在CLI中使用<code>models serve</code>命令，我们可以为我们的模型提供服务:</p>
+			<pre>cd /gradflow/
+export MLFLOW_TRACKING_URI=http://localhost:5000
+mlflow models serve -m "models:/training-model-psystock/Production" -p 6000</pre>
+			<p>接下来，我们将把前面的命令打包到Docker映像中，这样它就可以在任何部署环境中使用。实现这一点的步骤如下:</p>
+			<ol>
+				<li value="1">生成Docker镜像，指定工作目录和需要作为<code>entry point</code> : <pre>FROM continuumio/miniconda3 WORKDIR /batch-scoring/ RUN pip install mlflow==1.16.0 ENV MLFLOW_TRACKING_URI=http://localhost:5000 ENTRYPOINT ["mlflow models serve -m "models:/training-model-psystock/Production" -p 6000"]</pre>启动的命令</li>
+				<li>建立你的码头工人形象:<pre>docker build . -t pystock-inference-api</pre></li>
+				<li>运行您的Docker映像:<pre>docker run -i pystock-inference-api -p 6000:6000</pre></li>
+			</ol>
+			<p>在这个阶段，您已经<a id="_idIndexMarker319"/>对API基础设施<a id="_idIndexMarker320"/>进行了dockerized，并且可以将其部署到您方便的计算环境中。</p>
+			<p>在深入研究了MLflow和AWS平台上的云原生部署的交互之后，我们现在将看一个独立于任何提供者的部署。</p>
+			<h1 id="_idParaDest-125"><a id="_idTextAnchor147"/>在Kubernetes中部署您的批量评分模型</h1>
+			<p>我们将使用Kubernetes来部署我们的批评分工作。我们需要做一些修改<a id="_idIndexMarker321"/>，使其符合<a id="_idIndexMarker322"/>Docker格式，可接受<a id="_idIndexMarker323"/>通过Kubernetes在生产中部署MLflow。本节的先决条件是您有权访问Kubernetes集群或者可以设置一个本地集群。这方面的指南可以在https://kind.sigs.k8s.io/docs/user/quick-start/<a href="https://kind.sigs.k8s.io/docs/user/quick-start/">或https://minikube.sigs.k8s.io/docs/start/</a>找到。</p>
+			<p>现在，您将执行以下步骤，从Kubernetes的注册中心部署您的模型:</p>
+			<ol>
+				<li value="1">先决条件:部署并配置<code>kubectl</code>(【https://kubernetes.io/docs/reference/kubectl/overview/】)并将其链接到您的Kubernetes集群。</li>
+				<li>创建一个Kubernetes后端配置文件:<pre>{   "kube-context": "docker-for-desktop",   "repository-uri": "username/mlflow-kubernetes-example",   "kube-job-template-path": "/Users/username/path/to/kubernetes_job_template.yaml" }</pre></li>
+				<li>加载<a id="_idIndexMarker324"/>输入文件并运行模型:<pre>mlflow run . --backend kubernetes --backend-config kubernetes_config.json</pre></li>
+			</ol>
+			<p>看完了在Kubernetes中部署模型之后，我们现在将重点放在在云原生ML平台中部署我们的模型。</p>
+			<h1 id="_idParaDest-126"><a id="_idTextAnchor148"/>使用AWS SageMaker进行云部署</h1>
+			<p>在过去的几年里，像AWS SageMaker这样的服务已经作为运行ML工作负载的引擎获得了一席之地。MLflow <a id="_idIndexMarker328"/>提供集成和易于使用的命令，将您的模型部署到SageMaker基础设施中。由于需要构建大型Docker映像并将映像推送到Docker注册表，因此执行本部分需要几分钟时间(取决于您的连接，需要5到10分钟)。</p>
+			<p>以下是您需要遵循的一些关键先决条件的列表:</p>
+			<ul>
+				<li>AWS CLI使用默认配置文件在本地配置(更多详细信息，可以查看<a href="https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html">https://docs . AWS . Amazon . com/CLI/latest/user guide/CLI-chap-configure . html</a>)。</li>
+				<li>帐户中对SageMaker及其依赖项的AWS访问。</li>
+				<li>AWS访问账户中的<a id="_idIndexMarker329"/>推送亚马逊<strong class="bold">弹性容器注册</strong> ( <strong class="bold"> ECR </strong>)服务。</li>
+				<li>您的MLflow服务器需要像第一个<em class="italic">启动本地模型注册中心</em>部分中提到的那样运行。</li>
+			</ul>
+			<p>要将本地<a id="_idIndexMarker331"/>注册中心的<a id="_idIndexMarker330"/>模型部署到AWS SageMaker中，请执行以下步骤:</p>
+			<ol>
+				<li value="1">建立你的<code>mlflow-pyfunc</code>形象。这是将与SageMaker兼容的基本图像。</li>
+				<li>Build and push a container with an <code>mlflow pyfunc</code> message:<pre>mlflow sagemaker build-and-push-container</pre><p>这个命令将构建MLflow默认映像，并将其部署到Amazon ECR容器。</p><p>为了确认该命令是否成功，您可以在控制台上检查您的ECR实例:</p><div><img src="img/image0036.jpg" alt="Figure 9.3 – SageMaker deployed image&#13;&#10;"/></div><p class="figure-caption">图9.3–sage maker部署的映像</p></li>
+				<li>在本地运行<a id="_idIndexMarker332"/>您的模型来测试<a id="_idIndexMarker333"/>SageMaker Docker映像并导出跟踪URI: <pre><code>7777</code>.<p>The output should look like the following excerpt and you should be able to test your model locally:</p><pre>Installing collected packages: mlflow   Attempting uninstall: mlflow     Found existing installation: mlflow 1.16.0     Uninstalling mlflow-1.16.0:       Successfully uninstalled mlflow-1.16.0 Successfully installed mlflow-1.15.0 pip 20.2.4 from /miniconda/lib/python3.8/site-packages/pip (python 3.8) Python 3.8.5 1.15.0 [2021-05-08 14:01:43 +0000] [354] [INFO] Starting gunicorn 20.1.0 [2021-05-08 14:01:43 +0000] [354] [INFO] Listening at: http://127.0.0.1:8000 (354)</pre> <p>这将<a id="_idIndexMarker334"/>基本上确认<a id="_idIndexMarker335"/>映像按预期工作，并且您应该能够在SageMaker中运行您的API。</p>T11】</pre></li>
+				<li>Double-check your image through the AWS <code>cli</code>:<pre>aws ecr describe-images --repository-name mlflow-pyfunc </pre><p>您应该在映像列表中看到您部署的映像，并且可以运行了。</p></li>
+				<li>您需要在AWS中配置一个指定的角色，以允许SageMaker代表您创建资源(您可以在https://docs . data bricks . com/administration-guide/cloud-configuration s/AWS/sage maker . html # step-1-create-an-AWS-iam-role-and-attach-sage maker-permission-policy找到更多详细信息)。</li>
+				<li>接下来，您需要使用以下命令将您的区域和角色导出到<code>$REGION</code>和<code>$ROLE</code>环境变量中，指定您的环境的实际值:<pre>export $REGION=your-aws-region export $ROLE=your sagemaker-enabled-role</pre></li>
+				<li>To deploy your model to SageMaker, run the following command:<pre>mlflow sagemaker deploy -a pystock-api -m models:/training-model-psystock/Production –region-name $REGION -- $ROLE</pre><p>这个命令将把您的模型从本地注册中心作为内部表示加载到SageMaker中，并使用生成的Docker映像在AWS SageMaker基础设施引擎中为模型提供服务。设置所有基础设施需要几分钟时间。成功后，您应该会看到以下消息:</p><pre>2021/05/08 21:09:12 INFO mlflow.sagemaker: The deployment operation completed successfully with message: "The SageMaker endpoint was created successfully."</pre></li>
+				<li>Verify <a id="_idIndexMarker336"/>your SageMaker endpoint:<pre>aws sagemaker list-endpoints</pre><p>您可以<a id="_idIndexMarker337"/>查看以下输出消息类型的示例:</p><pre>{
+    "Endpoints": [
+        {
+            "EndpointName": "pystock-api",
+            "EndpointArn": "arn:aws:sagemaker:eu-west-1:123456789:endpoint/pystock-api",
+            "CreationTime": "2021-05-08T21:01:13.130000+02:00",
+            "LastModifiedTime": "2021-05-08T21:09:08.947000+02:00",
+            "EndpointStatus": "InService"
+        }
+    ]
+}</pre></li>
+				<li>Next we <a id="_idIndexMarker338"/>need to consume <a id="_idIndexMarker339"/>our API with a simple script that basically the features, invokes the SageMaker endpoint using the Amazon Boto3 client, and prints the probablity of the market pricesgiven the feature vector:<pre>import pandas
+import boto3
+features = pd.DataFrame([[1,0,1,1,0,1,0,1,0,1,0,1,0,1]])
+payload = features.to_json(orient="split")
+result  = runtime.invoke_endpoint(
+            EndpointName='pystock-api', Body=payload, 
+            ContentType='application/json')
+preds = result['Body'].read().decode("ascii")
+print(preds)</pre><p>运行上述脚本后，您应该会看到以下输出:</p><pre>'[0.04279635474085808]</pre></li>
+				<li>Explore the SageMaker endpoint interface. In its monitoring component, you can look at different metrics related to your deployment environment and model as shown in <em class="italic">Figure 9.4</em>:<div><img src="img/image0046.jpg" alt="Figure 9.4 – SageMaker inference instance metrics&#13;&#10;"/></div><p class="figure-caption">图9.4–sage maker推理实例指标</p></li>
+				<li>You can <a id="_idIndexMarker340"/>now easily tear <a id="_idIndexMarker341"/>down your deployed model, when in need to deploy the model or phase it out. All associated resources will be torn down:<pre>mlflow sagemaker delete -a pystock-api --region-name $REGION</pre><p>删除后，您应该会看到类似于以下摘录中的消息:</p><pre>2021/05/08 23:49:46 INFO mlflow.sagemaker: The deletion operation completed successfully with message: "The SageMaker endpoint was deleted successfully."
+2021/05/08 23:49:46 INFO mlflow.sagemaker: Cleaning up unused resources...
+2021/05/08 23:49:47 INFO mlflow.sagemaker: Deleted associated endpoint configuration with arn: arn:aws:sagemaker:eu-west-1:123456789:endpoint-config/pystock-api-config-v-hznm3ttxwx-g8uavbzia
+2021/05/08 23:49:48 INFO mlflow.sagemaker: Deleted associated model with arn: arn:aws:sagemaker:eu-west-1:123456789:model/pystock-api-model-4nly3634reqomejx1owtdg</pre></li>
+			</ol>
+			<p>在此<a id="_idIndexMarker342"/>部分，我们总结了<a id="_idIndexMarker343"/>与从您的本地机器在不同环境中使用MLflow在生产中部署ML模型相关的特性描述，包括Docker和<code>docker-compose</code>、公共云，以及使用AWS SageMaker的非常灵活的方法。</p>
+			<h1 id="_idParaDest-127"><a id="_idTextAnchor149"/>摘要</h1>
+			<p>在这一章中，我们重点关注ML模型的生产部署、其背后的概念，以及可用于使用MLflow在多个环境中部署的不同特性。</p>
+			<p>我们解释了如何为部署准备Docker映像。我们还阐明了如何与Kubernetes和AWS SageMaker交互来部署模型。</p>
+			<p>在本书的下一章和后续章节中，我们将重点关注使用工具来帮助扩展我们的MLflow工作负载，以提高我们的模型基础架构的性能。</p>
+			<h1 id="_idParaDest-128"><a id="_idTextAnchor150"/>延伸阅读</h1>
+			<p>为了加深您的知识，您可以参考以下链接中的文档:</p>
+			<ul>
+				<li><a href="https://www.mlflow.org/docs/latest/python_api/mlflow.sagemaker.html">https://www . ml flow . org/docs/latest/python _ API/ml flow . sage maker . html</a></li>
+				<li><a href="https://aws.amazon.com/blogs/machine-learning/managing-your-machine-learning-lifecycle-with-mlflow-and-amazon-sagemaker/">https://AWS . Amazon . com/blogs/machine-learning/managing-your-machine-learning-life cycle-with-ml flow-and-Amazon-sage maker/</a></li>
+			</ul>
+		</div>
+	
+
+</body></html>

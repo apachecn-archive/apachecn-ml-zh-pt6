@@ -1,0 +1,1209 @@
+<html><head/><body>
+
+
+
+
+
+
+
+
+
+<title>Chapter 5: Pragmatic Data Processing and Analysis</title>
+
+
+
+
+
+
+
+<div><div><h1 class="chapter-number" id="_idParaDest-99"><a id="_idTextAnchor105"/> <a id="_idTextAnchor106"/> 5</h1>
+
+<h1 id="_idParaDest-100"><a id="_idTextAnchor107"/>语用数据处理与分析</h1>
+
+<p>在训练<strong class="bold">机器学习</strong> ( <strong class="bold"> ML </strong>)模型时，数据在使用之前需要先进行分析、转换和处理。在过去，数据科学家和ML实践者必须使用各种库、框架和工具(如<strong class="bold"> pandas </strong>和<strong class="bold"> PySpark </strong>)从头开始编写定制代码，以执行所需的分析和处理工作。这些专业人员编写的定制代码通常需要调整，因为在用于模型训练之前，必须对数据进行测试，以测试数据处理脚本中编程步骤的不同变体。这占用了ML从业者很大一部分时间，而且由于这是一个手动过程，通常也容易出错。</p>
+
+<p>处理和分析数据的一种更实用的方法是在加载、清理、分析和转换来自不同数据源的原始数据时使用无代码或低代码工具。使用这些类型的工具将大大加快这个过程，因为我们不需要担心从头开始编写数据处理脚本。在本章中，我们将使用<strong class="bold"> AWS Glue DataBrew </strong>和<strong class="bold">Amazon SageMaker Data Wrangler</strong>来加载、分析和处理一个样本数据集。在清理、处理和转换数据之后，我们将在一个<strong class="bold"> AWS CloudShell </strong>环境中下载和检查结果。</p>
+
+<p>也就是说，我们将涵盖以下主题:</p>
+
+<ul>
+
+<li>数据处理和分析入门</li>
+
+<li>准备必要的先决条件</li>
+
+<li>使用AWS Glue DataBrew自动准备和分析数据</li>
+
+<li>使用Amazon SageMaker Data Wrangler准备ML数据</li>
+
+</ul>
+
+<p>在使用本章中的动手解决方案时，您会注意到在使用<strong class="bold"> AWS Glue DataBrew </strong>和<strong class="bold">Amazon SageMaker Data Wrangler</strong>时有一些相似之处，当然，您也会注意到一些不同之处。在我们开始使用和比较这些服务之前，让我们先简短地讨论一下数据处理和分析。</p>
+
+<h1 id="_idParaDest-101"><a id="_idTextAnchor108"/>技术要求</h1>
+
+<p>开始之前，我们必须准备好以下内容:</p>
+
+<ul>
+
+<li>网络浏览器(最好是Chrome或Firefox)</li>
+
+<li>访问本书前四章中使用的AWS帐户</li>
+
+</ul>
+
+<p>Jupyter笔记本、源代码和其他用于每章的文件都可以在这个资源库中获得:<a href="https://github.com/PacktPublishing/Machine-Learning-Engineering-on-AWS">https://github . com/packt publishing/Machine-Learning-Engineering-on-AWS</a>。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">确保退出并不使用在第四章 、<em class="italic">AWS上的无服务器数据管理</em>中创建的IAM用户。在本章中，您应该使用root帐户或拥有一组权限的新IAM用户来创建和管理<strong class="bold"> AWS Glue DataBrew </strong>、<strong class="bold">亚马逊S3 </strong>、<strong class="bold"> AWS CloudShell </strong>和<strong class="bold">亚马逊SageMaker </strong>资源。运行本书中的示例时，建议使用具有有限权限的IAM用户，而不是root帐户。我们将在<a href="B18638_09.xhtml#_idTextAnchor187"> <em class="italic">第9章</em> </a>、<em class="italic">安全、治理和合规性策略</em>中进一步详细讨论这一点以及其他安全最佳实践。</p>
+
+<h1 id="_idParaDest-102"><a id="_idTextAnchor109"/>数据处理和分析入门</h1>
+
+<p>在<a id="_idIndexMarker453"/>的前一章中，我们利用了数据仓库和数据湖来存储、管理和查询我们的数据。存储在这些数据源中的数据通常必须经过一系列类似于图5.1 中<em class="italic">所示的数据处理和数据转换步骤，才能用作ML实验的训练数据集；</em></p>
+
+<div><div><img alt="Figure 5.1 – Data processing and analysis&#10;&#10;" height="462" src="img/B18638_05_001.jpg" width="1065"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.1-数据处理和分析</p>
+
+<p>在<em class="italic">图5.1 </em>中，我们可以<a id="_idIndexMarker454"/>看到这些数据处理步骤可能涉及合并不同的数据集，以及使用各种选项和技术清理、转换、分析和转换数据。在实践中，数据科学家和ML工程师通常会花费大量时间清理数据，并为ML实验做好准备。一些专业人士可能习惯于编写和运行定制的Python或R脚本来执行这项工作。然而，在处理这些类型的需求时，使用无代码或低代码解决方案可能更实用，如AWS Glue DataBrew和Amazon SageMaker Data Wrangler。首先，这些解决方案使用起来更方便，因为我们不需要担心管理基础设施，也不需要从头开始编写数据处理脚本。我们还将使用易于使用的视觉界面，这将有助于大大加快工作。监控和安全管理也更容易，因为它们与其他AWS服务集成在一起，例如:</p>
+
+<ul>
+
+<li><strong class="bold"> AWS身份和访问管理</strong>(<strong class="bold">IAM</strong>)—用于控制和限制对AWS服务和资源的访问</li>
+
+<li><strong class="bold">亚马逊虚拟私有云</strong>(<strong class="bold">VPC</strong>)——用于定义和配置逻辑隔离的网络，规定如何访问资源以及每个资源如何与网络中的其他资源通信</li>
+
+<li><strong class="bold">Amazon cloud watch</strong>——用于监控性能和管理所用资源的日志</li>
+
+<li><strong class="bold">AWS cloud trail</strong>——用于监控和审计账户活动</li>
+
+</ul>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">有关如何使用这些服务来保护和管理AWS帐户中的资源的更多信息，请随时查看<a href="B18638_09.xhtml#_idTextAnchor187"> <em class="italic">第9章</em> </a>、<em class="italic">安全、治理和合规性策略</em>。</p>
+
+<p>重要的是<a id="_idIndexMarker455"/>注意到AWS中还有其他选项可以帮助我们处理和分析数据。其中包括以下内容:</p>
+
+<ul>
+
+<li><strong class="bold">Amazon Elastic MapReduce</strong>(<strong class="bold">EMR</strong>)和<strong class="bold">EMR server less</strong>——适用于使用Apache Spark、Apache Hive和Presto等各种开源工具的大规模分布式数据处理工作负载</li>
+
+<li><strong class="bold">亚马逊kine sis</strong>——用于处理和分析实时流数据</li>
+
+<li><strong class="bold">Amazon quick sight</strong>——支持高级分析和自助式商业智能</li>
+
+<li><strong class="bold"> AWS数据管道</strong>——使用有助于定制管道资源的调度、依赖性跟踪和错误处理的特性，在各种服务(例如<strong class="bold">亚马逊S3 </strong>、<strong class="bold">亚马逊关系数据库服务</strong>和<strong class="bold">亚马逊DynamoDB </strong>)之间处理和移动数据</li>
+
+<li><strong class="bold"> SageMaker处理</strong>–在使用SageMaker的AWS托管基础设施上运行定制数据处理和分析脚本(包括偏差指标和特性重要性计算)</li>
+
+</ul>
+
+<p>请注意，这不是一个详尽的列表，还有更多服务和功能可以用于这些类型的需求。使用这些服务有什么好处？当处理相对较小的数据集时，在我们的本地机器上执行数据分析和转换可能会奏效。然而，一旦我们需要处理更大的数据集，我们可能需要使用一组更专用的资源，具有更强的计算能力，以及允许我们专注于我们需要做的工作的功能。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">我们将在<a href="B18638_09.xhtml#_idTextAnchor187"> <em class="italic">第9章</em> </a>、<em class="italic">安全、治理和合规策略</em>中更详细地讨论偏差检测和特性重要性。</p>
+
+<p>在本章中，我们将重点介绍AWS Glue DataBrew和Amazon SageMaker Data Wrangler，并且我们将<a id="_idIndexMarker456"/>展示一些在处理和分析我们的数据时如何使用它们的示例。我们将从“脏”数据集(包含几行无效值)开始，并对该数据集执行以下类型的转换、分析和操作:</p>
+
+<ul>
+
+<li>运行分析数据集的数据分析作业</li>
+
+<li>筛选出包含无效值的行</li>
+
+<li>从现有列创建新列</li>
+
+<li>应用转换后导出结果</li>
+
+</ul>
+
+<p>一旦包含处理结果的文件上传到输出位置，我们将通过下载文件并检查是否应用了转换来验证结果。</p>
+
+<h1 id="_idParaDest-103"><a id="_idTextAnchor110"/>准备必要的先决条件</h1>
+
+<p>在此<a id="_idIndexMarker457"/>部分，我们将确保在继续本章的动手解决方案之前，以下先决条件已准备就绪:</p>
+
+<ul>
+
+<li>要分析和处理的拼花文件</li>
+
+<li>将上传拼花文件的S3存储桶</li>
+
+</ul>
+
+<h2 id="_idParaDest-104"><a id="_idTextAnchor111"/>下载拼花文件</h2>
+
+<p>在这一章中，我们<a id="_idIndexMarker458"/>将<a id="_idIndexMarker459"/>使用与前几章相似的<code>bookings</code>数据集。但是，这次源数据存储在一个Parquet文件中，我们已经修改了一些行，因此数据集将包含脏数据。也就是说，让我们将<code>synthetic.bookings.dirty.parquet</code>文件下载到本地机器上。</p>
+
+<p>可以在这里找到:<a href="https://github.com/PacktPublishing/Machine-Learning-Engineering-on-AWS/raw/main/chapter05/synthetic.bookings.dirty.parquet">https://github . com/packt publishing/Machine-Learning-Engineering-on-AWS/raw/main/chapter 05/synthetic . bookings . dirty . parquet</a>。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">请注意，使用Parquet格式存储数据比使用CSV格式存储数据更可取。一旦需要处理更大的数据集，所生成的拼花文件和CSV文件的文件大小差异就变得很明显。例如，一个1 GB的CSV文件最终可能只有300 MB(甚至更少)作为一个拼花文件！有关这个话题的更多信息，请随时查看以下链接:<a href="https://parquet.apache.org/docs/">https://parquet.apache.org/docs/</a>。</p>
+
+<p>在继续之前，确保<a id="_idIndexMarker460"/>将<code>synthetic.bookings.dirty.parquet</code>文件下载到您的本地机器。</p>
+
+<h2 id="_idParaDest-105"><a id="_idTextAnchor112"/>准备S3桶</h2>
+
+<p>您<a id="_idIndexMarker462"/>可以<a id="_idIndexMarker463"/>为本章中的动手解决方案创建一个新的S3存储桶，也可以重用在之前章节中创建的现有存储桶。在使用AWS Glue DataBrew和Amazon SageMaker Data Wrangler运行数据处理和转换步骤后，这个S3存储桶将用于存储<code>synthetic.bookings.dirty.parquet</code>源文件和输出目标结果。</p>
+
+<p>一旦这两个先决条件都准备好了，我们就可以继续使用AWS Glue DataBrew来分析和处理我们的数据集。</p>
+
+<h1 id="_idParaDest-106"><a id="_idTextAnchor113"/>使用AWS Glue DataBrew自动进行数据准备和分析</h1>
+
+<p>AWS Glue DataBrew <a id="_idIndexMarker464"/>是一个<a id="_idIndexMarker465"/>无代码数据准备服务，旨在帮助数据科学家和ML工程师清理、准备和转换数据。类似于我们在<a href="B18638_04.xhtml#_idTextAnchor079"> <em class="italic">第四章</em> </a>、<em class="italic">AWS</em>上的无服务器数据管理中使用的服务，Glue DataBrew也是<em class="italic">无服务器</em>。这意味着，当使用该服务执行数据准备、转换和分析时，我们将无需担心基础设施管理。</p>
+
+<div><div><img alt="Figure 5.2 – The core concepts in AWS Glue DataBrew&#10;&#10;" height="539" src="img/B18638_05_002.jpg" width="1026"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.2–AWS Glue data brew的核心概念</p>
+
+<p>在<em class="italic">图5.2 </em>中，我们可以看到使用AWS Glue DataBrew时涉及到不同的概念和资源。在使用服务之前，我们需要很好地了解这些是什么。以下是对所用概念和术语的快速概述:</p>
+
+<ul>
+
+<li><strong class="bold">数据集</strong>–数据<a id="_idIndexMarker468"/>存储在<a id="_idIndexMarker470"/>现有数据源中<a id="_idIndexMarker469"/>(例如<strong class="bold">亚马逊S3 </strong>、<strong class="bold">亚马逊红移</strong>或<strong class="bold">亚马逊RDS </strong>)或<a id="_idIndexMarker471"/>从本地<a id="_idIndexMarker472"/>机器上传到<a id="_idIndexMarker473"/>S3桶。</li>
+
+<li><strong class="bold">配方</strong>–要在数据集上执行的一组<a id="_idIndexMarker474"/>数据转换或数据<a id="_idIndexMarker475"/>准备步骤。</li>
+
+<li><strong class="bold">作业</strong>–运行某些指令<a id="_idIndexMarker477"/>来分析或转换数据集的<a id="_idIndexMarker476"/>过程。用于评估数据集的作业称为<a id="_idIndexMarker478"/>档案作业<strong class="bold"/>。另一方面，用于运行一组指令来清理、归一化和转换数据的作业被称为<a id="_idIndexMarker479"/>配方作业。我们可以使用一个名为<strong class="bold">数据沿袭</strong>的视图<a id="_idIndexMarker480"/>来跟踪数据集经历的转换步骤，以及作业中配置的起点和终点。</li>
+
+<li><strong class="bold">数据剖析</strong>–在<a id="_idIndexMarker482"/>对数据集运行剖析作业后生成的<a id="_idIndexMarker481"/>报告。</li>
+
+<li><strong class="bold">项目</strong>–一个<a id="_idIndexMarker483"/>管理的数据收集、转换<a id="_idIndexMarker484"/>步骤和工作。</li>
+
+</ul>
+
+<p>既然我们已经对概念和术语有了一个好的概念，让我们继续创建一个新的数据集。</p>
+
+<h2 id="_idParaDest-107"><a id="_idTextAnchor114"/>创建新的数据集</h2>
+
+<p>在本章的<em class="italic">准备必要的先决条件</em>部分，我们下载了一个拼花文件<a id="_idIndexMarker486"/>到我们的本地机器。在下一组步骤中，我们将创建一个新的数据集，将这个拼花文件从本地机器上传到一个现有的亚马逊S3存储桶:</p>
+
+<ol>
+
+<li>使用<strong class="bold"> AWS管理控制台</strong>的搜索栏导航至<strong class="bold"> AWS Glue DataBrew </strong>控制台。</li>
+
+</ol>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">本章假设我们在使用服务管理和创建不同类型的资源时使用了<code>us-west-2</code>区域。您可以使用不同的区域，但如果某些资源需要转移到所选的区域，请确保执行任何必要的调整。</p>
+
+<ol>
+
+<li value="2">点击<em class="italic">图5.3 </em>中高亮显示的侧边栏图标，进入<strong class="bold">数据集</strong>页面:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.3 – Navigating to the DATASETS page&#10;&#10;" height="369" src="img/B18638_05_003.jpg" width="1071"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.3–导航至数据集页面</p>
+
+<ol>
+
+<li value="3">点击<strong class="bold">连接到新数据集</strong>。</li>
+
+<li>点击<strong class="bold">文件上传</strong>，如图<em class="italic">图5.4 </em>中高亮显示的<a id="_idIndexMarker487"/>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.4 – Locating the File upload option&#10;&#10;" height="551" src="img/B18638_05_004.jpg" width="766"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.4–定位文件上传选项</p>
+
+<p class="list-inset">请注意，加载数据和连接到数据集有不同的方式。我们可以使用<strong class="bold"> AWS Glue数据目录</strong>连接并加载存储在Amazon Redshift、Amazon RDS和AWS Glue <a id="_idIndexMarker488"/>中的数据。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">请随意查看<a href="https://docs.aws.amazon.com/databrew/latest/dg/supported-data-connection-sources.xhtml">https://docs . AWS . Amazon . com/data brew/latest/DG/supported-data-connection-sources . XHTML</a>了解更多信息。</p>
+
+<ol>
+
+<li value="5">指定<code>bookings</code>作为<strong class="bold">数据集名称</strong>字段的值(在<strong class="bold">新数据集细节</strong>下)。</li>
+
+<li>从本地机器的<code>synthetic.bookings.dirty.parquet</code>文件下。</li>
+
+<li>接下来，定位<a id="_idIndexMarker489"/>，点击<strong class="bold">下的<strong class="bold">浏览S3 </strong>按钮，输入S3目的地</strong>。选择您在第4章 、<em class="italic">AWS上的无服务器数据管理</em>的<em class="italic">准备必要先决条件</em>部分创建的S3存储桶。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">请注意，您本地机器中的<code>synthetic.bookings.dirty.parquet</code>文件将被上传到在这一步中选择的S3存储桶。在学习本章中的动手解决方案时，您可以创建和使用不同的S3铲斗。您可以使用AWS管理控制台或通过AWS CloudShell使用AWS CLI随意创建新的S3存储桶。</p>
+
+<ol>
+
+<li value="8">在<strong class="bold">附加配置</strong>下，确保<strong class="bold">选定文件类型</strong>字段设置为<strong class="bold">拼花</strong>。</li>
+
+<li>点击<strong class="bold">创建数据集</strong>按钮(位于页面右下方)。</li>
+
+<li>此时，<code>bookings</code>数据集已经创建，应该出现在数据集列表中，如图<em class="italic">图5.5 </em>所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.5 – Navigating to the Datasets preview page&#10;&#10;" height="372" src="img/B18638_05_005.jpg" width="774"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.5–导航到数据集预览页面</p>
+
+<p class="list-inset">有了<a id="_idIndexMarker490"/>，让我们点击<em class="italic">图5.5 </em>中突出显示的<code>bookings</code>数据集名称。这将重定向到<strong class="bold">数据集预览</strong>页面，如图<em class="italic">图5.6 </em>所示:</p>
+
+<div><div><img alt="Figure 5.6 – The dataset preview&#10;&#10;" height="833" src="img/B18638_05_006.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.6–数据集预览</p>
+
+<p class="list-inset">通过点击<strong class="bold">数据集预览</strong>窗格右上角的相应按钮，随意检查<strong class="bold">模式</strong>、<strong class="bold">文本</strong>和<strong class="bold">树</strong>视图。</p>
+
+<p>既然我们已经成功上传了Parquet文件并创建了一个新的数据集，那么让我们继续创建并运行一个概要文件作业来分析数据。</p>
+
+<h2 id="_idParaDest-108"><a id="_idTextAnchor115"/>创建和运行概要文件作业</h2>
+
+<p>在执行任何数据清理和数据转换步骤之前，最好先分析数据，并查看数据集中每一列的属性和统计信息。我们可以使用AWS Glue DataBrew的功能为我们自动生成不同的分析报告，而不是手动完成。我们可以通过运行配置文件作业来自动生成这些报告。</p>
+
+<p>在下一组步骤中，我们<a id="_idIndexMarker492"/>将创建并运行一个配置文件作业，以生成我们上传的数据集的数据配置文件:</p>
+
+<ol>
+
+<li value="1">首先，点击<strong class="bold">数据档案概述</strong>选项卡，导航至<strong class="bold">数据档案概述</strong>页面。</li>
+
+<li>接下来，点击<strong class="bold">运行数据配置文件</strong>按钮。这将重定向到<strong class="bold">创建工单</strong>页面。</li>
+
+<li>在<strong class="bold">创建作业</strong>页面，向下滚动找到<strong class="bold">作业输出</strong>设置部分，然后点击<strong class="bold">浏览</strong>按钮设置<strong class="bold"> S3位置</strong>字段值。</li>
+
+<li>在<code>synthetic.bookings.dirty.parquet</code>文件是在较早的一步上传的。</li>
+
+<li>在<code>mle</code>下为<strong class="bold">新IAM角色后缀</strong>的值。</li>
+
+<li>点击<strong class="bold">创建并运行任务</strong>按钮。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">完成此步骤可能需要3到5分钟。请随意喝杯咖啡或茶！请注意，在等待结果出现时，您可能会看到一个正在进行的<strong class="bold"> 1作业</strong>加载消息。</p>
+
+<ol>
+
+<li value="7">配置文件作业完成后，向下滚动并查看结果:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.7 – An overview of the data profile&#10;&#10;" height="828" src="img/B18638_05_007.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.7–数据概要的概述</p>
+
+<p class="list-inset">您<a id="_idIndexMarker493"/>应该会看到一组<a id="_idIndexMarker494"/>类似于<em class="italic">图5.7 </em>中所示的结果。请随意检查由配置文件作业生成的以下报告:</p>
+
+<ul>
+
+<li><strong class="bold">汇总</strong>–显示总行数、总列数、缺失单元格和重复行</li>
+
+<li><strong class="bold">相关性</strong>–显示相关性矩阵(显示每个变量是如何相关的)</li>
+
+<li><strong class="bold">比较值分布</strong>–显示跨列分布的比较视图</li>
+
+<li><strong class="bold">列摘要</strong>–显示每个列的摘要统计数据</li>
+
+</ul>
+
+<p class="list-inset">或者，您可以导航到<strong class="bold">列统计数据</strong>选项卡，并在该选项卡中查看报告。</p>
+
+<p>如您所见，我们只需点击几下鼠标，就可以生成一个可用于分析数据集的数据配置文件。在继续本章的下一部分之前，请随意查看由配置文件作业生成的不同报告和统计信息。</p>
+
+<h2 id="_idParaDest-109"><a id="_idTextAnchor116"/>创建项目和配置配方</h2>
+
+<p>现在是我们创建和使用AWS Glue DataBrew项目的时候了。创建项目包括使用数据集和配方来执行所需的数据处理<a id="_idIndexMarker496"/>和转换工作。因为我们还没有配方，所以当我们创建和配置项目时，将会创建一个新的配方。在本节中，我们将配置一个具有以下功能的配方:</p>
+
+<ul>
+
+<li>过滤掉包含无效<code>children</code>列值的行</li>
+
+<li>基于现有列(<code>booking_changes</code>)的值创建新列(<code>has_booking_changes</code>)</li>
+
+</ul>
+
+<p>在下一组步骤中，我们将创建一个项目，并使用交互式用户界面来配置清理和转换数据的方法:</p>
+
+<ol>
+
+<li value="1">在页面的右上角，找到并点击<strong class="bold">使用该数据集创建项目</strong>按钮。这会将您重定向到<strong class="bold">创建项目</strong>页面。</li>
+
+<li>作为<strong class="bold">项目名称</strong>字段的值。</li>
+
+<li>向下滚动并找到<strong class="bold">权限</strong>下的<strong class="bold">角色名称</strong>下拉字段。选择在前面的步骤中创建的现有IAM角色。</li>
+
+<li>之后点击<strong class="bold">创建项目</strong>按钮:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.8 – Waiting for the project to be ready&#10;&#10;" height="980" src="img/B18638_05_008.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.8–等待项目准备就绪</p>
+
+<p class="list-inset">在<a id="_idIndexMarker497"/>点击<strong class="bold">创建项目</strong>按钮后，你应该被重定向<a id="_idIndexMarker498"/>到类似于<em class="italic">图5.8 </em>所示的页面。在创建一个项目之后，我们应该能够使用一个高度交互的工作空间，在这里我们可以测试和应用各种数据转换。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">完成此步骤可能需要2到3分钟</p>
+
+<ol>
+
+<li value="5">一旦项目会议准备就绪，我们将对数据进行快速检查，找出数据中的任何错误条目和问题(以便我们可以过滤掉它们)。在显示数据网格视图的左窗格中，找到并滚动(向左或向右)到<strong class="bold">子</strong>列，类似于<em class="italic">图5.9 </em>所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.9 – Filtering out the rows with invalid cell values&#10;&#10;" height="1021" src="img/B18638_05_009.jpg" width="1630"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.9–过滤掉具有无效单元格值的行</p>
+
+<p class="list-inset">我们<a id="_idIndexMarker499"/>应该看到在<code>adults</code>和<code>babies</code>和<code>-1</code>之间的<code>children</code>列，并且在<code>children</code>列下有值为<code>-1</code>的单元格。一旦查看了<code>children</code>栏下的不同值，点击<strong class="bold">过滤器</strong>按钮，如图<em class="italic">图5.9 </em>中突出显示的。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">请注意，我们特意在本章使用的Parquet文件的<code>children</code>列下添加了一定数量的<code>-1</code>值。鉴于<code>children</code>列的值不可能小于<code>0</code>，我们将在下一组步骤中过滤掉这些行。</p>
+
+<ol>
+
+<li value="6">点击<strong class="bold">过滤器</strong>按钮后，会出现一个下拉菜单。根据条件从<strong class="bold">下的选项列表中定位选择大于等于</strong>的<strong class="bold">。这将更新页面右侧的窗格，并显示<strong class="bold">过滤值</strong>操作的配置选项列表。</strong></li>
+
+<li>在带有占位符背景文本<strong class="bold">的字段中的<code>0</code>选项列表的<code>children</code>列中，输入一个过滤值</strong>。</li>
+
+<li>点击<strong class="bold">预览修改</strong>。这将更新左侧窗格，并提供数据集的网格<a id="_idIndexMarker501"/>视图:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.10 – Previewing the results&#10;&#10;" height="725" src="img/B18638_05_010.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.10–预览结果</p>
+
+<p class="list-inset">我们应该<a id="_idIndexMarker502"/>看到<code>children</code>列下值为<code>-1</code>的行已被过滤掉，类似于<em class="italic">图5.10 </em>所示。</p>
+
+<ol>
+
+<li value="9">接下来，点击<strong class="bold">应用</strong>按钮。</li>
+
+<li>让我们继续添加一个创建新列的步骤(从一个现有的列开始)。定位并点击<strong class="bold">添加步骤</strong>按钮，如图<em class="italic">图5.11 </em>所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.11 – Adding a step&#10;&#10;" height="231" src="img/B18638_05_011.jpg" width="641"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.11–添加步骤</p>
+
+<p class="list-inset"><strong class="bold">添加步骤</strong>按钮<a id="_idIndexMarker503"/>应与<strong class="bold">清除所有</strong>连杆位于同一行。</p>
+
+<ol>
+
+<li value="11">用搜索栏中的<code>create</code>打开<a id="_idIndexMarker504"/>下拉栏。从结果列表中选择<strong class="bold">基于条件</strong>选项:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.12 – Locating the Based on conditions option&#10;&#10;" height="332" src="img/B18638_05_012.jpg" width="513"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.12–定位基于条件选项</p>
+
+<p class="list-inset">如果您正在寻找搜索字段，只需参考<em class="italic">图5.12 </em>中高亮显示的框(在顶部)。</p>
+
+<ol>
+
+<li value="12">在<code>booking_changes</code></li>
+
+<li><code>Greater than</code></li>
+
+<li><code>0</code></li>
+
+<li><code>True or False</code></li>
+
+<li><code>has_booking_changes</code></li>
+
+
+
+<li>点击<code>has_booking_changes</code>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.13 – Previewing the changes&#10;&#10;" height="773" src="img/B18638_05_013.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.13–预览变更</p>
+
+<p class="list-inset">正如我们在<em class="italic">图5.13 </em>中看到的，如果<code>booking_changes</code>列的值大于<code>0</code>，则这个新列的值为<code>true</code>，否则为<code>false</code>。</p>
+
+<ol>
+
+<li value="14">在点击<strong class="bold">应用</strong>按钮之前，查看预览结果。</li>
+
+<li>此时，我们的配方中应该有两个应用步骤。点击<strong class="bold">发布</strong>，如图<em class="italic">图5.14 </em>所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.14 – Locating and clicking the Publish button&#10;&#10;" height="276" src="img/B18638_05_014.jpg" width="753"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.14–定位并点击发布按钮</p>
+
+<p class="list-inset">这将打开<strong class="bold">发布配方</strong>窗口。</p>
+
+<ol>
+
+<li value="16">在<a id="_idIndexMarker508"/>弹出的<strong class="bold">发布配方</strong>窗口中，点击<strong class="bold">发布</strong>。注意，我们可以在发布当前配方时指定一个可选的版本描述。</li>
+
+</ol>
+
+<p>现在我们已经发布了一个配方，我们可以继续创建一个配方作业，该作业将执行配方中配置的不同步骤。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">在发布配方之后，我们仍然需要在应用更改之前运行一个配方作业(导致生成一个具有应用的数据转换的新文件)。</p>
+
+<h2 id="_idParaDest-110"><a id="_idTextAnchor117"/>创建和运行配方作业</h2>
+
+<p>正如我们在图5.15 中<a id="_idIndexMarker509"/>看到的，配方作业需要配置一个源和一个目的地。作业读取存储在源中的数据，执行相关配方中配置的转换<a id="_idIndexMarker510"/>步骤，并将处理后的文件存储在目标中。</p>
+
+<div><div><img alt="Figure 5.15 – A job needs to be configured with a source and a destination&#10;&#10;" height="122" src="img/B18638_05_015.jpg" width="890"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.15–作业需要配置一个源和一个目的地</p>
+
+<p>值得注意的是，源数据不会被修改，因为配方作业仅以只读方式连接。配方作业处理完所有步骤后，作业结果将存储在一个或多个已配置的输出目的地中。</p>
+
+<p>在下一组步骤中，我们将使用在上一节中发布的配方创建并运行配方作业:</p>
+
+<ol>
+
+<li value="1">使用左侧边栏导航至<strong class="bold">食谱</strong>页面。</li>
+
+<li>选择名为<code>bookings-project-recipe</code>的行(这将切换复选框并高亮显示整行)。</li>
+
+<li>点击<strong class="bold">用该配方创建作业</strong>按钮。这将把您重定向到<strong class="bold">创建工作</strong>页面。</li>
+
+<li>在<code>bookings-clean-and-add-column</code>上</li>
+
+
+
+<li><code>Project</code></li>
+
+<li><code>bookings-project</code>。</li>
+
+
+
+<li><strong class="bold">作业输出设置</strong><ul><li><strong class="bold"> S3地点</strong>:点击<strong class="bold">浏览</strong>。找到并选择本章前面步骤中使用的同一个S3铲斗。</li>
+
+</ul></li>
+
+<li><strong class="bold">权限</strong>:<ul><li><strong class="bold">角色名称</strong>:选择在前面步骤中创建的IAM角色。</li>
+
+</ul></li>
+
+
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">我们不局限于在S3存储作业输出结果。我们还可以将输出结果<a id="_idIndexMarker512"/>存储在<strong class="bold"> Amazon Redshift </strong>、<strong class="bold"> Amazon RDS </strong>表中，等等。如需了解更多信息，请随时查看以下链接:<a href="https://docs.aws.amazon.com/databrew/latest/dg/supported-data-connection-sources.xhtml">https://docs . AWS . Amazon . com/data brew/latest/DG/supported-data-connection-sources . XHTML</a>。</p>
+
+<ol>
+
+<li value="5">查看<a id="_idIndexMarker513"/>指定的配置，然后点击<strong class="bold">创建并运行作业</strong>按钮。如果您不小心点击了<strong class="bold">创建任务</strong>按钮(在<strong class="bold">创建并运行任务</strong>按钮旁边)，那么在任务创建完成后，您可以点击<strong class="bold">运行任务</strong>按钮<a id="_idIndexMarker514"/>。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">等待3到5分钟，让此步骤完成。在等待的时候，请随意喝杯咖啡或茶！</p>
+
+<p>那不是很容易吗？创建、配置和运行配方作业非常简单。请注意，我们可以配置这个配方作业，并通过关联一个时间表来自动运行作业。关于这个话题的更多信息，可以查看以下链接:<a href="https://docs.aws.amazon.com/databrew/latest/dg/jobs.recipe.xhtml#jobs.scheduling">https://docs . AWS . Amazon . com/data brew/latest/DG/jobs . recipe . XHTML</a>。</p>
+
+<h2 id="_idParaDest-111"><a id="_idTextAnchor118"/>验证结果</h2>
+
+<p>现在，让我们<a id="_idIndexMarker515"/>继续检查AWS CloudShell中的recipe作业输出结果，这是一个免费的基于浏览器的Shell，我们可以使用终端来管理我们的AWS资源。在下一组步骤中，我们将把recipe作业输出结果下载到CloudShell环境中，并检查预期的更改是否反映在下载的文件中:</p>
+
+<ol>
+
+<li value="1">一旦作业的<strong class="bold">最后一次作业运行状态</strong>变为<strong class="bold">成功</strong>，点击<strong class="bold">输出</strong>栏下的<strong class="bold"> 1输出</strong>链接。这将打开<strong class="bold">工作输出位置</strong>窗口。点击<strong class="bold">目的地</strong>列下的S3链接，在新标签中打开S3页面。</li>
+
+<li>使用<code>bookings-clean-and-add-column</code>。确保按下<em class="italic"> ENTER </em>键过滤对象列表。导航到<code>bookings-clean-and-add-column</code>并以<code>part00000</code>结束。</li>
+
+<li>选择CSV文件(应切换复选框)，然后点击<strong class="bold">复制S3 URI </strong>按钮。</li>
+
+<li>通过点击图标导航到<strong class="bold"> AWS CloudShell </strong>，如<em class="italic">图5.16 </em>中突出显示的:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.16 – Navigating to CloudShell&#10;&#10;" height="69" src="img/B18638_05_016.jpg" width="239"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.16–导航到CloudShell</p>
+
+<p class="list-inset">我们可以在AWS管理控制台的右上角找到这个按钮。您还可以使用搜索栏导航到CloudShell控制台。</p>
+
+<ol>
+
+<li value="5">当<a id="_idIndexMarker516"/>看到<strong class="bold">欢迎使用AWS CloudShell </strong>窗口时，点击<strong class="bold">关闭</strong>按钮。等待环境运行(大约1到2分钟)后再继续。</li>
+
+<li>在CloudShell环境中运行以下命令(在<code>&lt;PASTE COPIED S3 URL&gt;</code>之后，使用在前面步骤中复制到剪贴板的内容:<pre class="source-code"><strong class="bold">TARGET=&lt;PASTE COPIED S3 URL&gt;</strong></pre> <pre class="source-code"><strong class="bold">aws s3 cp $TARGET bookings.csv</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这应该会将输出CSV文件从S3下载到CloudShell环境中。</p>
+
+<ol>
+
+<li value="7">使用<code>head</code>命令检查<code>bookings.csv</code>文件的前几行:<pre class="source-code"><strong class="bold">head bookings.csv</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这将返回包含CSV文件头的第一行，以及数据集的前几条记录:</p>
+
+<div><div><img alt="Figure 5.17 – Verifying the job results&#10;&#10;" height="235" src="img/B18638_05_017.jpg" width="1155"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.17–验证工作结果</p>
+
+<p class="list-inset">在<em class="italic">图5.17 </em>中，我们可以看到处理后的数据集现在包括了包含<code>true</code>或<code>false</code>值的<code>has_booking_changes</code>列。您可以进一步检查CSV文件，并验证在<code>children</code>列下没有更多的<code>-1</code>值。我们将把这个留给你作为练习。</p>
+
+<p>现在我们已经使用AWS Glue DataBrew分析和处理了我们的数据，我们可以继续使用Amazon SageMaker Data Wrangler来执行类似的操作。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">完成本章中的动手解决方案后，不要忘记删除所有Glue DataBrew资源(如配方作业、配置文件作业、配方、项目和数据集)。</p>
+
+<h1 id="_idParaDest-112"><a id="_idTextAnchor119"/>使用Amazon SageMaker Data Wrangler准备ML数据</h1>
+
+<p>Amazon SageMaker有很多功能和特性来帮助数据科学家和ML工程师满足不同的ML需求。SageMaker专注于加速数据准备和数据分析的能力之一是SageMaker数据牧马人:</p>
+
+<div><div><img alt="Figure 5.18 – The primary functionalities available in SageMaker Data Wrangler&#10;&#10;" height="146" src="img/B18638_05_018.jpg" width="1120"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.18–sage maker Data Wrangler的主要功能</p>
+
+<p>在<em class="italic">图5.18 </em>中，我们可以看到使用SageMaker Data Wrangler时我们可以对数据做些什么:</p>
+
+<ol>
+
+<li value="1">首先，我们可以从各种数据源导入数据，比如亚马逊S3、亚马逊雅典娜和<a id="_idIndexMarker522"/>亚马逊红移。</li>
+
+<li>接下来，我们<a id="_idIndexMarker523"/>可以创建一个数据流，并使用各种数据格式和数据转换选项来转换数据。只需点击几下鼠标，我们还可以使用内置和自定义选项来分析和可视化数据。</li>
+
+<li>最后，我们可以通过导出数据处理管道中配置的一个或多个转换来自动化数据准备工作流。</li>
+
+</ol>
+
+<p>SageMaker Data Wrangler <a id="_idIndexMarker524"/>集成到SageMaker Studio中，使我们能够使用这一功能来处理我们的数据并自动化我们的数据处理工作流，而无需离开开发环境。我们不必使用各种工具、库和框架(如pandas和PySpark)从头开始编写所有代码，我们只需使用SageMaker Data Wrangler来帮助我们使用一个接口准备自定义数据流，并在几分钟内自动生成可重用的代码！</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">确保退出并且<em class="italic">而不是</em>使用在<a href="B18638_04.xhtml#_idTextAnchor079"> <em class="italic">第4章</em> </a>、<em class="italic">AWS</em>上的无服务器数据管理中创建的IAM用户。您应该使用root帐户或拥有一组权限的新IAM用户来创建和管理AWS Glue DataBrew、亚马逊S3、AWS CloudShell和亚马逊SageMaker资源。运行本书中的示例时，建议使用具有有限权限的IAM用户，而不是root帐户。我们将在<a href="B18638_09.xhtml#_idTextAnchor187"> <em class="italic">第9章</em> </a>、<em class="italic">安全、治理和遵从性策略</em>中详细讨论这一点以及其他安全最佳实践。</p>
+
+<h2 id="_idParaDest-113"><a id="_idTextAnchor120"/>访问数据管理器</h2>
+
+<p>我们需要<a id="_idIndexMarker525"/>打开SageMaker Studio来访问SageMaker Data Wrangler。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">在继续之前，确保您已经完成了<a href="B18638_01.xhtml#_idTextAnchor017"> <em class="italic">第1章</em> </a>、<em class="italic">AWS上的ML工程介绍</em>的<em class="italic">sage maker和SageMaker Studio </em>部分中的实践解决方案。你也可以更新SageMaker Studio和Studio应用程序(如果你用的是旧版本的话)。关于这个话题的更多信息，可以查看以下链接:<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/studio-tasks-update-studio.xhtml">https://docs . AWS . Amazon . com/sagemaker/latest/DG/studio-tasks-update-studio . XHTML</a>。请注意，本节中的步骤假设我们使用的是JupyterLab 3.0。如果您使用的是不同的版本，在布局和用户体验方面可能会有一些不同。</p>
+
+<p>在下一组<a id="_idIndexMarker526"/>步骤中，我们将启动SageMaker Studio，并从<strong class="bold">文件</strong>菜单中访问Data Wrangler:</p>
+
+<ol>
+
+<li value="1">在AWS管理控制台的搜索栏中导航到<code>sagemaker studio</code>，并从<strong class="bold">功能</strong>下的结果列表中选择<strong class="bold"> SageMaker Studio </strong>。</li>
+
+</ol>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">本章假设我们在使用服务管理和创建不同类型的资源时使用了<code>us-west-2</code>区域。您可以使用不同的区域，但请确保在需要将某些资源转移到所选区域时进行必要的调整。</p>
+
+<ol>
+
+<li value="2">接下来，点击侧边栏中<strong class="bold"> SageMaker域</strong>下的<strong class="bold"> Studio </strong>。</li>
+
+<li>点击<strong class="bold">启动app </strong>，如图<em class="italic">图5.19 </em>所示。从下拉选项列表中选择<strong class="bold">工作室</strong>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.19 – Opening SageMaker Studio&#10;&#10;" height="427" src="img/B18638_05_019.jpg" width="994"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.19–打开SageMaker Studio</p>
+
+<p class="list-inset">这将<a id="_idIndexMarker527"/>把你重定向到<strong class="bold"> SageMaker工作室</strong>。等待几秒钟，让接口加载。</p>
+
+<ol>
+
+<li value="4">打开正在配置的<code>ml.m5.4xlarge</code>实例，以运行Data Wrangler。准备就绪后，您将看到<strong class="bold">导入数据</strong>页面。</li>
+
+</ol>
+
+<p>至此，让我们继续在下一节中导入我们的数据。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">一旦您完成了本章中的动手解决方案，需要立即关闭用于运行Data Wrangler的<code>ml.m5.4xlarge</code>实例，以避免任何额外费用。单击并找到左侧边栏上的圆形图标，以显示正在运行的实例、应用程序、内核会话和终端会话的列表。当您使用完SageMaker Studio时，确保关闭<strong class="bold">运行实例</strong>下的所有运行实例。</p>
+
+<h2 id="_idParaDest-114"><a id="_idTextAnchor121"/>导入数据</h2>
+
+<p>导入数据用于Data Wrangler时，有几个选项。我们可以从各种来源导入和加载数据，包括亚马逊S3、亚马逊雅典娜、亚马逊红移、数据砖(JDBC)和雪花。</p>
+
+<p>在接下来的一组步骤中，我们将着重于导入存储在Parquet文件中的数据，该文件上传到我们帐户的S3存储桶中:</p>
+
+<ol>
+
+<li value="1">在<strong class="bold">导入数据</strong>页面(在<strong class="bold">导入</strong>选项卡下)，点击<strong class="bold">亚马逊S3 </strong>。</li>
+
+<li>上传到你AWS账户的一个S3桶里的<code>synthetic.bookings.dirty.parquet</code>文件。</li>
+
+</ol>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">如果您跳过了本章的<em class="italic">使用AWS Glue DataBrew </em>自动准备和分析数据一节，您需要将本章的<em class="italic">准备必要的先决条件</em>一节中下载的拼花文件上传到一个新的或现有的亚马逊S3桶中。</p>
+
+<ol>
+
+<li value="3">如果您看到类似于<em class="italic">图5.20 </em>中所示的<strong class="bold">预览错误</strong>通知，您可以通过打开<strong class="bold">文件类型</strong>下拉菜单并从选项列表中选择<strong class="bold">拼花</strong>来移除它。</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.20 – Setting the file type to Parquet&#10;&#10;" height="556" src="img/B18638_05_020.jpg" width="1001"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.20–将文件类型设置为拼花</p>
+
+<p class="list-inset">从<strong class="bold">文件类型</strong>下拉菜单中选择<strong class="bold">拼花</strong>选项后,<strong class="bold">预览错误</strong>消息应该消失。</p>
+
+<p class="list-inset">如果您使用的是JupyterLab版本3.0的<a id="_idIndexMarker531"/>，那么已经预先选择了<strong class="bold">拼花</strong>选项。</p>
+
+<ol>
+
+<li value="4">如果您使用的是JupyterLab版，可能会预先选择<strong class="bold"> csv </strong>选项，而不是<strong class="bold">拼花</strong>选项。也就是说，不管版本如何，我们都应该将<strong class="bold">文件类型</strong>下拉列表值设置为<strong class="bold">拼花</strong>。点击页面右上角的<strong class="bold">导入</strong>按钮。这将使您返回到<strong class="bold">数据流</strong>页面。</li>
+
+</ol>
+
+<p>请注意，我们并不局限于从亚马逊S3进口。我们还可以从Amazon Athena、Amazon Redshift和其他数据源导入数据。您可以查看<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/data-wrangler-import.xhtml">https://docs . AWS . Amazon . com/sagemaker/latest/DG/data-wrangler-import . XHTML</a>了解更多信息。</p>
+
+<h2 id="_idParaDest-115"><a id="_idTextAnchor122"/>转换数据</h2>
+
+<p>在处理和转换我们的数据时，SageMaker Data Wrangler中有许多内置选项。在这一章中，我们将展示一个如何使用自定义PySpark脚本来转换数据的快速演示。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">有关<a id="_idIndexMarker534"/>众多可用数据转换的更多信息，请随时查看以下链接:<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/data-wrangler-transform.xhtml">https://docs . AWS . Amazon . com/sage maker/latest/DG/data-wrangler-transform . XHTML</a>。</p>
+
+<p>在下一组<a id="_idIndexMarker535"/>步骤中，我们将添加并配置一个自定义PySpark转换来清理和处理我们的数据:</p>
+
+<ol>
+
+<li value="1">如果您可以看到<strong class="bold">数据类型转换:synthetic . bookings . dirty . parquet</strong>页面，请通过单击页面左上角的<strong class="bold"> &lt;数据流</strong>按钮，导航回<strong class="bold">数据流</strong>页面。在下一步快速查看数据流的当前配置后，我们将很快返回到该页面。</li>
+
+<li>在<strong class="bold">数据流</strong>页面，点击<strong class="bold"> + </strong>按钮，如图<em class="italic">图5.21 </em>中高亮显示。从选项列表中选择<strong class="bold">添加变换</strong>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.21 – Adding a transform&#10;&#10;" height="500" src="img/B18638_05_021.jpg" width="973"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.21–添加转换</p>
+
+<p class="list-inset">在本章中，我们将只使用一个数据集。然而，需要注意的是，我们可以使用<strong class="bold"> Join </strong>选项处理并合并两个数据集，如图5.21 中的<em class="italic">所示。</em></p>
+
+<ol>
+
+<li value="3">在<a id="_idIndexMarker536"/>页面左侧的<strong class="bold">所有步骤</strong>窗格中，点击<strong class="bold">添加步骤</strong>按钮。这将显示用于转换数据集的选项列表。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果您使用的是<strong class="bold"> JupyterLab 1.0 </strong>，您应该会看到左侧窗格标记为<strong class="bold">转换</strong>而不是<strong class="bold">所有步骤</strong>。</p>
+
+<ol>
+
+<li value="4">从可用选项列表中选择<strong class="bold">自定义变换</strong>。</li>
+
+<li>在<strong class="bold">自定义转换</strong>中，在代码编辑器中输入以下代码:<pre class="source-code">df = df.filter(df.<strong class="bold">children</strong> &gt;= 0)</pre> <pre class="source-code">expression = df.<strong class="bold">booking_changes</strong> &gt; 0</pre> <pre class="source-code">df = df.withColumn('<strong class="bold">has_booking_changes</strong>', expression)</pre></li>
+
+</ol>
+
+<p class="list-inset">这个代码块所做的是选择并保留所有列<code>children</code>的值为<code>0</code>或更高的行，并创建一个新列<code>has_booking_changes,</code>，如果<code>booking_changes</code>列中的值大于<code>0</code>或<code>false</code>，则该列的值为<code>true</code>。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果您使用的是<strong class="bold"> JupyterLab 1.0 </strong>，您应该会看到左侧窗格中标有<strong class="bold"> CUSTOM PYSPARK </strong>而不是<strong class="bold"> CUSTOM TRANSFORM </strong>。</p>
+
+<ol>
+
+<li value="6">单击<code>has_booking_changes</code>列，类似于我们在<em class="italic">图5.22 </em>中看到的:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.22 – Previewing the changes&#10;&#10;" height="606" src="img/B18638_05_022.jpg" width="1013"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.22–预览变更</p>
+
+<p class="list-inset">你<a id="_idIndexMarker537"/>应该在<code>total_of_special_requests</code>列(预览中最左边的一列)旁边找到<code>has_booking_changes</code>列。</p>
+
+<ol>
+
+<li value="7">一旦您完成了对数据的预览，您可以在点击<strong class="bold">添加</strong>按钮之前提供一个可选的<strong class="bold">名称</strong>值。</li>
+
+<li>在上一步点击<strong class="bold">添加</strong>按钮后，定位并点击页面右上方的<strong class="bold"> &lt;数据流</strong>链接(或<strong class="bold">返回数据流</strong>链接)。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">需要注意的是，这些步骤还没有执行，因为我们只是定义了将在后面的步骤中运行的内容。</p>
+
+<p>请注意，我们在这里只是触及了SageMaker Data Wrangler的皮毛。这里<a id="_idIndexMarker538"/>是其他可用变换的几个例子:</p>
+
+<ul>
+
+<li>平衡数据(例如，随机过采样、随机欠采样和SMOTE)</li>
+
+<li>对分类数据进行编码(例如，一键编码、相似性编码)</li>
+
+<li>处理缺失的时间序列数据</li>
+
+<li>从时间序列数据中提取特征</li>
+
+</ul>
+
+<p>要获得更完整的转换列表，请随意查看以下链接:<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/data-wrangler-transform.xhtml">https://docs . AWS . Amazon . com/sagemaker/latest/DG/data-wrangler-transform . XHTML</a>。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果您有兴趣更深入地了解如何使用各种技术(如随机过采样、随机欠采样和SMOTE)来平衡数据，请随意查看下面的博客文章:<a href="https://aws.amazon.com/blogs/machine-learning/balance-your-data-for-machine-learning-with-amazon-sagemaker-data-wrangler/">https://AWS . Amazon . com/blogs/machine-learning/balance-your-data-for-machine-learning-with-Amazon-sage maker-data-wrangler/</a>。</p>
+
+<h2 id="_idParaDest-116"><a id="_idTextAnchor123"/>分析数据</h2>
+
+<p>至关重要的是，我们要分析将在后续步骤中用于训练ML模型的数据。我们需要很好地了解可能会无意中影响使用该数据训练的ML模型的行为和性能的属性。分析数据集的方法有很多种，SageMaker Data Wrangler的优势在于它允许我们从一系列预建的分析选项和可视化中进行选择，包括以下列表中的选项:</p>
+
+<ul>
+
+<li><strong class="bold">直方图</strong>–能否使用<a id="_idIndexMarker540"/>来显示数据分布的“形状”</li>
+
+<li><strong class="bold">散点图</strong>–能否使用<a id="_idIndexMarker541"/>显示两个数值变量之间的关系(使用点代表数据集中的每个数据点)</li>
+
+<li><strong class="bold">表格汇总</strong>–可用于<a id="_idIndexMarker542"/>显示数据集的汇总统计数据(例如，每列的记录数或最小值和最大值)</li>
+
+<li><strong class="bold">特征重要性分数</strong>(使用快速模型)–用于分析<a id="_idIndexMarker543"/>每个特征在预测目标变量时的影响</li>
+
+<li><strong class="bold">目标泄漏分析</strong>–能否使用<a id="_idIndexMarker544"/>来检测数据集中与我们想要预测的列密切相关的列</li>
+
+<li><strong class="bold">时间序列数据</strong>的异常检测–可用于检测时间<a id="_idIndexMarker545"/>序列数据中的异常值</li>
+
+<li><strong class="bold">偏差报告</strong>—<a id="_idIndexMarker546"/>能否用于<a id="_idIndexMarker547"/>检测数据集中的潜在偏差(通过计算不同的偏差指标)</li>
+
+</ul>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">请注意，这不是一个详尽的列表，当您在本节的实践部分工作时，您可能会看到其他选项。</p>
+
+<p>在下一组步骤中，我们将创建分析并生成偏差报告:</p>
+
+<ol>
+
+<li value="1">点击<strong class="bold"> + </strong>按钮，从选项列表中选择<strong class="bold">添加分析</strong>，类似于<em class="italic">图5.23 </em>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.23 – Adding an analysis&#10;&#10;" height="536" src="img/B18638_05_023.jpg" width="954"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.23–添加分析</p>
+
+<p class="list-inset">您应该看到位于页面左侧的<strong class="bold">创建分析</strong>窗格。</p>
+
+<ol>
+
+<li value="2">在<code>Bias report</code>中指定<a id="_idIndexMarker548"/>以下配置选项</li>
+
+<li><code>Sample analysis</code></li>
+
+<li><code>is_cancelled</code></li>
+
+<li><code>1</code></li>
+
+<li><code>babies</code></li>
+
+<li><code>Threshold</code></li>
+
+<li><code>1</code></li>
+
+
+
+<li>向下滚动到页面底部。找到并点击<strong class="bold">检查偏差</strong>按钮(在<strong class="bold">保存</strong>按钮旁边)。</li>
+
+<li>向上滚动并找到偏差报告，类似于<em class="italic">图5.24 </em>所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.24 – The bias report&#10;&#10;" height="683" src="img/B18638_05_024.jpg" width="986"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.24–偏差报告</p>
+
+<p class="list-inset">在这里，我们<a id="_idIndexMarker549"/>可以看到<code>0.92</code>。这意味着数据集非常不平衡，与弱势群体(<code>is_cancelled = 0</code>)相比，优势群体(<code>is_cancelled = 1</code>)的比例更高。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">我们将在<a href="B18638_09.xhtml#_idTextAnchor187"> <em class="italic">第9章</em> </a>、<em class="italic">安全、治理和合规性策略</em>中更深入地了解如何计算和解释偏差指标的细节。</p>
+
+<ol>
+
+<li value="5">向下滚动并点击<strong class="bold">保存</strong>按钮(在<strong class="bold">检查偏差</strong>按钮旁边)</li>
+
+<li>定位并点击<strong class="bold"> &lt;数据流</strong>链接(或<strong class="bold">返回数据流</strong>链接)返回<strong class="bold">数据流</strong>页面。</li>
+
+</ol>
+
+<p>除了偏倚报告，我们还可以生成数据可视化，如直方图和散点图，以帮助我们分析数据。我们甚至可以使用提供的数据集<a id="_idIndexMarker550"/>生成一个快速模型，并生成一个特性重要性报告(当预测一个目标变量时，用分数显示每个特性的影响)。如需了解更多信息，请随时查看以下链接:<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/data-wrangler-analyses.xhtml">https://docs . AWS . Amazon . com/sage maker/latest/DG/data-wrangler-analyses . XHTML</a>。</p>
+
+<h2 id="_idParaDest-117"><a id="_idTextAnchor124"/>导出数据流</h2>
+
+<p>一切准备就绪后，让我们继续导出我们在前面章节中准备的数据流。执行导出操作时有不同的选项。这包括将数据导出到亚马逊S3存储桶。我们还可以使用包含相关代码块的Jupyter笔记本，选择将一个或多个步骤从数据流<a id="_idIndexMarker552"/>导出到<strong class="bold"> SageMaker管道</strong>。同样，我们也可以选择<a id="_idIndexMarker553"/>将我们准备好的特征导出到<strong class="bold"> SageMaker特征库</strong>。还有一个将数据流步骤直接导出到Python代码的选项。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">一旦数据流步骤被导出并转换为代码，就可以运行生成的代码和Jupyter笔记本来执行数据流中配置的不同步骤。最后，如果需要，有经验的ML实践者可以选择修改生成的笔记本和代码。</p>
+
+<p>在下一组步骤中，我们将执行导出操作并生成一个Jupyter笔记本，该笔记本将<a id="_idIndexMarker554"/>利用<strong class="bold"> SageMaker处理</strong>作业来处理数据并将结果保存到S3存储桶:</p>
+
+<ol>
+
+<li value="1">点击第三个框后的<strong class="bold"> + </strong>按钮<strong class="bold"> Python (PySpark) </strong>(或使用您在之前步骤中指定的自定义名称)，如图<em class="italic">图5.25 </em>中高亮显示，然后打开<strong class="bold">导出到</strong>下的选项列表:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.25 – Exporting the step&#10;&#10;" height="438" src="img/B18638_05_025.jpg" width="1021"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.25–导出步骤</p>
+
+<p class="list-inset">这个<a id="_idIndexMarker555"/>应该给我们一个选项列表，包括以下内容:</p>
+
+<ul>
+
+<li><strong class="bold">亚马逊S3(通过Jupyter笔记本)</strong></li>
+
+<li><strong class="bold"> SageMaker管道(通过Jupyter笔记本)</strong></li>
+
+<li><strong class="bold"> Python代码</strong></li>
+
+<li><strong class="bold"> SageMaker特色店(通过Jupyter笔记本)</strong></li>
+
+</ul>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果您正在使用JupyterLab 1.0，您需要首先通过点击<strong class="bold">数据流</strong>选项卡旁边的<strong class="bold">导出</strong>选项卡导航到<strong class="bold">导出数据流</strong>页面。之后，您需要点击第三个框(在<strong class="bold">自定义PySpark </strong>下)，然后点击<strong class="bold">导出步骤</strong>按钮(这将打开下拉选项列表)。</p>
+
+<ol>
+
+<li value="2">从选项列表中选择<strong class="bold">亚马逊S3(通过Jupyter笔记本)</strong>。这将生成并打开<strong class="bold">保存到S3的SageMaker加工作业</strong> Jupyter笔记本。注意，在这一点上，配置的数据转换还没有被应用，我们需要运行生成的笔记本文件中的单元来应用转换。</li>
+
+<li>找到并单击第一个可运行单元。使用<strong class="bold">运行所选细胞并推进</strong>按钮运行，如图<em class="italic">图5.26 </em>中突出显示的:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.26 – Running the first cell&#10;&#10;" height="526" src="img/B18638_05_026.jpg" width="1003"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.26–运行第一个单元</p>
+
+<p class="list-inset">正如我们<a id="_idIndexMarker556"/>在<em class="italic">图5.26 </em>中所看到的，我们可以在<strong class="bold">输入和输出</strong>下找到第一个可运行的单元。您可能会看到一个“<strong class="bold">注意:内核仍在启动。请在内核启动后再次执行该单元。</strong>"等待内核启动时的消息。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">等待内核启动。在配置ML实例以运行Jupyter笔记本单元时，此步骤可能需要大约3到5分钟。一旦您完成了本章中的动手解决方案，需要立即关闭用于运行Jupyter笔记本单元的ML实例，以避免任何额外费用。单击并找到左侧边栏上的圆形图标，以显示正在运行的实例、应用程序、内核会话和终端会话的列表。当您使用完SageMaker Studio时，确保关闭<strong class="bold">运行实例</strong>下的所有运行实例。</p>
+
+<ol>
+
+<li value="4">一旦内核准备就绪，点击包含第一个代码块的单元格<code>run_optional_steps</code>下的变量被设置为<code>False</code>。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果您想知道什么是SageMaker处理作业，它是一个利用AWS的托管基础设施来运行脚本的作业。该脚本被编码为执行由用户(或脚本的创建者)定义的一组操作。你可以查看<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/processing-job.xhtml">https://docs . AWS . Amazon . com/sage maker/latest/DG/processing-job . XHTML</a>了解更多关于这个话题的信息。</p>
+
+<p class="list-inset">用SageMaker处理作业 Jupyter笔记本运行<strong class="bold">保存到S3中的所有单元格可能需要10到20分钟。等待时，让我们快速检查笔记本中的不同部分:</strong></p>
+
+<ul>
+
+<li><strong class="bold">输入和输出</strong>–在这里我们指定流输出的输入和输出配置</li>
+
+<li><strong class="bold">运行处理作业</strong>——在这里我们配置并运行一个SageMaker处理作业</li>
+
+<li><strong class="bold">(可选)接下来的步骤</strong>–我们可以选择将处理后的数据加载到pandas中进行进一步检查，并使用SageMaker训练一个模型</li>
+
+</ul>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果您遇到类似于存储在<code>data_sources</code>列表中的<code>ProcessingInput</code>对象的<code>input_name</code>值的错误消息(列表中应该只有一个<code>ProcessingInput</code>对象)。如果遇到其他意外错误，请根据需要对Python代码进行故障排除。</p>
+
+<ol>
+
+<li value="5">一旦<code>SystemExit</code>在<strong class="bold">(可选)下一步</strong>中上升，定位并滚动<a id="_idIndexMarker558"/>到<strong class="bold">工作状态&amp; S3输出位置</strong>下的单元格，并将<em class="italic">图5.27 </em>中高亮显示的S3路径复制到本地机器上的文本编辑器(例如VS代码):</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.27 – Copying the S3 path where the job results are stored&#10;&#10;" height="677" src="img/B18638_05_027.jpg" width="978"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.27–复制存储作业结果的S3路径</p>
+
+<p class="list-inset">在继续之前，您应该找到紧接在<code>SystemExit</code>之后的S3路径。</p>
+
+<p>既然我们已经运行完了生成的Jupyter笔记本中的单元，您可能会问，<em class="italic">首先生成Jupyter笔记本的目的是什么</em>？为什么不直接运行数据流步骤，而不必生成脚本或笔记本呢？答案很简单:这些生成的Jupyter笔记本是用来作为初始<a id="_idIndexMarker559"/>模板的，可以根据需要进行的工作需求进行定制。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">等等！数据集的处理版本在哪里？在下一节中，我们将快速关闭SageMaker Studio自动启动的实例来管理成本。关闭资源后，我们将在本章末尾的<em class="italic">验证结果</em>部分下载并检查保存在S3的输出CSV文件。</p>
+
+<h2 id="_idParaDest-118"><a id="_idTextAnchor125"/>关闭资源</h2>
+
+<p>需要注意的是，每当我们使用和访问SageMaker Data Wrangler时，SageMaker Studio会自动启动一个<code>ml.m5.4xlarge</code>实例(在撰写本文时)。除此之外，在Jupyter笔记本中运行一个或多个单元时，还会提供另一个ML实例。如果我们要使用类似于图5.28 中的AWS深度学习容器在Jupyter笔记本上创建并运行ML实验，那么也可以提供一个<code>ml.g4dn.xlarge</code>实例。这些实例和资源需要手动关闭和删除，因为它们即使在不活动期间也不会自动关闭:</p>
+
+<div><div><img alt="Figure 5.28 – A high-level view of how SageMaker Studio operates&#10;&#10;" height="439" src="img/B18638_05_028.jpg" width="1133"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.28-sage maker Studio如何运作的高级视图</p>
+
+<p>关闭这些资源至关重要，因为我们不想为这些资源未被使用的时间付费。在下一组步骤中，我们将在SageMaker Studio中找到并关闭正在运行的实例:</p>
+
+<ol>
+
+<li value="1">点击侧边栏中的圆形图标，如<em class="italic">图5.29 </em>所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.29 – Turning off the running instances&#10;&#10;" height="565" src="img/B18638_05_029.jpg" width="1276"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.29–关闭正在运行的实例</p>
+
+<p class="list-inset">单击圆圈图标应该会打开并显示SageMaker Studio中正在运行的实例、应用程序和终端。</p>
+
+<ol>
+
+<li value="2">点击<em class="italic">图5.29 </em>中高亮显示的<strong class="bold">关闭</strong>按钮，关闭<strong class="bold">运行实例</strong>下的所有<a id="_idIndexMarker561"/>运行实例。点击<strong class="bold">关闭</strong>按钮将打开一个弹出窗口，确认实例关闭操作。点击<strong class="bold">关闭所有</strong>按钮继续。</li>
+
+</ol>
+
+<p>接下来，您可能希望安装和使用一个JupyterLab扩展，它可以在不活动期间自动关闭某些资源，类似于<strong class="bold"> SageMaker Studio自动关闭扩展</strong>。你可以<a id="_idIndexMarker562"/>在这里找到扩展:<a href="https://github.com/aws-samples/sagemaker-studio-auto-shutdown-extension">https://github . com/AWS-samples/sage maker-studio-auto-shut down-extension</a>。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">即使安装了扩展，仍然建议在使用SageMaker Studio后手动检查并关闭资源。确保定期检查和清理资源。</p>
+
+<h2 id="_idParaDest-119"><a id="_idTextAnchor126"/>验证结果</h2>
+
+<p>此时，数据集的处理过的<a id="_idIndexMarker563"/>版本应该存储在您复制到本地机器的文本编辑器中的目标S3路径中。在下一组步骤中，我们将把它下载到AWS CloudShell环境中，并检查预期的更改是否反映在下载的文件中:</p>
+
+<ol>
+
+<li value="1">在SageMaker Studio中，打开<strong class="bold">文件</strong>菜单，从选项列表中选择<strong class="bold">注销</strong>。这将把你重定向回<strong class="bold"> SageMaker域名</strong>页面。</li>
+
+<li>点击<em class="italic">图5.30 </em>中高亮显示的图标，导航至<strong class="bold"> CloudShell </strong>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 5.30 – Navigating to CloudShell&#10;&#10;" height="84" src="img/B18638_05_030.jpg" width="288"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.30–导航到CloudShell</p>
+
+<p class="list-inset">我们可以在AWS管理控制台的右上角找到这个按钮。您还可以使用搜索栏导航到CloudShell控制台。</p>
+
+<ol>
+
+<li value="3">一旦终端准备就绪，通过运行以下命令(在<strong class="bold"> $ </strong>)将CloudShell环境中的所有文件移动到<code>/tmp</code>目录中:<pre class="source-code"><strong class="bold">mv * /tmp 2&gt;/dev/null</strong></pre></li>
+
+<li>使用<code>aws s3 cp</code>命令将生成的存储在S3的CSV文件复制到CloudShell环境中。确保用从用SageMaker处理作业笔记本<strong class="bold">保存到S3复制的S3 URL替换<code>&lt;PASTE S3 URL&gt;</code>到本地机器上的文本编辑器:<pre class="source-code"><strong class="bold">S3_PATH=&lt;PASTE S3 URL&gt;</strong></pre> <pre class="source-code"><strong class="bold">aws s3 cp $S3_PATH/ . --recursive</strong></pre></strong></li>
+
+<li>使用下面的命令递归地列出文件和目录:<pre class="source-code"><strong class="bold">ls -R</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">您应该会看到一个CSV文件存储在<code>&lt;UUID&gt;/default</code>中。</p>
+
+<ol>
+
+<li value="6">最后，使用<code>head</code>命令检查CSV文件:<pre class="source-code"><strong class="bold">head */default/*.csv</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这将给出CSV文件的前几行，类似于图5.31 中的内容:</p>
+
+<div><div><img alt="Figure 5.31 – Verifying the changes&#10;&#10;" height="214" src="img/B18638_05_031.jpg" width="912"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图5.31–验证更改</p>
+
+<p class="list-inset">在这里，我们可以看到数据集有了新的<code>has_booking_changes</code>列，其中包含了<code>true</code>和<code>false</code>值。您可以进一步检查CSV文件，并验证在<code>children</code>列下不再有<code>-1</code>值。我们将把这个留给您作为练习(即验证CSV文件的<code>children</code>列下不再有<code>-1</code>值)。</p>
+
+<p>现在我们已经使用Amazon SageMaker Data Wrangler和AWS Glue DataBrew处理和分析了一个样本数据集，您可能想知道何时使用其中一个工具。以下是决定时的一些一般性建议:</p>
+
+<ul>
+
+<li>如果您计划使用PySpark进行自定义转换，就像我们在本章中所做的那样，那么您可能希望使用Amazon SageMaker Data Wrangler。</li>
+
+<li>如果SageMaker Data Wrangler不支持源、连接或文件类型格式(例如，Microsoft Excel工作簿格式或<code>.xlsx</code>文件)，那么您可能需要使用AWS Glue Data Brew。</li>
+
+<li>如果你想导出数据处理工作流程，自动生成一个Jupyter笔记本，那么你可能要用亚马逊SageMaker数据牧马人。</li>
+
+<li>如果该工具的主要用户只有很少的编码经验，并且更喜欢处理和分析数据，而不需要阅读、定制或编写一行代码，那么可以使用AWS Glue Data Brew来代替Amazon SageMaker Data Wrangler。</li>
+
+</ul>
+
+<p>当然，这些<a id="_idIndexMarker565"/>只是您可以使用的一些指导原则，但是使用哪种工具的决定最终将取决于需要完成的工作的上下文，以及需要做出决定时工具的局限性。特性和限制会随着时间的推移而变化，因此在决定时，请确保尽可能多的从不同角度进行审查。</p>
+
+<h1 id="_idParaDest-120"><a id="_idTextAnchor127"/>总结</h1>
+
+<p>在用于训练ML模型之前，需要对数据进行清理、分析和准备。由于处理这些类型的需求需要时间和精力，因此在分析和处理我们的数据时，建议使用无代码或低代码解决方案，如AWS Glue DataBrew和Amazon SageMaker Data Wrangler。在本章中，我们能够使用这两个服务来分析和处理我们的样本数据集。从一个样本“脏”数据集开始，我们执行了各种转换和操作，其中包括(1)分析和分析数据，(2)过滤掉包含无效数据的行，(3)从现有列创建新列，(4)将结果导出到输出位置，以及(5)验证转换是否已应用到输出文件。</p>
+
+<p>在下一章中，我们将仔细研究Amazon SageMaker，我们将更深入地研究如何在执行机器学习实验时使用这种托管服务。</p>
+
+<h1 id="_idParaDest-121"><a id="_idTextAnchor128"/>延伸阅读</h1>
+
+<p>有关本章主题的更多信息，请随时查阅以下资源:</p>
+
+<ul>
+
+<li><em class="italic"> AWS Glue DataBrew产品和服务集成</em>(<a href="https://docs.aws.amazon.com/databrew/latest/dg/databrew-integrations.xhtml">https://docs . AWS . Amazon . com/data brew/latest/DG/data brew-integrations . XHTML</a>)</li>
+
+<li><em class="italic">AWS中的安全胶水data brew</em>(<a href="https://docs.aws.amazon.com/databrew/latest/dg/security.xhtml">https://docs . AWS . Amazon . com/data brew/latest/DG/Security . XHTML</a>)</li>
+
+<li><em class="italic">创建并使用数据牧马人流</em>(<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/data-wrangler-data-flow.xhtml">https://docs . AWS . Amazon . com/sagemaker/latest/DG/Data-Wrangler-Data-Flow . XHTML</a>)</li>
+
+<li><em class="italic">Data Wrangler–Transform</em>(<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/data-wrangler-transform.xhtml">https://docs . AWS . Amazon . com/sagemaker/latest/DG/Data-Wrangler-Transform . XHTML</a>)</li>
+
+<li><em class="italic">数据牧马人-故障排除</em>(<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/data-wrangler-trouble-shooting.xhtml">https://docs . AWS . Amazon . com/sagemaker/latest/DG/Data-Wrangler-trouble-shooting . XHTML</a>)</li>
+
+</ul>
+
+</div>
+
+<div><div/>
+
+</div>
+
+</div>
+
+
+
+</body></html>

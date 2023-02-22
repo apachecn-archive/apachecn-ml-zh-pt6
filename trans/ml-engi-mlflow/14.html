@@ -1,0 +1,111 @@
+<html><head/><body>
+
+
+	
+		<title>B16783_10_Final_SB_epub</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-130"><em class="italic"> <a id="_idTextAnchor152"/>第十章</em>:扩大你的机器学习工作流程</h1>
+			<p>在这一章中，你将学习不同的技术和模式来在不同的可伸缩性维度上扩展你的<strong class="bold">机器学习</strong> ( <strong class="bold"> ML </strong>)工作流。我们将研究如何使用Databricks托管环境来扩展您的MLflow开发能力，为您拥有更大数据集的情况添加Apache Spark。我们将探索NVIDIA RAPIDS和<strong class="bold">图形处理单元</strong> ( <strong class="bold"> GPU </strong>)支持，以及Ray分布式框架来加速您的ML工作负载。本章的格式是一个小型的<strong class="bold">概念验证</strong>，带有一个定义好的规范数据集来演示一种技术和工具链。</p>
+			<p>具体来说，我们将了解本章的以下部分:</p>
+			<ul>
+				<li>使用Databricks社区版环境开发模型</li>
+				<li>将MLflow与Apache Spark集成</li>
+				<li>将MLflow与NVIDIA RAPIDS (GPU)集成</li>
+				<li>将MLflow与Ray平台集成</li>
+			</ul>
+			<p>本章将要求根据每个案例的标准官方文档，为每个引入的框架研究适当的设置。</p>
+			<h1 id="_idParaDest-131"><a id="_idTextAnchor153"/>技术要求</h1>
+			<p>对于本章，您将需要以下先决条件:</p>
+			<ul>
+				<li>最新版本的Docker安装在您的机器上。如果你还没有安装，请按照<a href="https://docs.docker.com/get-docker/">https://docs.docker.com/get-docker/</a>的指示进行操作。</li>
+				<li>安装了最新版本的Docker Compose请按照<a href="https://docs.docker.com/compose/install/">https://docs.docker.com/compose/install/</a>上的说明操作。</li>
+				<li>在命令行访问Git，按照<a href="https://git-scm.com/book/en/v2/Getting-Started-Installing-Git">https://Git-SCM . com/book/en/v2/Getting-Started-Installing-Git</a>中的描述安装。</li>
+				<li>访问Bash终端(Linux或Windows)。</li>
+				<li>访问浏览器。</li>
+				<li>Python 3.5以上版本已安装。</li>
+				<li>如第3章 、<em class="italic">您的数据科学工作台</em>中所述，在本地安装您的ML库的最新版本。</li>
+				<li>一个被配置为运行MLflow模型的<strong class="bold">Amazon Web Services</strong>(<strong class="bold">AWS</strong>)账户。</li>
+			</ul>
+			<h1 id="_idParaDest-132"><a id="_idTextAnchor154"/>使用Databricks社区版环境开发模型</h1>
+			<p>在许多小型团队和公司的场景中，启动一个集中的ML环境可能是一项昂贵的、资源密集型的前期投资。一个团队能够快速扩展，并让团队跟上速度，这对于在组织中释放ML的价值是至关重要的。在这些情况下，使用托管服务对于开始原型系统和开始理解以较低成本使用ML的可行性是非常相关的。</p>
+			<p>一个非常流行的托管ML和数据平台是Databricks平台，由开发MLflow的同一家公司开发。在本节中，我们将使用Databricks Community Edition版本和许可证，供学生和个人使用。</p>
+			<p>为了探索Databricks平台以开发和共享模型，您需要执行以下步骤:</p>
+			<ol>
+				<li>在<a href="https://community.cloud.databricks.com/">https://community.cloud.databricks.com/</a>注册<a id="_idIndexMarker346"/> Databricks社区版并创建一个帐户。</li>
+				<li>使用您刚刚创建的凭据登录您的帐户。</li>
+				<li>Upload training data into Databricks. You can start by uploading the training data available in the <code>Chapter10/databricks_notebooks/training_data.csv</code> folder. In the following screenshot, you can see represented the <strong class="bold">Data</strong> tab on the left, and <a id="_idIndexMarker347"/>you<a id="_idIndexMarker348"/> should see your file uploaded to the platform:<div><img src="img/image0016.jpg" alt="Figure 10.1 – Uploading training data to Databricks"/></div><p class="figure-caption">图10.1–将培训数据上传至数据块</p></li>
+				<li>将训练数据上传到数据块。您可以从上传<code>Chapter10/databricks_notebooks/input_prediction.csv</code>文件夹中的训练数据开始。</li>
+				<li>Create a cluster to use for your workloads. You are allowed to have clusters for your workloads with a limit of 15 <strong class="bold">gigabytes</strong> (<strong class="bold">GB</strong>) of <strong class="bold">random-access memory</strong> (<strong class="bold">RAM</strong>) and with usage for a defined period of time. <p>在下面的屏幕截图中，您可以<a id="_idIndexMarker349"/>看到<a id="_idIndexMarker350"/>集群创建过程的概述:</p><div><img src="img/image0027.jpg" alt=""/></div><p class="figure-caption">图10.2–在Databricks Community Edition中创建集群</p></li>
+				<li>Create a new notebook in your Databricks platform on your landing workspace page by clicking on the <strong class="bold">Create a Blank Notebook</strong> button at the top right of the page, as illustrated in the following screenshot:<div><img src="img/Image_003.jpg" alt="Figure 10.3 – Creating a new notebook in Databricks Community Edition"/></div><p class="figure-caption">图10.3–在Databricks Community Edition中创建新笔记本</p></li>
+				<li>We <a id="_idIndexMarker351"/>are <a id="_idIndexMarker352"/>now ready to start a notebook to execute a basic training job in this managed environment. You can start by clicking on <strong class="bold">Create Notebook</strong>, as illustrated in the following screenshot:<div><img src="img/image0047.jpg" alt="Figure 10.4 – Creating your new notebook"/></div><p class="figure-caption">图10.4–创建新笔记本</p></li>
+				<li>将<a id="_idIndexMarker353"/>培训<a id="_idIndexMarker354"/>数据上传至数据块。您可以从上传<code>Chapter10/databricks_notebooks/input_prediction.csv</code>文件夹中的培训数据开始。</li>
+				<li>导入所需的库。我们将采用一个<code>LogicRegression</code>模型来对我们正在运行的<code>btc-usd</code>股票价格的业务案例进行分类，如下:<pre>import pandas import numpy as np import mlflow from sklearn.linear_model import LogisticRegression from sklearn.metrics import f1_score, confusion_matrix from sklearn.model_selection import train_test_split</pre></li>
+				<li>为了读取数据，由于使用了平台中的Databricks文件系统，在Spark中读取数据并在此后将数据帧转换为<code>pandas</code>更加方便。像往常一样，我们还将数据分为训练集和测试集。这里的<a id="_idIndexMarker355"/>是<a id="_idIndexMarker356"/>你需要的代码:<pre>df = (spark.read.option("header","true").csv("/FileStore/tables/training_data.csv")) pandas_df = df.toPandas() X=pandas_df.iloc[:,:-1] Y=pandas_df.iloc[:,-1] X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.33, random_state=4284, stratify=Y)</pre></li>
+				<li>我们的下一步将是快速训练我们的分类器，如下:<pre>mlflow.sklearn.autolog() model = LogisticRegression() with mlflow.start_run(run_name='logistic_regression_model_baseline') as run:     model.fit(X_train, y_train)     preds = model.predict(X_test)</pre></li>
+				<li>In the top corner of the page, you can click on the <strong class="bold">Experiment</strong> button to view more details about your run, and you can click further to look at your model experiment, in the familiar interface of experiments, as illustrated in the following screenshot:<div><img src="img/image0055.jpg" alt=" Figure 10.5 – Experiment button"/></div><p class="figure-caption">图10.5–实验按钮</p></li>
+				<li>一个有趣的功能可以扩展并加速您与其他人的协作能力，这就是发布模型笔记本的能力，与您共享链接的每个人都可以公开访问该模型笔记本，如下图所示:</li>
+			</ol>
+			<div><div><img src="img/image0064.jpg" alt="Figure 10.6 – Publishing notebooks&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图10.6–发布笔记本</p>
+			<p>您还可以将笔记本导出为一个<code>dbc</code>文件，这样您就可以在Databricks环境中快速启动它，并且您还可以在存储库中共享它，正如您在<code>/databricks-notebooks/bitpred_poc.dbc</code>下的章节文件夹中所看到的。</p>
+			<p>已经讨论了使用Databricks <a id="_idIndexMarker359"/>环境扩展您运行、开发和分发模型的能力的方法，我们<a id="_idIndexMarker360"/>接下来将着眼于将Apache Spark流集成到我们的推理工作流中，以处理我们可以访问大型数据集的场景。</p>
+			<h1 id="_idParaDest-133"><a id="_idTextAnchor155"/>集成MLflow和Apache Spark</h1>
+			<p>Apache <a id="_idIndexMarker361"/> Spark是一个非常可扩展和流行的<a id="_idIndexMarker362"/>大数据框架，允许大规模的数据处理。有关更多详情和文档，请<a id="_idIndexMarker363"/>前往<a href="https://spark.apache.org/">https://spark.apache.org/</a>。作为一个大数据工具，它可以用来加速你的部分ML推理，因为它可以在训练或推理级别设置。</p>
+			<p>在这种特殊情况下，我们将说明如何实现它，以使用上一节中在Databricks环境上开发的模型来将批处理推理作业扩展到更大的数据量。</p>
+			<p>为了探索Spark与MLflow的集成，我们将执行以下步骤:</p>
+			<ol>
+				<li value="1">用Python创建一个名为<code>inference_job_spark</code>的新笔记本，链接到刚刚创建了<code>bitpred_poc.ipynb</code>笔记本的运行集群。</li>
+				<li>将您的数据上传到<code>dbfs</code>环境中的文件/上传数据链接。</li>
+				<li>在笔记本的单元格中执行以下脚本，将<code>logged_model</code>和<code>df</code>文件名更改为您环境中的文件名:<pre>import mlflow logged_model = 'runs:/6815b44128e14df2b356c9db23b7f936/model' df = spark.read.format("csv").load("dbfs:/FileStore/shared_uploads/ input.csv") # Load model as a Spark UDF. loaded_model = mlflow.pyfunc.spark_udf(spark, model_uri=logged_model) # Predict on a Spark DataFrame. df.withColumn('predictions', loaded_model()).collect()</pre></li>
+			</ol>
+			<p>这个在数据块或你自己的Spark集群上运行的说明性摘录可以扩展到大型数据集，在Spark中使用<a id="_idIndexMarker364"/>分布式<a id="_idIndexMarker365"/>计算的能力。</p>
+			<p>根据Apache Spark的扩展推理，我们现在将看看如何在MLflow的支持下使用GPU来扩展超参数优化作业。</p>
+			<h1 id="_idParaDest-134"><a id="_idTextAnchor156"/>将MLflow与NVIDIA RAPIDS (GPU)集成</h1>
+			<p>训练<a id="_idIndexMarker366"/>和调整ML模型是一项耗时且<a id="_idIndexMarker367"/>计算量大的操作，也是能够从并行处理中获益最多的操作之一。我们将在这一部分探讨如何将您的MLflow培训工作(包括超参数优化)与NVIDIA RAPIDS框架相集成。</p>
+			<p>要集成NVIDIA RAPIDS库，请执行以下步骤:</p>
+			<ol>
+				<li value="1">Install RAPIDS in the most convenient way for your environment, outlined as follows:<p>a.<a href="https://rapids.ai/start.html">https://rapids.ai/start.html</a>包含部署选项的详细信息。</p><p>b.<a href="https://developer.nvidia.com/blog/run-rapids-on-google-colab/">https://developer . NVIDIA . com/blog/run-RAPIDS-on-Google-Colab/</a>详细介绍了如何在<strong class="bold">Google co laboratory</strong>(<strong class="bold">Google Colab</strong>)上运行<a id="_idIndexMarker368"/> RAPIDS。</p></li>
+				<li>在您的环境中安装MLflow。</li>
+				<li>导入<a id="_idIndexMarker369"/>需要的库，如下<a id="_idIndexMarker370"/>:<pre>import argparse from functools import partial import mlflow import mlflow.sklearn from cuml.metrics.accuracy import accuracy_score from cuml.preprocessing.model_selection import train_test_split from cuml.ensemble import RandomForestClassifier from hyperopt import fmin, tpe, hp, Trials, STATUS_OK</pre></li>
+				<li>实现<code>load_data</code>函数，这是一个帮助函数，用于加载<code>cudf</code>要使用的<a id="_idIndexMarker371"/>数据。DataFrame是一个数据帧库，用于在不知道<strong class="bold">计算统一设备架构</strong> ( <strong class="bold"> CUDA </strong>编程细节的情况下进行加载、连接、聚合和过滤。这是你需要的代码<a id="_idIndexMarker372"/>:<pre>def load_data(fpath):     import cudf     df = cudf.read_parquet(fpath)     X = df.drop(["ArrDelayBinary"], axis=1)     y = df["ArrDelayBinary"].astype("int32")     return train_test_split(X, y, test_size=0.2)Start the ray server  ray.init() client = serve.start()</pre></li>
+				<li>定义<a id="_idIndexMarker373"/>一个<a id="_idIndexMarker374"/>训练循环，如下:<pre>def _train(params, fpath):     max_depth, max_features, n_estimators = params     max_depth, max_features, n_estimators = (int(max_ depth), float(max_features), int(n_estimators))     X_train, X_test, y_train, y_test = load_data(fpath)     mod = RandomForestClassifier(         max_depth=max_depth, max_features=max_features, n_estimators=n_estimators     )     mod.fit(X_train, y_train)     preds = mod.predict(X_test)     acc = accuracy_score(y_test, preds)     mlparams = {         "max_depth": str(max_depth),         "max_features": str(max_features),         "n_estimators": str(n_estimators),     }     mlflow.log_params(mlparams)     mlflow.log_metric("accuracy", acc)     mlflow.sklearn.log_model(mod, "saved_models")     return {"loss": acc, "status": STATUS_OK}</pre></li>
+				<li>调用<a id="_idIndexMarker375"/>的<a id="_idIndexMarker376"/>内训练循环，像这样:<pre>def train(params, fpath, hyperopt=False):          with mlflow.start_run(nested=True):         return _train(params, fpath, hyperopt)</pre></li>
+				<li>如果您使用的是Docker中部署的版本，那么通过读取一个参数来设置您的主流程。完成这项工作的代码如下面的代码片段所示:<pre>if __name__ == "__main__":     parser = argparse.ArgumentParser()     parser.add_argument("--algo", default="tpe",  choices=["tpe"], type=str)     parser.add_argument("--conda-env", required=True, type=str)     parser.add_argument("--fpath", required=True, type=str)     args = parser.parse_args()</pre></li>
+				<li>定义要优化的试验和参数，如下:<pre>    search_space = [         hp.uniform("max_depth", 5, 20),         hp.uniform("max_features", 0.1, 1.0),         hp.uniform("n_estimators", 150, 1000),     ]     trials = Trials()     algorithm = tpe.suggest if args.algo == "tpe" else None     fn = partial(train, fpath=args.fpath, hyperopt=True)     experid = 0</pre></li>
+				<li>运行<a id="_idIndexMarker377"/>你的<a id="_idIndexMarker378"/>主循环，如下:<pre>    artifact_path = "Airline-Demo"     artifact_uri = None     with mlflow.start_run(run_name="RAPIDS-Hyperopt"):         argmin = fmin(fn=fn, space=search_space, algo=algorithm, max_evals=2, trials=trials)         print("===========")         fn = partial(train, fpath=args.fpath, hyperopt=False)         final_model = fn(tuple(argmin.values()))         mlflow.sklearn.log_model(             final_model,             artifact_path=artifact_path,             registered_model_name="rapids_mlflow_cli",             conda_env="envs/conda.yaml",         )</pre></li>
+			</ol>
+			<p>在处理了使用高度可扩展的计算环境来为基于Ray <a id="_idIndexMarker379"/>平台的模型提供服务之后，我们现在将考虑<a id="_idIndexMarker380"/>一个不同的问题，在这里我们将查看在一个集中的云位置跟踪来自本地机器的多次运行的选项。</p>
+			<h1 id="_idParaDest-135"><a id="_idTextAnchor157"/>将MLflow与Ray平台集成</h1>
+			<p>Ray <a id="_idIndexMarker381"/>框架(<a href="https://docs.ray.io/en/master/">https://docs.ray.io/en/master/</a>)是一个分布式平台，允许你<a id="_idIndexMarker383"/>快速扩展部署基础设施。</p>
+			<p>使用Ray，您可以在运行需要以与模型服务相同的方式扩展的ML平台时添加任意逻辑。它基本上是一个web框架。</p>
+			<p>我们将使用的模型和内容预加载到存储库的以下文件夹中:https://github . com/packt publishing/Machine-Learning-Engineering-with-ml flow/tree/master/chapter 10/ml flow-ray-serve-integration。</p>
+			<p>为了将您的模型服务执行到Ray中，请执行以下步骤:</p>
+			<ol>
+				<li value="1">通过运行以下命令安装Ray包:<pre>pip install -U ray</pre></li>
+				<li>在您的环境中安装MLflow。</li>
+				<li>导入需要的库，如下:<pre>import ray from ray import serve import mlflow.pyfunc</pre></li>
+				<li>实现<a id="_idIndexMarker384"/>模型后端，这基本上<a id="_idIndexMarker385"/>意味着将模型服务功能包装到你的Ray服务环境中。以下是您需要的代码:<pre>class MLflowBackend:     def __init__(self, model_uri):         self.model = mlflow.pyfunc.load_model(model_ uri=model_uri)     async def __call__(self, request):         return self.model.predict(request.data)</pre></li>
+				<li>启动射线服务器，如下:<pre>ray.init() client = serve.start()</pre></li>
+				<li>加载模型并创建一个后端，就像这样:<pre>model_uri = "./tmp/0/31fc9974587243d181fdbebfd4d2b6ad/artifacts/model" client.create_backend("mlflow_backend", MLflowBackend, model_uri)</pre></li>
+				<li>通过运行以下命令测试服务平台:<pre>ray start --head # Start local Ray cluster. serve start # Start Serve on the local Ray cluster.</pre></li>
+			</ol>
+			<p>在<a id="_idIndexMarker386"/>处理了使用高度可扩展的<a id="_idIndexMarker387"/>计算环境在Ray平台上服务模型之后，我们将在下一章中查看性能和监控<a id="_idTextAnchor158"/> g组件。</p>
+			<h1 id="_idParaDest-136"><a id="_idTextAnchor159"/>总结</h1>
+			<p>在这一章中，我们关注于使用Databricks环境来扩展您运行、开发和分发模型的能力。我们还考虑将Apache Spark流集成到我们的批处理推理工作流中，以处理我们可以访问大型数据集的场景。</p>
+			<p>我们总结了两种扩展超参数优化和<strong class="bold">应用编程接口</strong> ( <strong class="bold"> API </strong>)的方法，使用NVIDIA RAPIDS框架和Ray分布式框架提供可扩展性。</p>
+			<p>在下一章和本书的后续章节中，我们将关注ML模型的可观察性和性能监控。</p>
+			<h1 id="_idParaDest-137"><a id="_idTextAnchor160"/>延伸阅读</h1>
+			<p>为了加深您的知识，您可以参考以下链接中的文档:</p>
+			<ul>
+				<li><a href="https://www.mlflow.org/docs/latest/python_api/mlflow.sagemaker.html">https://www . ml flow . org/docs/latest/python _ API/ml flow . sage maker . html</a></li>
+				<li><a href="https://aws.amazon.com/blogs/machine-learning/managing-your-machine-learning-lifecycle-with-mlflow-and-amazon-sagemaker/">https://AWS . Amazon . com/blogs/machine-learning/managing-your-machine-learning-life cycle-with-ml flow-and-Amazon-sage maker/</a></li>
+				<li><a href="https://docs.databricks.com/applications/mlflow/index.html">https://docs.databricks.com/applications/mlflow/index.html</a></li>
+			</ul>
+		</div>
+	
+
+</body></html>

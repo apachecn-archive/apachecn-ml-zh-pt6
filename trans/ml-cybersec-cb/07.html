@@ -1,0 +1,1322 @@
+<html><head/><body>
+
+
+    
+        <title>Securing and Attacking Data with Machine Learning</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">利用机器学习保护和攻击数据</h1>
+                
+            
+            
+                
+<p>在本章中，我们将学习如何使用<strong>机器学习</strong> ( <strong> ML </strong>)来保护和攻击数据。我们将介绍如何使用ML评估密码的强度，以及反过来，如何使用深度学习破解密码。类似地，我们将介绍如何使用隐写术在众目睽睽之下隐藏消息，以及如何使用ML检测隐写术。此外，我们将应用具有硬件安全性的ML，利用AI攻击<strong>物理上不可克隆的函数</strong>(<strong>puf</strong>)。<br/></p>
+<p class="mce-root">在本章中，我们将介绍以下配方:</p>
+<ul>
+<li class="mce-root">使用ML评估口令安全性</li>
+<li class="mce-root">密码破解的深度学习</li>
+<li class="mce-root">深度隐写术</li>
+<li class="mce-root">基于最大似然的隐写分析</li>
+<li class="mce-root">对puf的ML攻击</li>
+<li class="mce-root">使用深度学习的加密</li>
+<li class="mce-root">HIPAA数据泄露–数据探索和可视化</li>
+</ul>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Technical requirements</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">技术要求</h1>
+                
+            
+            
+                
+<p>在本章中，我们将使用以下技术:</p>
+<ul>
+<li>PyTorch</li>
+<li>TensorBoardX</li>
+<li>XGBoost</li>
+<li>sci kit-学习</li>
+<li>熊猫</li>
+<li>张量流</li>
+<li>克拉斯</li>
+<li>八度音阶</li>
+</ul>
+<p>本章的代码和数据集可以在<a href="https://github.com/PacktPublishing/Machine-Learning-for-Cybersecurity-Cookbook/tree/master/Chapter07">https://github . com/packt publishing/Machine-Learning-for-cyber security-Cookbook/tree/master/chapter 07</a>找到。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Assessing password security using ML</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">使用ML评估口令安全性</h1>
+                
+            
+            
+                
+<p><strong>密码破解</strong>是发现安全系统密码的系统性努力。破解可能涉及使用普通密码、巧妙生成的候选密码(例如，用数字0替换字母O或倒写一个单词)，或者只是使用简单的暴力穷举搜索。为了增加破解密码的难度，必须选择一个强密码。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><div><div><div><div><p>为了准备这个菜谱，我们需要在<kbd>pip</kbd>中安装<kbd>pandas</kbd>、<kbd>sklearn</kbd>和<kbd>xgboost</kbd>。请使用以下代码来完成此操作:</p>
+<pre><strong>pip install pandas sklearn xgboost</strong></pre>
+<p>另外，提取存档的数据集，即<kbd>PasswordDataset.7z</kbd>。</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做…</h1>
+                
+            
+            
+                
+<p>在接下来的步骤中，我们将读入密码数据集以及密码强度标签，并构建一个分类器来评估密码强度。让我们开始吧:</p>
+<ol>
+<li>导入<kbd>pandas</kbd>并将密码读入数据帧:</li>
+</ol>
+<pre style="padding-left: 60px">import pandas as pd<br/><br/>df = pd.read_csv(<br/>    "passwordDataset.csv", dtype={"password": "str", "strength": "int"}, index_col=None<br/>)</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<ol start="2">
+<li>随机打乱数据:</li>
+</ol>
+<pre style="padding-left: 60px">df = df.sample(frac=1)</pre>
+<ol start="3">
+<li>将数据帧分成两个独立的数据帧，一个用于训练，一个用于测试:</li>
+</ol>
+<pre style="padding-left: 60px">l = len(df.index)<br/>train_df = df.head(int(l * 0.8))<br/>test_df = df.tail(int(l * 0.2))</pre>
+<ol start="4">
+<li>创建所需的标签和特征数据:</li>
+</ol>
+<pre style="padding-left: 60px">y_train = train_df.pop("strength").values<br/>y_test = test_df.pop("strength").values<br/>X_train = train_df.values.flatten()<br/>X_test = test_df.values.flatten()</pre>
+<ol start="5">
+<li>定义一个将字符串拆分成字符的函数:</li>
+</ol>
+<pre style="padding-left: 60px">def character_tokens(input_string):<br/>    """Break string into characters."""<br/>    return [x for x in input_string]</pre>
+<ol start="6">
+<li>创建一个管道，对密码字符执行TF-IDF，然后进行梯度增强:</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn.pipeline import Pipeline<br/>from sklearn.feature_extraction.text import TfidfVectorizer<br/>from xgboost import XGBClassifier<br/><br/>password_clf = Pipeline(<br/>    [("vect", TfidfVectorizer(tokenizer=character_tokens)), ("clf", XGBClassifier()),]<br/>)</pre>
+<ol start="7">
+<li>训练和测试管道:</li>
+</ol>
+<pre style="padding-left: 60px">password_clf.fit(X_train, y_train)<br/>password_clf.score(X_test, y_test)</pre>
+<p style="padding-left: 60px">以下是输出:</p>
+<pre style="padding-left: 60px" class="western">0.9137365878426307</pre>
+<ol start="8">
+<li>将一个变量设置为常用密码，另一个变量设置为计算机生成的高熵密码:</li>
+</ol>
+<pre style="padding-left: 60px" class="western">common_password = "qwerty"<br/>strong_computer_generated_password = "c9lCwLBFmdLbG6iWla4H"</pre>
+<ol start="9">
+<li>检查分类器对两个密码强度的预测:</li>
+</ol>
+<pre style="padding-left: 60px">password_clf.predict([common_password, strong_computer_generated_password])</pre>
+<p style="padding-left: 60px">以下是输出:</p>
+<pre style="padding-left: 60px">array([0, 2])</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>我们从导入<kbd>pandas</kbd>开始，然后将数据读入数据帧(<em>步骤1 </em>)。该数据中有两个字段:密码和密码强度。密码强度由三个难度级别组成。在<em>步骤2 </em>中，我们对数据进行混排，以创建更强健的训练。在<em>步骤3 </em>中，我们通过80-20分割来分割数据帧，然后将特征和标签分布到数组中(<em>步骤4 </em>)。在<em>步骤5 </em>中，我们定义了一个将密码字符串分割成字符的函数，以便将密码标记成字符，而不是单词。这将允许分类器学习关于密码数据集的细粒度信息。在<em>步骤6 </em>中，我们定义了一个管道来对密码字符执行NLP，然后使用XGBoost分类器。接下来，我们训练并测试我们的分类器(<em>步骤7 </em>)。对于像这样有点主观的任务，分类器的性能不一定反映在高分或低分上。</p>
+<p>完成训练后，我们执行分类器功效的健全性检查/演示。我们选择了一个最常用的密码和一个在<em>步骤8 </em>中使用密码管理系统生成的密码。在<em>步骤9 </em>中，我们可以看到分类器确实将普通密码归类为弱(强度0)，将强密码归类为强(强度2)。成功。</p>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Deep learning for password cracking</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">密码破解的深度学习</h1>
+                
+            
+            
+                
+<p>现代密码破解工具，如<strong>开膛手约翰</strong>，允许黑客在几秒钟内测试数十亿个潜在密码。这类工具不仅允许黑客尝试常用密码字典中的每个密码，还可以通过使用串联(例如，<kbd>password1234</kbd>)、leetspeak ( <kbd>p4s5w0rd</kbd>)和其他有前途的技术来自动转换这些密码。尽管这些技术很有前途，但找到其他有前途的转换是一项困难的任务。被称为PassGAN的ML系统使用一个<strong>生成对抗网络</strong> ( <strong> GAN </strong>)通过观察真实密码的大型数据集(从实际密码泄露的语料库中收集)来自动学习这些规则，并生成高概率的密码候选。在这个菜谱中，您将在一个泄露密码的语料库上训练PassGAN，并使用它来生成密码猜测。</p>
+<p>这个项目将需要一台带有GPU的机器。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<p>在准备此配方时，请执行以下步骤:</p>
+<ol>
+<li>使用以下命令克隆<kbd>PassGAN</kbd>存储库:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>git clone https://github.com/emmanueltsukerman/PassGAN.git</strong><a href="https://github.com/emmanueltsukerman/PassGAN.git"/></pre>
+<ol start="2">
+<li>在<kbd>data</kbd>文件夹下放置一个数据集。例如，您可以使用以下命令下载著名的<kbd>rockyou</kbd>密码数据集:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>curl -L -o data/train.txt https://github.com/brannondorsey/PassGAN/releases/download/data/rockyou-train.txt</strong></pre>
+<p>运行密码数据集时，您应该会看到如下内容:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1131 image-border" src="img/d1dc04f5-2f2a-4e10-99a0-1755cca13225.png" style="width:96.25em;height:9.83em;"/></p>
+<p>另外，这个菜谱需要预装CUDA 8。可以通过运行以下命令来安装所需的<kbd>pip</kbd>包:</p>
+<pre><strong>pip install -r requirements.txt</strong></pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mceNonEditable"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mceNonEditable"/>
+<p class="mce-root"/>
+<p class="mceNonEditable"/>
+<p class="mceNonEditable"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做…</h1>
+                
+            
+            
+                
+<p>在下面的步骤中，我们将在泄露密码的语料库上训练PassGAN，然后使用它来生成新的密码猜测。让我们开始吧:</p>
+<ol>
+<li>通过运行以下命令，在数据集上训练您的神经网络:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>python train.py --output-dir output --training-data data/train.txt</strong></pre>
+<ol start="2">
+<li>通过运行以下命令，生成一个(100，000)密码猜测列表:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>python sample.py \</strong><br/><strong>--input-dir pretrained \</strong><br/><strong>--checkpoint pretrained/checkpoints/195000.ckpt \</strong><br/><strong>--output gen_passwords.txt \</strong><br/><strong>--batch-size 1024 \</strong><br/><strong>--num-samples 100000</strong></pre>
+<p>您的终端应该如下所示:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1132 image-border" src="img/7197b71e-53dd-4103-8677-89b8d6530faf.png" style="width:38.42em;height:29.67em;"/></p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>通过在<em>步骤1 </em>中直接训练我们的神经网络，我们在这个食谱中进入了正轨。根据我们的需要，可以使用几个附加标志来定制培训。现在我们已经训练了我们的模型，我们需要输出100，000个密码的列表，所有这些密码都是由模型生成的(<em>步骤2 </em>)。这些用作对可能密码的智能猜测。通过检查<em>步骤2 </em>的输出，我们可以看到密码如下所示:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1133 image-border" src="img/accc3663-4d95-4391-b435-b6b3147a87b2.png" style="width:37.75em;height:12.33em;"/></p>
+<p>现在，我们可以用这些作为破解密码的候选者。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>There's more</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">还有更多</h1>
+                
+            
+            
+                
+<p>描述帕斯根的原始论文可以在<a href="https://arxiv.org/abs/1709.00440">https://arxiv.org/abs/1709.00440</a>找到。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Deep steganography</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">深度隐写术</h1>
+                
+            
+            
+                
+<p>隐写术是将消息(即秘密)隐藏在另一种介质中的做法，如文件、文本、图像或视频(即封面)。当秘密被嵌入到封面中时，结果被称为<strong>容器</strong>。在这个食谱中，我们将使用深度神经网络来创建隐藏和揭示过程。与普通隐写方法不同，普通隐写方法将秘密编码在封面的LSB中，深度学习将秘密分布在所有位上。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<p>在这个食谱中，你需要访问一个图形处理器。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做…</h1>
+                
+            
+            
+                
+<ol>
+<li>使用以下命令克隆存储库:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>git clone https://github.com/emmanueltsukerman/PyTorch-Deep-Image-Steganography.git</strong></pre>
+<ol start="2">
+<li>准备预训练模型:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>cat ./checkPoint/netH.tar.gz* | tar -xzv -C ./checkPoint/</strong></pre>
+<ol start="3">
+<li>在<kbd>example_pics</kbd>文件夹中准备一张秘密图像和一张封面图像:</li>
+</ol>
+<p style="padding-left: 60px">如您所见，我们使用以下图像作为封面图像:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1134 image-border" src="img/f2a3c562-1e86-4d91-a79f-289b6e59b284.png" style="width:17.67em;height:17.67em;"/></p>
+<p style="padding-left: 60px">我们使用以下图像作为秘密图像:</p>
+<p class="CDPAlignCenter CDPAlign"><img class="alignnone size-full wp-image-1135 image-border" src="img/35e17f89-b9a2-4a6a-9534-a3febfbbe528.png" style="width:18.92em;height:19.08em;"/></p>
+<div/>
+<ol start="4">
+<li>执行预训练的模型以产生容器图像和重构的秘密:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>CUDA_VISIBLE_DEVICES=0 python main.py –test=./example_pics</strong></pre>
+<p style="padding-left: 60px">输出的第一部分显示在下面的屏幕截图中:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/a5e2086c-f527-44cd-80cf-fd202b5bc819.png"/></p>
+<p style="padding-left: 60px">输出的第二部分显示在下面的屏幕截图中:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/1b1e7753-0f80-4cbc-bd1d-cf6c916d4dc6.png"/></p>
+<p style="padding-left: 60px">输出的最后部分显示在下面的屏幕截图中:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/98320e7f-704f-44e9-b4dc-f38e585e6103.png"/></p>
+<ol start="5">
+<li>在培训文件夹下检查您的结果。您应该会看到下图:</li>
+</ol>
+<p class="CDPAlignCenter CDPAlign"><img src="img/d2cfcfb2-9eb9-4b12-ac11-e61602d58d83.png" style="width:9.75em;height:38.92em;"/></p>
+<p>第一行:封面。第二行:集装箱。第三行:秘密。第4行:重建的秘密</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>在<em>步骤1 </em>中，我们简单地克隆深度隐写术项目的存储库。关于这个项目的理论和实现的一些背景可以在论文<em>隐藏图像在普通视野中:深度隐写术</em>(<a href="https://papers.nips.cc/paper/6802-hiding-images-in-plain-sight-deep-steganography">https://papers . nips . cc/paper/6802-隐藏图像在普通视野中-深度隐写术</a>)中找到。</p>
+<p class="mce-root"/>
+<p>基本思路是有一个<strong>隐藏网</strong> ( <strong> H-net </strong>)和一个<strong>揭露网</strong> ( <strong> R-net </strong>)，两者都是对抗性训练。继续<em>步骤2 </em>，我们准备我们的预训练模型。我们在这里使用的模型在ImageNet的45，000幅图像上进行训练，并在5，000幅图像上进行评估。所有的图像都被调整为256 × 256，没有归一化，这项任务需要在一台英伟达GTX 1080 Ti上进行24小时的训练。接下来，我们选择两张图片作为封面和秘密(<em>步骤3 </em>)。请随意使用您自己的一对图像。在<em>步骤4 </em>和<em> 5 </em>中，我们运行模型，创建一个容器图像(包含隐藏秘密的那个)，并生成一个显示我们结果的图像。如您所见，容器图像和封面图像对于人眼来说是无法区分的，这意味着没有人能够看出您在封面图像中隐藏了秘密。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>ML-based steganalysis</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">基于最大似然的隐写分析</h1>
+                
+            
+            
+                
+<p>隐写术中的主要技术之一是通过用消息位的最低有效位改变像素的最低有效位来隐藏图像中的消息。结果是一个隐藏了信息的图像，人眼无法从原始图像中分辨出来。这是因为，在改变图像像素中的LSB时，像素值仅被少量改变，从而产生视觉上相似的图像。</p>
+<p>LSB有两种主要方法:</p>
+<ul>
+<li>naïve方法被称为LSB替换。在这种方法中，如果消息位与LSB相同，则LSB位保持不变；否则，该位被改变。因此，奇数像素的亮度减少1，而偶数像素的亮度增加1。然而，这会导致图像直方图的不平衡，这种不平衡很容易被用于隐写分析的统计方法检测到。</li>
+<li>LSB隐写术的第二种方法是LSB匹配，它通过在LSB位不匹配的情况下将像素值随机递增或递减1来解决这个问题。这避免了直方图不平衡的问题，并且使得难以通过单独使用简单的统计方法来执行隐写分析。</li>
+</ul>
+<p>下图展示了LSB隐写术的一个实例。</p>
+<p>以下图像将被表示为封面图像:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/5bd5edf5-8377-4c3b-9da4-d7ee6d1e17df.png" style="width:35.58em;height:20.00em;"/></p>
+<p>下面的图像将被表示为秘密图像:</p>
+<div><img src="img/7367064b-4bb2-43e9-9e47-2a5a0aa99418.jpg" style="width:22.33em;height:22.50em;"/></div>
+<p class="mce-root">下面的图像将被表示为容器图像:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/5bd5edf5-8377-4c3b-9da4-d7ee6d1e17df.png" style="width:42.00em;height:23.58em;"/></p>
+<p>以下图像将显示为恢复的秘密图像:</p>
+<div><img src="img/14495d48-9d6f-4046-84d7-771a68b60620.png" style="width:30.75em;height:17.33em;"/></div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<p>建议您在Linux机器上完成这个食谱。按照以下步骤设置好一切:</p>
+<ol>
+<li>安装<kbd>octave</kbd>及其包<kbd>image</kbd>和<kbd>signal</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>sudo apt-get install octave octave-image octave-signal</strong></pre>
+<ol start="2">
+<li>克隆<kbd>aletheia</kbd>的存储库，如下面的代码所示:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>git clone https://github.com/emmanueltsukerman/aletheia.git</strong></pre>
+<ol start="3">
+<li>下载一个<kbd>BOSS</kbd>数据集，可以通过以下链接下载:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>wget http://dde.binghamton.edu/download/ImageDB/BOSSbase_1.01.zip</strong></pre>
+<p style="padding-left: 60px">这将检索一个灰度图像数据库。</p>
+<ol start="4">
+<li>解压缩数据集并重命名<kbd>BOSSbase</kbd>文件夹:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>unzip BOSSbase_1.01.zip</strong></pre>
+<p>为了方便起见，经过处理的数据集，即<kbd>bossbase.7z</kbd>和<kbd>bossbase_lsb.7z</kbd>，可以在本书的知识库中找到。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p>在这个食谱中，我们将策划一个LSB数据集，然后训练和测试一个ML模型，以检测图像中LSB隐写术的存在。让我们开始吧:</p>
+<ol>
+<li>使用以下命令创建LSB数据库:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>python aletheia.py lsbm-sim bossbase 0.40 bossbase_lsb</strong></pre>
+<p style="padding-left: 60px">结果是一个名为<kbd>bossbase_lsb</kbd>的新文件夹，其中包含嵌入的BOSS图像。它使用LSB匹配仿真器来实现这一点。</p>
+<ol start="2">
+<li>特征化<kbd>BOSS</kbd>数据集，如以下代码所示:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>./aletheia.py srm bossbase bossbase.fea</strong></pre>
+<ol start="3">
+<li>特征化LSB数据集，如以下代码所示:</li>
+</ol>
+<pre style="padding-left: 60px"><strong>./aletheia.py srm bossbase_lsb bossbase_lsb.fea</strong></pre>
+<p style="padding-left: 60px">为了方便起见，剩下的步骤可以在Python环境中运行。</p>
+<ol start="4">
+<li>创建一些指向提取要素路径的变量:</li>
+</ol>
+<pre style="padding-left: 60px">bossbase_features_path = "bossbase.fea"<br/>bossbase_lsb_features_path = "bossbase_lsb.fea"<br/>features_with_labels = [(bossbase_features_path, 0), (bossbase_lsb_features_path, 1)]</pre>
+<ol start="5">
+<li>收集要素和标签并将其放入数组中:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">X = []<br/>y = []<br/>for feature_path, label in features_with_labels:<br/>    with open(feature_path, "r") as f:<br/>        for line in f:<br/>            fv = line.split()<br/>            X.append(fv)<br/>            y.append(label)</pre>
+<ol start="6">
+<li>执行列车测试分割:</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn.model_selection import train_test_split<br/><br/>X_train, X_test, y_train, y_test = train_test_split(<br/>    X, y, test_size=0.2, random_state=11<br/>)</pre>
+<ol start="7">
+<li>实例化一个<kbd>RandomForestClassifier</kbd>并训练它:</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn.ensemble import RandomForestClassifier<br/><br/>clf = RandomForestClassifier()<br/>clf = clf.fit(X_train, y_train)</pre>
+<ol start="8">
+<li>对测试集上的分类器进行评分:</li>
+</ol>
+<pre style="padding-left: 60px">print(clf.score(X_test, y_test))</pre>
+<p style="padding-left: 60px">以下是输出:</p>
+<pre style="padding-left: 60px" class="mce-root"><strong>0.825</strong></pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>我们通过使用称为Aletheia的软件创建LSB隐写术容器图像的大型数据集来开始这个配方(<em>步骤1 </em>)。Aletheia提供了广泛的功能。运行以下不带参数的命令:</p>
+<pre>$ ./aletheia.py</pre>
+<p>前面的命令打印出以下关于<kbd>aletheia</kbd>的信息:</p>
+<pre class="mce-root">./aletheia.py &lt;command&gt;<br/>COMMANDS:<br/>Attacks to LSB replacement:<br/>- spa: Sample Pairs Analysis.<br/>- rs: RS attack.<br/>ML-based detectors:<br/>- esvm-predict: Predict using eSVM.<br/>- e4s-predict: Predict using EC.<br/>Feature extractors:<br/>- srm: Full Spatial Rich Models.<br/>- hill-maxsrm: Selection-Channel-Aware Spatial Rich Models for HILL.<br/>- srmq1: Spatial Rich Models with fixed quantization q=1c.<br/>- scrmq1: Spatial Color Rich Models with fixed quantization q=1c.<br/>- gfr: JPEG steganalysis with 2D Gabor Filters.<br/>Embedding simulators:<br/>- lsbr-sim: Embedding using LSB replacement simulator.<br/>- lsbm-sim: Embedding using LSB matching simulator.<br/>- hugo-sim: Embedding using HUGO simulator.<br/>- wow-sim: Embedding using WOW simulator.<br/>- s-uniward-sim: Embedding using S-UNIWARD simulator.<br/>- j-uniward-sim: Embedding using J-UNIWARD simulator.<br/>- j-uniward-color-sim: Embedding using J-UNIWARD color simulator.<br/>- hill-sim: Embedding using HILL simulator.<br/>- ebs-sim: Embedding using EBS simulator.<br/>- ebs-color-sim: Embedding using EBS color simulator.<br/>- ued-sim: Embedding using UED simulator.<br/>- ued-color-sim: Embedding using UED color simulator.<br/>- nsf5-sim: Embedding using nsF5 simulator.<br/>- nsf5-color-sim: Embedding using nsF5 color simulator.<br/>Model training:<br/>- esvm: Ensemble of Support Vector Machines.<br/>- e4s: Ensemble Classifiers for Steganalysis.<br/>- xu-net: Convolutional Neural Network for Steganalysis.<br/>Unsupervised attacks:<br/>- ats: Artificial Training Sets.<br/>Naive attacks:<br/>- brute-force: Brute force attack using a list of passwords.<br/>- hpf: High-pass filter.<br/>- imgdiff: Differences between two images.<br/>- imgdiff-pixels: Differences between two images (show pixel values).<br/>- rm-alpha: Opacity of the alpha channel to 255.</pre>
+<p>在<em>步骤2 </em>和<em> 3 </em>中，我们使用Aletheia的<kbd>srm</kbd>命令提取平面图像和容器图像的特征。<kbd>srm</kbd>命令提取完整且空间丰富的特征集。也可以使用其他替代功能集。接下来，我们创建指向数据集路径的变量(<em>步骤4 </em>)，然后将我们的特征和标签收集到数组中(<em>步骤5 </em>)。在<em>步骤6 </em> - <em> 8 </em>中，我们创建一个训练-测试分割，训练一个分类器，然后测试它。查看平衡数据集上80%的性能，我们可以看到这些特征确实有助于我们区分普通图像和容器图像。换句话说，我们可以得出结论，ML可以检测隐写术。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>ML attacks on PUFs</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">对puf的ML攻击</h1>
+                
+            
+            
+                
+<p>经典加密技术提供了几种保护电子设备的措施。这些主要依赖于密钥和昂贵的资源，因为设备永久存储了一条我们的对手不知道的数字信息。实际上，很难对这些信息保密。这个问题激发了PUF的发明——产生一种输出的物理设备，这种输出可以快速评估，但很难预测。</p>
+<p>为了使用PUF进行认证，我们需要构建一个<strong>挑战-响应对(CRP)</strong>的数据库。质询是二进制字符串(例如，1100101...01)，长度为<em> n </em>，响应是长度为<em> m </em>的其他二进制字符串。为了查明未知设备是否是前述的PUF，我们需要向它发出许多挑战，验证它产生正确的响应，直到我们达到它确实是同一个PUF的期望概率。请注意，puf本身并不是100%可靠的，由于不同的环境条件和噪声，相同的挑战可能会产生不同的响应:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/66824f3c-08c0-42ca-9e80-269d0a8574d3.png" style="width:17.92em;height:13.25em;"/></p>
+<p>图8: PUF商用RFID标签</p>
+<p>在这个食谱中，我们将使用ML攻击一个特定的PUF。注意，该领域一直在发展，并且已经提出了其他更安全的puf，以及使用ML增加puf的可靠性和安全性的方法。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><div><div><div><div><p>对于这个菜谱，我们需要在<kbd>pip</kbd>中安装<kbd>pandas</kbd>、<kbd>sklearn</kbd>和<kbd>xgboost</kbd>。请使用以下代码来完成此操作:</p>
+<pre><strong>pip install pandas sklearn xgboost</strong></pre>
+<p>此外，还为此配方提供了<kbd>CRPDataset.csv</kbd>数据集。</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p>让我们学习如何用ML破解PUF:</p>
+<ol>
+<li>加载CRP数据集，在本例中为<kbd>CRPDataset.csv</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px">import pandas as pd<br/><br/>df = pd.read_csv("CRPdataset.csv")</pre>
+<p style="padding-left: 60px">数据由成对(<em> x </em>，<em> y </em>)组成，其中<em> x </em>是长度为64的二进制字符串，<em> y </em>是二进制数字。这里，<em> x </em>是挑战，<em> y </em>是响应。</p>
+<ol start="2">
+<li>将<kbd>pandas</kbd>数据帧转换成特征和标签的NumPy数组:</li>
+</ol>
+<pre style="padding-left: 60px">y = df.pop("Label").values<br/>X = df.values</pre>
+<ol start="3">
+<li>执行列车测试分割:</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn.model_selection import train_test_split<br/><br/>X_train, X_test, y_train, y_test = train_test_split(<br/>    X, y, test_size=0.25, random_state=11<br/>)</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<ol start="4">
+<li>实例化并训练XGBoost分类器:</li>
+</ol>
+<pre style="padding-left: 60px">from xgboost import XGBClassifier<br/><br/>clf = XGBClassifier()<br/>clf.fit(X_train, y_train)<br/>print(clf.score(X_train, y_train))</pre>
+<p style="padding-left: 60px">以下是输出:</p>
+<pre style="padding-left: 60px" class="mce-root"><strong>0.6405208333333333</strong></pre>
+<ol start="5">
+<li>测试分类器，如下面的代码所示:</li>
+</ol>
+<pre style="padding-left: 60px">clf.score(X_test, y_test)</pre>
+<p style="padding-left: 60px">以下是输出:</p>
+<pre style="padding-left: 60px" class="mce-root"><strong>0.6270833333333333</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>我们从将CRP数据集读入数据帧开始(<em>步骤1 </em>)。在<em>步骤2 </em>中，我们创建x和y NumPy数组来保存特性和标签。接下来，我们训练-测试分割我们的数据(<em>步骤3 </em>)，然后训练和测试一个用于CRP的分类器(<em>步骤4 </em>和<em> 5 </em>)。基于性能，我们可以看到ML可以准确地预测对PUF挑战的响应。这意味着，在使用我们训练过的模型时，我们可以构建PUF的软件克隆，并使用它来(错误地)认证。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>There's more</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">还有更多</h1>
+                
+            
+            
+                
+<p>该配方的原始未处理数据集可在<a href="https://archive.ics.uci.edu/ml/datasets/Physical+Unclonable+Functions">https://archive . ics . UCI . edu/ml/datasets/Physical+Unclonable+Functions</a>中找到。其他背景信息可以在论文中找到，<em>A Machine Learning-Based Security vuls Study</em><em>on XOR PUFs for Resource-Constraint Internet of Things</em>，作者A. O .，Zhuang，y .，Alkatheiri，m . s .(2018年7月)在2018年IEEE国际物联网大会(ICIOT)(第49-56页)。IEEE。</p>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Encryption using deep learning</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">使用深度学习的加密</h1>
+                
+            
+            
+                
+<p>加密是将信息转换成代码以防止未授权访问的过程。在这个菜谱中，我们将利用卷积神经网络来加密和解密数据。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<p>对于这个食谱，你需要在<kbd>pip</kbd>中安装<kbd>click</kbd>、<kbd>keras</kbd>、<kbd>tensorflow</kbd>和<kbd>tqdm</kbd>软件包。请使用以下代码来完成此操作:</p>
+<pre><strong>pip install click keras tensorflow tqdm</strong></pre>
+<p>此外，使用以下命令克隆存储库:</p>
+<pre><strong>git clone https://github.com/emmanueltsukerman/convcrypt.git</strong></pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p>以下步骤将指导您如何使用ConvCrypt来加密图像。让我们开始吧:</p>
+<ol>
+<li>
+<p>针对您想要加密的图像或文件运行<kbd>encrypt.py</kbd>脚本:</p>
+</li>
+</ol>
+<pre style="padding-left: 60px"><strong>python encrypt.py --input_file "input file path" --output_file "encrypted file path" --key_file "key file name"</strong></pre>
+<p style="padding-left: 60px">上述代码的输出显示在下面的屏幕截图中:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/30ee7e0b-5535-40d2-99a1-07f8799ed0a9.png"/></p>
+<p style="padding-left: 60px">要查看文件是否被加密，请尝试打开它。我们将看到，由于加密，它无法打开:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/3ea4a5e5-e897-46ae-aa0a-c93e60eb77e4.png" style="width:27.92em;height:10.17em;"/></p>
+<ol start="2">
+<li>
+<p>要解密文件，对加密文件和密钥文件执行<kbd>decrypt.py</kbd>脚本:</p>
+</li>
+</ol>
+<pre style="padding-left: 60px"><strong>python decrypt.py --input_file "encrypted file path" --output_file "reconstructed file path" --key_file "key file name"</strong></pre>
+<p>结果是原始文件。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的...</h1>
+                
+            
+            
+                
+<p>我们首先使用ConvCrypt加密我们的图像(<em>步骤1 </em>)。ConvCrypt是一种概念验证的实验性加密算法，它使用了n维卷积神经网络。目前，它只支持三维卷积。然后，在<em>步骤2 </em>中，我们反向加密并测试，确保结果是原始文件。成功！</p>
+<p>对于感兴趣的人来说，ConvCrypt算法做的第一件事就是将数据分成块。然后，为3D卷积生成密钥；这是一个随机生成的位立方体，大小与数据块相同。最后，训练卷积神经网络以将密钥卷积到每个数据块中，使得每个数据块获得其自己的训练网络。产生的加密数据是每个网络的权重(核张量的值)。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>HIPAA data breaches – data exploration and visualization</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">HIPAA数据泄露–数据探索和可视化</h1>
+                
+            
+            
+                
+<p>数据探索是数据分析的第一步，通过可视化探索来了解数据集和数据的特征。数据可视化通过将数据置于光学环境中来帮助我们理解数据，以便我们强大的视觉处理中心可以快速找到数据中的模式和相关性。</p>
+<p>在本食谱中，您将探索并可视化一个关于违反HIPAA机密信息的公共域数据集。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<p>对于这个食谱，你需要在<kbd>pip</kbd>中安装<kbd>pandas</kbd>和<kbd>sklearn</kbd>。请使用以下代码来完成此操作:</p>
+<pre><strong>pip install pandas sklearn</strong></pre>
+<p class="mce-root">此外，还提供了<kbd>HIPAA-breach-report-2009-to-2017.csv</kbd>数据集，这样您就可以在这个食谱中使用它。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做…</h1>
+                
+            
+            
+                
+<p>在以下步骤中，您将在pandas中可视化HIPAA违规数据集，并使用TF-IDF从违规描述中提取重要的关键字。让我们开始吧:</p>
+<ol>
+<li>
+<p>使用<kbd>pandas</kbd>加载并清理HIPAA违规数据集:</p>
+</li>
+</ol>
+<pre style="padding-left: 60px">import pandas as pd<br/> <br/> df = pd.read_csv("HIPAA-breach-report-2009-to-2017.csv")<br/> df = df.dropna()</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p style="padding-left: 60px">前面代码的输出显示在下面的屏幕截图中:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/133b7dea-b456-493c-8e1b-cbe49fc4d724.png"/></p>
+<ol start="2">
+<li>
+<p>使用以下代码绘制受违规影响的人数与此类违规频率的直方图:</p>
+</li>
+</ol>
+<pre style="padding-left: 60px">%matplotlib inline<br/> def_fig_size = (15, 6)<br/> df["Individuals Affected"].plot(<br/> kind="hist", figsize=def_fig_size, log=True, title="Breach Size Distribution"<br/> )</pre>
+<p style="padding-left: 60px">以下输出显示了<strong>裂口大小分布</strong>:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/ccf17feb-3001-4bcd-96df-3078bd46ed04.png"/></p>
+<ol start="3">
+<li>
+<p>根据实体类型绘制平均缺口尺寸:</p>
+</li>
+</ol>
+<pre style="padding-left: 60px">df.groupby("Covered Entity Type").mean().plot(<br/> kind="bar", figsize=def_fig_size, title="Average Breach Size by Entity Type"<br/> )</pre>
+<p style="padding-left: 60px">以下截图显示了按实体类型划分的<strong>平均缺口大小的输出:</strong></p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/f2334834-2312-4aa3-b473-605bed345fa0.png"/></p>
+<ol start="4">
+<li>
+<p>绘制一个饼图，显示每个州受违规影响的人数，按前20个州进行筛选:</p>
+</li>
+</ol>
+<pre style="padding-left: 60px">df.groupby("State").sum().nlargest(20, "Individuals Affected").plot.pie(<br/> y="Individuals Affected", figsize=def_fig_size, legend=False<br/> )</pre>
+<p style="padding-left: 60px">下图显示了每个州受违规影响的个人:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/15bcd509-6467-4dee-bea0-d8c5661a70fa.png" style="width:28.92em;height:28.08em;"/></p>
+<ol start="5">
+<li>
+<p>根据违规类型(盗窃、丢失、黑客攻击等)绘制平均违规规模:</p>
+</li>
+</ol>
+<pre style="padding-left: 60px">df.groupby("Type of Breach").mean().plot(<br/> kind="bar", figsize=def_fig_size, title="Average Breach Size by Entity Type"<br/> )</pre>
+<p style="padding-left: 60px">下图显示了<strong>违约类型</strong>:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/9f179346-054d-4a70-b5c8-49e184c2daac.png"/></p>
+<ol start="6">
+<li>
+<p>实例化TF-IDF矢量器:</p>
+</li>
+</ol>
+<pre style="padding-left: 60px">from sklearn.feature_extraction.text import TfidfVectorizer<br/> <br/> vectorizer = TfidfVectorizer()</pre>
+<ol start="7">
+<li>
+<p>将矢量器与违规描述相匹配，并对其进行矢量化:</p>
+</li>
+</ol>
+<pre style="padding-left: 60px">df["Web Description"] = df["Web Description"].str.replace("\r", " ")<br/> X = df["Web Description"].values<br/> X_transformed = vectorizer.fit_transform(X)</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<ol start="8">
+<li>
+<p>根据TF-IDF，在违规描述中选择15个最重要的特征:</p>
+</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import numpy as np<br/> <br/> feature_array = np.array(vectorizer.get_feature_names())<br/> tfidf_sorting = np.argsort(X_transformed.toarray()).flatten()[::-1]<br/> n = 15<br/> top_n = feature_array[tfidf_sorting][:n]<br/> print(top_n)</pre>
+<p style="padding-left: 60px">输出如下所示:</p>
+<pre style="padding-left: 60px">['this' 'review' '842' 'south' 'ransomware' 'memorial' 'specific' 'birthdates' 'consolidated' 'malware' 'license' 'driver' 'found' 'clinic' 'information']</pre>
+<ol start="9">
+<li>
+<p>打印几个包含<kbd>review</kbd>关键字的违规描述:</p>
+</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">k = 2<br/> i = 0<br/> for x in df["Web Description"].values:<br/> if "review" in x:<br/> i += 1<br/> print(x)<br/> print()<br/> if i == k:<br/> break</pre>
+<p style="padding-left: 60px">以下是输出的一些片段:</p>
+<pre style="padding-left: 60px">A laptop was lost by an employee... all employees received additional security training.<br/>The covered entity's (CE) business associate (BA) incorrectly... BA to safeguard all PHI.</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>我们首先将HIPAA数据集读入dataframe，并删除任何包含NAs的行(<em>步骤1 </em>)。接下来，在<em>第2步</em>中，我们可以看到大多数入侵的规模相对较小，但也有少数入侵是大规模的。这与帕累托原理是一致的。在<em>步骤3 </em>中，我们按部门划分违规事件，以确保最大的违规事件发生在业务合作伙伴中。然后，我们在<em>步骤4 </em>中检查哪些州违反HIPAA的情况最多。在<em>步骤5 </em>中，我们了解到最大的违规事件的原因通常是未知的！在<em>步骤6 </em>和<em> 7 </em>中，我们对违规描述执行基本的NLP。这将允许我们提取更多感兴趣的信息。在<em>步骤8 </em>中，我们可以看到TF-IDF能够找到一些非常有信息的关键词，比如<em>勒索软件</em>和<em>驱动</em>。最后，在<em>步骤9 </em>中，我们打印出包含关键字<em>审查</em>的违规描述。“审查”这个词被证明是一个非常重要的词，因为它是质量控制的一部分，也是一个事件响应工具。</p>
+
+
+            
+
+            
+        
+    
+
+
+</body></html>

@@ -1,0 +1,1287 @@
+<html><head/><body>
+
+
+
+
+
+
+
+
+
+<title>Chapter 6: SageMaker Training and Debugging Solutions</title>
+
+
+
+
+
+
+
+<div><div><h1 class="chapter-number" id="_idParaDest-123"><a id="_idTextAnchor131"/> <a id="_idTextAnchor132"/> 6</h1>
+
+<h1 id="_idParaDest-124"><a id="_idTextAnchor133"/> SageMaker培训和调试解决方案</h1>
+
+<p>在<a href="B18638_02.xhtml#_idTextAnchor041"> <em class="italic">第二章</em> </a>、<em class="italic">深度学习AMIs </em>和<a href="B18638_03.xhtml#_idTextAnchor060"> <em class="italic">第三章</em> </a>、<em class="italic">深度学习容器</em>中，我们在EC2实例内部执行了我们的初始ML训练实验。我们注意到了运行这些EC2实例的每小时成本，因为在某些情况下，我们需要使用更昂贵的实例类型(例如大约每小时<em class="italic">$ 7.20</em>的<code>p2.8xlarge</code>实例)来运行我们的ML培训作业和工作负载。为了管理和降低使用这些EC2实例运行ML工作负载的总成本，我们讨论了一些成本优化策略，包括在培训工作完成后手动关闭这些实例。</p>
+
+<p>此时，您可能想知道是否有可能自动化以下过程:</p>
+
+<ul>
+
+<li><em class="italic">启动将运行ML培训作业的EC2实例</em></li>
+
+<li><em class="italic">在模型训练之后，将训练的ML模型的模型工件上传到存储位置(例如S3桶)</em></li>
+
+<li><em class="italic">培训工作完成后删除EC2实例</em></li>
+
+</ul>
+
+<p>好消息是使用自动化脚本这是可能的！一旦这个过程的主要部分实现了自动化，我们就可以更加专注于准备用于训练我们的ML模型的脚本。我们可以编写自己的自动化脚本集；然而，我会建议你做<em class="italic">而不是</em>重新发明轮子，因为AWS已经在<strong class="bold"> Amazon SageMaker </strong>中为我们自动化了这个过程！</p>
+
+<p>SageMaker有许多功能和特性，可以帮助数据科学家和ML实践者轻松地在AWS云中执行ML实验和部署。在前面的章节中，我们能够快速浏览其中的一些功能，包括<strong class="bold"> SageMaker Canvas </strong>、<strong class="bold"> SageMaker Autopilot </strong>和<strong class="bold"> SageMaker Data Wrangler </strong>。在本章中，我们将深入探讨它的功能和特性，重点是在AWS的托管基础设施资源内培训ML模型。你会惊讶地发现，只需要几个额外的配置参数就可以启用某些训练技术和解决方案，例如<strong class="bold">网络隔离</strong>、<strong class="bold">分布式训练</strong>、<strong class="bold">管理点训练</strong>、<strong class="bold">检查点训练</strong>和<strong class="bold">增量训练</strong>。如果这是你第一次遇到这些概念和技术，不要担心，因为我们将在本章中更详细地讨论它们。</p>
+
+<p>在本章中，我们将讨论以下主题:</p>
+
+<ul>
+
+<li>SageMaker Python SDK入门</li>
+
+<li>准备必要的先决条件</li>
+
+<li>使用SageMaker Python SDK训练影像分类模型</li>
+
+<li>使用调试器洞察仪表板</li>
+
+<li>利用有管理的现场培训和检查站</li>
+
+<li>清理</li>
+
+</ul>
+
+<p>在我们继续本章的动手解决方案之前，我们将首先快速讨论如何使用<strong class="bold"> SageMaker Python SDK </strong>来帮助我们利用和处理SageMaker服务的不同功能和特性。</p>
+
+<h1 id="_idParaDest-125"><a id="_idTextAnchor134"/>技术要求</h1>
+
+<p>开始之前，我们必须准备好以下内容:</p>
+
+<ul>
+
+<li>网络浏览器(最好是Chrome或Firefox)</li>
+
+<li>访问本书前几章中使用的AWS帐户</li>
+
+</ul>
+
+<p>Jupyter笔记本、源代码和其他用于每章的文件可以在本书的GitHub资源库中找到:https://GitHub . com/packt publishing/Machine-Learning-Engineering-on-AWS。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">运行本书中的示例时，建议使用具有有限权限的IAM用户，而不是root帐户。我们将在第9章 、<em class="italic">安全、治理和遵从性策略</em>的<a href="B18638_09.xhtml#_idTextAnchor187"> <em class="italic">中详细讨论这一点以及其他安全最佳实践。如果您刚刚开始使用AWS，您可以同时继续使用root帐户。</em></a></p>
+
+<h1 id="_idParaDest-126"><a id="_idTextAnchor135"/>SageMaker Python SDK入门</h1>
+
+<p>SageMaker Python SDK 是一个库，它允许ML从业者使用SageMaker的不同特性和功能来训练和部署ML模型<a id="_idIndexMarker566"/>。它提供了几个高级抽象，如<strong class="bold">估算器</strong>、<strong class="bold">模型</strong>、<strong class="bold">预测器</strong>、<strong class="bold">会话</strong>、<strong class="bold">转换器</strong>和<strong class="bold">处理器</strong>，所有这些<a id="_idIndexMarker567"/>封装了<a id="_idIndexMarker568"/>并映射到具体的ML流程<a id="_idIndexMarker569"/>和实体。这些抽象允许数据科学家和ML工程师只用几行代码就能管理ML实验和部署。与此同时，基础设施管理已经由SageMaker处理，所以我们需要做的就是用正确的参数集配置这些高层抽象。</p>
+
+<p>注意，使用<strong class="bold"> boto3 </strong>库也可以使用SageMaker的不同功能和特性<a id="_idIndexMarker573"/>。与使用SageMaker Python SDK相比，我们将使用boto3处理更多的代码行，因为在使用该库中可用的低级客户端和函数时，我们必须注意一些小细节。建议尽可能使用SageMaker Python SDK，对于SageMaker Python SDK不直接支持的更高级的场景，只使用boto3库。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果您有兴趣了解如何在处理更高级的用例时一起使用这两个库，请查看第8章<a href="B18638_08.xhtml#_idTextAnchor172"><em class="italic"/></a>、<em class="italic">模型监控和管理解决方案</em>。</p>
+
+<p>下图显示了使用SageMaker Python SDK训练和部署ML模型仅涉及几行代码:</p>
+
+<div><div><img alt="Figure 6.1 – SageMaker Python SDK&#10;&#10;" height="695" src="img/B18638_06_001.jpg" width="1132"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.1–SageMaker Python SDK</p>
+
+<p>这里，我们使用<strong class="bold"> SageMaker Python SDK </strong>来完成以下工作:</p>
+
+<ol>
+
+<li>我们通过初始化一个<code>Estimator</code>对象来开始<a id="_idIndexMarker574"/>，然后使用它的<code>set_hyperparameters()</code>方法来指定所需的超参数值的组合。在这里，我们可以通过在初始化<code>Estimator</code>对象时提供相应的配置参数值来指定是使用内置算法还是自定义算法(使用脚本和自定义Docker容器映像)。</li>
+
+<li>接下来，我们调用<code>fit()</code>方法，该方法使用期望的属性集运行一个训练作业，正如在<code>Estimator</code>对象配置中定义的那样。该训练作业将在专用实例中运行，一旦训练作业完成，这些实例将自动终止。</li>
+
+<li>最后，我们使用<code>deploy()</code>方法将训练好的模型部署到SageMaker自动为我们准备的专用实时推理端点。然后，我们使用<code>predict()</code>方法对推理端点执行样本预测。</li>
+
+</ol>
+
+<p>当在AWS云中训练和部署我们的ML模型时，这只是使用<strong class="bold"> SageMaker Python SDK </strong>的方法之一。如果我们已经有一个预先训练好的模型可供使用(例如，在从模型库中下载一个预先构建的ML模型之后)，我们可以完全跳过训练步骤，并使用下面的代码块立即部署模型:</p>
+
+<pre class="source-code">from sagemaker.model import Model 
+
+model = Model(model_data=<strong class="bold">model_data</strong>, ...)
+
+model.deploy(<strong class="bold">&lt;insert configuration parameters&gt;</strong>)</pre>
+
+<p>当然，<a id="_idIndexMarker575"/>前面的代码块假设模型工件已经被上传到S3桶中，并且<code>model_data</code>变量指向这些模型工件或者文件被存储的位置。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果您有兴趣了解更多关于如何使用预先训练的模型在SageMaker中直接执行部署的信息，请查看<a href="B18638_07.xhtml#_idTextAnchor151"> <em class="italic">第7章</em> </a>，<em class="italic"> SageMaker部署解决方案</em>。</p>
+
+<p>如果我们想要利用SageMaker的<strong class="bold">自动模型调整</strong>功能，并在寻找“最佳模型”时使用不同的超参数组合自动运行多个训练作业<a id="_idIndexMarker576"/>，那么我们只需要运行几行代码，类似于下面的代码块:</p>
+
+<pre class="source-code"><strong class="bold">estimator</strong> = Estimator(...)
+
+estimator.set_hyperparameters(...)
+
+<strong class="bold">hyperparameter_ranges</strong> = {...}
+
+<strong class="bold">objective_metric_name</strong> = "&lt;insert target metric&gt;"
+
+hyperparameter_tuner = <strong class="bold">HyperparameterTuner</strong>(
+
+    <strong class="bold">estimator</strong>, 
+
+    <strong class="bold">objective_metric_name</strong>, 
+
+    <strong class="bold">hyperparameter_ranges</strong>, 
+
+    max_jobs=20, 
+
+    max_parallel_jobs=3
+
+)
+
+hyperparameter_tuner.<strong class="bold">fit</strong>(...)</pre>
+
+<p>在这里，SageMaker为我们做了所有繁重的工作，我们需要担心的只是运行超参数调优工作所需的配置参数<a id="_idIndexMarker577"/>。这将花费我们几个星期(或者甚至几个月！)如果我们自己使用定制的自动化脚本来构建它。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果你有兴趣通过<strong class="bold"> SageMaker Python SDK </strong>进一步了解如何利用SageMaker的自动模型调优功能，那么请查看<a href="B18638_06.xhtml#_idTextAnchor132"> <em class="italic">第6章</em> </a>、<em class="italic"> SageMaker培训和调试解决方案、</em>一书的<em class="italic">机器学习与亚马逊SageMaker食谱</em>。</p>
+
+<p>使用Amazon SageMaker训练模型时，有几个选项和功能可用。这些包括网络隔离、分布式培训、管理点培训、检查点、增量培训等等。与前面讨论的自动模型调整功能类似，利用和启用这些功能只需要几行额外的代码。如果您想知道这些是什么，请不要担心，我们将在本章的动手解决方案中详细讨论每一个。</p>
+
+<p>现在我们已经更好地理解了<strong class="bold"> SageMaker Python SDK </strong>如何帮助我们在云中训练和部署ML模型，让我们继续创建一个服务限制请求！</p>
+
+<h1 id="_idParaDest-127"><a id="_idTextAnchor136"/>准备必要的先决条件</h1>
+
+<p>在本节中，我们将确保在继续学习本章的动手解决方案之前，满足以下先决条件:</p>
+
+<ul>
+
+<li>我们增加了使用<code>ml.p2.xlarge</code>实例运行SageMaker培训任务的服务限制(SageMaker培训)</li>
+
+<li>我们增加了使用<code>ml.p2.xlarge</code>实例运行SageMaker培训作业的服务限制(SageMaker管理的现场培训)</li>
+
+</ul>
+
+<p>如果你想知道为什么我们在本章中使用<code>ml.p2.xlarge</code>实例，那是因为我们<a id="_idIndexMarker579"/>需要使用<strong class="bold">图像分类算法</strong>支持的实例类型之一，如下面的截图所示:</p>
+
+<div><div><img alt="Figure 6.2 – EC2 Instance Recommendation for the image classification algorithm&#10;&#10;" height="519" src="img/B18638_06_002.jpg" width="977"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.2–图像分类算法的EC2实例建议</p>
+
+<p>如我们所见，当使用图像分类算法运行训练作业时，我们可以使用<code>ml.p2.xlarge</code>、<code>ml.p2.8xlarge</code>、<code>ml.p2.16xlarge</code>、<code>ml.p3.2xlarge</code>、<code>ml.p3.8xlarge</code>和<code>ml.p3.16xlarge</code>(在撰写本文时)。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">查看<a id="_idIndexMarker580"/>出<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/image-classification.xhtml">https://docs . AWS . Amazon . com/sagemaker/latest/DG/image-classification . XHTML</a>了解更多关于这个话题的信息。</p>
+
+<h2 id="_idParaDest-128"><a id="_idTextAnchor137"/>创建服务限额增加请求</h2>
+
+<p>在这一章中，我们将使用多个<code>ml.p2.xlarge</code>实例<a id="_idIndexMarker581"/>训练一个图像分类模型。在我们可以使用这种类型的实例来<a id="_idIndexMarker582"/>训练ML模型之前，我们需要通过<code>0</code>请求增加服务配额(或服务限制)；如果我们使用<code>ml.p2.xlarge</code>实例运行训练作业，我们将会遇到<code>ResourceLimitExceeded</code>错误。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">本章假设我们在使用服务管理和创建不同类型的资源时使用了<code>us-west-2</code>区域。您可以使用不同的区域，但请确保进行必要的调整，以防某些资源需要转移到所选的区域。</p>
+
+<p>按照以下步骤创建支持案例，并请求增加SageMaker培训实例数量限制:</p>
+
+<ol>
+
+<li value="1">导航到AWS管理控制台搜索栏中的<code>support</code>。</li>
+
+<li>从<strong class="bold">服务</strong>下的结果列表中选择<strong class="bold">支持</strong>。</li>
+
+</ol>
+
+<li>找到并点击<strong class="bold">创建案例</strong>按钮。</li>
+
+<li>在<strong class="bold">创建案例</strong>页面，从选项列表中选择<strong class="bold">服务限制增加</strong>。</li>
+
+<li>在<code>SageMaker Training Jobs</code>下指定以下配置</li>
+
+
+
+<li>在<code>US West (Oregon)</code>下</li>
+
+<li><code>SageMaker Training</code></li>
+
+<li><code>ml.p2.xlarge</code></li>
+
+<li><code>2</code></li>
+
+
+
+
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">请注意，增加SageMaker培训资源类型的服务限制不会自动增加SageMaker管理的现场培训资源类型的服务限制。</p>
+
+<ol>
+
+<li value="6">点击<strong class="bold">添加另一个请求</strong>。</li>
+
+<li>在<code>US West (Oregon)</code>下</li>
+
+<li><code>SageMaker Managed Spot Training</code></li>
+
+<li><code>ml.p2.xlarge</code></li>
+
+<li><code>2</code></li>
+
+
+
+<li>在<strong class="bold">用例描述</strong>下，在提供的文本区域中指定以下用例描述:<pre class="source-code">Good day, </pre> <pre class="source-code">I am planning to run a SageMaker training job using 2 x ml.p2.xlarge instances to train an Image Classification model. After this I am planning to use Managed Spot Training to run a similar example and will need 2 x ml.p2.xlarge (spot) instances. Hope these 2 limit increase requests can be processed as soon as possible in the <strong class="bold">Oregon (us-west-2)</strong> region.</pre> <pre class="source-code">You can find the relevant notebooks here: https://github.com/PacktPublishing/Machine-Learning-Engineering-on-AWS</pre></li>
+
+</ol>
+
+<p class="list-inset">如果您计划在另一个区域运行您的ML实验，请确保用适当的区域替换<code>Oregon (us-west-2)</code>。</p>
+
+<ol>
+
+<li value="9">向下滚动到<strong class="bold">联系选项</strong>，并从<strong class="bold">联系方式</strong>下的<a id="_idIndexMarker584"/>选项列表中选择<strong class="bold">网页</strong>(或<strong class="bold">聊天</strong>。</li>
+
+<li>最后，点击<strong class="bold">提交</strong>按钮。</li>
+
+</ol>
+
+<p>请注意，限额增加请求可能需要大约24到48小时才能获得<strong class="bold"> AWS支持团队</strong>的批准。在等待时，您可以浏览本章中解释的内容和概念。这将有助于您在动手解决方案之前对SageMaker的功能有一个更好的了解。您也可以跳过本章，继续阅读第7章 、<em class="italic"> SageMaker部署解决方案</em>，同时等待限额增加获得批准。</p>
+
+<h1 id="_idParaDest-129"><a id="_idTextAnchor138"/>用SageMaker Python SDK训练图像分类模型</h1>
+
+<p>如<em class="italic">SageMaker Python SDK</em>一节所述，在SageMaker中进行训练实验时，我们可以使用<a id="_idIndexMarker585"/>内置<a id="_idIndexMarker586"/>算法或自定义算法(使用脚本和自定义Docker容器映像)。</p>
+
+<p>数据科学家和ML从业者可以使用AWS团队准备的一个或多个内置算法，在SageMaker中快速开始训练和部署模型。有多种内置算法可供选择，每种算法都是为了帮助ML从业者解决特定的业务和ML问题而提供的。以下是一些可用的内置算法，以及这些算法可以解决的一些使用案例和问题:</p>
+
+<ul>
+
+<li><strong class="bold">深度预测</strong>:时间序列预测</li>
+
+<li><strong class="bold">主成分分析</strong>:降维</li>
+
+<li><strong class="bold"> IP洞察</strong> : IP异常检测</li>
+
+<li><strong class="bold">潜在狄利克雷分配(LDA) </strong>:主题建模</li>
+
+<li><strong class="bold">序列对序列</strong>:文本摘要</li>
+
+<li><strong class="bold">语义分割</strong>:计算机视觉</li>
+
+</ul>
+
+<p>第二个选项涉及使用SageMaker <strong class="bold">脚本模式</strong>，在这里我们导入一个定制的训练脚本，它利用一个深度学习框架(比如<strong class="bold"> TensorFlow </strong>、<strong class="bold"> PyTorch </strong>或者<strong class="bold"> MXNet </strong>)来训练一个模型。这里，<a id="_idIndexMarker588"/>定制训练脚本<a id="_idIndexMarker589"/>将在其中一个预构建的容器内运行，其中包括<strong class="bold"> AWS深度学习容器</strong>，如<a href="B18638_03.xhtml#_idTextAnchor060"> <em class="italic">第3章</em> </a>、<em class="italic">深度学习容器</em>中所述。也就是说，当选择这个选项时，我们需要担心的是准备训练脚本，因为大多数依赖项已经安装在这些脚本将运行的容器环境中。</p>
+
+<p>第三个选项涉及到在SageMaker中构建和使用定制的容器映像来训练ML模型。该选项为我们提供了最高级别的灵活性，因为我们可以完全控制自定义培训脚本的运行环境。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">哪种选择对我们最有利？如果我们想继续训练一个ML模型，而不必准备一个定制脚本和一个定制容器图像，最好的选择是使用SageMaker的内置算法。如果我们试图将我们的自定义脚本移植到SageMaker，它利用开源ML库和框架(如scikit-learn、PyTorch和TensorFlow)来训练模型，那么最好的选择是使用SageMaker的脚本模式。如果我们需要更多的灵活性，那么我们可以选择使用我们自己的定制容器映像。</p>
+
+<p>现在我们对在SageMaker中训练ML模型时有哪些选项有了更好的了解，让我们继续讨论我们将在本<a id="_idIndexMarker591"/>部分的实践部分做些什么。在这个<a id="_idIndexMarker592"/>部分，我们将使用内置的<code>ml.p2.xlarge</code>实例。为了测试我们训练的模型，我们将部署该模型，并且<a id="_idIndexMarker593"/>在<code>ml.m5.xlarge</code>实例中启动一个<a id="_idIndexMarker594"/>推理端点。然后，使用几幅测试图像，将该推断终点用于执行样本预测。</p>
+
+<p>如下图<a id="_idIndexMarker595"/>所示，在执行训练步骤时，我们可以利用<strong class="bold">分布式训练</strong>:</p>
+
+<div><div><img alt="Figure 6.3 – Training and deploying an image classification model&#10;&#10;" height="628" src="img/B18638_06_003.jpg" width="1124"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.3–训练和部署图像分类模型</p>
+
+<p>通过使用多个实例而不是<a id="_idIndexMarker596"/>一个实例，分布式培训有助于减少培训时间。因为我们使用的是内置算法，所以我们需要做的就是配置训练作业，使用两个或更多实例来支持分布式训练。</p>
+
+<p>考虑到这些方面，让我们继续在<strong class="bold"> SageMaker Studio </strong>中创建一个新的笔记本。我们将使用它来运行代码块，以训练我们的图像分类模型。</p>
+
+<h2 id="_idParaDest-130"><a id="_idTextAnchor139"/>在SageMaker Studio中创建新笔记本</h2>
+
+<p>首先<a id="_idIndexMarker597"/>打开SageMaker Studio，<a id="_idIndexMarker598"/>创建一个名为<code>CH06</code>的新目录。然后，创建一个新的<strong class="bold"> Jupyter笔记本</strong>并保存在这个目录下。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">在继续之前，请确保您已经完成了第1章 、<em class="italic">AWS上的ML工程介绍</em>的<em class="italic">sage maker和SageMaker Studio </em>部分中的动手解决方案。</p>
+
+<p>按照这些<a id="_idIndexMarker599"/>步骤启动SageMaker Studio <a id="_idIndexMarker600"/>并创建新的笔记本，用于运行本章中的Python脚本:</p>
+
+<ol>
+
+<li value="1">通过执行以下操作导航到SageMaker Studio:<ol><li>在AWS管理控制台的搜索栏中键入<code>sagemaker studio</code>。</li>
+
+<li>从<strong class="bold">功能</strong>下的结果列表中选择<strong class="bold"> SageMaker Studio </strong>。</li>
+
+</ol></li>
+
+</ol>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">本章假设我们在使用服务管理和创建不同类型的资源时使用了<code>us-west-2</code>区域。您可以使用不同的区域，但如果某些资源需要转移到所选的区域，请确保进行任何必要的调整。</p>
+
+<ol>
+
+<li value="2">接下来，点击侧边栏中<strong class="bold"> SageMaker域</strong>下的<strong class="bold"> Studio </strong>。</li>
+
+<li>点击<strong class="bold">启动app </strong>，如下图截图所示。从下拉选项列表中选择<strong class="bold">工作室</strong>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 6.4 – Opening SageMaker Studio&#10;&#10;" height="447" src="img/B18638_06_004.jpg" width="1018"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.4–打开SageMaker Studio</p>
+
+<p class="list-inset">这将把你重定向到SageMaker工作室。等待几秒钟，让界面加载。</p>
+
+<ol>
+
+<li value="4">在<strong class="bold">文件浏览器</strong>侧边栏窗格的<a id="_idIndexMarker602"/>空白处右击<a id="_idIndexMarker601"/>，打开类似如下的上下文菜单:</li>
+
+</ol>
+
+<div><div><img alt="Figure 6.5 – Creating a new folder&#10;&#10;" height="366" src="img/B18638_06_005.jpg" width="859"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.5–创建新文件夹</p>
+
+<p class="list-inset">选择<code>CH06</code>。</p>
+
+<ol>
+
+<li value="5">双击侧边栏中相应的文件夹名称，导航到<code>CH06</code>目录。</li>
+
+<li>通过<a id="_idIndexMarker604"/>点击<strong class="bold">文件</strong>菜单并从<strong class="bold">新建</strong>子菜单下的选项列表中选择<strong class="bold">笔记本</strong>来创建一个<a id="_idIndexMarker603"/>新笔记本:</li>
+
+</ol>
+
+<div><div><img alt="Figure 6.6 – Creating a new Notebook&#10;&#10;" height="283" src="img/B18638_06_006.jpg" width="843"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.6–创建新笔记本</p>
+
+<p class="list-inset">在这里，我们还可以看到其他选项，包括创建一个新的<strong class="bold">控制台</strong>、<strong class="bold">数据牧马人流</strong>、<strong class="bold">终端</strong>、<strong class="bold">文本文件</strong>等等。</p>
+
+<ol>
+
+<li value="7">在<code>Data Science</code>(sage maker图像下的选项)</li>
+
+<li><code>Python 3</code></li>
+
+<li><code>No script</code></li>
+
+
+
+<li>点击<strong class="bold">选择</strong>按钮。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">等待内核启动。在配置ML实例以运行Jupyter笔记本单元时，此步骤可能需要大约3到5分钟。</p>
+
+<ol>
+
+<li value="9">右键单击选项卡的名称，如下图所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 6.7 – Renaming a notebook&#10;&#10;" height="278" src="img/B18638_06_007.jpg" width="909"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.7–重命名笔记本</p>
+
+<p class="list-inset">从上下文菜单的选项列表中选择<strong class="bold">重命名笔记本… </strong>。</p>
+
+<ol>
+
+<li value="10">在<code>PART01.ipynb</code>下<strong class="bold">新名称</strong>。然后，点击<strong class="bold">重命名</strong>按钮。</li>
+
+<li>在笔记本的第一个<a id="_idIndexMarker606"/>单元格中输入<a id="_idIndexMarker605"/>如下:<pre class="source-code">print('Hello')</pre></li>
+
+<li>点击<strong class="bold">运行所选单元格并前进</strong>按钮，如下图所示。或者，您可以按住<strong class="bold"> SHIFT </strong>并按<strong class="bold"> ENTER </strong>来运行所选单元格并自动创建一个新单元格:</li>
+
+</ol>
+
+<div><div><img alt="Figure 6.8 – Running a selected cell&#10;&#10;" height="310" src="img/B18638_06_008.jpg" width="1045"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.8–运行选定的单元</p>
+
+<p class="list-inset">这将使<a id="_idIndexMarker607"/>产生一个<code>Hello</code>的输出<a id="_idIndexMarker608"/>，该输出将显示在单元格下方。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果没有显示输出，这意味着没有内核在运行，或者内核仍在启动。一旦内核准备就绪，您就可以再次运行细胞了。</p>
+
+<p>现在我们的笔记本已经准备好了，我们将在随后的部分中为每个代码块创建一个新的单元格。</p>
+
+<h2 id="_idParaDest-131"><a id="_idTextAnchor140"/>下载训练、验证和测试数据集</h2>
+
+<p>此时<a id="_idIndexMarker609"/>，你可能想知道我们将使用什么数据集来训练<a id="_idIndexMarker610"/>我们的ML模型。为了回答你的问题，我们将使用<strong class="bold"> MNIST数据集</strong>，该数据集<a id="_idIndexMarker611"/>是手写数字图像的大型集合。下图中可以看到一个<a id="_idIndexMarker612"/>的例子:</p>
+
+<div><div><img alt="Figure 6.9 – MNIST dataset&#10;&#10;" height="474" src="img/B18638_06_009.jpg" width="1425"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.9-MNIST数据集</p>
+
+<p>在这里，我们可以看到MNIST数据集中的每个图像都有一个对应于<code>0</code>和<code>9</code>之间的数字的类。也就是说，总共有10个类，并且该数据集中的每个图像恰好属于一个类。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">MNIST数据集包含数以千计的手写数字图像。通常的挑战包括<a id="_idIndexMarker613"/>正确识别0到9中的哪个数字映射到显示的手写数字(在图像中)。对我们人类来说，正确分类这些手写数字可能是微不足道的。然而，这对于机器来说并不简单，因为它们必须处理图像的像素数据，并建立数字在图像中的表示模式。为了让机器正确分类这些图像，我们将使用深度学习(使用SageMaker的图像分类算法)！</p>
+
+<p>为了让<a id="_idIndexMarker614"/>我们的生活更轻松，我们已经准备好了训练、验证和<a id="_idIndexMarker615"/>测试集，并将它们存储在一个ZIP文件中。按照<a id="_idIndexMarker616"/>这些步骤下载这个ZIP文件并解压到指定的目录下:</p>
+
+<ol>
+
+<li value="1">运行以下语句以确保您准备好了一个空的<code>tmp</code>目录:<pre class="source-code">!rm -rf <strong class="bold">tmp</strong> &amp;&amp; mkdir -p <strong class="bold">tmp</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这里，我们在命令前使用一个感叹号(<code>!</code>)，这样我们就可以在Jupyter笔记本中运行终端命令。</p>
+
+<ol>
+
+<li value="2">使用<code>wget</code>命令:<pre class="source-code">!<strong class="bold">wget</strong> -O tmp/<strong class="bold">batch1.zip</strong> https://bit.ly/37zmQeb</pre>下载<code>batch1.zip</code>文件</li>
+
+<li>接下来，运行下面的代码块来提取<code>tmp</code>目录中<code>batch1.zip</code>文件的内容:<pre class="source-code">%%time</pre> <pre class="source-code">!cd tmp &amp;&amp; <strong class="bold">unzip batch1.zip</strong> &amp;&amp; rm batch1.zip</pre></li>
+
+</ol>
+
+<p class="list-inset">这将产生一组日志，显示从ZIP文件中提取的文件:</p>
+
+<div><div><img alt="Figure 6.10 – Enabling scrolling for the output logs&#10;&#10;" height="600" src="img/B18638_06_010.jpg" width="1025"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.10–启用输出日志的滚动</p>
+
+<p class="list-inset">右键单击生成的日志<a id="_idIndexMarker618"/>消息附近的空白区域<a id="_idIndexMarker617"/>。这将打开一个上下文菜单，类似于前面截图中的<a id="_idIndexMarker619"/>。从上下文弹出菜单的可用选项列表中选择<strong class="bold">启用输出滚动</strong>。</p>
+
+<ol>
+
+<li value="4">使用<code>ls</code>命令检查当前目录下的解压文件:<pre class="source-code">!ls -RF</pre></li>
+
+</ol>
+
+<p class="list-inset">使用<code>ls</code>命令时，我们设置了两个标志。第一个是<code>-R</code>标志，它递归地列出了目录树。第二个标志是<code>-F</code>标志，它根据文件的类型添加一个特定的字符:<code>/</code>表示目录，<code>*</code>表示可执行文件，<code>@</code>表示符号链接，<code>|</code>表示FIFO特殊文件。</p>
+
+<p class="list-inset">运行<code>ls</code>命令应该会给我们一组日志，如下所示:</p>
+
+<div><div><img alt="Figure 6.11 – Listing the extracted files and folders&#10;&#10;" height="779" src="img/B18638_06_011.jpg" width="1564"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.11–列出提取的文件和文件夹</p>
+
+<p class="list-inset">你<a id="_idIndexMarker620"/>应该在<code>tmp</code>目录下找到<a id="_idIndexMarker621"/>五个目录<a id="_idIndexMarker622"/>—<code>test</code>、<code>train</code>、<code>train_lst</code>、<code>validation</code>和<code>validation_lst</code>:</p>
+
+<div><div><img alt="Figure 6.12 – Files and directories extracted from the batch1.zip file&#10;&#10;" height="590" src="img/B18638_06_012.jpg" width="1024"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.12–从batch1.zip文件中提取的文件和目录</p>
+
+<p class="list-inset">如上图所示，我们应该在<code>train</code>目录中找到10个目录。这些目录中的每一个都包含几个<em class="italic"> PNG </em>文件，标签<a id="_idIndexMarker623"/>对应于存储这些文件的目录名称<a id="_idIndexMarker624"/>。例如，存储在<code>0</code>目录中的PNG文件<a id="_idIndexMarker625"/>的标签为<code>0</code>。在<code>train_lst</code>目录中是<code>train.lst</code>文件，它包含来自<code>train</code>目录的标签和图像的映射(给定指定的路径和文件名)。我们应该在<code>validation</code>和<code>validation_lst</code>中找到一组相似的目录和文件。</p>
+
+<ol>
+
+<li value="5">接下来，让我们安装<code>IPyPlot</code>，我们将使用它来检查我们从ZIP文件中提取的图像:<pre class="source-code">!pip3 install <strong class="bold">ipyplot</strong></pre></li>
+
+<li>安装了<code>IPyPlot</code>之后，让我们快速看一下我们标记的图像集是什么样子的:<pre class="source-code">import ipyplot</pre><pre class="source-code">import glob</pre><pre class="source-code">for i in range(0,10):    </pre><pre class="source-code">    image_files = glob.glob(f"tmp/train/{i}/*.png")</pre><pre class="source-code">    print(f'---{i}---')</pre><pre class="source-code">    ipyplot.<strong class="bold">plot_images</strong>(image_files, </pre><pre class="source-code">                        <strong class="bold">max_images=5</strong>, </pre><pre class="source-code">                        img_width=128)</pre></li>
+
+</ol>
+
+<p class="list-inset">这将绘制一系列图像，如下所示:</p>
+
+<div><div><img alt="Figure 6.13 – Using IPyPlot to display a selected number of images&#10;&#10;" height="713" src="img/B18638_06_013.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.13–使用IPyPlot显示选定数量的图像</p>
+
+<p class="list-inset">这里我们<a id="_idIndexMarker626"/>可以看到同组<a id="_idIndexMarker627"/>图像的差异和变化。首先，零看起来不一样！</p>
+
+<p>在进入下一部分之前，调用<code>plot_images()</code>功能时，请随意调整和更改<code>max_images</code>的参数值。</p>
+
+<p>现在我们已经准备好了训练、验证和测试数据集，让我们继续将它们上传到一个<strong class="bold">亚马逊S3 </strong>桶。</p>
+
+<h2 id="_idParaDest-132"><a id="_idTextAnchor141"/>上传数据到S3</h2>
+
+<p>注意<a id="_idIndexMarker629"/>在本章<a id="_idIndexMarker630"/>中，我们将使用两种不同的S3桶，如下图所示:</p>
+
+<div><div><img alt="Figure 6.14 – S3 buckets&#10;&#10;" height="569" src="img/B18638_06_014.jpg" width="1046"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.14-S3铲斗</p>
+
+<p>正如我们所看到的，第一个S3存储桶将包含这个部分中培训作业的输入和输出文件。类似地，第二个S3存储桶将包含训练作业的输入和输出文件，我们将在本章末尾的<em class="italic">利用受管理的现场训练和检查点</em>部分运行该作业。除此之外，我们将使用一种称为增量训练的技术，其中我们将使用本节中生成的模型作为起点来训练更精确的模型。现在，让我们关注第一个S3桶，并上传将用于训练我们的ML模型的数据。</p>
+
+<p>按照以下步骤创建一个S3存储桶，然后将所有文件和文件夹从<code>tmp</code>目录上传到新的S3存储桶:</p>
+
+<ol>
+
+<li value="1">指定唯一的S3时段名称和前缀。确保在运行下面的代码块之前，用一个惟一的S3存储桶名替换了<code>&lt;INSERT S3 BUCKET NAME HERE&gt;</code>的值:<pre class="source-code">s3_bucket = "<strong class="bold">&lt;INSERT S3 BUCKET NAME HERE&gt;</strong>"</pre> <pre class="source-code">prefix = "ch06"</pre></li>
+
+</ol>
+
+<p class="list-inset">建议不要使用在前面章节中创建的任何S3存储桶。因此，这里的S3存储桶名称应该是一个尚不存在的存储桶。</p>
+
+<ol>
+
+<li value="2">让我们使用<code>glob()</code>函数来准备一个包含<code>tmp/train</code>目录中所有图像的列表。然后，使用<code>len()</code>函数统计生成的列表中的项目数:<pre class="source-code">training_samples = glob.glob(f"tmp/train/*/*.png")</pre> <pre class="source-code">len(training_samples)</pre></li>
+
+</ol>
+
+<p class="list-inset">这应该<a id="_idIndexMarker632"/>给我们一个值<code>4000</code>，这个值<a id="_idIndexMarker633"/>是<code>tmp/train</code>目录中<code>.png</code>文件的总数。</p>
+
+<ol>
+
+<li value="3">使用<code>aws s3 mb</code>命令创建一个新的亚马逊S3桶。在这里，<code>{s3_bucket}</code>自动被用Python: <pre class="source-code">!<strong class="bold">aws s3 mb</strong> s3://{s3_bucket}</pre>编写的先前代码单元格中的<code>s3_bucket</code>的值替换</li>
+
+</ol>
+
+<p class="list-inset">如果S3存储桶创建步骤成功，您应该会看到类似于<code>make_bucket: &lt;S3 bucket name&gt;</code>的成功日志消息。请注意，如果在使用此命令之前存储桶已经存在，此步骤可能会失败。</p>
+
+<ol>
+
+<li value="4">接下来，使用AWS CLI将<code>tmp</code>目录的内容上传到目标S3路径:<pre class="source-code">%%time</pre> <pre class="source-code">!<strong class="bold">aws s3 cp</strong> tmp/.  s3://{s3_bucket}/{prefix}/ --recursive</pre></li>
+
+</ol>
+
+<p class="list-inset"><code>aws s3 cp</code>命令的第一个参数是源(<code>tmp/.</code>)，而第二个参数是目标目的地(S3路径)。这里，我们使用<code>--recursive</code>标志递归地将所有文件从源文件复制到目标文件:</p>
+
+<div><div><img alt="Figure 6.15 – Copying the files and directories from the tmp directory to the S3 bucket&#10;&#10;" height="467" src="img/B18638_06_015.jpg" width="1037"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.15–将文件和目录从tmp目录复制到S3存储桶</p>
+
+<p class="list-inset">如上图所示，<code>aws s3 cp</code>命令会将<a id="_idIndexMarker635"/> SageMaker Studio笔记本的<code>tmp</code>目录下的所有内容<a id="_idIndexMarker634"/>复制到新的S3桶中。这包括<code>train</code>、<code>train_lst</code>、<code>validation</code>、<code>validation_lst</code>和<code>test</code>目录中的所有文件和目录。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">完成此步骤大约需要1到2分钟。在等待的时候，请随意喝杯咖啡或茶！</p>
+
+<p>一旦上传操作完成，我们就可以开始训练ML模型了！</p>
+
+<h2 id="_idParaDest-133"><a id="_idTextAnchor142"/>使用SageMaker Python SDK训练一个ML模型</h2>
+
+<p>在前面的<a id="_idIndexMarker636"/>部分，我们将<a id="_idIndexMarker637"/>训练和验证数据集上传到亚马逊S3桶。运行本节中的培训作业时，这些数据集将用作输入。当然，在配置和运行SageMaker培训作业之前，我们还需要准备一些输入参数:</p>
+
+<div><div><img alt="Figure 6.16 – Requirements when initializing an Estimator object&#10;&#10;" height="586" src="img/B18638_06_016.jpg" width="1001"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.16-初始化评估对象时的要求</p>
+
+<p>如上图所示，在初始化和配置一个<code>Estimator</code>对象时，我们需要准备一些配置参数值和超参数配置值。当调用<code>Estimator</code>对象的<code>fit()</code>方法时，SageMaker在运行训练作业时使用用于配置<code>Estimator</code>对象的参数值。例如，在初始化估计器时，用于训练ML模型的实例类型取决于<code>instance_type</code>的参数值。</p>
+
+<p>按照以下步骤使用<strong class="bold"> SageMaker Python SDK </strong>训练图像分类模型:</p>
+
+<ol>
+
+<li value="1">导入SageMaker Python <a id="_idIndexMarker638"/> SDK和<strong class="bold">Boto AWS Python SDK</strong>:<pre class="source-code">import <strong class="bold">sagemaker</strong></pre><pre class="source-code">import <strong class="bold">boto3</strong></pre></li>
+
+<li>初始化一些先决条件，如<code>session</code>、<code>role</code>和<code>region_name</code> : <pre class="source-code"><strong class="bold">session</strong> = sagemaker.Session()</pre> <pre class="source-code"><strong class="bold">role</strong> = sagemaker.get_execution_role()</pre> <pre class="source-code"><strong class="bold">region_name</strong> = boto3.Session().region_name</pre></li>
+
+<li>使用<code>retrieve()</code>功能为图像分类<a id="_idIndexMarker639"/>算法准备图像URI。注意<a id="_idIndexMarker640"/><code>retrieve()</code>函数返回内置算法的亚马逊ECR URI:<pre class="source-code">image = sagemaker.image_uris.<strong class="bold">retrieve</strong>(</pre><pre class="source-code">    "image-classification", </pre><pre class="source-code">    region_name, </pre><pre class="source-code">    "1"</pre><pre class="source-code">)</pre><pre class="source-code">image</pre></li>
+
+</ol>
+
+<p class="list-inset">这应该给我们一个类似于<code>'433757028032.dkr.ecr.us-west-2.amazonaws.com/image-classification:1'</code>的值。</p>
+
+<ol>
+
+<li value="4">定义<code>map_path()</code>和<code>map_input()</code>功能:<pre class="source-code">def <strong class="bold">map_path</strong>(source):</pre><pre class="source-code">    return 's3://{}/{}/{}'.format(</pre><pre class="source-code">        s3_bucket, </pre><pre class="source-code">        prefix, </pre><pre class="source-code">        source</pre><pre class="source-code">    )</pre><pre class="source-code"> </pre><pre class="source-code">def <strong class="bold">map_input</strong>(source):</pre><pre class="source-code">    path = map_path(source)</pre><pre class="source-code">    </pre><pre class="source-code">    return sagemaker.inputs.TrainingInput(</pre><pre class="source-code">        path, </pre><pre class="source-code">        distribution='FullyReplicated', </pre><pre class="source-code">        content_type='application/x-image', </pre><pre class="source-code">        s3_data_type='S3Prefix'</pre><pre class="source-code">    )</pre></li>
+
+<li>通过运行以下代码块来准备<code>data_channels</code>字典:<pre class="source-code">data_channels = {}</pre><pre class="source-code">channels = ["<strong class="bold">train</strong>", </pre><pre class="source-code">            "<strong class="bold">validation</strong>",</pre><pre class="source-code">            "<strong class="bold">train_lst</strong>",</pre><pre class="source-code">            "<strong class="bold">validation_lst</strong>"]</pre><pre class="source-code">for channel in channels:</pre><pre class="source-code">    data_channels[channel] = map_input(channel)</pre></li>
+
+</ol>
+
+<p class="list-inset">这些<a id="_idIndexMarker641"/>数据通道对应于<a id="_idIndexMarker642"/>我们上传到亚马逊S3桶的每个目录(除了<code>test</code>目录)。</p>
+
+<ol>
+
+<li value="6">使用我们之前定义的<code>map_path()</code>函数为输出路径生成S3 URL:<pre class="source-code">output_path = <strong class="bold">map_path</strong>("output")</pre><pre class="source-code">output_path</pre></li>
+
+</ol>
+
+<p class="list-inset">这应该给我们一个类似于<code>'s3://&lt;S3 BUCKET NAME&gt;/ch06/output'</code>的S3路径。</p>
+
+<p class="list-inset">在我们初始化<code>Estimator</code>对象之前，让我们快速回顾一下到目前为止我们所拥有的:</p>
+
+<div><div><img alt="Figure 6.17 – Data channels and the output path&#10;&#10;" height="526" src="img/B18638_06_017.jpg" width="899"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.17–数据通道和输出路径</p>
+
+<p class="list-inset">在这里，我们<a id="_idIndexMarker643"/>可以看到，我们在前面步骤中准备的数据<a id="_idIndexMarker644"/>通道将在稍后运行培训作业时用作输入。一旦培训工作完成，输出文件将存储在<code>output_path</code>中指定的S3位置。</p>
+
+<ol>
+
+<li value="7">一切准备就绪后，让我们初始化<code>Estimator</code>对象。当初始化一个<code>Estimator</code>对象时，我们传递几个参数，比如容器图像URI、IAM角色ARN和SageMaker <code>session</code>对象。我们还指定了执行训练作业时使用的ML实例的数量和类型，以及<code>output_path</code>和<code>enable_network_isolation</code>的参数值:<pre class="source-code">estimator = sagemaker.estimator.Estimator(</pre><pre class="source-code">    image,</pre><pre class="source-code">    role, </pre><pre class="source-code">    <strong class="bold">instance_count=2</strong>, </pre><pre class="source-code">    <strong class="bold">instance_type='ml.p2.xlarge'</strong>,</pre><pre class="source-code">    output_path=output_path,</pre><pre class="source-code">    sagemaker_session=session,</pre><pre class="source-code">    enable_network_isolation=True</pre><pre class="source-code">)</pre></li>
+
+</ol>
+
+<p class="list-inset">请注意，初始化<code>Estimator</code>对象并不会运行培训作业。当我们在后面的步骤中使用<code>fit()</code>方法运行训练作业时，SageMaker将启动并提供两个<code>ml.p2.xlarge</code>实例来运行图像<a id="_idIndexMarker645"/>分类算法以<a id="_idIndexMarker646"/>训练模型。然后，结果在<code>output_path</code>中上传到S3位置。因为我们将<code>enable_network_isolation</code>设置为<code>True</code>，所以我们已经在SageMaker ML实例中配置了容器，这样当训练作业运行时，它们就不能访问外部网络。这有助于保护设置，因为这种配置可以防止正在运行的容器下载恶意代码或访问外部服务。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">我们应该没问题，因为我们使用的是AWS准备的容器映像。如果我们使用一个定制的容器映像，我们可以将<code>enable_network_isolation</code>设置为<code>True</code>，特别是当我们不希望容器访问外部服务或下载资源的时候。这将有助于保护我们的ML环境和资源免受需要网络连接的攻击。有关此主题的更多信息，请查看第9章 、<em class="italic">安全、治理和遵从性策略</em>。</p>
+
+<ol>
+
+<li value="8">使用以下代码块初始化超参数配置值:<pre class="source-code"><strong class="bold">hyperparameters</strong> = {</pre><pre class="source-code">    'num_training_samples': len(training_samples),</pre><pre class="source-code">    'num_layers': 18,</pre><pre class="source-code">    'image_shape': "1,28,28",</pre><pre class="source-code">    'num_classes': 10,</pre><pre class="source-code">    'mini_batch_size': 100,</pre><pre class="source-code">    'epochs': 3,</pre><pre class="source-code">    'learning_rate': 0.01,</pre><pre class="source-code">    'top_k': 5,</pre><pre class="source-code">    'precision_dtype': 'float32'    </pre><pre class="source-code">}</pre></li>
+
+</ol>
+
+<p class="list-inset"><a id="_idIndexMarker647"/>可配置的超参数<a id="_idIndexMarker648"/>值取决于所使用的算法。这些只是我们可以用图像分类算法配置的一些超参数。</p>
+
+<ol>
+
+<li value="9">使用<code>set_hyperparameters()</code>方法用上一步准备好的超参数配置<code>Estimator</code>对象:<pre class="source-code">estimator.<strong class="bold">set_hyperparameters</strong>(**hyperparameters)</pre></li>
+
+</ol>
+
+<p class="list-inset">在这里，我们可以看到我们使用了<code>**</code>来直接使用字典向函数或方法传递多个参数。注意，这相当于调用<code>set_hyperparameters()</code>方法，类似于我们在下面的代码块中所做的:</p>
+
+<pre class="list-inset1 source-code">estimator.set_hyperparameters(
+
+    num_training_samples=len(training_samples),
+
+    num_layers=18,
+
+    image_shape="1,28,28",
+
+    ...
+
+)</pre>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">或者，我们可以使用<code>__dict__</code>属性检查<code>Estimator</code>对象的属性。在继续下一步之前，请在单独的单元中运行<code>estimator.__dict__</code>。</p>
+
+<ol>
+
+<li value="10">使用<code>fit()</code>方法启动培训工作:<pre class="source-code">%%time</pre> <pre class="source-code">estimator.<strong class="bold">fit</strong>(inputs=data_channels, logs=True)</pre></li>
+
+</ol>
+
+<p class="list-inset">一旦<a id="_idIndexMarker649"/>培训工作完成，我们<a id="_idIndexMarker650"/>应该会看到如下所示的一组日志:</p>
+
+<div><div><img alt="Figure 6.18 – Logs generated after the training job has been completed&#10;&#10;" height="531" src="img/B18638_06_018.jpg" width="1207"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.18-培训工作完成后生成的日志</p>
+
+<ol>
+
+<li value="11">当调用<code>fit()</code>方法时，在后台执行几个操作和步骤。在SageMaker提供了所需数量的ML实例之后，输入数据和训练容器映像被下载到每个实例中。从下载的容器映像运行容器，并使用输入数据训练ML模型。生成的模型文件存储在一个<code>model.tar.gz</code>文件中。该<code>model.tar.gz</code>文件随后被上传到已配置的输出S3位置。最后，SageMaker在训练作业完成后终止实例:</li>
+
+</ol>
+
+<div><div><img alt="Figure 6.19 – What happens after calling the fit() method&#10;&#10;" height="634" src="img/B18638_06_019.jpg" width="1340"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.19–调用fit()方法后会发生什么</p>
+
+<p class="list-inset">如前面的<a id="_idIndexMarker652"/>图中的<a id="_idIndexMarker651"/>所示，在ML实例中执行的每个相关步骤都会生成日志，这些日志会自动存储在<strong class="bold"> CloudWatch日志</strong>中。这包括度量值，以及培训作业运行时生成的不同类型的日志消息。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">完成此步骤可能需要大约5到10分钟。如果您遇到了<strong class="bold">resourcelimitexceed</strong>错误，这意味着您在运行培训作业时使用某种类型的ML实例时已经超出了配额。确保你已经完成了本章<em class="italic">准备必要的先决条件</em>一节中指定的步骤。有关这个主题的更多信息，请查看<a href="https://aws.amazon.com/premiumsupport/knowledge-center/resourcelimitexceeded-sagemaker/">https://AWS . Amazon . com/premium support/knowledge-center/resourcelimitexceed-sage maker/</a>。</p>
+
+<p>我们可以从存储在CloudWatch日志中的<a id="_idIndexMarker654"/>日志中获得很多<a id="_idIndexMarker653"/>信息。如果在运行培训作业时遇到错误，可以检查存储在CloudWatch日志中的日志(例如，<code>/aws/sagemaker/TrainingJob</code>)来解决问题。</p>
+
+<h2 id="_idParaDest-134"><a id="_idTextAnchor143"/>使用%store魔法存储数据</h2>
+
+<p>在我们<a id="_idIndexMarker655"/>部署和测试我们的模型之前，让我们快速存储第一个笔记本中使用的一些变量值的备份副本(例如，<code>PART01.ipynb</code>):</p>
+
+<div><div><img alt="Figure 6.20 – %store magic&#10;&#10;" height="423" src="img/B18638_06_020.jpg" width="1036"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.20–商店魔术百分比</p>
+
+<p>我们将使用IPython的<code>%store</code>魔法来实现这一点，并使这些变量值在其他笔记本中也可用。我们将在稍后的<em class="italic">利用受管理的现场培训和检查点</em>部分加载这些变量值，在这里我们将创建一个名为<code>PART02.ipynb</code>的新笔记本。</p>
+
+<p>按照以下步骤使用<code>%store</code>魔法保存<code>PART01.ipynb</code>中使用的一些变量值的副本:</p>
+
+<ol>
+
+<li value="1">检查<code>model_data</code>的值:<pre class="source-code">estimator.<strong class="bold">model_data</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这将返回存储培训作业输出文件(<code>model.tar.gz</code>)的S3路径。</p>
+
+<ol>
+
+<li value="2">将<code>estimator.model_data</code>的值复制到名为<code>model_data</code>的新变量中。类似地，将最新培训作业名称的值复制到名为<code>job_name</code> : <pre class="source-code"><strong class="bold">model_data</strong> = estimator.model_data</pre> <pre class="source-code"><strong class="bold">job_name</strong> = estimator.latest_training_job.name</pre>的变量中</li>
+
+<li>使用<code>%store</code>魔法将数据存储在内存中:<pre class="source-code">%store <strong class="bold">model_data</strong></pre> <pre class="source-code">%store <strong class="bold">job_name</strong></pre> <pre class="source-code">%store <strong class="bold">role</strong></pre> <pre class="source-code">%store <strong class="bold">region_name</strong></pre> <pre class="source-code">%store <strong class="bold">image</strong></pre></li>
+
+</ol>
+
+<p>如你所见，<a id="_idIndexMarker656"/>魔法帮助我们将一个长的Jupyter笔记本分成几个更小的笔记本。稍后，在<em class="italic">利用管理点训练和检查点</em>部分，我们将使用<code>%store -r &lt;variable name&gt;</code>加载存储在该部分的变量值。</p>
+
+<h2 id="_idParaDest-135"><a id="_idTextAnchor144"/>使用SageMaker Python SDK部署ML模型</h2>
+
+<p>现在是我们<a id="_idIndexMarker657"/>将模型部署到推理<a id="_idIndexMarker658"/>端点的时候了。使用SageMaker Python SDK部署ML模型非常简单。我们需要做的就是调用<code>deploy()</code>方法；推理端点将在几分钟内自动为我们提供和配置。</p>
+
+<p>按照以下步骤使用SageMaker Python SDK部署我们的ML模型，然后执行一些测试预测:</p>
+
+<ol>
+
+<li value="1">使用<code>deploy()</code>方法将训练好的图像分类模型部署到实时推理端点。模型部署大约需要5到10分钟完成:<pre class="source-code">endpoint = estimator.<strong class="bold">deploy</strong>(</pre> <pre class="source-code">    initial_instance_count = 1,</pre> <pre class="source-code">    instance_type = 'ml.m5.xlarge'</pre> <pre class="source-code">)</pre></li>
+
+</ol>
+
+<p class="list-inset">这里，我们指定使用一个<code>ml.m5.xlarge</code>实例来托管训练好的ML模型。在这一点上，您可能想知道为什么在训练或部署一个模型时会涉及到几个不同的实例类型。您需要知道的第一件事是，运行Jupyter笔记本脚本的SageMaker Studio笔记本实例是不同的，并且与培训或部署模型时使用的实例完全分离:</p>
+
+<div><div><img alt="Figure 6.21 – Different instances used to train and deploy a model&#10;&#10;" height="531" src="img/B18638_06_021.jpg" width="1107"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.21–用于训练和部署模型的不同实例</p>
+
+<p class="list-inset">在这里，我们可以看到用于训练模型的实例也不同于部署期间使用的实例。在大多数情况下，与部署训练模型时使用的实例相比，用于训练模型的ML实例更强大(并且每小时更昂贵)。在我们的例子中，我们在训练期间使用了两个<code>ml.p2.xlarge</code>实例(<em class="italic"> GPU驱动的| 4 vCPU | 61 GiB | $1.125每小时每个实例</em>)和一个<code>ml.m5.xlarge</code>实例(<em class="italic"> 4 vCPU | 16 GiB | $0.23每小时每个实例</em>)来托管我们的实时推理端点。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">单看这些数字，我们可能会错误地认为运行<code>ml.p2.xlarge</code>训练实例的总成本高于运行用于托管已部署模型的<code>ml.m5.xlarge</code>实例的总成本。实际上，如果我们不立即删除推理实例，运行<code>ml.m5.xlarge</code>推理实例的总成本将超过运行<code>ml.p2.xlarge</code>训练实例的总成本。训练作业完成后，训练期间使用的ML实例将自动终止。因为我们只为我们使用的东西付费，如果我们要运行两个各6分钟的<code>ml.p2.xlarge</code>训练实例，我们将支付大约<code>$1.125 x 2 x 0.1 = $0.225</code>的费用。另一方面，如果我们让一个<code>ml.m5.xlarge</code>推理实例运行24小时，那么它的成本大约是<code>$0.23 x 24 = $5.52</code>。为了管理成本，请确保在不活动期间删除用于实时推理的实例。如果推理端点接收的预期流量不可预测或断断续续，您可能需要检查<strong class="bold"> SageMaker无服务器推理</strong>选项。更多<a id="_idIndexMarker661"/>信息请查看<a href="https://aws.amazon.com/about-aws/whats-new/2021/12/amazon-sagemaker-serverless-inference/">https://AWS . Amazon . com/about-AWS/whats-new/2021/12/Amazon-sage maker-server less-inference/</a>。</p>
+
+<ol>
+
+<li value="2">在<a id="_idIndexMarker662"/>我们使用推断<a id="_idIndexMarker663"/>端点来执行测试预测之前，让我们快速更新端点的<code>serializer</code>属性来接受指定的内容类型:<pre class="source-code">from sagemaker.serializers import IdentitySerializer</pre> <pre class="source-code">endpoint.serializer = IdentitySerializer(</pre> <pre class="source-code">    content_type="<strong class="bold">application/x-image</strong>"</pre> <pre class="source-code">)</pre></li>
+
+<li>让我们定义一下<code>get_class_from_results()</code>函数，它接受来自SageMaker实时<a id="_idIndexMarker665"/>推理端点的原始<a id="_idIndexMarker664"/>输出数据，并以字符串形式返回相应的类(例如，<code>"ONE",</code><code>"TWO",</code><code>"THREE"</code>):<pre class="source-code">import json</pre><pre class="source-code">def <strong class="bold">get_class_from_results</strong>(results):</pre><pre class="source-code">    results_prob_list = json.loads(results)</pre><pre class="source-code">    best_index = results_prob_list.index(</pre><pre class="source-code">        max(results_prob_list)</pre><pre class="source-code">    )</pre><pre class="source-code">    </pre><pre class="source-code">    return {</pre><pre class="source-code">        0: "ZERO",</pre><pre class="source-code">        1: "ONE",</pre><pre class="source-code">        2: "TWO",</pre><pre class="source-code">        3: "THREE",</pre><pre class="source-code">        4: "FOUR",</pre><pre class="source-code">        5: "FIVE",</pre><pre class="source-code">        6: "SIX",</pre><pre class="source-code">        7: "SEVEN",</pre><pre class="source-code">        8: "EIGHT",</pre><pre class="source-code">        9: "NINE"</pre><pre class="source-code">    }[best_index]</pre></li>
+
+<li>让我们定义一个自定义的<code>predict()</code>函数:<pre class="source-code">from IPython.display import Image, display</pre><pre class="source-code">def <strong class="bold">predict</strong>(filename, endpoint=endpoint):</pre><pre class="source-code">    byte_array_input = None</pre><pre class="source-code">    </pre><pre class="source-code">    with open(filename, 'rb') as image:</pre><pre class="source-code">        f = image.read()</pre><pre class="source-code">        byte_array_input = bytearray(f)</pre><pre class="source-code">        </pre><pre class="source-code">    display(Image(filename))</pre><pre class="source-code">        </pre><pre class="source-code">    results = <strong class="bold">endpoint.predict</strong>(byte_array_input)</pre><pre class="source-code">    return <strong class="bold">get_class_from_results</strong>(results)</pre></li>
+
+</ol>
+
+<p class="list-inset">该<a id="_idIndexMarker666"/>自定义<code>predict()</code>功能<a id="_idIndexMarker667"/>执行以下操作:</p>
+
+<ol>
+
+<li>给定文件名，打开测试图像。</li>
+
+<li>在Jupyter笔记本中显示测试图像。</li>
+
+<li>使用端点对象的<code>predict()</code>方法获得预测的类值。</li>
+
+<li>在渲染图像后立即打印预测的类值:</li>
+
+</ol>
+
+<div><div><img alt="Figure 6.22 – Performing test predictions&#10;&#10;" height="598" src="img/B18638_06_022.jpg" width="1118"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.22–执行测试预测</p>
+
+<p class="list-inset">请注意，在调用<a id="_idIndexMarker668"/>方法之后还有一个额外的处理步骤。如前面的图<a id="_idIndexMarker669"/>所示，定制的<code>predict()</code>函数使用<code>get_class_from_results()</code>函数将推理端点的原始输出数据转换成预测类的友好字符串表示。</p>
+
+<ol>
+
+<li value="5">现在，让我们使用我们在上一步中定义的自定义<code>predict()</code>函数:<pre class="source-code">results = <strong class="bold">!ls -1 tmp/test</strong></pre> <pre class="source-code">for filename in results:</pre> <pre class="source-code">    print(<strong class="bold">predict</strong>(f"tmp/test/{filename}"))</pre></li>
+
+</ol>
+
+<p class="list-inset">这将产生一组类似如下的结果:</p>
+
+<div><div><img alt="Figure 6.23 – Performing test predictions&#10;&#10;" height="187" src="img/B18638_06_023.jpg" width="761"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.23–执行测试预测</p>
+
+<p class="list-inset">这里，我们<a id="_idIndexMarker670"/>可以看到三个样本<a id="_idIndexMarker671"/>图像，以及它们对应的预测类值。我们的ML模型似乎做得很好！</p>
+
+<ol>
+
+<li value="6">最后，让我们使用<code>delete_endpoint()</code>方法删除推理端点:<pre class="source-code">endpoint.<strong class="bold">delete_endpoint()</strong></pre></li>
+
+</ol>
+
+<p>那不是很容易吗？我们在本节中执行的部署只是在AWS上执行模型部署时许多可能场景中的一个。我们将在第7章 、<em class="italic"> SageMaker部署解决方案</em>中了解其他部署策略和技术。</p>
+
+<p>在下一节中，我们将进一步了解如何使用<strong class="bold">调试器洞察仪表板</strong>来检查用于训练我们的图像分类模型的资源的利用率。</p>
+
+<h1 id="_idParaDest-136"><a id="_idTextAnchor145"/>使用调试器洞察仪表板</h1>
+
+<p>当在ML需求上工作时，ML实践者在提出一个高性能的ML模型之前可能会遇到各种各样的问题。像软件开发和编程一样，构建ML模型需要一点反复试验。开发人员通常利用各种调试工具来帮助他们在编写软件应用程序时解决问题和实现错误。类似地，在构建ML模型时，ML从业者需要一种方法来监控和调试培训工作。幸运的是，亚马逊SageMaker有一个名为<strong class="bold"> SageMaker调试器</strong>的功能，允许我们在训练ML模型时解决不同的问题和瓶颈:</p>
+
+<div><div><img alt="Figure 6.24 – SageMaker Debugger features&#10;&#10;" height="532" src="img/B18638_06_024.jpg" width="1012"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.24–sage maker调试器功能</p>
+
+<p>前面的<a id="_idIndexMarker674"/>图显示了当我们使用SageMaker调试器来监控、调试和排除影响ML模型性能的各种问题时可用的特性。这包括跨各种ML框架的<strong class="bold">数据捕获</strong>功能、<strong class="bold">调试器交互报告</strong>、<strong class="bold"> SMDebug客户端库</strong>、带有<strong class="bold">调试器内置规则的自动错误检测</strong>和<strong class="bold">自定义规则</strong>，以及<strong class="bold">调试器洞察仪表板</strong>。</p>
+
+<p>在本章中，我们将重点关注使用<strong class="bold">调试器洞察仪表板</strong>来检查和监控用于训练我们的ML模型的实例的硬件系统资源利用率。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">注意，每当我们使用Debugger Insights仪表板时，都会提供一个<code>ml.m5.4xlarge</code>实例。这个<code>ml.m5.4xlarge</code>实例需要手动关闭，因为它在不活动期间不会自动关闭。我们将确保在本节末尾关闭这个实例。</p>
+
+<p>也就是说，让我们使用Debugger Insights仪表板来监控我们在前面部分中使用的实例的硬件系统资源利用率:</p>
+
+<ol>
+
+<li value="1">点击下图所示的左侧边栏图标，导航至<strong class="bold"> SageMaker resources </strong>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 6.25 – Navigating to SageMaker resources&#10;&#10;" height="467" src="img/B18638_06_025.jpg" width="884"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.25-导航至SageMaker资源</p>
+
+<p class="list-inset">从第一个下拉菜单的可用选项列表中选择<strong class="bold">实验和试验</strong>。双击<strong class="bold">未分配的试验组件</strong>。</p>
+
+<ol>
+
+<li value="2">右键单击列表中的第一个结果。它应该有一个以<code>image-classification</code>开头的名字，后面跟着一个时间戳。这将打开一个上下文菜单，如下所示。从选项列表中选择<strong class="bold">打开洞察调试器</strong>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 6.26 – Open Debugger for insights&#10;&#10;" height="192" src="img/B18638_06_026.jpg" width="712"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.26–打开调试器以获得更多信息</p>
+
+<p class="list-inset">在这里，我们可以看到另一个名为<strong class="bold">的选项在试验细节</strong>中打开。如果您选择此选项，您将看到几个图表，帮助您分析培训作业的指标和结果。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">确保在使用Debugger Insights仪表板后关闭<code>ml.m5.4xlarge</code>实例。</p>
+
+<ol>
+
+<li value="3">在<a id="_idIndexMarker676"/>的<strong class="bold">概述</strong>选项卡上，向下滚动找到<strong class="bold">资源利用汇总</strong>报告，如下图所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 6.27 – Resource utilization summary&#10;&#10;" height="387" src="img/B18638_06_027.jpg" width="1037"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.27–资源利用摘要</p>
+
+<p class="list-inset">在这里，我们可以看到硬件系统资源利用率统计数据，如总CPU和GPU利用率、总CPU和GPU内存利用率等。</p>
+
+<ol>
+
+<li value="4">导航到<strong class="bold">节点</strong>选项卡。</li>
+
+<li>向下滚动并找到不同的报告和图表，如下所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 6.28 – Debugger insights – nodes&#10;&#10;" height="804" src="img/B18638_06_028.jpg" width="1047"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.28–调试器洞察–节点</p>
+
+<p class="list-inset">在这里，我们可以看到帮助我们查看和分析不同利用率指标<a id="_idIndexMarker677"/>的图表。这包括随时间变化的<strong class="bold"> CPU利用率</strong>、<strong class="bold">网络利用率</strong>、<strong class="bold"> GPU利用率</strong>等报告。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">这些报告可以帮助ML工程师确定用于训练模型的资源是否“大小合适”这有助于优化成本，并在培训步骤中发现性能瓶颈。</p>
+
+<ol>
+
+<li value="6">点击侧边栏中的<strong class="bold">运行实例和内核</strong>图标，如下图所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 6.29 – Turning off the running instances&#10;&#10;" height="285" src="img/B18638_06_029.jpg" width="637"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.29–关闭正在运行的实例</p>
+
+<p class="list-inset">点击<strong class="bold">运行实例和内核</strong>图标将会打开，并在SageMaker Studio中显示<a id="_idIndexMarker678"/>运行实例、应用和终端。</p>
+
+<ol>
+
+<li value="7">点击<strong class="bold">关闭</strong>按钮，关闭<strong class="bold">运行实例</strong>下的<code>ml.m5.4xlarge</code>运行实例，如前面截图中突出显示。点击<strong class="bold">关闭</strong>按钮将打开一个弹出窗口，验证实例关闭操作。点击<strong class="bold">关闭所有</strong>按钮继续。</li>
+
+</ol>
+
+<p>至此，我们应该对如何在Amazon SageMaker中训练和部署ML模型有了更好的整体理解。请注意，我们只是触及了表面，因为有更多的特性和功能可供我们用来管理、分析和排除ML实验故障。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果你有兴趣了解更多关于<strong class="bold"> SageMaker调试器</strong>的其他特性，那么可以随时查阅亚马逊SageMaker Cookbook 的《机器学习》一书<em class="italic">第五章<a href="B18638_05.xhtml#_idTextAnchor105"><em class="italic"/></a>、<em class="italic">实用数据处理与分析</em>。</em></p>
+
+<p>在下一节中，我们将讨论在训练ML模型时SageMaker中可用的更多功能和特性。</p>
+
+<h1 id="_idParaDest-137"><a id="_idTextAnchor146"/>利用受管理的现场培训和检查站</h1>
+
+<p>既然我们<a id="_idIndexMarker679"/>已经更好地理解了如何使用SageMaker Python SDK来训练和部署ML模型，那么让我们继续<a id="_idIndexMarker680"/>使用一些额外的选项，这些选项允许我们在运行训练作业时显著降低成本。在本节中，我们将在训练第二个影像分类模型时利用以下SageMaker特性和功能:</p>
+
+<ul>
+
+<li>管理现场培训</li>
+
+<li>检查点</li>
+
+<li>增量训练</li>
+
+</ul>
+
+<p>在<a href="B18638_02.xhtml#_idTextAnchor041"> <em class="italic">第二章</em> </a>、<em class="italic">深度学习AMIs </em>中，我们提到了可以使用spot实例来降低运行训练作业的成本。使用即时实例而不是按需实例可以帮助降低高达70%到90%的总体成本。那么，为什么现货实例更便宜呢？使用spot实例的缺点是这些实例可能会被中断，这将从头重新开始训练作业。如果我们要在SageMaker之外训练我们的模型，我们将不得不准备我们自己的一套定制自动化脚本，这些脚本将利用和管理spot实例来训练我们的模型。同样，我们不需要准备定制的解决方案，因为SageMaker已经通过其<strong class="bold">托管spot培训</strong>功能支持自动管理Spot实例的能力！除此之外，如果我们配置我们的SageMaker训练作业来使用<strong class="bold">检查点</strong>，我们将能够从最后保存的检查点恢复训练，即使在我们使用spot实例时出现了中断。</p>
+
+<p>在本节中，我们还将使用一种称为<strong class="bold">增量训练</strong>的技术，其中我们将使用在<em class="italic">使用SageMaker Python SDK </em>部分训练图像分类模型中生成的<a id="_idIndexMarker681"/>模型，作为训练更精确模型的起点。这里，我们将使用我们提供的预训练模型，而不是从头开始训练新模型。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">注意<a id="_idIndexMarker682"/>增量训练只能在<a id="_idIndexMarker683"/>使用<a id="_idIndexMarker684"/><strong class="bold">图像分类算法</strong><strong class="bold">物体检测算法</strong>和<strong class="bold">语义分割算法</strong>内置算法时使用。</p>
+
+<p>按照<a id="_idIndexMarker685"/>这些步骤使用<strong class="bold"> SageMaker Python SDK </strong>来<a id="_idIndexMarker686"/>运行一个利用检查点、管理点训练和增量训练的训练作业<a id="_idIndexMarker687"/>:</p>
+
+<ol>
+
+<li value="1">点击<strong class="bold">文件</strong>菜单，从<strong class="bold">新建</strong>子菜单下的选项列表中选择<strong class="bold">笔记本</strong>，创建一个新笔记本。</li>
+
+<li>在<code>Data Science</code>(sage maker图像下的选项)</li>
+
+<li><code>Python 3</code></li>
+
+<li><code>No script</code></li>
+
+
+
+<li>点击<strong class="bold">选择</strong>按钮。</li>
+
+<li>重命名笔记本<code>PART02.ipynb</code>。现在我们已经准备好了新的Jupyter笔记本，让我们在这个Jupyter笔记本中运行后续步骤中的代码块。</li>
+
+<li>指定S3时段名称和前缀。确保在运行下面的代码块之前，用一个唯一的S3桶名替换了<code>&lt;INSERT S3 BUCKET NAME HERE&gt;</code>的值:<pre class="source-code">s3_bucket = "<strong class="bold">&lt;INSERT S3 BUCKET NAME HERE&gt;</strong>"</pre> <pre class="source-code">prefix = "ch06"</pre></li>
+
+</ol>
+
+<p class="list-inset">注意，这应该不同于您在<em class="italic">使用SageMaker Python SDK </em>部分训练图像分类模型中创建的S3桶的名称。在本章中，我们将使用两种不同的S3存储桶，类似于下图所示:</p>
+
+<div><div><img alt="Figure 6.30 – Working with two S3 buckets&#10;&#10;" height="522" src="img/B18638_06_030.jpg" width="943"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.30–使用两个S3铲斗</p>
+
+<p class="list-inset">运行第一个培训作业后，第一个<a id="_idIndexMarker688"/>桶应<a id="_idIndexMarker689"/>包含存储在<code>model.tar.gz</code>文件中的<a id="_idIndexMarker690"/>模型输出文件。在这一部分的后面，我们将使用这个<code>model.tar.gz</code>文件作为一个新的训练任务的输入参数，当构建一个新的模型时，这个新的训练任务使用增量训练。此培训作业的输出将存储在第二个S3存储桶内的输出文件夹中。</p>
+
+<ol>
+
+<li value="6">使用IPython的<code>%store</code>魔术加载来自<em class="italic">的存储变量的值，使用SageMaker Python SDK的</em>部分:<pre class="source-code">%store -r <strong class="bold">role</strong></pre> <pre class="source-code">%store -r <strong class="bold">region_name</strong></pre> <pre class="source-code">%store -r <strong class="bold">job_name</strong></pre> <pre class="source-code">%store -r <strong class="bold">image</strong></pre></li>
+
+<li>检查加载的<code>job_name</code>变量的值:<pre class="source-code">job_name</pre></li>
+
+</ol>
+
+<p class="list-inset">这将返回一个类似于<code>'image-classification-2022-04-11-16-22-24-589'</code>的值。</p>
+
+<ol>
+
+<li value="8">初始化并导入一些培训必备:<pre class="source-code">import sagemaker</pre> <pre class="source-code">from sagemaker.estimator import Estimator</pre> <pre class="source-code">session = sagemaker.Session()</pre></li>
+
+<li>接下来，使用<code>Estimator.attach()</code> : <pre class="source-code">previous = Estimator.<strong class="bold">attach</strong>(job_name)</pre>加载一个使用先前培训作业名称的<code>Estimator</code>对象</li>
+
+<li>使用<a id="_idIndexMarker691"/>中的<code>logs()</code>方法<a id="_idIndexMarker692"/>检查我们在上一步加载的<a id="_idIndexMarker693"/>作业的日志:<pre class="source-code">previous.<strong class="bold">logs()</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">请注意，这将生成一组日志，类似于我们在<em class="italic">使用SageMaker Python SDK </em>部分训练图像分类模型中运行训练作业时生成的日志。</p>
+
+<ol>
+
+<li value="11">获取前一个培训作业的ML模型ZIP文件的存储位置。将该值存储在<code>model_data</code>变量中:<pre class="source-code">model_data = previous.<strong class="bold">model_data</strong></pre> <pre class="source-code">model_data</pre></li>
+
+</ol>
+
+<p class="list-inset"><code>model_data</code>变量应该有一个类似于<code>'s3://&lt;S3 BUCKET NAME&gt;/ch06/output/image-classification-&lt;DATETIME&gt;/output/model.tar.gz'</code>格式的值。我们将在以后初始化和配置新的<code>Estimator</code>对象时使用这个值。</p>
+
+<ol>
+
+<li value="12">定义<a id="_idIndexMarker694"/><code>generate_random_string()</code>函数，用于为培训<a id="_idIndexMarker696"/>作业生成唯一的<a id="_idIndexMarker695"/>基础作业名称:<pre class="source-code">import string </pre> <pre class="source-code">import random</pre> <pre class="source-code">def <strong class="bold">generate_random_string</strong>():</pre> <pre class="source-code">    return ''.join(</pre> <pre class="source-code">        random.sample(</pre> <pre class="source-code">        string.ascii_uppercase,12)</pre> <pre class="source-code">    )</pre></li>
+
+<li>使用<code>generate_random_string()</code>生成一个唯一的基础作业名，并将其存储在<code>base_job_name</code>变量:<pre class="source-code"><strong class="bold">base_job_name</strong> = generate_random_string()</pre> <pre class="source-code">base_job_name</pre></li>
+
+</ol>
+
+<p class="list-inset">使用<code>generate_random_string()</code>函数后，您应该会得到一个类似于<code>'FTMHLGKYVOAC'</code>的12个字符的字符串。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">我们将在哪里使用这个？在后面的步骤中，我们将在初始化一个新的<code>Estimator</code>对象时指定一个我们选择的基本作业名。如果在初始化<code>Estimator</code>对象时没有指定基本作业名称，SageMaker通常在运行训练作业时使用算法图像名称(例如<code>image-classification</code>)作为默认基本作业名称。然后，在基本作业名后面附加一个表示当前时间戳的字符串，以生成完整的培训作业名。</p>
+
+<ol>
+
+<li value="14">启用检查点支持时准备不同的配置参数:<pre class="source-code"><strong class="bold">checkpoint_folder</strong>="checkpoints"</pre> <pre class="source-code"><strong class="bold">checkpoint_s3_bucket</strong>="s3://{}/{}/{}".format(s3_bucket, base_job_name, checkpoint_folder)</pre> <pre class="source-code"><strong class="bold">checkpoint_local_path</strong>="/opt/ml/checkpoints"</pre></li>
+
+<li>运行下面的代码块，确保存在一个空的<code>tmp2</code>目录:<pre class="source-code">!rm -rf <strong class="bold">tmp2</strong> &amp;&amp; mkdir -p <strong class="bold">tmp2</strong></pre></li>
+
+<li>使用<code>wget</code>命令下载<code>batch2.zip</code>:<pre class="source-code">%%time</pre><pre class="source-code">!wget -O tmp2/<strong class="bold">batch2.zip</strong> https://bit.ly/3KyonQE</pre></li>
+
+<li>接下来，运行<a id="_idIndexMarker697"/>下面的<a id="_idIndexMarker698"/>代码块来提取<code>tmp</code>目录中<code>batch1.zip</code>文件的内容:<pre class="source-code">%%time</pre> <pre class="source-code">!cd tmp2 &amp;&amp; <strong class="bold">unzip batch2.zip</strong> &amp;&amp; rm batch2.zip</pre></li>
+
+<li>让我们使用<code>glob()</code>函数获得一个包含<code>tmp2/train</code>目录中所有图像的列表。之后，我们将使用<code>len()</code>函数来计算生成的列表中的项目数:<pre class="source-code">import glob</pre> <pre class="source-code">training_samples = glob.glob(f"tmp2/train/*/*.png")</pre> <pre class="source-code">len(training_samples)</pre></li>
+
+</ol>
+
+<p class="list-inset">这应该给我们一个值<code>7200</code>，它是<code>tmp2/train</code>目录中<code>.png</code>文件的总数。</p>
+
+<ol>
+
+<li value="19">使用<code>aws s3 mb</code>命令:<pre class="source-code">!aws s3 mb s3://{s3_bucket}</pre>创建一个新的S3桶</li>
+
+<li>使用<a id="_idIndexMarker700"/><code>aws s3 cp</code>命令<a id="_idIndexMarker701"/>将<a id="_idIndexMarker702"/><code>tmp2</code>目录的内容复制到<pre class="source-code">%%time</pre><pre class="source-code">!<strong class="bold">aws s3 cp</strong> tmp2/.  s3://{s3_bucket}/{prefix}/ --recursive</pre>S3桶中</li>
+
+<li>定义<code>map_path()</code>和<code>map_input()</code>功能:<pre class="source-code">def <strong class="bold">map_path</strong>(source):</pre><pre class="source-code">    return 's3://{}/{}/{}'.format(</pre><pre class="source-code">        s3_bucket, </pre><pre class="source-code">        prefix, </pre><pre class="source-code">        source</pre><pre class="source-code">    )</pre><pre class="source-code">def <strong class="bold">map_input</strong>(source):</pre><pre class="source-code">    path = map_path(source)</pre><pre class="source-code">    return sagemaker.inputs.TrainingInput(</pre><pre class="source-code">        path, </pre><pre class="source-code">        distribution='FullyReplicated', </pre><pre class="source-code">        s3_data_type='S3Prefix'</pre><pre class="source-code">    )</pre></li>
+
+<li>通过运行以下代码块准备<code>data_channels</code>字典:<pre class="source-code"><strong class="bold">data_channels</strong> = {}</pre><pre class="source-code">channels = ["<strong class="bold">train</strong>", </pre><pre class="source-code">            "<strong class="bold">validation</strong>",</pre><pre class="source-code">            "<strong class="bold">train_lst</strong>",</pre><pre class="source-code">            "<strong class="bold">validation_lst</strong>"]</pre><pre class="source-code">for channel in channels:</pre><pre class="source-code">    data_channels[channel] = map_input(channel)</pre></li>
+
+<li>使用<a id="_idIndexMarker705"/>的<code>map_path()</code>功能:<pre class="source-code">output_path = <strong class="bold">map_path</strong>("output")</pre>设置<a id="_idIndexMarker703"/>S3输出路径<a id="_idIndexMarker704"/></li>
+
+<li>初始化<code>Estimator</code>对象:<pre class="source-code">estimator = sagemaker.estimator.Estimator(</pre><pre class="source-code">    image,</pre><pre class="source-code">    role, </pre><pre class="source-code">    instance_count=2, </pre><pre class="source-code">    instance_type='ml.p2.xlarge',</pre><pre class="source-code">    output_path=output_path,</pre><pre class="source-code">    sagemaker_session=session,</pre><pre class="source-code">    enable_network_isolation=True,</pre><pre class="source-code">    <strong class="bold">model_uri=model_data</strong>,</pre><pre class="source-code">    <strong class="bold">use_spot_instances=True</strong>,</pre><pre class="source-code">    <strong class="bold">max_run=1800</strong>,</pre><pre class="source-code">    <strong class="bold">max_wait=3600</strong>,</pre><pre class="source-code">    base_job_name=base_job_name,</pre><pre class="source-code">    <strong class="bold">checkpoint_s3_uri=checkpoint_s3_bucket</strong>,</pre><pre class="source-code">    <strong class="bold">checkpoint_local_path=checkpoint_local_path</strong></pre><pre class="source-code">)</pre></li>
+
+</ol>
+
+<p class="list-inset">这个<a id="_idIndexMarker706"/>初始化步骤<a id="_idIndexMarker707"/>应该类似于我们在<em class="italic">使用SageMaker Python SDK </em>部分训练图像分类模型中所做的。在<a id="_idIndexMarker708"/>中，除了我们在初始化<code>Estimator</code>对象时设置的原始参数值之外，我们还设置了一些额外的参数，包括<code>model_uri</code>、<code>use_spot_instances</code>、<code>max_run</code>、<code>max_wait</code>、<code>checkpoint_s3_uri</code>和<code>checkpoint_local_path</code>。</p>
+
+<div><div><img alt="Figure 6.31 – Initializing the Estimator object with Checkpointing and Managed Spot Training&#10;&#10;" height="578" src="img/B18638_06_031.jpg" width="1003"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.31–用检查点和管理点训练初始化评估器对象</p>
+
+<p class="list-inset">如上图所示，启用检查点和托管点训练简单明了。当运行SageMaker培训作业时，默认情况下这些是禁用的，因此我们需要做的就是用适当的值更新<code>use_spot_instances</code>、<code>max_run</code>、<code>max_wait</code>、<code>checkpoint_s3_uri</code>和<code>checkpoint_local_path</code>的参数值。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">当使用内置算法时，可以使用的<code>Estimator</code>类如<code>RandomCutForest</code>、<code>FactorizationMachines</code>和<code>PCA</code>来代替“泛型”<code>Estimator</code>类。使用这些参数有它自己的好处，并且很多配置参数在初始化时已经有了很好的缺省初始值(这也使得代码更短)。在本章中，我们将在执行训练实验时使用" generic" <code>Estimator</code>类，但是如果您有兴趣了解更多关于SageMaker Python SDK中可用的其他类的信息，请随时查看<a href="https://sagemaker.readthedocs.io/en/stable/algorithms/index.xhtml">https://sage maker . readthedocs . io/en/stable/algorithms/index . XHTML</a>。</p>
+
+<ol>
+
+<li value="25">准备<a id="_idIndexMarker710"/>超参数<a id="_idIndexMarker711"/>配置和<a id="_idIndexMarker712"/>存储在<code>hyperparameters</code>变量:<pre class="source-code"><strong class="bold">hyperparameters</strong> = {</pre><pre class="source-code">    'num_training_samples': len(training_samples),</pre><pre class="source-code">    'num_layers': 18,</pre><pre class="source-code">    'image_shape': "1,28,28",</pre><pre class="source-code">    'num_classes': 10,</pre><pre class="source-code">    'mini_batch_size': 100,</pre><pre class="source-code">    'epochs': 3,</pre><pre class="source-code">    'learning_rate': 0.01,</pre><pre class="source-code">    'top_k': 5,</pre><pre class="source-code">    'precision_dtype': 'float32'    </pre><pre class="source-code">}</pre></li>
+
+</ol>
+
+<p class="list-inset">这应该类似于我们在<em class="italic">使用SageMaker Python SDK </em>部分训练图像分类模型中所做的超参数配置，除了<code>num_training_samples</code>的值。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">这里没有什么可以阻止我们改变一些配置参数的值，比如<code>mini_batch_size</code>、<code>epochs</code>和<code>learning_rate</code>。一旦您对超参数值的不同组合测试得心应手，您也可以尝试配置和使用其他超参数，如<code>optimizer</code>、<code>num_layers</code>和<code>momentum</code>。关于这个话题的更多细节，请查看<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/IC-Hyperparameter.xhtml">https://docs . AWS . Amazon . com/sagemaker/latest/DG/IC-hyperparameter . XHTML</a>。</p>
+
+<ol>
+
+<li value="26">使用<a id="_idIndexMarker714"/>和<code>set_hyperparameters()</code>方法指定训练<a id="_idIndexMarker716"/>作业<pre class="source-code">estimator.<strong class="bold">set_hyperparameters</strong>(**hyperparameters)</pre>的超参数配置<a id="_idIndexMarker715"/>值</li>
+
+<li>使用<code>fit()</code>方法开始增量训练作业:<pre class="source-code">%%time</pre> <pre class="source-code">estimator.<strong class="bold">fit</strong>(inputs=data_channels, logs=True)</pre></li>
+
+</ol>
+
+<p class="list-inset">这应该会生成一组日志，如下所示:</p>
+
+<div><div><img alt="Figure 6.32 – A portion of the logs after running the training job&#10;&#10;" height="406" src="img/B18638_06_032.jpg" width="1161"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.32–运行培训作业后的部分日志</p>
+
+<p class="list-inset">在这里，我们可以看到使用托管现场培训所节省的成本，大约节省了<code>70%</code>美元！注意，我们所做的只是在<code>Estimator</code>对象的配置上做了一些额外的调整。通过这样做，我们能够显著降低运行培训工作的成本。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">如果你遇到一个<code>fit()</code>方法，你可以停止当前的训练工作，一个小时左右再试一次。或者，你可以在另一个地区进行实验。如果您遇到一个<strong class="bold">resourcelimitexceed</strong>错误，这意味着您在运行培训作业时使用某种类型的ML spot培训实例时已经超出了配额。确保您已经完成了本章<em class="italic">准备基本先决条件</em>一节中指定的步骤。有关这个主题的更多信息，请查看<a href="https://aws.amazon.com/premiumsupport/knowledge-center/resourcelimitexceeded-sagemaker/">https://AWS . Amazon . com/premium support/knowledge-center/resourcelimitexceed-sage maker/</a>。</p>
+
+<ol>
+
+<li value="28">使用<a id="_idIndexMarker719"/>的<code>model_data</code>属性:<pre class="source-code">estimator.<strong class="bold">model_data</strong></pre>检查<a id="_idIndexMarker717"/>被训练模型的输出位置<a id="_idIndexMarker718"/></li>
+
+</ol>
+
+<p class="list-inset">我们应该得到一个类似于<code>'s3://&lt;S3 BUCKET NAME&gt;/ch06/output/&lt;BASE JOB NAME&gt;-&lt;DATE AND TIME&gt;/output/model.tar.gz'.</code>的值</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果我们决定<a id="_idIndexMarker720"/>在SageMaker之外部署模型(例如，在<code>estimator.model_data</code>中指向。</p>
+
+<ol>
+
+<li value="29">使用<code>aws s3 ls</code>命令检查<a id="_idIndexMarker722"/>生成的检查点<a id="_idIndexMarker723"/>文件:<pre class="source-code">!<strong class="bold">aws s3 ls</strong> {estimator.checkpoint_s3_uri} --recursive</pre></li>
+
+</ol>
+
+<p class="list-inset">这应该会产生一组类似于下面的结果:</p>
+
+<div><div><img alt="Figure 6.33 – Generated checkpoint files&#10;&#10;" height="260" src="img/B18638_06_033.jpg" width="821"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.33–生成的检查点文件</p>
+
+<p class="list-inset">这些保存的检查点文件可用于从最后保存的检查点重新启动和继续训练作业。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果您想使用最后保存的检查点并继续先前的训练作业，您只需在初始化<code>Estimator</code>对象时指定相同的<code>checkpoint_s3_uri</code>。这将自动将检查点文件从S3下载到培训实例，并从那里继续培训作业。</p>
+
+<p>检查点与SageMaker的<strong class="bold">管理的现场培训</strong>功能配合得很好，因为我们<a id="_idIndexMarker725"/>可以轻松地恢复模型<a id="_idIndexMarker726"/>培训，即使培训实例或培训工作出现意外的<a id="_idIndexMarker727"/>中断。除此之外，我们可以在训练步骤的不同阶段使用检查点来分析我们的模型(因为我们在不同的中间阶段有模型的多个<em class="italic">快照</em>)。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">让我们讨论一下在SageMaker中训练和调优ML模型时可以使用的其他一些策略。第一个是<strong class="bold">提前停止</strong>，涉及到配置一个超参数调优作业，如果目标度量值在指定的时间内没有显著改善，则提前停止<a id="_idIndexMarker728"/>训练作业。这有助于降低成本(因为培训工作结束得更早)，并防止模型过度拟合。第二种，<strong class="bold">本地模式</strong>，包括在SageMaker notebook实例<a id="_idIndexMarker729"/>中运行和测试定制脚本，然后在专用ML实例中运行它们。这有助于加快定制培训(和部署)脚本的开发和调试，因为使用本地模式时的反馈循环要快得多。第三种，<strong class="bold">异构集群训练</strong>，涉及在几个不同的<a id="_idIndexMarker730"/>实例组上运行训练作业。这有助于在处理ML工作负载时，通过结合使用GPU和CPU实例来提高资源的可扩展性和利用率。第四种，<strong class="bold">快速文件模式</strong>，通过支持从亚马逊S3进行高性能数据访问(下载培训数据时)，有助于显著加快培训<a id="_idIndexMarker731"/>作业的速度。在这个列表之外还有更多的最佳实践和策略，但是现在这些应该已经足够了！</p>
+
+<p>现在我们已经完成了本章的动手解决方案，是时候清理并关闭我们不再使用的任何资源了。</p>
+
+<h1 id="_idParaDest-138"><a id="_idTextAnchor147"/>清理</h1>
+
+<p>按照这些<a id="_idIndexMarker732"/>步骤，在SageMaker Studio中找到并关闭任何剩余的运行实例:</p>
+
+<ol>
+
+<li value="1">点击<strong class="bold"> Amazon SageMaker Studio </strong>侧边栏中的<strong class="bold">运行实例和内核</strong>图标，如下图所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 6.34 – Turning off any remaining running instances&#10;&#10;" height="202" src="img/B18638_06_034.jpg" width="611"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图6.34–关闭任何剩余的运行实例</p>
+
+<p class="list-inset">点击<strong class="bold">运行实例和内核</strong>图标将打开并显示SageMaker Studio中的运行实例、应用和终端。</p>
+
+<ol>
+
+<li value="2">通过单击前面屏幕截图中突出显示的每个实例的<strong class="bold">关闭</strong>按钮，关闭<strong class="bold">运行实例</strong>下任何剩余的运行实例。点击<strong class="bold">关闭</strong>按钮将打开一个弹出窗口，确认实例关闭操作。点击<strong class="bold">关闭所有</strong>按钮继续。</li>
+
+</ol>
+
+<p>注意，这个清理操作需要在使用SageMaker Studio之后执行。SageMaker不会自动关闭这些资源，即使在不活动期间也是如此。关闭未使用的资源并执行定期清理操作将有助于降低和管理成本。</p>
+
+<p>在这一点上，当在AWS云中执行ML实验时，我们应该可以轻松地使用<strong class="bold"> SageMaker Python SDK </strong>。我们只是触及了表面，因为SageMaker有更多的功能和特性，我们将在接下来的几章中讨论。</p>
+
+<h1 id="_idParaDest-139"><a id="_idTextAnchor148"/>总结</h1>
+
+<p>在这一章中，我们使用<strong class="bold"> SageMaker Python SDK </strong>来训练和部署ML模型。我们首先使用MNIST数据集(训练数据集)和SageMaker的内置<strong class="bold">图像分类算法</strong>来训练图像分类器模型。之后，我们通过使用SageMaker Studio中可用的<strong class="bold">调试器洞察仪表板</strong>仔细查看了培训步骤中使用的资源。最后，我们执行了第二个训练实验，该实验利用了SageMaker中可用的几个特性和选项，例如<strong class="bold">管理点训练</strong>、<strong class="bold">检查点训练</strong>和<strong class="bold">增量训练</strong>。</p>
+
+<p>在下一章中，当使用SageMaker执行模型部署时，我们将更深入地研究不同的部署选项和策略。我们将把预先训练好的模型部署到各种推理端点类型中，包括<strong class="bold">实时</strong>、<strong class="bold">无服务器</strong>和<strong class="bold">异步</strong>推理端点。</p>
+
+<h1 id="_idParaDest-140"><a id="_idTextAnchor149"/>延伸阅读</h1>
+
+<p>有关本章涵盖的主题的更多信息，请随时查阅以下资源:</p>
+
+<ul>
+
+<li><em class="italic">亚马逊SageMaker调试器</em>(<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/train-debugger.xhtml">https://docs . AWS . Amazon . com/SageMaker/latest/DG/train-Debugger . XHTML</a>)</li>
+
+<li><em class="italic">使用亚马逊SageMaker </em>中的检查点(<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/model-checkpoints.xhtml">https://docs . AWS . Amazon . com/SageMaker/latest/DG/model-check points . XHTML</a>)</li>
+
+<li><em class="italic">亚马逊SageMaker </em>中的增量培训(<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/incremental-training.xhtml">https://docs . AWS . Amazon . com/SageMaker/latest/DG/Incremental-Training . XHTML</a>)</li>
+
+<li><em class="italic">在亚马逊SageMaker</em>(<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/model-managed-spot-training.xhtml">https://docs . AWS . Amazon . com/SageMaker/latest/DG/model-Managed-Spot-Training . XHTML</a></li>
+
+</ul>
+
+</div>
+
+<div><div/>
+
+</div>
+
+</div>
+
+
+
+</body></html>

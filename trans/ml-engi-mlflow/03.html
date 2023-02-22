@@ -1,0 +1,196 @@
+<html><head/><body>
+
+
+	
+		<title>B16783_02_Final_SB_epub</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-27"><a id="_idTextAnchor030"/> <em class="italic">第二章</em>:你的机器学习项目</h1>
+			<p>本书的方法是迭代一个实际的商业项目，即股票市场预测，并通过这个用例，通过不同的章节探索MLflow的不同功能。我们将使用结构化方法来构建机器学习问题和项目。在本书的剩余部分，将创建一个示例管道，并用于迭代和发展项目。</p>
+			<p>使用结构化框架来描述机器学习问题有助于从业者更有效地推理机器学习流水线的不同需求。我们将介绍一个实用的管道，使用在构建过程中引出的需求。</p>
+			<p>具体来说，我们将在本章中讨论以下部分:</p>
+			<ul>
+				<li>探索机器学习过程</li>
+				<li>构建机器学习问题</li>
+				<li>介绍股票市场预测问题</li>
+				<li>开发您的机器学习基线管道</li>
+			</ul>
+			<h1 id="_idParaDest-28"><a id="_idTextAnchor031"/>技术要求</h1>
+			<p>对于本章，您将需要以下先决条件:</p>
+			<ul>
+				<li>最新版本的Docker安装在您的机器上。如果您还没有安装，请按照https://docs.docker.com/get-docker/<a href="https://docs.docker.com/get-docker/">的说明进行操作。</a></li>
+				<li>访问Bash终端(Linux或Windows)。</li>
+				<li>访问浏览器。</li>
+				<li>Python 3.5以上版本已安装。</li>
+				<li>如第1章 、<em class="italic">介绍MLflow </em>中所述，在本地安装MLflow。</li>
+			</ul>
+			<h1 id="_idParaDest-29"><a id="_idTextAnchor032"/> <a id="_idTextAnchor033"/>探索机器学习过程</h1>
+			<p>在本章中，我们将从描述我们将在整本书中解决的问题开始。我们的目标是在股票交易的背景下关注机器学习。</p>
+			<p>机器学习可以被定义为训练软件工件的过程——在这种情况下，是对问题做出相关预测的模型。预测被用来驱动商业决策，例如，哪只股票应该被买卖，或者一张图片是否包含一只猫。</p>
+			<p>拥有机器学习项目的标准方法对于项目的成功至关重要。机器学习生命周期的典型迭代在<em class="italic">图2.1 </em>中描述:</p>
+			<div><div><img src="img/B16783_02_001.jpg" alt="Figure 2.1 – Excerpt of the acquired data with the prediction column&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图2.1-带有预测栏的采集数据摘录</p>
+			<p>让我们详细检查每个阶段:</p>
+			<ul>
+				<li><strong class="bold">构思</strong>:这个阶段<a id="_idIndexMarker057"/>涉及到识别一个使用机器学习的商业机会，并把问题公式化。</li>
+				<li><strong class="bold">原型</strong>:这包括<a id="_idIndexMarker058"/>验证现有数据集的可行性和适用性，以实现计划的想法。</li>
+				<li><strong class="bold"> Pilot </strong>:这涉及评估<a id="_idIndexMarker059"/>和迭代机器学习算法，以便决定是否进入下一阶段。</li>
+				<li><strong class="bold">生产部署</strong>:在<a id="_idIndexMarker060"/>成功试点后，我们应该能够在生产中运行机器学习项目，并允许它开始接收生产流量。</li>
+			</ul>
+			<p><em class="italic">图2.1 </em>中定义的这些高级阶段肯定不是静态的，通常是迭代的，在阶段之间动态移动以进行提炼和改进。</p>
+			<p>需要注意的是，机器学习并不是所有问题的解决方案。在决定机器学习之前，需要对手头的问题或项目进行深入评估，以决定是否应用机器学习。</p>
+			<p>在一些简单的场景中，机器学习解决方案是很好的候选方案，例如，在以下情况中:</p>
+			<ul>
+				<li>当简单的规则和启发不足以解决手头的问题时。</li>
+				<li>用当前最先进的解决方案来解决这个问题是非常昂贵的。</li>
+				<li>当解决问题的规则和代码非常复杂并且难以维护时。</li>
+			</ul>
+			<p><a id="_idIndexMarker061"/>机器学习的出现给各个领域带来了改变；其中一个领域是<strong class="bold">金融</strong>领域。在计算机出现之前，金融是基于交易数量减少的小办公室里的交易文件。有了电脑，情况就变了；现在每天有数百万笔交易。数以百万计的人无需见面或任何其他形式的身体接触就可以相互交易。</p>
+			<p>在金融和股票交易领域，机器学习可用于以下情况:</p>
+			<ul>
+				<li><strong class="bold">数据挖掘</strong>:使用高级预测分析识别数据集中的<a id="_idIndexMarker062"/>模式。对于高级数据分析师来说，使用机器学习模型作为其分析流程的一部分并推动业务决策是非常常见的。</li>
+				<li><strong class="bold">配对交易</strong>:使用两对市场方向相反的股票的一种技术<a id="_idIndexMarker063"/>。基本上，这是通过当每只股票与其正常行为不同步时卖出或买入来实现的，因为市场在一段时间后会收敛。</li>
+				<li><strong class="bold">股票预测</strong>:简单的<a id="_idIndexMarker064"/>预测，基于特定股票在未来某一时刻的交易价格的当前时间序列。</li>
+				<li><strong class="bold">异常检测</strong>:检测<a id="_idIndexMarker065"/>市场中的异常情况对于防止自动交易系统在市场异常的日子里运行是非常重要的。</li>
+				<li><strong class="bold">情绪分析</strong>:众所周知，股票市场主要由公司和企业周围的参与者<a id="_idIndexMarker066"/>的情绪所驱动。例如，这种技术使用社交媒体或其他媒体上的消息，使用自然语言处理技术来衡量情绪(例如，积极、消极或中立)。</li>
+			</ul>
+			<p>接下来，我们将研究机器学习的框架问题。</p>
+			<h1 id="_idParaDest-30"><a id="_idTextAnchor036"/>框定机器学习问题</h1>
+			<p>如本节所定义的，机器学习问题框架是一种技术和方法，可以帮助<a id="_idIndexMarker067"/>以一种可以实现工程解决方案的方式指定和情境化机器学习问题。如果没有一个解决机器学习问题的可靠方法，提取这项工作的真正价值会变得非常困难。</p>
+			<p>我们将从亚马逊和谷歌等公司的方法中获得灵感，这些公司已经成功应用了机器学习问题框架技术。</p>
+			<p>机器学习开发过程高度基于科学方法。我们经历了陈述目标、数据收集、假设检验和结论的不同阶段。预计我们将在工作流程的不同阶段中循环，直到一个好的模型被确定，或者很明显不可能开发出一个。</p>
+			<p>以下小节描述了我们将在本书剩余部分使用的框架，以引出机器学习问题解决框架。</p>
+			<h2 id="_idParaDest-31"><a id="_idTextAnchor037"/>问题陈述</h2>
+			<p>在我们尝试其他事情之前，理解我们正在解决的问题是非常重要的。为手头的问题定义一个问题陈述是定义你的问题的一个清晰的方法。以下是机器学习问题陈述的合理示例:</p>
+			<ul>
+				<li>预测特定股票的股市明天是否会上涨。</li>
+				<li>预测我们是否有一只猫在一张图中。</li>
+			</ul>
+			<p>在过程的这一部分，我们指定了我们要解决的机器学习问题的具体类型。以下是常见的问题类型:</p>
+			<ul>
+				<li><strong class="bold">分类</strong>:这种类型的<a id="_idIndexMarker069"/>问题需要你预测一个标签或者类别作为你的模型的输出，例如，分类一个邮件文本是不是垃圾邮件。它可以是二元分类，也可以是多类分类。多类变体的一个很好的例子是给定手写数字进行分类。</li>
+				<li><strong class="bold">回归</strong>:这是如果你<a id="_idIndexMarker070"/>需要，例如，让一个模型从一个训练数据集中预测一个数值。很好的例子是根据大气特征预测温度，以及预测给定股票的确切美元价值。</li>
+				<li><strong class="bold">聚类</strong>:包括<a id="_idIndexMarker071"/>当你没有标签来训练模型时，发现数据的自然分组。它使用距离度量将相似的数据点分组到相同的组中。聚类可用于识别欺诈性交易，因为它们不属于现有的分组。</li>
+				<li><strong class="bold">生成模型</strong>:这是一种新型的<a id="_idIndexMarker072"/>机器学习，基于现有数据生成新数据，并且在统计上与输入数据相似。它被广泛应用于现代语言模型中，比如OpenAI的GPT-3。</li>
+				<li><strong class="bold">Reinforcement learning</strong>: A type <a id="_idIndexMarker073"/>of machine learning where the agent/model interacts with the environment to learn optimal behavior to maximize the reward. One famous application is the AlphaGo agent from Google DeepMind, which was able to outperform the best human player at the board game Go. A very important application is to train an automated trading stock agent using profitability as the reward.<p class="callout-heading">重要说明</p><p class="callout">机器学习问题有多种分类法；本节中的清单绝非详尽无遗。这个清单与书中的例子有关。</p></li>
+			</ul>
+			<h2 id="_idParaDest-32"><a id="_idTextAnchor038"/>成功和失败定义</h2>
+			<p>从企业获得成功的定义对于正确看待你的问题非常重要。例如，对于股票市场案例，下面的内容可以被概括为一个理想的结果:“使用这个项目的模型，我们希望<em class="italic">提高</em>我们日常<em class="italic">交易</em>操作的<em class="italic">盈利能力</em>达56%，因为他们目前在50%的日常交易中是盈利的。”</p>
+			<p>所以，如果我们只有30%的交易成功，这个模型显然是失败的。这通常取决于商业标准。</p>
+			<p>将业务指标作为成功的定义，而不是技术指标，如准确度、精确度或召回率，有助于使解决方案与组织的实际目标保持一致。</p>
+			<h2 id="_idParaDest-33"><a id="_idTextAnchor039"/>模型输出</h2>
+			<p>机器学习问题框架的<a id="_idIndexMarker075"/>上下文中的模型输出取决于您正在解决的问题的类型。例如，回归模型输出将是一个特定的数字(例如，10.5作为股票预测)，分类将返回一个标签(例如，当检测到猫时，<code>true</code>)和一个概率阈值。</p>
+			<p>您的模型输出应该明确地与您的结果定义相关联。</p>
+			<h2 id="_idParaDest-34"><a id="_idTextAnchor040"/>输出用途</h2>
+			<p>陈述你的<a id="_idIndexMarker076"/>预测将如何被使用有助于揭示模型开发的原因，帮助开发人员获得问题的上下文和所有权，例如，决定你是将直接在UI中使用你的预测还是使用它来提供给上游系统。</p>
+			<h2 id="_idParaDest-35"><a id="_idTextAnchor041"/>启发式</h2>
+			<p>用<a id="_idIndexMarker077"/>机器学习解决的问题可以用规则和启发式近似。将启发式作为机器学习管道的起点通常是启动项目的推荐方法。</p>
+			<p>例如，股票交易预测问题的有效启发式方法是使用最后一天的预测作为<a id="_idIndexMarker078"/>第一个基线生产启发式方法。模型开发人员的目标是用一个更好的模型击败基线。</p>
+			<h2 id="_idParaDest-36"><a id="_idTextAnchor042"/>数据层定义</h2>
+			<p>在你的模型环境中精确定义<a id="_idIndexMarker079"/>输入和输出有助于澄清和指导你的机器学习问题的发展。</p>
+			<h3>数据源</h3>
+			<p>关于<a id="_idIndexMarker080"/>构建问题的这一节包括识别原始数据源并在问题构建过程中记录它们。原始数据源的例子有公共或私有数据集及其定义和数据字典。</p>
+			<p>在这个阶段，确定数据是否被标记，以及标记数据需要付出的努力是很重要的。</p>
+			<h3>模型输入/输出</h3>
+			<p>模型开发包括<a id="_idIndexMarker081"/>定义模型中使用的精确输入。给定所有可用的数据源，指定模型输入或特征集对于执行管道变得至关重要。除了您的输入，还应该定义期望的目标。</p>
+			<p>模型输入/输出最好用表格的形式，如图<em class="italic">图2.2 </em>所示，以便于推理和模型实施。为清楚起见，添加了一行示例数据:</p>
+			<div><div><img src="img/B16783_02_002.jpg" alt="Figure 2.2 – Example of documenting the inputs/outputs of a model&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图2.2–记录模型输入/输出的示例</p>
+			<p>接下来，我们将看看在股票交易场景中使用机器学习问题框架技术，我们将在整本书中研究这个场景。</p>
+			<h1 id="_idParaDest-37"><a id="_idTextAnchor043"/>介绍股市预测问题</h1>
+			<p>我们将在本书的剩余章节中涉及的场景<a id="_idIndexMarker083"/>是一家假设的公司<strong class="bold"> PsyStock LLC </strong>，它为业余交易者提供了一个平台，提供API和ui来解决股票预测上下文中的不同预测。</p>
+			<p>作为机器学习的实践者和开发者，我们应该能够建立一个平台，允许一个数据科学家团队快速开发、测试和投入生产机器学习项目。</p>
+			<p>我们将首先应用和构建问题，这样我们就可以在问题定义的基础上构建我们的平台。应该注意的是，问题框架会随着我们对问题了解的更多而发展:最初的框架会在我们将要处理的问题空间上给我们指导。</p>
+			<p>以下是我们将在本书剩余部分用作MLflow中机器学习开发参考的核心项目。</p>
+			<h2 id="_idParaDest-38"><a id="_idTextAnchor044"/>股票走势预测器</h2>
+			<p>这是PsyStock LLC公司将向其客户提供的第一个API的项目。如果给定的股票报价机将在股票市场上涨，这个API将返回<code>true</code>,如果不上涨，这个API将返回<code>false</code>。</p>
+			<h2 id="_idParaDest-39"><a id="_idTextAnchor045"/>问题陈述</h2>
+			<p>问题<a id="_idIndexMarker085"/>语句是<em class="italic">通过机器学习分类器预测市场单日</em>会涨还是不会涨。</p>
+			<h2 id="_idParaDest-40"><a id="_idTextAnchor046"/>成功和失败定义</h2>
+			<p>在这种情况下，成功是由<em class="italic">定义的，即一个月中系统预测市场正确方向的天数的百分比</em>。从市场方向的角度来看，成功基本上是系统是否准确，超过60%的时间——基本上是比随机基线更好的期望值。</p>
+			<h2 id="_idParaDest-41"><a id="_idTextAnchor047"/>模型输出</h2>
+			<p>对于股票报价器价值的增加<a id="_idIndexMarker087"/>和不增加<code>0</code>，模型输出为<code>1</code>。</p>
+			<h2 id="_idParaDest-42"><a id="_idTextAnchor048"/>输出用途</h2>
+			<p>模型的输出将<a id="_idIndexMarker088"/>用于为Rest API提供一个<code>true</code>或<code>false</code>值，该值基于定义的分类准确度阈值。</p>
+			<p>该问题的预期延迟为<em class="italic">不到1000毫秒</em>。</p>
+			<h2 id="_idParaDest-43"><a id="_idTextAnchor049"/>启发式</h2>
+			<p>解决这个问题最简单的试探法<a id="_idIndexMarker089"/>是对每个输入使用一个随机预测器，市场上涨或下跌的概率相等。</p>
+			<h2 id="_idParaDest-44"><a id="_idTextAnchor050"/>数据层定义</h2>
+			<p>让我们定义数据层的每个<a id="_idIndexMarker090"/>部分。</p>
+			<h3>数据源</h3>
+			<p>雅虎财经公共API提供的历史股票市场<a id="_idIndexMarker091"/>数据集。</p>
+			<h3>模型输入/输出</h3>
+			<p>让我们看看输入和<a id="_idIndexMarker092"/>输出，接下来:</p>
+			<ul>
+				<li><strong class="bold">输入</strong>:给定股票最近10天的历史收盘价格。</li>
+				<li><code>1</code>表示下期增加，<code>0</code>表示下期不增加。</li>
+			</ul>
+			<p>下表显示了模型的输入/输出数据:</p>
+			<div><div><img src="img/B16783_02_003.jpg" alt="Figure 2.3 – Example of documenting the input/outputs of a model&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图2.3–记录模型输入/输出的示例</p>
+			<h1 id="_idParaDest-45"><a id="_idTextAnchor051"/>市场影响者的情绪分析</h1>
+			<p>情绪<a id="_idIndexMarker093"/>机器学习管道将<em class="italic">预测社交媒体上对股票报价的情绪是积极还是消极</em>，并将其作为API提供给我们在本书中开发的机器学习平台的用户。</p>
+			<h2 id="_idParaDest-46"><a id="_idTextAnchor052"/>问题陈述</h2>
+			<p>预测给定的<a id="_idIndexMarker094"/>股票报价器是否对由PsyStock LLC选择的Twitter上的相关市场影响者当天有正面情绪。</p>
+			<h2 id="_idParaDest-47"><a id="_idTextAnchor053"/>成功和失败的定义</h2>
+			<p>在这种情况下，成功有点难以定义，因为情绪积极的事实无法准确地用市场指标来跟踪。在这个特定的预测问题上成功的定义应该是用户重复使用API的次数的代理。</p>
+			<h2 id="_idParaDest-48"><a id="_idTextAnchor054"/>模型输出</h2>
+			<p>模型输出是<a id="_idIndexMarker096"/>,基本上是一个数字，与一个报价器的推文极性相匹配——积极、消极或中性情绪。</p>
+			<h2 id="_idParaDest-49"><a id="_idTextAnchor055"/>输出用途</h2>
+			<p>这个<a id="_idIndexMarker097"/>系统的输出将在Rest API中使用，该API将根据请求提供给给定ticker的正极性、中性和负极性的数量。</p>
+			<h2 id="_idParaDest-50"><a id="_idTextAnchor056"/>启发式</h2>
+			<p>作为这个问题的基线，一个非常简单的启发式方法是计算单词<code>up</code>和<code>down</code>被使用的次数。无论哪个单词在股票行情系统中出现的频率更高，它的值都将被用作极性。如果两个词之间的频率百分比小于10%，我们将假设股票情绪是中性的。</p>
+			<h2 id="_idParaDest-51"><a id="_idTextAnchor057"/>数据层定义</h2>
+			<p>这个问题最容易获得的原始数据是社交媒体。Twitter提供了一个易于使用和搜索的API，我们可以通过ticker和influencer句柄进行搜索。</p>
+			<h3>数据源</h3>
+			<p>给定一个可更新的市场影响者列表，源数据将<a id="_idIndexMarker100"/>通过Twitter API获取，以搜索tickers。</p>
+			<h3>模型输入/输出</h3>
+			<p>服务于该模型的系统将接收一条推文，并返回分类的情绪(积极、消极或中立):</p>
+			<div><div><img src="img/B16783_02_004.jpg" alt="Figure 2.4 – Example of documenting the input/outputs of a model&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图2.4–记录模型输入/输出的示例</p>
+			<p>在这一节中，我们只是定义了我们将在整本书中从头到尾解决的初始问题。我们将完善问题框架的定义，必要时进行改进，并根据需要更新问题框架。</p>
+			<p>在下一节中，我们将研究在问题框架中使用启发式的定义来创建我们将要改进的第一个基本管道。</p>
+			<h1 id="_idParaDest-52">开发你的机器学习基线管道</h1>
+			<p>对于我们的机器学习<a id="_idIndexMarker101"/>平台，我们将从一个非常简单的、基于启发式的管道开始，以便让您的端到端系统的基础设施正确工作，并提供一个机器学习模型可以在其上迭代的环境。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">将技术要求正确地安装在您的本地机器上以便遵循是非常重要的。本节假设您已经按照<em class="italic">技术要求</em>节安装了MLflow和Docker。</p>
+			<p>在本节结束时，您将能够创建我们的基线管道。基线管道的价值是使模型开发人员能够快速迭代。因此，基本上，一个带有培训和模型服务占位符的端到端基础设施将对开发团队可用。因为它都是在MLflow中实现的，所以很容易对参与机器学习项目的不同类型的团队进行专业化和重点关注。工程团队将专注于改进管道，而面向数据科学的团队将有办法快速测试和评估他们的模型:</p>
+			<ol>
+				<li>Implement the heuristic model in MLflow.<p>在下面的代码块中，我们创建了<code>RandomPredictor</code>类，这是一个从<code>mlflow.pyfunc.PythonModel</code>类继承而来的定制预测器。主<code>predict</code>方法返回一个介于0和1之间的随机数:</p><pre>import mlflow
+class RandomPredictor(mlflow.pyfunc.PythonModel):
+  def __init__(self):
+    pass
+  def predict(self, context, model_input):
+    return model_input.apply(lambda column: random.randint(0,1))</pre><p>我们使用特定的<a id="_idIndexMarker102"/>功能在MLflow中创建定制模型；关于定制模型的更多细节可以在<a href="https://mlflow.org/docs/latest/python_api/mlflow.pyfunc.html#pyfunc-create-custom">https://ml flow . org/docs/latest/python _ API/ml flow . py func . html # py func-create-custom</a>找到。</p></li>
+				<li>Save the model in MLflow.<p>下面的代码块以一种以后可以检索的方式保存了名为<code>random_model</code>的模型。它在本地文件系统的MLflow注册表中注册:</p><pre>model_path = "random_model"
+baseline_model = RandomPredictor()
+mlflow.pyfunc.save_model(path=model_path, python_model=random_model)</pre><p>在这个阶段，我们<a id="_idIndexMarker103"/>基本上实例化了模型，并按照本地环境的配置将其存储在模型注册中心。</p></li>
+				<li>运行您的<code>mlflow</code>作业:<pre>mlflow run . </pre></li>
+				<li>启动服务API: <pre>mlflow models serve -m ./mlruns/0/b9ee36e80a934cef9cac3a0513db515c/artifacts/random_model/</pre></li>
+				<li>Test the API of your model.<p>您可以使用一个非常简单的Flask服务器来运行您的模型。您可以通过在您的服务器中运行<code>curl</code>命令来测试执行情况:</p><pre>curl http://127.0.0.1:5000/invocations -H 'Content-Type: application/json' -d '{"data":[[1,1,1,1,0,1,1,1,0,1,1,1,0,0]]}' [1]%</pre></li>
+			</ol>
+			<p>在这个阶段，我们有一个基线虚拟模型，模型开发团队的目标是改进它。同样的管道将在下一章使用本书中构建的平台的初始算法来构建数据科学开发环境。</p>
+			<h1 id="_idParaDest-53"><a id="_idTextAnchor059"/>摘要</h1>
+			<p>在这一章中，我们介绍了机器学习问题框架方法，并探讨了采用这一框架背后的一些动机。</p>
+			<p>我们介绍了股票市场预测机器学习平台和我们使用ML问题框架方法的初始预测问题集。</p>
+			<p>我们在本章简要介绍了股票市场预测基本管道的用例，这将在本书的其余部分使用。</p>
+			<p>在下一章中，我们将使用本章中对问题的定义，通过MLflow创建一个数据科学开发环境。</p>
+			<h1 id="_idParaDest-54"><a id="_idTextAnchor060"/>延伸阅读</h1>
+			<p>为了加深您的知识，您可以参考以下链接中的<a id="_idTextAnchor061"/> <a id="_idTextAnchor062"/>文档:</p>
+			<ul>
+				<li>Google机器学习问题框架参考资料:<a href="https://developers.google.com/machine-learning/problem-framing">https://developers . Google . com/machine-learning/problem-framing</a></li>
+				<li>亚马逊机器学习框架参考资料:<a href="https://docs.aws.amazon.com/wellarchitected/latest/machine-learning-lens/ml-problem-framing.html">https://docs . AWS . Amazon . com/well architected/latest/machine-learning-lens/ml-problem-framing . html</a></li>
+			</ul>
+		</div>
+	
+
+</body></html>

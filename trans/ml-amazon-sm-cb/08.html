@@ -1,0 +1,943 @@
+<html><head/><body>
+
+
+
+
+
+<style type="text/css">body{margin:1em;background-color:transparent!important;}#sbo-rt-content *{text-indent:0pt!important;}#sbo-rt-content .bq{margin-right:1em!important;}</style>
+<div><div><h1 id="_idParaDest-327">第八章:用内置算法解决自然语言处理、图像分类和时间序列预测问题</h1>
+			<p>在前一章中，我们详细了解了SageMaker的几项功能，例如<strong class="bold"> SageMaker功能商店</strong>、<strong class="bold"> SageMaker Clarify </strong>和<strong class="bold"> SageMaker模型监视器</strong>。这些能力帮助机器学习实践者在进行生产级机器学习实验和部署时处理相关需求。在本章中，我们将看看如何使用SageMaker内置算法来解决<strong class="bold">自然语言处理</strong> ( <strong class="bold"> NLP </strong>)、<strong class="bold">图像分类</strong>和<strong class="bold">时间序列预测</strong>问题。</p>
+			<div><div><img src="img/B16850_08_01.jpg" alt="Figure 8.1 – Working with text classification, image classification, and time-series &#13;&#10;forecasting problems with built-in algorithms&#13;&#10;" width="1402" height="835"/>
+				</div>
+			</div>
+			<p class="figure-caption">图8.1–使用内置算法处理文本分类、图像分类和时间序列预测问题</p>
+			<p>如<em class="italic">图8.1 </em>所示，我们将看看如何使用<strong class="bold"> BlazingText </strong>来解决最常见的自然语言处理问题之一——文本分类。除此之外，我们还将进一步了解如何使用内置的<strong class="bold">图像分类算法</strong>来解决MNIST手写数字数据集的图像分类问题。我们也将有机会使用内置的<strong class="bold"> DeepAR预测算法</strong>来解决时间序列预测问题。</p>
+			<p>也就是说，我们将在本章中介绍以下食谱:</p>
+			<ul>
+				<li>为文本分类问题生成合成数据集</li>
+				<li>为批量转换推理作业准备测试数据集</li>
+				<li>培训和部署一个<strong class="bold"> BlazingText </strong>模型</li>
+				<li>使用<strong class="bold">批量转换</strong>进行推理</li>
+				<li>使用<strong class="bold"> Apache MXNet </strong>视觉数据集类为图像分类准备数据集</li>
+				<li>使用SageMaker中内置的<strong class="bold">图像分类算法</strong>训练和部署图像分类器</li>
+				<li>生成合成时间序列数据集</li>
+				<li>对时间序列数据集执行训练测试分割</li>
+				<li>训练和部署一个<strong class="bold"> DeepAR </strong>模型</li>
+				<li>使用部署的<strong class="bold"> DeepAR </strong>模型执行概率预测</li>
+			</ul>
+			<p>在我们完成本章中的食谱之后，我们将能够利用SageMaker中的内置算法更加自信地解决NLP、图像分类和时间序列预测问题和需求。</p>
+			<h1 id="_idParaDest-328"><a id="_idTextAnchor815"/>技术要求</h1>
+			<p>要执行本章中的配方，请确保您具备以下条件:</p>
+			<ul>
+				<li>一个亚马逊S3桶</li>
+				<li>管理<strong class="bold">亚马逊SageMaker </strong>和<strong class="bold">亚马逊S3 </strong>资源的权限，如果使用带有自定义URL的<strong class="bold"> AWS IAM </strong>用户。如果你使用的是根帐户，那么你应该能够继续本章的食谱。但是，在大多数情况下，建议以AWS IAM用户身份登录，而不是使用root帐户。要了解更多信息，请随意查看以下指南:<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html">https://docs . AWS . Amazon . com/IAM/latest/user guide/best-practices . html</a>。</li>
+			</ul>
+			<p>由于本章中的食谱涉及到一些代码，我们在这个资源库中提供了笔记本:<a href="https://github.com/PacktPublishing/Machine-Learning-with-Amazon-SageMaker-Cookbook/tree/master/Chapter08">https://github . com/packt publishing/Machine-Learning-with-Amazon-sage maker-Cookbook/tree/master/chapter 08</a>。在开始本章的每一个食谱之前，确保my-experiments/chapter08目录已经准备好。如果它还没有被创建，请现在就创建，因为这样可以在我们浏览本书中的每一个食谱时保持事物的有序性。</p>
+			<p>请点击以下链接查看动作视频中的相关代码:</p>
+			<p><a href="https://bit.ly/3tFF70t">https://bit.ly/3tFF70t</a></p>
+			<h1 id="_idParaDest-329"><a id="_idTextAnchor816"/>为文本分类问题生成合成数据集</h1>
+			<p>在<a id="_idIndexMarker1591"/>这个配方中，我们<a id="_idIndexMarker1592"/>将为一个<strong class="bold">二进制文本分类</strong>问题生成一个合成数据集。这个配方中要生成的数据集有两个主要字段:包含字符串格式语句的文本字段和指定文本是正数还是负数的目标标签。</p>
+			<div><div><img src="img/B16850_08_02.jpg" alt="Figure 8.2 – Synthetic dataset for text classification problems&#13;&#10;" width="627" height="261"/>
+				</div>
+			</div>
+			<p class="figure-caption">图8.2-文本分类问题的合成数据集</p>
+			<p>在<em class="italic">图8.2 </em>中，我们可以看到带正标签的句子有_ _ label _ _正标签，而带负标签的句子有_ _ label _ _负标签。我们将在接下来的菜谱中使用这个数据集来训练和部署一个<strong class="bold"> BlazingText </strong>模型，以解决一个情感分析需求。</p>
+			<h2 id="_idParaDest-330"><a id="_idTextAnchor817"/>做好准备</h2>
+			<p>运行<strong class="bold"> Python 3(数据科学)</strong>内核的<strong class="bold"> SageMaker Studio </strong>笔记本<a id="_idIndexMarker1593"/>是这个食谱的唯一先决条件。<a id="_idTextAnchor818"/></p>
+			<h2 id="_idParaDest-331">怎么做… <a id="_idTextAnchor819"/> <a id="_idTextAnchor820"/></h2>
+			<p>该<a id="_idIndexMarker1595"/>配方中的<a id="_idIndexMarker1594"/>第一步主要是生成一系列肯定和否定语句，并将它们存储在数据帧中:</p>
+			<ol>
+				<li>Create a new notebook using the Python 3 (Data Science) kernel inside the my-experiments/chapter08 directory and rename it with the name of this recipe. <div><img src="img/B16850_08_03.jpg" alt="Figure 8.3 – Creating a new notebook&#13;&#10;" width="575" height="222"/></div><p class="figure-caption">图8.3–创建新笔记本</p><p>在<em class="italic">图8.3 </em>中，我们可以看到如何从<strong class="bold">文件</strong>菜单新建一个<strong class="bold">笔记本</strong>。当提示使用哪个内核时，选择<strong class="bold"> Python 3(数据科学)</strong>。</p></li>
+				<li>Install faker using the pip install command:<pre>!pip install <strong class="bold">faker</strong> </pre><p><strong class="bold"> Faker </strong>是一个<a id="_idIndexMarker1596"/> Python包，帮助提供生成假数据的实用函数。稍后，我们将使用sentence()函数根据单词列表生成一个假句子。</p></li>
+				<li>使用下面几行代码初始化faker】</li>
+				<li>Define <a id="_idIndexMarker1597"/>a list of <a id="_idIndexMarker1598"/>strings that will be used in a later step to generate the sentences classified as POSITIVE:<pre><strong class="bold">positive_custom_list</strong> = [
+    'this is good', 
+    'i like it', 
+    'very delicious', 
+    'i would recommend this to my friends',
+    'food in the restaurant',
+    'spaghetti chicken soup',
+    'dinner time',
+    'tastes good',
+    'donut',
+    'very good',
+    'impressive']</pre><p>这里我们可以看到这个字符串列表包含了通常被认为是正的记号。</p></li>
+				<li>定义generate_positive_sentences()函数。在内部，该函数使用faker.sentence()函数，该函数利用了我们在上一步中定义的positive_custom_list变量:<pre>def <strong class="bold">generate_positive_sentences</strong>():     return faker.sentence(         ext_word_list=<strong class="bold">positive_custom_list</strong>     )</pre></li>
+				<li>Next, define<a id="_idIndexMarker1599"/> a list of <a id="_idIndexMarker1600"/>strings that will be used in a later step to generate the sentences classified as NEGATIVE:<pre><strong class="bold">negative_custom_list</strong> = [
+    'this is bad', 
+    'i hate it', 
+    'there are better restaurants out there', 
+    'i will not recommend this to my friends',
+    'food in the restaurant',
+    'spaghetti chicken soup',
+    'dinner time',
+    'tastes bad',
+    'donut',
+    'very bad',
+    'not impressive']</pre><p>在这里，我们可以看到这个字符串列表包含了通常被认为是负数的标记。</p></li>
+				<li>定义generate_negative_sentences()函数。在内部，该函数使用faker.sentence()函数，该函数使用我们在上一步中定义的negative_custom_list列表:<pre>def <strong class="bold">generate_negative_sentences</strong>():     return faker.sentence(         ext_word_list=<strong class="bold">negative_custom_list</strong>     )</pre></li>
+				<li>使用下面的代码块生成1000个肯定句，并将它们存储在<a id="_idIndexMarker1602"/>肯定句列表中:<pre><strong class="bold">positive_sentences</strong> = [] for i in range(0, 1000):     item = <strong class="bold">generate_positive_sentences</strong>()     item = item.replace(".", "")     <strong class="bold">positive_sentences</strong>.append(item)</pre></li>
+				<li>Inspect the positive_sentences variable:<pre>positive_sentences</pre><p>这应该会给我们一个类似于图8.4 中所示的字符串列表。</p><div><img src="img/B16850_08_04.jpg" alt="Figure 8.4 – Generated list of POSITIVE sentences&#13;&#10;" width="612" height="189"/></div><p class="figure-caption">图8.4-生成的肯定句列表</p><p>在<em class="italic">图8.4 </em>中，我们有generate_positive_sentences()函数生成的字符串列表。</p></li>
+				<li>Similarly, generate 1000 NEGATIVE sentences using the following block of code and <a id="_idIndexMarker1603"/>store them<a id="_idIndexMarker1604"/> in the negative_sentences list variable:<pre><strong class="bold">negative_sentences</strong> = []
+for i in range(0, 1000):
+    item = <strong class="bold">generate_negative_sentences</strong>()
+    item = item.replace(".", "")
+    negative_sentences.append(item)</pre><p>这应该会给我们一个类似于图8.5 中所示的字符串列表。</p><div><img src="img/B16850_08_05.jpg" alt="Figure 8.5 – Generated list of NEGATIVE sentences&#13;&#10;" width="613" height="187"/></div><p class="figure-caption">图8.5-生成的否定句列表</p><p>在<em class="italic">图8.5 </em>中，我们可以看到使用generate_negative_sentences()函数生成的句子列表。</p></li>
+				<li>Prepare the DataFrame containing the POSITIVE sentences using the following block of code:<pre>import pandas as pd 
+<strong class="bold">positive_df</strong> = pd.DataFrame(
+    <strong class="bold">positive_sentences</strong>, 
+    columns=['text']
+)
+positive_df.insert(
+    0, 
+    "label", 
+    "__label__positive"
+)</pre><p>这应该<a id="_idIndexMarker1605"/>给我们一个<a id="_idIndexMarker1606"/>数据帧，类似于<em class="italic">图8.6 </em>中所示。</p><div><img src="img/B16850_08_06.jpg" alt="" width="603" height="370"/></div><p class="figure-caption">图8.6-包含肯定句的数据框架</p><p>这里，我们有包含_ _ label _ _正字符串的标签列。</p></li>
+				<li>Next, prepare the DataFrame containing the NEGATIVE sentences using the following lines of code:<pre><strong class="bold">negative_df</strong> = pd.DataFrame(
+    <strong class="bold">negative_sentences</strong>, 
+    columns=['text']
+)
+negative_df.insert(
+    0, 
+    "label", 
+    "__label__negative"
+)</pre><p>这应该<a id="_idIndexMarker1607"/>给我们一个<a id="_idIndexMarker1608"/>数值数据框架，类似于<em class="italic">图8.7 </em>所示。</p><div><img src="img/B16850_08_07.jpg" alt="Figure 8.7 – DataFrame containing the NEGATIVE sentences&#13;&#10;" width="437" height="366"/></div><p class="figure-caption">图8.7-包含否定句的数据框架</p><p>这里，我们有包含_ _ label _ _负字符串的标签列。</p></li>
+				<li>Merge the two DataFrames using the concat() function:<pre><strong class="bold">all_df</strong> = pd.concat(
+    [<strong class="bold">positive_df</strong>, <strong class="bold">negative_df</strong>], 
+    ignore_index=True
+)</pre><p>该配方中的最后一组<a id="_idIndexMarker1609"/>步骤<a id="_idIndexMarker1610"/>集中于训练-测试分割，并将生成的训练、验证和测试集上传到S3:</p></li>
+				<li>Perform the train-validation-test split on all_df:<pre>from sklearn.model_selection import <strong class="bold">train_test_split</strong>
+<strong class="bold">train_val_df</strong>, <strong class="bold">test_df</strong> = <strong class="bold">train_test_split</strong>(
+    all_df, 
+    test_size=0.2
+) 
+<strong class="bold">train_df</strong>, <strong class="bold">val_df</strong> = <strong class="bold">train_test_split</strong>(
+    train_val_df, 
+    test_size=0.25
+)</pre><p>这将为我们提供600条训练集记录(train_df)，200条验证集记录(val_df)，以及200条测试集记录(test_df)。</p></li>
+				<li>Export the DataFrames into their corresponding CSV files using the to_csv() function:<pre>!mkdir tmp 
+<strong class="bold">train_df</strong>.to_csv(
+    "tmp/<strong class="bold">synthetic.train.txt</strong>", 
+    header=False, 
+    index=False, 
+    sep=" ", 
+    quotechar=" "
+)
+<strong class="bold">val_df</strong>.to_csv(
+    "tmp/<strong class="bold">synthetic.validation.txt</strong>", 
+    header=False, 
+    index=False, 
+    sep=" ", 
+    quotechar=" "
+) 
+<strong class="bold">test_df</strong>.to_csv(
+    "tmp/<strong class="bold">synthetic.test.txt</strong>", 
+    header=False, 
+    index=False, 
+    sep=" ", 
+    quotechar=" "
+)</pre><p>请注意，<a id="_idIndexMarker1611"/>我们让<a id="_idIndexMarker1612"/>将标题和索引的参数值设置为假。</p></li>
+				<li>Inspect the contents of the synthetic.train.txt file inside the tmp directory:<pre>!head tmp/<strong class="bold">synthetic.train.txt</strong></pre><p>这将给我们类似于图8.8 中所示的文本行。</p><div><img src="img/B16850_08_08.jpg" alt="Figure 8.8 – Contents of the synthetic.train.txt file&#13;&#10;" width="615" height="261"/></div><pre>s3_bucket = "<strong class="bold">&lt;insert bucket name here&gt;</strong>"
+prefix = "chapter08"
+!aws s3 cp tmp/<strong class="bold">synthetic.train.txt</strong> s3://{s3_bucket}/{prefix}/input/<strong class="bold">synthetic.train.txt</strong> 
+!aws s3 cp tmp/<strong class="bold">synthetic.validation.txt</strong> s3://{s3_bucket}/{prefix}/input/<strong class="bold">synthetic.validation.txt</strong></pre></li>
+				<li>Finally, use the %store magic to store the variable values for test_df, s3_bucket, and prefix:<pre>%store <strong class="bold">test_df</strong>
+%store <strong class="bold">s3_bucket</strong>
+%store <strong class="bold">prefix</strong></pre><p>我们将在后面的菜谱中使用这些变量值。</p></li>
+			</ol>
+			<p>现在，让我们看看这是如何工作的<a id="_idTextAnchor821"/>！</p>
+			<h2 id="_idParaDest-332"><a id="_idTextAnchor822"/>工作原理……</h2>
+			<p>在这个配方中，我们<a id="_idIndexMarker1615"/>已经生成了将在本章接下来的三个配方中使用的合成数据集。与本书中生成的其他合成数据集相比，我们生成了一个<a id="_idIndexMarker1616"/>合成数据集，其中包含该配方中的文本数据，而不是表格和数字数据。</p>
+			<p>我们生成的数据集有两个主要字段:(1)包含字符串格式语句的文本字段，以及(2)目标标签，可以是__label__positive或__label__negative。标签有__label__前缀很重要，因为我们计划在配方<em class="italic">中以文件模式训练一个<strong class="bold"> BlazingText </strong>模型训练和部署一个BlazingText模型</em>。注意，我们并不局限于在这个数据集中只有两个类。如果我们希望在这个配方的基础上构建，一个例子是有三个类而不是两个——_ _ label _ _ positive、__label__neutral和_ _ label _ _ neutral。当然，在使用特定算法运行训练作业之前，我们需要确保相应地更新配置和超参数值。</p>
+			<h2 id="_idParaDest-333"><a id="_idTextAnchor823"/>还有更多……</h2>
+			<p>我们还可以选择使用<strong class="bold">增强清单文本格式</strong>作为<a id="_idIndexMarker1617"/>来存储和导出合成数据集。这在训练<a id="_idIndexMarker1618"/>blazing text模型时也应该有效。这涉及到使用JSON Lines格式，其中文件中的每一行都包含一个有效的JSON值，类似于下面的代码块所示:</p>
+			<pre>{"<strong class="bold">source</strong>":"i will not recommend this", "<strong class="bold">label</strong>":0}
+{"<strong class="bold">source</strong>":"i would recommend this", "<strong class="bold">label</strong>":1}</pre>
+			<p>使用增强清单文本格式的一个优点是，我们可以在管道输入模式下训练模型，其中数据集直接流向训练实例。在<a href="B16850_04_Final_ASB_ePub.xhtml#_idTextAnchor200"> <em class="italic">第4章</em> </a>、<em class="italic">准备、处理和分析数据</em>中的<em class="italic">将CSV数据转换为protobuf recordIO格式</em>中，我们提到当我们的数据被序列化为protobuf recordIO格式时，我们可以在<a id="_idIndexMarker1619"/>训练期间使用<strong class="bold">管道模式</strong>。在这种情况下，只要我们的数据使用增强的清单文本格式，我们将能够使用<strong class="bold">管道模式</strong>，即使不必将我们的数据序列化为protobuf recordIO格式。</p>
+			<h1 id="_idParaDest-334"><a id="_idTextAnchor824"/>为批量转换推理作业准备测试数据集</h1>
+			<p>在<a id="_idIndexMarker1620"/>这个配方中，我们将使用批处理转换进行推理来准备将在配方<em class="italic">中使用的<a id="_idIndexMarker1621"/>测试数据集，这利用了SageMaker的<strong class="bold">批处理转换</strong>功能。使用<strong class="bold">批量转换</strong>，我们可以同时对<a id="_idIndexMarker1622"/>多条记录执行推理，而无需运行持久端点。</em></p>
+			<div><div><img src="img/B16850_08_09.jpg" alt="Figure 8.9 – Text file containing the test data in JSON lines format&#13;&#10;" width="562" height="380"/>
+				</div>
+			</div>
+			<p class="figure-caption">图8.9-包含JSON行格式的测试数据的文本文件</p>
+			<p>请注意，当使用<strong class="bold">批量转换</strong>和<strong class="bold"> BlazingText </strong>模型时，输入测试数据集采用jsonlines格式是很重要的。正如我们在<em class="italic">图8.9 </em>中看到的，文件中的每一行都是一个有效的JSON值。</p>
+			<h2 id="_idParaDest-335"><a id="_idTextAnchor825"/>做好准备</h2>
+			<p>以下是这个食谱的先决条件:</p>
+			<ul>
+				<li>这种方法上接<em class="italic">为文本分类问题生成合成数据集</em>。</li>
+				<li>运行<strong class="bold"> Python 3(数据科学)</strong>内核的<strong class="bold"> SageMaker Studio </strong>笔记本。</li>
+			</ul>
+			<h2 id="_idParaDest-336"><a id="_idTextAnchor826"/>怎么做……</h2>
+			<p><a id="_idIndexMarker1623"/>该配方中的步骤主要是将<a id="_idIndexMarker1624"/>数据从之前的配方转换成jsonlines格式，并将结果文件上传到S3:</p>
+			<ol>
+				<li value="1">在my-experiments/chapter08目录中使用Python 3(数据科学)内核创建一个新的笔记本，并将其重命名为这个食谱的名称。当提示使用内核时，选择<strong class="bold"> Python 3(数据科学)</strong>。</li>
+				<li>使用%store magic加载test_df、s3_bucket和prefix的变量值:<pre>%store -r <strong class="bold">test_df</strong> %store -r <strong class="bold">s3_bucket</strong> %store -r <strong class="bold">prefix</strong></pre></li>
+				<li>使用drop()函数删除标签列:<pre>test_df_without_label = test_df.drop(     columns="<strong class="bold">label</strong>" )</pre></li>
+				<li>Define the to_jsonlines() function:<pre>def <strong class="bold">to_jsonlines</strong>(text):
+    return '{"<strong class="bold">source</strong>": "' + text +'"}'</pre><p class="callout-heading">注意</p><p class="callout">请注意，在这个菜谱中，我们展示了一种将我们所拥有的内容转换成JSON行格式的方法。还可以使用to_json()函数将lines设置为True，将DataFrame转换为jsonlines格式。</p></li>
+				<li>Use the apply() function to convert each cell in the text column to jsonlines format. Next, check how the test_df_without_label DataFrame<a id="_idIndexMarker1625"/> looks after <a id="_idIndexMarker1626"/>using the apply() function as well:<pre>tmp = test_df_without_label['text'].<strong class="bold">apply</strong>(
+    <strong class="bold">to_jsonlines</strong>
+)
+test_df_without_label['text'] = tmp
+test_df_without_label</pre><p>运行前面的代码块后，DataFrame中文本列中的字符串值将被转换为字典。这应该给我们一个行索引和jsonline字典对的数据框架，类似于<em class="italic">图8.10 </em>中所示。</p><div><img src="img/B16850_08_10.jpg" alt="Figure 8.10 – DataFrame containing test data without labels&#13;&#10;" width="329" height="357"/></div><p class="figure-caption">图8.10-包含无标签测试数据的数据框</p><p>我们可以<a id="_idIndexMarker1627"/>在<em class="italic">图8.10 </em>中看到，DataFrame的文本列现在包含一个字典，其source为<a id="_idIndexMarker1628"/>键，值设置为文本列中单元格的原始文本值。</p></li>
+				<li>We then run the following code to store the content of the DataFrame in a file: <pre><strong class="bold">test_df_without_label</strong>.to_csv(
+    "tmp/<strong class="bold">synthetic.test_without_labels.txt</strong>", 
+    header=False, 
+    index=False, 
+    sep=" ", 
+    quotechar=" "
+)
+     
+!head tmp/<strong class="bold">synthetic.test_without_labels.txt</strong></pre><p>这应该会给出文本文件的前几行，类似于图8.11 中的<em class="italic">所示。</em></p><div><img src="img/B16850_08_11.jpg" alt="Figure 8.11 – Text file containing the test data in jsonlines format&#13;&#10;" width="619" height="380"/></div><p class="figure-caption">图8.11-包含jsonlines格式的测试数据的文本文件</p><p>在<em class="italic">图8.11 </em>中，我们可以看到我们成功地用jsonlines格式的数据生成了一个文本文件。</p></li>
+				<li>Now that<a id="_idIndexMarker1629"/> we have our TXT<a id="_idIndexMarker1630"/> file ready, we use the <strong class="bold">AWS CLI</strong> to <a id="_idIndexMarker1631"/>upload the generated file to the target S3 location:<pre>!aws s3 cp tmp/<strong class="bold">synthetic.test_without_labels.txt</strong> s3://{s3_bucket}/{prefix}/input/<strong class="bold">synthetic.test_without_labels.txt</strong></pre><p>请注意，我们在此配方中准备的jsonlines格式的文件将在配方<em class="italic">中使用，使用批处理转换进行推理</em>。</p></li>
+			</ol>
+			<p>现在我们已经完成了最后两个配方中所需的准备工作，我们可以继续下一个配方，在这里我们将使用这些数据集来训练和部署一个<strong class="bold"> BlazingText </strong>模型。同时，让我们看看这是如何工作的！</p>
+			<h2 id="_idParaDest-337"><a id="_idTextAnchor827"/>工作原理……</h2>
+			<p>在这个配方中，我们已经准备了将在配方<em class="italic">中使用的测试数据集，使用批处理转换进行推理</em>，这涉及到SageMaker的<a id="_idIndexMarker1632"/>批处理转换功能，用于在没有持久实时端点的情况下执行推理。</p>
+			<p>为什么要将<a id="_idIndexMarker1633"/>数据集转换成jsonlines格式？这是因为数据集需要在<a id="_idIndexMarker1634"/>中为jsonlines格式，以便使用<strong class="bold">批量转换</strong>和<strong class="bold"> BlazingText </strong>模型。如前所述，文件中的每一行都是一个有效的JSON值。<strong class="bold"> Batch Transform </strong>将每一行视为一个输入有效载荷，这意味着如果我们的jsonlines文件中有1000行，那么在作业完成后，我们将得到1000个推理结果。注意，在准备jsonlines文件时，我们需要确保我们将为<strong class="bold">批量转换</strong>作业准备的数据集不包含标签字段值。也就是说，我们只需要提供源字段的值。</p>
+			<h1 id="_idParaDest-338"><a id="_idTextAnchor828"/>培训和部署BlazingText模型</h1>
+			<p>在为文本分类问题生成合成数据集的方法<em class="italic">中，我们准备了将用于训练<strong class="bold"> BlazingText </strong>模型的数据集。在这个菜谱中，我们将使用<strong class="bold"> SageMaker Python SDK </strong>来训练和部署一个<strong class="bold"> BlazingText </strong>模型，该模型可用于情感分析应用程序。</em></p>
+			<p>在<a id="_idIndexMarker1635"/>完成这个食谱之后，我们将能够把一个句子<a id="_idIndexMarker1636"/>比如我会把这个推荐给我的朋友作为有效载荷传递给一个推理端点，并得到正确的分类，这是肯定的。</p>
+			<h2 id="_idParaDest-339"><a id="_idTextAnchor829"/>做好准备</h2>
+			<p>以下是这个食谱的先决条件:</p>
+			<ul>
+				<li>这个配方延续了<em class="italic">为文本分类问题生成合成数据集</em>。</li>
+				<li>运行<strong class="bold"> Python 3(数据科学)</strong>内核的<strong class="bold"> SageMaker Studio </strong>笔记本。</li>
+			</ul>
+			<h2 id="_idParaDest-340"><a id="_idTextAnchor830"/>怎么做……</h2>
+			<p>该方法的第一步主要是准备使用<strong class="bold"> SageMaker Python SDK </strong>培训和部署<strong class="bold"> BlazingText </strong>模型的先决条件:</p>
+			<ol>
+				<li value="1">在my-experiments/chapter08目录中使用Python 3(数据科学)内核<a id="_idIndexMarker1638"/>创建一个新的<a id="_idIndexMarker1637"/>笔记本，并将其重命名为该食谱的名称。当提示使用内核时，选择<strong class="bold"> Python 3(数据科学)</strong>。</li>
+				<li>导入并初始化使用<strong class="bold"> SageMaker Python SDK </strong>进行培训和部署所需的一些先决条件:<pre>import sagemaker from sagemaker import get_execution_role import json import boto3 <strong class="bold">session</strong> = sagemaker.Session() <strong class="bold">role</strong> = get_execution_role() <strong class="bold">region_name</strong> = boto3.Session().region_name</pre></li>
+				<li>使用%store magic为s3_bucket和prefix加载变量值:<pre>%store -r <strong class="bold">s3_bucket</strong> %store -r <strong class="bold">prefix</strong> <strong class="bold">s3_train_data</strong> = 's3://{}/{}/input/{}'.format(     s3_bucket,      prefix,      "<strong class="bold">synthetic.train.txt</strong>" ) <strong class="bold">s3_validation_data</strong> = 's3://{}/{}/input/{}'.format(     s3_bucket,      prefix,      "<strong class="bold">synthetic.validation.txt</strong>" ) <strong class="bold">s3_output_location</strong> = 's3://{}/{}/output'.format(     s3_bucket,      prefix )</pre></li>
+				<li>Use the retrieve() function <a id="_idIndexMarker1639"/>to get the ECR Image URI of the built-in <a id="_idIndexMarker1640"/>algorithm <strong class="bold">BlazingText</strong>:<pre>from sagemaker.image_uris import retrieve 
+container = <strong class="bold">retrieve</strong>(
+    "<strong class="bold">blazingtext</strong>", 
+    region_name, 
+    "1"
+)</pre><p>该方法中的最后一组步骤重点关注在培训和部署<strong class="bold"> BlazingText </strong>模型的前一组步骤中准备的先决条件:</p></li>
+				<li>初始化Estimator对象，并在初始化期间使用上一步中的容器变量作为第一个参数:<pre>estimator = sagemaker.estimator.<strong class="bold">Estimator</strong>(     <strong class="bold">container</strong>,     role,      instance_count=1,      instance_type='ml.c4.xlarge',     input_mode= 'File',     output_path=s3_output_location,     sagemaker_session=session )</pre></li>
+				<li>使用set_hyperparameters()函数:<pre>estimator.<strong class="bold">set_hyperparameters</strong>(     mode="<strong class="bold">supervised</strong>",      min_count=2 )</pre>指定几个<a id="_idIndexMarker1641"/>超参数<a id="_idIndexMarker1642"/></li>
+				<li>接下来，我们使用下面的代码块准备输入数据通道:<pre>from sagemaker.inputs import TrainingInput       train_data = <strong class="bold">TrainingInput</strong>(     s3_train_data,      distribution='FullyReplicated',        content_type='text/plain',      s3_data_type='S3Prefix' )       validation_data = <strong class="bold">TrainingInput</strong>(     s3_validation_data,      distribution='FullyReplicated',      content_type='text/plain',      s3_data_type='S3Prefix' ) <strong class="bold">data_channels</strong> = {     'train': <strong class="bold">train_data</strong>,      'validation': <strong class="bold">validation_data</strong> }</pre></li>
+				<li>With <a id="_idIndexMarker1643"/>everything ready, we use the fit() function to start<a id="_idIndexMarker1644"/> the training job. Wait for about 5-10 minutes for the training job to complete: <pre>%%time
+estimator.<strong class="bold">fit</strong>(
+    inputs=<strong class="bold">data_channels</strong>, 
+    logs=True
+)</pre><p>这将产生一组类似于图8.12 中所示的日志。</p><div><img src="img/B16850_08_12.jpg" alt="Figure 8.12 – Training job logs&#13;&#10;" width="643" height="422"/></div><p class="figure-caption">图8.12–培训工作日志</p><p>在<em class="italic">图8.12 </em>中，我们可以看到我们的validation_accuracy值是99.25%！当然，我们使用的是带有合成数据集的简化示例，但这对我们来说是一个良好的开端。</p></li>
+				<li>Use the deploy() function<a id="_idIndexMarker1646"/> to deploy our BlazingText model:<pre>endpoint = estimator.<strong class="bold">deploy</strong>(
+    initial_instance_count = 1, 
+    instance_type = 'ml.r5.large'
+)</pre><p>完成此步骤可能需要5到10分钟。</p><p class="callout-heading">重要说明</p><p class="callout">运行deploy()函数将启动一个实例，该实例将继续运行，直到执行删除资源操作。当实例运行时，您将为它运行的时间付费。确保在完成这个配方后删除推理端点。</p></li>
+				<li>接下来，准备我们将包含在有效载荷中的<a id="_idIndexMarker1647"/>句子，以测试<a id="_idIndexMarker1648"/>我们部署的模型:<pre><strong class="bold">sentences</strong> = [     "that is bad",      "the apple tastes good",      "i would recommend it to my friends" ] <strong class="bold">payload = {"instances" : sentences}</strong></pre></li>
+				<li>After that, we use the predict() function to test our deployed model:<pre>from sagemaker.serializers import JSONSerializer
+     
+endpoint.serializer = JSONSerializer()
+response = endpoint.<strong class="bold">predict</strong>(<strong class="bold">payload</strong>)
+predictions = json.loads(response)
+print(json.dumps(predictions, indent=2))</pre><p>运行前面的代码块将产生一组类似于下图所示的结果。</p><div><img src="img/B16850_08_13.jpg" alt="Figure 8.13 – Prediction results&#13;&#10;" width="220" height="449"/></div><p class="figure-caption">图8.13–预测结果</p><p>在<em class="italic">图8.13 </em>中，我们为包含在有效载荷中的<a id="_idIndexMarker1650"/>的每个句子获得了<a id="_idIndexMarker1649"/>一个标签。我们的第一句话，那是坏的，被标记为负面的，有81%的概率得分。我们的第二句和第三句，苹果味道不错，我会推荐给我的朋友，分别以79%和65%的概率得分被标记为肯定。我认为我们部署的模型工作得很好！</p></li>
+				<li>使用%store magic来存储training_job_name变量值:<pre>tn = <strong class="bold">estimator.latest_training_job.name</strong> training_job_name = tn %store <strong class="bold">training_job_name</strong></pre></li>
+			</ol>
+			<p>现在，我们已经完成了这个菜谱中的步骤，可以随意使用部署的模型了。一旦您测试完不同的句子，不要忘记使用endpoint.delete_endpoint()删除端点。</p>
+			<p>现在让我们看看这是如何工作的！</p>
+			<h2 id="_idParaDest-341">它是如何工作的…</h2>
+			<p>在讨论使用<strong class="bold"> BlazingText </strong>时的细节和超参数之前，需要注意的是，使用该算法时我们有两种模式:</p>
+			<ul>
+				<li>使用<strong class="bold"> Word2vec </strong>算法的无监督学习</li>
+				<li>文本分类问题的监督学习</li>
+			</ul>
+			<p>在这个配方中，我们使用set_hyperparameters()函数将<a id="_idIndexMarker1652"/>模式设置为监督模式，因为我们正在解决一个<strong class="bold">文本分类</strong>问题。如果我们要使用Word2vec算法将单词映射到分布式向量，并从文本数据(如EAT-SPAGHETTI和DRINK - JUICE)中学习单词关联，我们可以将mode的值设置为batch_skipgram、skipgram或cbow。如果我们将使用单个GPU实例，我们可以将mode的值设置为cbow或skipgram。如果我们希望通过跨多个CPU实例的分布式处理获得更快的训练时间，可以为模式值指定batch_skipgram。</p>
+			<p class="callout-heading">注意</p>
+			<p class="callout">我们还可以指定和配置其他超参数，例如early_stopping、learning_rate、epochs和word_ngrams。我们不会在本书中详细讨论这些，所以可以随意查看以下链接:<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/blazingtext_hyperparameters.html">https://docs . AWS . Amazon . com/sagemaker/latest/DG/blazingtext _ hyperparameters . html</a>。</p>
+			<h2 id="_idParaDest-342"><a id="_idTextAnchor832"/>查看更多</h2>
+			<p>如果您正在寻找在真实数据集上使用内置<strong class="bold"> BlazingText算法</strong>的示例和更复杂的示例，请随意查看AWS/Amazon-sage maker-examples GitHub资源库中的一些笔记本:</p>
+			<ul>
+				<li>使用<strong class="bold">blazing text</strong>—<a href="https://github.com/aws/amazon-sagemaker-examples/tree/master/introduction_to_amazon_algorithms/blazingtext_word2vec_text8%20">https://github . com/AWS/Amazon-sage maker-examples/tree/master/introduction _ to _ Amazon _ algorithms/blazing text _ word 2 vec _ text 8</a>生成<a id="_idIndexMarker1654"/> Word2Vec嵌入</li>
+				<li>使用<strong class="bold"> SparkML </strong>和<strong class="bold">blazing text</strong>—<a href="https://github.com/aws/amazon-sagemaker-examples/tree/master/advanced_functionality/inference_pipeline_sparkml_blazingtext_dbpedia%20">https://github . com/AWS/Amazon-sagemaker-examples/tree/master/advanced _ functionality/inference _ pipeline _ spark ml _ blazing text _ dbpedia</a>创建推理管道<a id="_idIndexMarker1655"/></li>
+			</ul>
+			<p>由于我们无法在本书中深入探究<strong class="bold"> BlazingText算法</strong>的不同特性，请随意查看此链接获取更多信息:<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/blazingtext.html">https://docs . AWS . Amazon . com/sage maker/latest/DG/blazing text . html</a>。</p>
+			<h1 id="_idParaDest-343"><a id="_idTextAnchor833"/>使用批量转换进行推理</h1>
+			<p>在前面的<a id="_idIndexMarker1657"/>配方中，我们训练并部署了一个<strong class="bold"> BlazingText </strong>模型<a id="_idIndexMarker1658"/>，它接受一个字符串语句并返回该语句是正还是负。在这个配方中，我们将使用这个模型和<strong class="bold"> SageMaker </strong>的<strong class="bold">批处理转换</strong>功能，在没有持久推理端点的情况下，同时对整个测试数据集执行文本分类。</p>
+			<h2 id="_idParaDest-344">准备就绪</h2>
+			<p>以下是这个食谱的先决条件:</p>
+			<ul>
+				<li>这个方法延续了<em class="italic">培训和部署BlazingText模型</em>的做法。</li>
+				<li>运行<strong class="bold"> Python 3(数据科学)</strong>内核的<strong class="bold"> SageMaker Studio </strong>笔记本。</li>
+			</ul>
+			<h2 id="_idParaDest-345"><a id="_idTextAnchor835"/>怎么做……</h2>
+			<p>本方法中的步骤集中于使用我们在前面的方法中准备的先决条件，使用<strong class="bold"> SageMaker Python SDK </strong>运行批处理转换作业:</p>
+			<ol>
+				<li value="1">在my-experiments/chapter08目录中使用Python 3(数据科学)内核创建一个新的笔记本，并将其重命名为这个食谱的名称。当提示使用内核时，选择<strong class="bold"> Python 3(数据科学)</strong>。</li>
+				<li>Use the %store magic to load the variable values for s3_bucket, prefix, and training_job_name. At the same time, initialize and set the values of a few prerequisites of<a id="_idIndexMarker1659"/> the batch transform job. We set <a id="_idIndexMarker1660"/>the value of the batch_output variable as well. This variable will point to the location where the batch transform job output artifacts will be stored: <pre>%store -r <strong class="bold">s3_bucket</strong>
+%store -r <strong class="bold">prefix</strong>
+%store -r <strong class="bold">training_job_name</strong>
+path = 's3://{}/{}/input/{}'.format(
+    s3_bucket, 
+    prefix, 
+    "<strong class="bold">synthetic.test_without_labels.txt</strong>"
+)
+<strong class="bold">s3_test_without_labels_data</strong> = path
+     
+path = 's3://{}/{}/batch-prediction'.format(
+    s3_bucket, 
+    prefix
+)
+<strong class="bold">batch_output</strong> = path</pre><p>请注意，我们已经从配方<em class="italic">中加载了s3_bucket和prefix的变量值，为文本分类问题</em>生成了一个合成数据集。也就是说，在我们使用%store魔术加载变量前缀的值之后，它的值应该是chapter08。</p></li>
+				<li>We use the transformer() function of the Estimator object to get the transformer object, which we will use in the next step:<pre>from sagemaker.estimator import Estimator
+estimator = Estimator.<strong class="bold">attach</strong>(<strong class="bold">training_job_name</strong>)
+transformer = estimator.transformer(
+    instance_count=1, 
+    instance_type='ml.m4.xlarge', 
+    output_path=batch_output
+)</pre><p>这里，我们还<a id="_idIndexMarker1661"/>使用Estimator.attach()函数从我们在配方<em class="italic">培训和部署BlazingText模型</em>中运行的<a id="_idIndexMarker1662"/>培训作业的名称中加载Estimator对象。</p></li>
+				<li>Use the transform() function to start the batch transform job. We then use the wait() function to wait for the job to complete before proceeding to the next step:<pre>transformer.<strong class="bold">transform</strong>(
+    data=<strong class="bold">s3_test_without_labels_data</strong>, 
+    data_type='S3Prefix',
+    content_type='application/jsonlines', 
+    split_type='Line'
+)
+transformer.<strong class="bold">wait</strong>()</pre><p>这将产生一组类似于图8.14 中所示的日志。</p><div><img src="img/B16850_08_14.jpg" alt="Figure 8.14 – Batch transform job logs&#13;&#10;" width="655" height="197"/></div><p class="figure-caption">图8.14–批量转换作业日志</p><p>还记得在<a id="_idIndexMarker1663"/>之前的配方中，我们删除了<a id="_idIndexMarker1664"/>实时预测的终点吗？在这里，我们可以看到批处理转换作业涉及到在没有持久端点的情况下运行推理。</p><p class="callout-heading">注意</p><p class="callout">完成此步骤可能需要大约4到8分钟。在等待的时候，请随意喝杯咖啡或茶！</p></li>
+				<li>使用<strong class="bold"> AWS S3 CLI </strong>将批量转换作业的输出复制到与Jupyter笔记本相同的目录中的tmp目录，该目录中包含该配方中的代码块和脚本:<pre>!aws s3 cp {<strong class="bold">batch_output</strong>} ./tmp --recursive</pre></li>
+				<li>Use the head bash command to check a few values: <pre>!head tmp/<strong class="bold">synthetic.test_without_labels.txt.out</strong></pre><p>这将给我们类似于图8.15 中所示的文本行。</p><div><img src="img/B16850_08_15.jpg" alt="Figure 8.15 – Batch transform results&#13;&#10;" width="690" height="177"/></div><p class="figure-caption">图8.15–批量转换结果</p><p>在<em class="italic">图8.15 </em>中，我们可以看到我们有多个结果，每一行都包含一个标签，概率得分在0.0到1.0之间。prob的值越接近1.0，某个预测的概率得分越高。</p></li>
+				<li>We check<a id="_idIndexMarker1665"/> their corresponding input <em class="italic">jsonline</em> values <a id="_idIndexMarker1666"/>as well:<pre>!head tmp/<strong class="bold">synthetic.test_without_labels.txt</strong></pre><p>这将给我们类似于图8.16 中所示的文本行。</p></li>
+			</ol>
+			<div><div><img src="img/B16850_08_16.jpg" alt="Figure 8.16 – Test data without labels in jsonlines format&#13;&#10;" width="561" height="383"/>
+				</div>
+			</div>
+			<p class="figure-caption">图8.16-jsonlines格式的无标签测试数据</p>
+			<p>在<em class="italic">图8.16 </em>中，我们可以看到前八个句子应该被标记为否定类，而接下来的两个句子应该被标记为肯定类。将它与<em class="italic">图8.15 </em>中的批量转换作业的结果进行比较，我们可以看到我们的模型10个预测中有9个是正确的。</p>
+			<p>现在让我们看看这是如何工作的！</p>
+			<h2 id="_idParaDest-346"><a id="_idTextAnchor836"/>工作原理…</h2>
+			<p>在这个菜谱中，我们使用SageMaker的<strong class="bold">批处理转换</strong>功能来执行预测，并使用大量测试记录作为输入来获得推论。</p>
+			<p>我们什么时候用<strong class="bold">批量转换</strong>？当我们不需要实时推理端点，或者需要批量获取推理时，我们会使用这个功能。这意味着我们可以传递1000条测试记录作为“有效负载”，并获得1000个推断值作为批量转换作业的返回输出<a id="_idIndexMarker1667"/>。使用<strong class="bold">批量转换</strong>，我们将不必担心资源管理，因为与拥有全天候运行的实时端点相比，我们不必在执行推理后手动<a id="_idIndexMarker1668"/>删除端点。</p>
+			<p>请注意，我们可以通过批量转换作业显著增加要分类的句子数量。鉴于<strong class="bold">批处理转换</strong>使我们能够轻松处理这些类型的场景和需求，我们可以将instance_type参数值从ml.m4.xlarge更改为具有更多内存或计算能力的<strong class="bold"> ML </strong> ( <strong class="bold">机器学习</strong>)实例。同样，没有什么可担心的，因为用于处理这个批量分类工作的实例会在工作完成后自动删除。</p>
+			<h2 id="_idParaDest-347"><a id="_idTextAnchor837"/>亦见</h2>
+			<p>如果您正在寻找在真实数据集上使用<strong class="bold">批量转换</strong>的<a id="_idIndexMarker1669"/>示例和更复杂的示例，请随意查看GitHub资源库中关注此主题的一些笔记本:<a href="https://github.com/aws/amazon-sagemaker-examples/tree/master/sagemaker_batch_transform">https://GitHub . com/AWS/Amazon-sage maker-examples/tree/master/sage maker _ Batch _ Transform</a>。</p>
+			<h1 id="_idParaDest-348"><a id="_idTextAnchor838"/>使用Apache MXNet视觉数据集类准备用于图像分类的数据集</h1>
+			<p>在这个菜谱中，我们<a id="_idIndexMarker1670"/>将建立本章中图像分类实验<a id="_idIndexMarker1671"/>所需的文件和目录结构。我们将在tmp目录中创建五个目录——train、validation、train_lst、validation_lst和test。之后，我们将使用<strong class="bold"> Apache MXNet视觉数据集类</strong>来加载本章中训练和测试图像分类模型所需的数据集。我们将执行训练测试分割，将加载的数据存储为图像文件，并生成。将用于培训作业的lst文件。</p>
+			<div><div><img src="img/B16850_08_17.jpg" alt="Figure 8.17 – MNIST dataset&#13;&#10;" width="650" height="228"/>
+				</div>
+			</div>
+			<p class="figure-caption">图8.17-MNIST数据集</p>
+			<p>在<em class="italic">图8.17 </em>中，我们有一些将在该配方中准备的样本图像文件。在配方<em class="italic">中使用SageMaker </em>中内置的图像分类算法训练和部署图像分类器，我们将使用这些图像文件训练一个图像分类器模型，它可以识别所提供图像的标签(数字)。</p>
+			<h2 id="_idParaDest-349">准备就绪</h2>
+			<p>运行<strong class="bold">Python 3(MXNet 1.8 Python 3.7 CPU优化)</strong>内核的<strong class="bold"> SageMaker Studio </strong>笔记本是这个食谱的唯一先决条件。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">确保选择<strong class="bold"> CPU优化</strong>选项，而不是<strong class="bold"> GPU优化</strong>选项，因为<strong class="bold"> GPU优化</strong>选项将启动默认类型为ml.g4dn.xlarge的实例。另一方面，<strong class="bold"> CPU优化</strong>选项将启动默认类型为ml.t3.medium的实例。有关更多信息，请随时查看<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/notebooks-usage-metering.html">https://docs . AWS . Amazon . com/sagemaker/latest/DG</a></p>
+			<h2 id="_idParaDest-350"><a id="_idTextAnchor840"/>怎么做……</h2>
+			<p>该方法的第一步主要是准备文件和目录结构，我们将在其中存储生成的图像和文件:</p>
+			<ol>
+				<li value="1">Create a <a id="_idIndexMarker1672"/>new <a id="_idIndexMarker1673"/>notebook using the Python 3 (MXNet 1.8 Python 3.7 CPU Optimized) kernel inside the my-experiments/chapter08 directory and rename it to the name of this recipe. When prompted for the kernel to use, choose <strong class="bold">Python 3 (Data Science)</strong>.<p class="callout-heading">注意</p><p class="callout">在运行下一组步骤之前，请随意清理tmp目录(如果存在)。</p></li>
+				<li>使用mkdir命令，创建我们将存储训练和验证数据集图像的目录:<pre>%%bash mkdir -p tmp/<strong class="bold">train/0</strong> tmp/<strong class="bold">train/1</strong> tmp/<strong class="bold">train/2</strong> tmp/<strong class="bold">train/3</strong> tmp/<strong class="bold">train/4</strong> mkdir -p tmp/<strong class="bold">train/5</strong> tmp/<strong class="bold">train/6</strong> tmp/<strong class="bold">train/7</strong> tmp/<strong class="bold">train/8</strong> tmp/<strong class="bold">train/9</strong> mkdir -p tmp/<strong class="bold">validation/0</strong> tmp/<strong class="bold">validation/1</strong> tmp/<strong class="bold">validation/2</strong> tmp/<strong class="bold">validation/3</strong> tmp/<strong class="bold">validation/4</strong> mkdir -p tmp/<strong class="bold">validation/5</strong> tmp/<strong class="bold">validation/6</strong> tmp/<strong class="bold">validation/7</strong> tmp/<strong class="bold">validation/8</strong> tmp/<strong class="bold">validation/9</strong></pre></li>
+				<li>Create the directory that will contain the training data .lst file:<pre>%%bash
+mkdir -p tmp/<strong class="bold">train_lst</strong>
+mkdir -p tmp/<strong class="bold">validation_lst</strong>
+mkdir -p tmp/<strong class="bold">test</strong></pre><p>该方法中的下一组步骤侧重于为影像分类准备数据集:</p></li>
+				<li>导入mxnet并使用mx.random.seed()函数将种子值设置为任意数字:<pre>import mxnet as mx mx.random.seed(21)</pre></li>
+				<li>定义<a id="_idIndexMarker1674"/>transform _ fxn()函数，并在使用<strong class="bold"> Apache MXNet视觉数据集</strong> MNIST类:<pre>def <strong class="bold">transform_fxn</strong>(data, label):     data = data.astype('float32')     data = data / 255     return data, label       ds = <strong class="bold">mx.gluon.data.vision.datasets.MNIST</strong>(     train=True,      transform=transform_fxn ) <strong class="bold">training_and_validation_dataset</strong> = ds       ds = <strong class="bold">mx.gluon.data.vision.datasets.MNIST</strong>(     train=False,      transform=transform_fxn ) <strong class="bold">test_dataset</strong> = ds</pre>时使用该函数作为转换参数的值<a id="_idIndexMarker1675"/></li>
+				<li>Define <a id="_idIndexMarker1676"/>the get_training_row_indexes() <a id="_idIndexMarker1677"/>function:<pre>def <strong class="bold">get_training_row_indexes</strong>(row_count, 
+                             percent=0.5, 
+                             ratio=0.8):
+    <strong class="bold">training_index_start</strong> = 0
+    end = int(row_count * ratio * percent)
+    <strong class="bold">training_index_end</strong> = end
+    
+    print("Range Index Start:", 
+          training_index_start)
+    print("Range Index End:", 
+          training_index_end)
+    
+    output = list(range(training_index_start, 
+                        training_index_end))
+    
+    print("Output Length:", len(output))
+    print("Last Index:", output[-1])
+    
+    return output</pre><p>顾名思义，该函数返回一个索引列表，这些索引将映射到相应的图像，这些图像将成为训练数据集的一部分。对于这个函数，我们期望开始和结束索引值根据row_count、percent和ratio的参数<a id="_idIndexMarker1678"/>值而改变。</p></li>
+				<li>Define<a id="_idIndexMarker1679"/> the get_validation_row_indexes() function:<pre>def <strong class="bold">get_validation_row_indexes</strong>(row_count, 
+                               percent=0.5, 
+                               ratio=0.8):
+    start = int(row_count * ratio)
+    <strong class="bold">validation_index_start</strong> = start
+    
+    count = int((1 - ratio)*row_count*percent) + 1
+    element_count = count
+    <strong class="bold">validation_index_end</strong> = validation_index_start + element_count
+    
+    print("Range Index Start:", 
+          validation_index_start)
+    print("Element Count:", 
+          element_count)
+    print("Range Index End:", 
+          validation_index_end)
+    
+    output = list(range(validation_index_start, 
+                        validation_index_end))
+    
+    print("Output Length:", len(output))
+    print("Last Index:", output[-1])
+    
+    return output</pre><p>类似于get_training_row_indexes()，该函数返回一个索引列表<a id="_idIndexMarker1680"/>，该列表将映射到相应的图像，这些图像将是验证<a id="_idIndexMarker1681"/>数据集的一部分。使用这个函数，我们希望开始和结束索引值也会根据row_count、percent和ratio的参数值而改变。如您所料，get_training_row_indexes()和get_validation_row_indexes()生成的索引值不会重叠。</p></li>
+				<li>定义get_test_row_indexes()函数:<pre>def <strong class="bold">get_test_row_indexes</strong>(row_count,                           percent=0.5):     test_index_start = 0     test_index_end = int(row_count * percent)          print("Range Index Start:",            test_index_start)     print("Range Index End:",            test_index_end)          output = list(range(test_index_start,                          test_index_end))          print("Output Length:", len(output))     print("Last Index:", output[-1])          return output</pre></li>
+				<li>Define<a id="_idIndexMarker1682"/> the generate_random_string() function, which will be used to generate <a id="_idIndexMarker1683"/>the filenames of the image files in a later step:<pre>import string 
+import random
+     
+def <strong class="bold">generate_random_string</strong>():
+    return ''.join(
+        random.sample(
+        string.ascii_uppercase,12)
+    )</pre><p>使用时，该函数应该生成一个类似于“FCTASXQNPOVY”的随机字符串。当然，我们每次使用这个函数都会得到一组不同的值。稍后我们将使用它为数据集中的每个图像分配一个随机的字符串文件名。</p></li>
+				<li>Define the save_image() function: <pre>import matplotlib
+import matplotlib.pyplot
+def <strong class="bold">save_image</strong>(image_data, filename):
+    <strong class="bold">matplotlib.pyplot.imsave</strong>(
+        f"tmp/{filename}", 
+        image_data[:,:,0].asnumpy())    </pre><p>该函数接受图像数据和文件名作为参数，并使用matplotlib.pyplot.imsave()函数<a id="_idIndexMarker1684"/>以指定的文件名保存图像。</p></li>
+				<li>Define<a id="_idIndexMarker1685"/> the generate_image_files_and_lst_dict() function:<pre>def <strong class="bold">generate_image_files_and_lst_dict</strong>(
+    dataset, 
+    indexes, 
+    tag
+):
+    <strong class="bold">list_of_lst_dicts</strong> = []
+    
+    for index in indexes:
+        image_label_pair = dataset[index]
+        image_data = image_label_pair[0]
+        label = image_label_pair[1]
+        random_string = generate_random_string()
+     
+        if tag == "test":
+            rp = f"{random_string}.png"
+            relative_path = rp
+            filename = f"{tag}/{relative_path}"
+        else:
+            rp = f"{label}/{random_string}.png"
+            relative_path = rp
+            filename = f"{tag}/{relative_path}"
+     
+        <strong class="bold">save_image</strong>(
+            image_data, 
+            filename=filename
+        )
+        
+        <strong class="bold">lst_dict</strong> = {
+            'relative_path': relative_path, 
+            'class': label
+        }
+        <strong class="bold">list_of_lst_dicts</strong>.append(lst_dict)
+     
+    return <strong class="bold">list_of_lst_dicts</strong></pre><p>此<a id="_idIndexMarker1686"/>功能执行以下操作:</p><ul><li>接受数据集、索引和测试标记</li><li>遍历指定索引列表中的每个索引值</li><li>根据索引值保存数据集中的相应图像</li></ul></li>
+			</ol>
+			<p>在<a id="_idIndexMarker1687"/>中的最后一组步骤集中于使用在前面步骤中准备的先决条件和定义的函数来生成图像文件:</p>
+			<ol>
+				<li value="12">使用前面步骤中准备的<a id="_idIndexMarker1688"/>函数生成训练图像数据和包含train.lst文件数据的字典:<pre><strong class="bold">train_dataset_length</strong> = len(     <strong class="bold">training_and_validation_dataset</strong> ) <strong class="bold">train_indexes</strong> = <strong class="bold">get_training_row_indexes</strong>(     row_count=<strong class="bold">train_dataset_length</strong>,      percent=0.01)       t = <strong class="bold">generate_image_files_and_lst_dict</strong>(     dataset=<strong class="bold">training_and_validation_dataset</strong>,     indexes=train_indexes,     tag = "train" ) <strong class="bold">train_lst_dict</strong> = t</pre></li>
+				<li>Inspect the train_lst_dict variable:<pre>train_lst_dict</pre><p>这应该给我们一个类似于图8.18 所示的嵌套结构。</p><div><img src="img/B16850_08_18.jpg" alt="Figure 8.18 – Image and label pairs&#13;&#10;" width="615" height="190"/></div><p class="figure-caption">图8.18–图像和标签对</p><p>在<em class="italic">图8.18 </em>中，我们有一个包含图像路径和类别对的字典列表。如果你熟悉<strong class="bold"> MNIST </strong>数据集，你可能知道这个数据集包含了带有相应数字标签的数字图像。</p></li>
+				<li>以类似的<a id="_idIndexMarker1689"/>方式，生成验证图像数据和包含<a id="_idIndexMarker1690"/>验证的字典。第一个文件数据:<pre><strong class="bold">train_dataset_length</strong> = len(     <strong class="bold">training_and_validation_dataset</strong> ) <strong class="bold">validation_indexes</strong> = <strong class="bold">get_validation_row_indexes</strong>(      row_count=<strong class="bold">train_dataset_length</strong>,       percent=0.01)       v = <strong class="bold">generate_image_files_and_lst_dict</strong>(     dataset=<strong class="bold">training_and_validation_dataset</strong>,     indexes=validation_indexes,     tag = "validation" ) <strong class="bold">validation_lst_dict</strong> = v</pre></li>
+				<li>最后，生成<a id="_idIndexMarker1691"/>测试图像数据和包含<a id="_idIndexMarker1692"/>验证的字典。lst文件数据:<pre><strong class="bold">test_dataset_length</strong> = len(test_dataset) <strong class="bold">test_indexes</strong> = <strong class="bold">get_test_row_indexes</strong>(     row_count=<strong class="bold">test_dataset_length</strong>,      percent=0.01)       <strong class="bold">test_lst_dict</strong> = <strong class="bold">generate_image_files_and_lst_dict</strong>(     dataset=<strong class="bold">test_dataset</strong>,     indexes=<strong class="bold">test_indexes</strong>,     tag = "test" )</pre></li>
+				<li>定义save_lsts_to_file()函数:<pre>def <strong class="bold">save_lsts_to_file</strong>(values, filename):     with open(filename, 'w') as output:         for index, row in enumerate(             values,              start=1         ):             <strong class="bold">relative_path</strong> = row['relative_path']             <strong class="bold">cls</strong> = row['class']             t = f"{index}\t{<strong class="bold">cls</strong>}\t{<strong class="bold">relative_path</strong>}\n"             output.write(t)</pre></li>
+				<li>使用【the save _ lsts _ to _ file()函数<a id="_idIndexMarker1694"/>生成train.lst和validation.lst文件:<pre><strong class="bold">save_lsts_to_file</strong>(     train_lst_dict,      filename="tmp/<strong class="bold">train_lst/train.lst</strong>" ) <strong class="bold">save_lsts_to_file</strong>(     validation_lst_dict,      filename="tmp/<strong class="bold">validation_lst/validation.lst</strong>" )</pre></li>
+				<li>Inspect the structure and content of the train.lst file:<pre>%%bash
+head tmp/train_lst/<strong class="bold">train.lst</strong></pre><p>这应该给我们一个类似于图8.19 所示的标签和文件名对列表。</p><div><img src="img/B16850_08_19.jpg" alt="Figure 8.19 – List of test image files&#13;&#10;" width="586" height="176"/></div><p class="figure-caption">图8.19–测试图像文件列表</p><p>这个文件应该包含大约480个标签和文件名对。</p></li>
+				<li>指定将存储数据的S3时段名称和前缀。确保将“&lt; insert s3 bucket name here &gt;”的<a id="_idIndexMarker1695"/>值替换为我们在菜谱<em class="italic">中创建的bucket的名称准备亚马逊s3 bucket和线性回归实验的训练数据集</em>来自<a href="B16850_01_Final_ASB_ePub.xhtml#_idTextAnchor020"> <em class="italic">第1章</em> </a>、<em class="italic">使用亚马逊SageMaker开始机器学习</em> : <pre>s3_bucket = "<strong class="bold">&lt;insert s3 bucket name here&gt;</strong>" prefix = "image-experiments" !<strong class="bold">aws s3 cp</strong> tmp/.  s3://{s3_bucket}/{prefix}/ --recursive</pre></li>
+				<li>Finally, use<a id="_idIndexMarker1696"/> the %store magic to store the variable values for s3_bucket and prefix:<pre>%store <strong class="bold">s3_bucket</strong>
+%store <strong class="bold">prefix</strong></pre><p>我们将在后面的菜谱中使用这些变量值。</p></li>
+			</ol>
+			<p>让我们看看这是如何工作的！</p>
+			<h2 id="_idParaDest-351"><a id="_idTextAnchor841"/>工作原理…</h2>
+			<p>在这个方法中，我们<a id="_idIndexMarker1697"/>执行了<a id="_idIndexMarker1698"/>所需的步骤，以在我们继续训练步骤之前准备训练、验证和测试数据集。在这个菜谱中，我们使用<strong class="bold"> Apache MXNet Vision数据集类</strong>将图像文件保存并生成到它们各自的目录中。我们特别使用MX . gluon . data . vision . datasets . Mn ist类来生成图像数据集，类似于图8.20 中所示。</p>
+			<div><div><img src="img/B16850_08_20.jpg" alt="Figure 8.20 – MNIST dataset&#13;&#10;" width="754" height="335"/>
+				</div>
+			</div>
+			<p class="figure-caption">图8.20-MNIST数据集</p>
+			<p>这里，我们为从0到9的每一个数字设置了1个<a id="_idIndexMarker1699"/>类。这给了我们总共10个类似于图8.20 所示的类。我们将用该数据集训练的图像分类器模型的目标将是正确地识别哪个数字被映射到来自测试数据集的给定输入图像。</p>
+			<h2 id="_idParaDest-352"><a id="_idTextAnchor842"/>参见</h2>
+			<p>在<strong class="bold"> Apache MXNet视觉数据集</strong>中还有其他<a id="_idIndexMarker1700"/>预定义数据集。这些<a id="_idIndexMarker1701"/>包括<strong class="bold">时尚MNIST </strong>、<strong class="bold"> CIFAR10 </strong>和<strong class="bold"> CIFAR100 </strong>数据集。随意查看我们可以在这里加载和生成的其他预定义数据集<a id="_idIndexMarker1703"/>:<a href="https://mxnet.apache.org/versions/1.7.0/api/python/docs/api/gluon/data/vision/datasets/index.html">https://mxnet . Apache . org/versions/1 . 7 . 0/API/python/docs/API/gluon/data/vision/datasets/index . html</a>。</p>
+			<h1 id="_idParaDest-353"><a id="_idTextAnchor843"/>使用SageMaker中内置的图像分类算法训练和部署图像分类器</h1>
+			<p>在之前的配方中，我们<a id="_idIndexMarker1704"/>使用<strong class="bold"> Apache MXNet视觉数据集</strong>类准备了<a id="_idIndexMarker1705"/>图像文件和一些其他<a id="_idIndexMarker1706"/>先决条件<a id="_idIndexMarker1707"/>。在这个食谱中，我们将使用<strong class="bold"> SageMaker Python SDK </strong>和内置的<strong class="bold">图像分类算法</strong>来训练一个使用这些<a id="_idIndexMarker1708"/>图像文件<a id="_idIndexMarker1709"/>和先决条件的模型。在该配方中训练和部署的图像分类器将用于对测试数据集中的图像进行分类。</p>
+			<h2 id="_idParaDest-354"><a id="_idTextAnchor844"/>做好准备</h2>
+			<p>以下是这个食谱的先决条件:</p>
+			<ul>
+				<li>该方法上接<em class="italic">使用Apache MXNet视觉数据集类</em>为图像分类准备数据集。</li>
+				<li>运行<strong class="bold"> Python 3(数据科学)</strong>内核的<strong class="bold"> SageMaker Studio </strong>笔记本。</li>
+			</ul>
+			<h2 id="_idParaDest-355"><a id="_idTextAnchor845"/>怎么做……</h2>
+			<p>该<a id="_idIndexMarker1712"/>配方中的第一组<a id="_idIndexMarker1710"/>步骤<a id="_idIndexMarker1711"/>着重于准备培训<a id="_idIndexMarker1713"/>和<a id="_idIndexMarker1714"/>部署<a id="_idIndexMarker1715"/>步骤的先决条件；</p>
+			<ol>
+				<li value="1">在my-experiments/chapter08目录中使用Python 3(数据科学)内核创建一个新的笔记本，并将其重命名为这个食谱的名称。当提示使用内核时，选择<strong class="bold"> Python 3(数据科学)</strong>。</li>
+				<li>导入并初始化培训工作的一些先决条件:<pre>import sagemaker from sagemaker import get_execution_role import json import boto3 <strong class="bold">session</strong> = sagemaker.Session() <strong class="bold">role</strong> = get_execution_role() <strong class="bold">region_name</strong> = boto3.Session().region_name</pre></li>
+				<li>使用%store magic为s3_bucket和prefix加载变量值:<pre>%store -r <strong class="bold">s3_bucket</strong> %store -r <strong class="bold">prefix</strong></pre></li>
+				<li>初始化S3培训和验证数据的位置以及。为每个数据集生成的lst文件。设置s3_output_location值:<pre><strong class="bold">s3_train_data</strong> = 's3://{}/{}/{}'.format(     s3_bucket,      prefix,      "train" ) <strong class="bold">s3_validation_data</strong> = 's3://{}/{}/{}'.format(     s3_bucket,      prefix,      "validation" ) <strong class="bold">s3_train_lst_path</strong> = 's3://{}/{}/{}'.format(     s3_bucket,      prefix,      "train_lst" ) <strong class="bold">s3_validation_lst_path</strong> = 's3://{}/{}/{}'.format(     s3_bucket,      prefix,      "validation_lst" ) <strong class="bold">s3_output_location</strong> = 's3://{}/{}/output'.format(     s3_bucket,      prefix )</pre></li>
+				<li>Use<a id="_idIndexMarker1716"/> the retrieve() function<a id="_idIndexMarker1717"/> to get the<a id="_idIndexMarker1718"/> container <a id="_idIndexMarker1719"/>image URI of the <strong class="bold">Image Classification Algorithm</strong>:<pre>from sagemaker.image_uris import retrieve 
+container = <strong class="bold">retrieve</strong>(
+    "image-classification", 
+    region_name, 
+    "1"
+)
+container</pre><p>这将为容器变量提供一个类似于“811284229777 . dkr . ECR . us-east-1 . Amazon AWS . com/image-class ification:1”的字符串值。</p><p>下一组<a id="_idIndexMarker1720"/>步骤<a id="_idIndexMarker1721"/>集中于使用来自前一组<a id="_idIndexMarker1723"/>步骤<a id="_idIndexMarker1722"/>的先决条件来训练和部署图像分类模型:</p></li>
+				<li>Initialize the Estimator object:<pre>estimator = sagemaker.estimator.<strong class="bold">Estimator</strong>(
+    container,
+    role, 
+    instance_count=1, 
+    instance_type='ml.p2.xlarge',
+    output_path=s3_output_location,
+    sagemaker_session=session
+)</pre><p>在这里，我们利用P2 <a id="_idIndexMarker1724"/>实例提供基于GPU的并行计算能力。</p></li>
+				<li>Use the set_hyperparameters() function <a id="_idIndexMarker1725"/>to specify the hyperparameters of the training job:<pre>estimator.<strong class="bold">set_hyperparameters</strong>(
+    <strong class="bold">num_layers</strong>=18,
+    <strong class="bold">image_shape</strong> = "1,28,28",
+    <strong class="bold">num_classes</strong>=10,
+    <strong class="bold">num_training_samples</strong>=600,
+    <strong class="bold">mini_batch_size</strong>=20,
+    <strong class="bold">epochs</strong>=5,
+    <strong class="bold">learning_rate</strong>=0.01,
+    <strong class="bold">top_k</strong>=2,
+    <strong class="bold">precision_dtype</strong>='float32'
+)</pre><p class="callout-heading">注意</p><p class="callout">如果您不知道这些超参数值的含义，请不要担心，因为我们将在<em class="italic">其工作原理</em>一节中详细了解这些值！</p></li>
+				<li>为<a id="_idIndexMarker1730"/>实际图像文件<pre>from sagemaker.inputs import TrainingInput train = <strong class="bold">TrainingInput</strong>(     s3_train_data,      distribution='FullyReplicated',      content_type='application/x-image',      s3_data_type='S3Prefix' ) validation = <strong class="bold">TrainingInput</strong>(     s3_validation_data,      distribution='FullyReplicated',      content_type='application/x-image',      s3_data_type='S3Prefix' )</pre>准备<a id="_idIndexMarker1726"/>的<a id="_idIndexMarker1727"/>训练输入<a id="_idIndexMarker1728"/>通道<a id="_idIndexMarker1729"/></li>
+				<li>为<a id="_idIndexMarker1735"/>准备<a id="_idIndexMarker1731"/><a id="_idIndexMarker1732"/>培训输入<a id="_idIndexMarker1733"/>通道<a id="_idIndexMarker1734"/>。lst文件:<pre>content_type = 'application/x-image' <strong class="bold">train_lst</strong> = <strong class="bold">TrainingInput</strong>(     s3_train_lst_path,      distribution='FullyReplicated',      content_type=content_type,      s3_data_type='S3Prefix' ) <strong class="bold">validation_lst</strong> = <strong class="bold">TrainingInput</strong>(     s3_validation_lst_path,      distribution='FullyReplicated',      content_type=content_type,      s3_data_type='S3Prefix' )</pre></li>
+				<li>Use the fit() function <a id="_idIndexMarker1736"/>to start the training job with the data channels from the previous steps as the input<a id="_idIndexMarker1737"/> values:<pre>%%time
+<strong class="bold">data_channels</strong> = {
+    '<strong class="bold">train</strong>': train, 
+    '<strong class="bold">validation</strong>': validation,
+    '<strong class="bold">train_lst'</strong>: train_lst,
+    '<strong class="bold">validation_lst'</strong>: validation_lst
+}
+estimator.<strong class="bold">fit</strong>(inputs=<strong class="bold">data_channels</strong>, logs=True)</pre><p>这应该<a id="_idIndexMarker1738"/>产生<a id="_idIndexMarker1739"/>一组类似于<a id="_idIndexMarker1740"/>图8.21 中<a id="_idIndexMarker1741"/>所示<a id="_idIndexMarker1742"/>的日志。</p><div><img src="img/B16850_08_21.jpg" alt="Figure 8.21 – Training job logs&#13;&#10;" width="631" height="142"/></div><p class="figure-caption">图8.21–培训工作日志</p><p>在这里，我们可以看到验证准确率为90.83%。由于我们正在处理这个食谱中的一个简化的例子，这对我们来说应该是一个好的开始。</p><p class="callout-heading">注意</p><p class="callout">完成此步骤可能需要大约5到10分钟。在等待的时候，可以休息一下，喝杯咖啡或茶！</p></li>
+				<li>Use the deploy() function to deploy the model to an inference endpoint:<pre>endpoint = estimator.<strong class="bold">deploy</strong>(
+    initial_instance_count = 1,
+    instance_type = 'ml.m4.xlarge'
+)</pre><p>这个步骤应该需要大约5到10分钟才能完成。</p><p class="callout-heading">重要说明</p><p class="callout">运行deploy()函数将启动一个实例，该实例将继续运行，直到执行删除资源操作。当实例运行时，您将为它运行的时间付费。确保在完成这个配方后删除推理端点。</p><p>既然我们在前面的步骤中已经部署了<a id="_idIndexMarker1745"/>端点，那么<a id="_idIndexMarker1747"/>中的最后一组<a id="_idIndexMarker1746"/>步骤将集中于<a id="_idIndexMarker1748"/>使用来自测试集的数据测试这个<a id="_idIndexMarker1749"/>端点:</p></li>
+				<li>使用<strong class="bold">SageMaker Python SDK</strong>:<pre>from sagemaker.serializers import IdentitySerializer endpoint.serializer = IdentitySerializer(     content_type="<strong class="bold">application/x-image</strong>" )</pre>中的IdentitySerializer更新端点的serializer属性</li>
+				<li>定义get_class_from_results()函数:<pre>import json       def <strong class="bold">get_class_from_results</strong>(results):     results_prob_list = json.loads(results)     best_index = results_prob_list.index(         max(results_prob_list)     )          return {         0: "<strong class="bold">ZERO</strong>",         1: "<strong class="bold">ONE</strong>",         2: "<strong class="bold">TWO</strong>",         3: "<strong class="bold">THREE</strong>",         4: "<strong class="bold">FOUR</strong>",         5: "<strong class="bold">FIVE</strong>",         6: "<strong class="bold">SIX</strong>",         7: "<strong class="bold">SEVEN</strong>",         8: "<strong class="bold">EIGHT</strong>",         9: "<strong class="bold">NINE</strong>"     }[best_index]</pre></li>
+				<li>定义<a id="_idIndexMarker1750"/>预测()函数，<a id="_idIndexMarker1751"/>用预测标签<pre>from IPython.display import Image, display       def <strong class="bold">predict</strong>(filename, endpoint=endpoint):     byte_array_input = None          with open(filename, 'rb') as image:         f = image.read()         byte_array_input = bytearray(f)              <strong class="bold">display(Image(filename))</strong>              results = <strong class="bold">endpoint.predict(byte_array_input)</strong>     return <strong class="bold">get_class_from_results</strong>(results)</pre>显示指定<a id="_idIndexMarker1753"/>为<a id="_idIndexMarker1754"/>有效载荷的<a id="_idIndexMarker1752"/>图像</li>
+				<li>Use the predict() function on each of the files inside the tmp/test directory:<pre>results = !ls -1 tmp/test
+for filename in results:
+    print(<strong class="bold">predict</strong>(f"tmp/test/{filename}"))</pre><p>这应该<a id="_idIndexMarker1756"/>给我们一个<a id="_idIndexMarker1757"/>图像列表，带有<a id="_idIndexMarker1758"/>它们对应的<a id="_idIndexMarker1759"/>预测标签，类似于<a id="_idIndexMarker1760"/>图<em class="italic">8.22</em>中显示的内容。</p><div><img src="img/B16850_08_22.jpg" alt="Figure 8.22 – List of images with their corresponding predicted labels&#13;&#10;" width="594" height="296"/></div><p class="figure-caption">图8.22–带有相应预测标签的图像列表</p><p>在<em class="italic">图8.22 </em>中，我们<a id="_idIndexMarker1761"/>可以看到，我们的模型能够根据测试数据集使用的图像获得正确的预测。重要的是要注意，它会不时地从<a id="_idIndexMarker1762"/>出错，因为我们可以看到第四幅图像的预测标签是7，而不是预测标签5。</p></li>
+				<li>Delete the endpoint using the delete_endpoint() function:<pre>endpoint.<strong class="bold">delete_endpoint</strong>()</pre><p>此时，我们应该可以轻松使用SageMaker内置的<strong class="bold">图像分类算法</strong>。</p></li>
+			</ol>
+			<p>现在，让我们看看这是如何工作的！</p>
+			<h2 id="_idParaDest-356">它是如何工作的…</h2>
+			<p>在这个<a id="_idIndexMarker1763"/>菜谱中，我们使用了<strong class="bold"> SageMaker Python SDK </strong>来训练和部署我们的图像分类器模型。由于<a id="_idIndexMarker1764"/>我们已经使用其他内置算法执行了几个<a id="_idIndexMarker1765"/>培训任务和部署<a id="_idIndexMarker1766"/>，可以肯定地说，这个方法与其他类似的培训和部署方法具有相同的模式。也就是说，让我们将讨论集中在训练模型时使用的<a id="_idIndexMarker1767"/>超参数上。</p>
+			<p>让我们从简单的开始。num_classes超参数定义了多标签分类问题中输出类的数量。在这个配方中，我们将值设置为10，因为我们有10个类来分组我们的MNIST数据集(例如，数字0到9)。num_training_samples超参数值应该等于数据集中训练样本或记录的数量(例如，600)。</p>
+			<p>内置的<strong class="bold">图像分类算法</strong>利用<strong class="bold">卷积神经网络</strong> ( <strong class="bold"> CNN </strong>)进行<a id="_idIndexMarker1768"/>多标签分类。这意味着它的可配置超参数将围绕我们可以用神经网络结构<a id="_idIndexMarker1769"/>配置什么。这些<a id="_idIndexMarker1770"/>包括num_layers超参数，它决定了网络的层数<a id="_idIndexMarker1771"/>。这些超参数还包括image_shape，它应该等于图像的尺寸(例如，28 x 28)。这将定义网络的<a id="_idIndexMarker1772"/>输入层的大小。还有其他的<a id="_idIndexMarker1773"/>超参数我们就不在本节讨论了，所以可以随意查看<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/IC-Hyperparameter.html">https://docs . AWS . Amazon . com/sage maker/latest/DG/IC-hyperparameter . html</a>。</p>
+			<h2 id="_idParaDest-357"><a id="_idTextAnchor847"/>还有更多…</h2>
+			<p>值得注意的是，我们还可以选择<a id="_idIndexMarker1774"/>使用<strong class="bold">转移学习</strong>来微调预训练模型，而不是从头开始训练图像分类器。<strong class="bold">转移学习</strong>涉及在生产新模型时，使用预先训练的模型作为起点。这使得我们在生成高质量模型时可以使用更少的图像。步骤基本相似，我们只需要将use_pretrained_model的超参数值指定为1。</p>
+			<p>我们还可以使用<strong class="bold">增量训练</strong>来开始<a id="_idIndexMarker1775"/>另一个训练任务，使用从先前训练任务生成的模型，并产生更精确的模型。这将节省机器学习实践者在处理类似数据集时的时间:</p>
+			<pre><strong class="bold">input_data</strong> = {
+    "train": train_data, 
+    "validation": validation_data, 
+    "<strong class="bold">model</strong>": <strong class="bold">model_data</strong>
+}
+estimator.<strong class="bold">fit</strong>(inputs=<strong class="bold">input_data</strong>)</pre>
+			<p>这里，当使用fit()函数时，我们简单地传递S3路径，在该路径中，前一个训练作业的模型数据被存储为输入通道之一。</p>
+			<h2 id="_idParaDest-358"><a id="_idTextAnchor848"/>参见</h2>
+			<p>如果您正在寻找在真实数据集上使用内置的<strong class="bold">图像分类算法</strong>的例子和更复杂的例子，请随意查看AWS/Amazon-sage maker-examples GitHub资源库中的一些笔记本:</p>
+			<ul>
+				<li>用<a id="_idIndexMarker1776"/>的<strong class="bold">图像分类算法</strong>—<a href="https://github.com/aws/amazon-sagemaker-examples/blob/master/introduction_to_amazon_algorithms/imageclassification_caltech/Image-classification-transfer-learning-highlevel.ipynb%20">https://github . com/AWS/Amazon-sage maker-examples/blob/master/introduction _ to _ Amazon _ algorithms/Image Classification _ Caltech/Image-Classification-transfer-learning-high level . ipynb</a></li>
+				<li>使用<strong class="bold">图像分类算法进行增量<a id="_idIndexMarker1777"/>训练</strong>—<a href="https://github.com/aws/amazon-sagemaker-examples/blob/master/introduction_to_amazon_algorithms/imageclassification_caltech/Image-classification-incremental-training-highlevel.ipynb%20">https://github . com/AWS/Amazon-sage maker-examples/blob/master/introduction _ to _ Amazon _ algorithms/Image Classification _ Caltech/Image-Classification-incremental-training-high level . ipynb</a></li>
+			</ul>
+			<p>由于我们无法在本书中深入探讨内置的<strong class="bold">图像分类算法</strong>的不同功能，请随意查看此链接了解更多<a id="_idIndexMarker1778"/>信息:<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/image-classification.html">https://docs . AWS . Amazon . com/sage maker/latest/DG/Image-Classification . html</a>。</p>
+			<h1 id="_idParaDest-359"><a id="_idTextAnchor849"/>生成合成时间序列数据集</h1>
+			<p>在本章前面的配方<a id="_idIndexMarker1779"/>中，我们训练和部署了处理文本分类和图像分类需求的模型。在这个配方中，我们将生成一个类似于<em class="italic">图8.23 </em>所示的合成时间序列数据集。该数据集随后将用于训练配方<em class="italic">中的<strong class="bold"> DeepAR </strong>模型并部署DeepAR模型</em>。</p>
+			<div><div><img src="img/B16850_08_23.jpg" alt="Figure 8.23 – Time series plot&#13;&#10;" width="831" height="365"/>
+				</div>
+			</div>
+			<p class="figure-caption">图8.23–时间序列图</p>
+			<p>我们可以看到<a id="_idIndexMarker1780"/>季节性变化或<strong class="bold">季节性</strong>出现在这个时间序列数据集中。同时，我们可以看到，添加了一点噪声，以使数据集更加真实，并增强经过训练的机器学习模型的鲁棒性。</p>
+			<h2 id="_idParaDest-360">准备就绪</h2>
+			<p>运行<strong class="bold"> Python 3(数据科学)</strong>内核的<strong class="bold"> SageMaker Studio </strong>笔记本是这个食谱的唯一先决条件。</p>
+			<h2 id="_idParaDest-361"><a id="_idTextAnchor851"/>怎么做……</h2>
+			<p>该配方中的步骤侧重于生成和绘制合成时间序列数据集:</p>
+			<ol>
+				<li value="1">在my-experiments/chapter08目录中使用Python 3(数据科学)内核创建一个新的笔记本，并将其重命名为这个食谱的名称。当提示使用内核时，选择<strong class="bold"> Python 3(数据科学)</strong>。</li>
+				<li>导入<a id="_idIndexMarker1781"/>几个先决条件如下:<pre>import numpy as np import matplotlib.pyplot as plt import pandas as pd %matplotlib inline</pre></li>
+				<li>Define the generate_time_series() function:<pre>def <strong class="bold">generate_time_series</strong>(
+    <strong class="bold">t0</strong>="2020-01-01 00:00:00"
+):
+    time = np.arange(50)
+    values = np.where(time &lt; 20, time**2, 
+                      (time-5)**2)
+     
+    base = []
+    for iteration in range(10):
+        for y in range(50):
+            base.append(values[y])
+            
+    base += np.random.randn(500)*100
+    
+    <strong class="bold">freq</strong> = "H"
+    data_length = len(base)
+    index = pd.date_range(start=t0, 
+                          freq=freq, 
+                          periods=data_length)
+    <strong class="bold">ts</strong> = pd.Series(data=base, index=index)
+    
+    return {
+        "<strong class="bold">freq</strong>": <strong class="bold">freq</strong>,
+        "<strong class="bold">t0</strong>": <strong class="bold">t0</strong>,
+        "<strong class="bold">length</strong>": <strong class="bold">len(ts)</strong>,
+        "<strong class="bold">data</strong>": <strong class="bold">ts</strong>
+    }</pre><p>该函数接受一个可选的t0参数值，让我们配置时间序列数据集的开始日期<a id="_idIndexMarker1782"/>和时间值。</p></li>
+				<li>Use the generate_time_series() function to generate the synthetic time series dataset:<pre><strong class="bold">time_series_data</strong> = <strong class="bold">generate_time_series</strong>()
+time_series_data</pre><p>这应该会给我们一个类似于<em class="italic">图8.24 </em>所示的数值字典。</p><div><img src="img/B16850_08_24.jpg" alt="Figure 8.24 – Time series data and properties&#13;&#10;" width="585" height="264"/></div><p class="figure-caption">图8.24–时间序列数据和属性</p><p>在这里，我们可以看到我们已经生成了一个包含freq、t0、length和data键的值的字典。</p></li>
+				<li>Visualize how<a id="_idIndexMarker1783"/> the time series dataset looks using matplotlib:<pre>data = time_series_data["data"]
+time = data.index
+values = data
+plt.figure(figsize=(14,6))
+plt.plot(time, values)
+plt.grid(True)
+plt.xlabel("DATE")
+plt.ylabel("VALUE")</pre><p>这将呈现一个类似于图8.25 中所示的图表。</p><div><img src="img/B16850_08_25.jpg" alt="Figure 8.25 – Time series plot&#13;&#10;" width="866" height="380"/></div><p class="figure-caption">图8.25–时间序列图</p><p>在<em class="italic">图8.25 </em>中，我们可以看到在生成值的数据集时添加了一点噪声的时间序列。</p></li>
+				<li>使用mkdir命令:<pre>!mkdir -p <strong class="bold">tmp</strong></pre>创建一个<a id="_idIndexMarker1784"/>临时目录</li>
+				<li>定义save_data_to_json()函数，它通过将数据点以及频率、开始时间和长度存储在一个文件中来序列化我们的时间序列数据:<pre>import json       def <strong class="bold">save_data_to_json</strong>(time_series_data,                        filename):     tmp = {}     tmp["freq"] = time_series_data["freq"]     tmp["t0"] = time_series_data["t0"]     tmp["length"] = time_series_data["length"]     tmp["data"] = list(time_series_data["data"])          with open(filename, 'w') as file:         json.dump(tmp, file)</pre></li>
+				<li>使用save_data_to_json()函数将时间序列数据集存储在tmp目录下的json文件中:<pre><strong class="bold">save_data_to_json</strong>(<strong class="bold">time_series_data</strong>,                    "tmp/<strong class="bold">all.json</strong>")</pre></li>
+				<li>Use the head command <a id="_idIndexMarker1785"/>to check the content of the tmp/all.json file:<pre>!head tmp/<strong class="bold">all.json</strong></pre><p>这应该给我们一个类似于图8.26 所示的值结构。</p></li>
+			</ol>
+			<div><div><img src="img/B16850_08_26.jpg" alt="Figure 8.26 – Contents of the all.json file&#13;&#10;" width="622" height="259"/>
+				</div>
+			</div>
+			<p class="figure-caption">图8.26–all . JSON文件的内容</p>
+			<p>此时，我们的合成数据集已经准备好了。在下一个配方中，我们将对这个合成数据集执行训练测试分割。</p>
+			<p>现在，让我们看看这是如何工作的！</p>
+			<h2 id="_idParaDest-362"><a id="_idTextAnchor852"/>工作原理…</h2>
+			<p>在这个配方中，我们借助在这个配方中定义的generate_time_series()函数生成了一个合成时间序列数据集。时间序列数据包括用时间戳索引的一系列值。时序数据集由以下部分组成:值以及日期和时间索引。如果您曾经处理过以时间序列格式表示的销售和股票价格数据，那么这就是时间序列数据的一个例子。</p>
+			<p>在准备合成数据集时，我们<a id="_idIndexMarker1786"/>在generate_time_series()函数中为<a id="_idIndexMarker1787"/>添加了<strong class="bold">季节性</strong>和<strong class="bold">噪声</strong>，使其更加真实。数据集中噪声的存在增强了经过训练的机器学习模型的鲁棒性。同时，很难看到没有噪声的实时序列数据。</p>
+			<p>在接下来的几个<a id="_idIndexMarker1788"/>食谱中，我们将处理这个合成数据集，并用它来训练我们的<strong class="bold"> DeepAR </strong>模型。由于我们将在本书中使用一个使用<strong class="bold"> DeepAR预测算法</strong>的简化示例，因此我们的训练数据集不会有多个时间序列数据集。</p>
+			<p class="callout-heading">重要说明</p>
+			<p class="callout">请注意，当使用多个时间序列数据进行训练时，<strong class="bold"> DeepAR </strong>模型的表现开始优于其他模型。也就是说，您可能希望以后扩展这个方法来生成多个时间序列数据，这些数据将用于训练一个<strong class="bold"> DeepAR </strong>模型。</p>
+			<h1 id="_idParaDest-363"><a id="_idTextAnchor853"/>对时间序列数据集执行训练测试分割</h1>
+			<p>在前一个配方中，我们<a id="_idIndexMarker1789"/>生成了一个合成时间序列数据集，我们将在接下来的两个配方中使用该数据集<a id="_idIndexMarker1790"/>训练一个<strong class="bold"> DeepAR </strong>模型。在我们进行模型的实际训练之前，在我们进行模型的实际训练之前，我们需要首先将数据适当地分成训练集和测试集。这就是我们在这个食谱中要做的！</p>
+			<p>当对时间序列数据集执行训练测试分割时，需要注意的是，我们不执行数据的随机分割，因为这不会保持观察的时间顺序。</p>
+			<h2 id="_idParaDest-364">做好准备</h2>
+			<p>以下是这个食谱的先决条件:</p>
+			<ul>
+				<li>该配方延续了<em class="italic">生成合成时间序列数据集</em>的过程。</li>
+				<li>运行<strong class="bold"> Python 3(数据科学)</strong>内核的<strong class="bold"> SageMaker Studio </strong>笔记本。</li>
+			</ul>
+			<h2 id="_idParaDest-365"><a id="_idTextAnchor855"/>怎么做……</h2>
+			<ol>
+				<li value="1">在my-experiments/chapter08目录中使用Python 3(数据科学)内核创建一个新的笔记本，并将其重命名为这个食谱的名称。当提示使用内核时，选择<strong class="bold"> Python 3(数据科学)</strong>。</li>
+				<li>导入几个<a id="_idIndexMarker1791"/>先决条件如下:<pre>import json import numpy as np import matplotlib.pyplot as plt import pandas as pd %matplotlib inline</pre></li>
+				<li>定义load_data_from_json()函数。这将加载先前使用save_data_to_json()存储的时间序列数据集，该数据集在<em class="italic">生成合成时间序列数据集</em> : <pre>def <strong class="bold">load_data_from_json</strong>(filename):     tmp = {}     with open(filename) as file:         tmp = json.load(file)              index = pd.date_range(         start=tmp["t0"],          freq=tmp["freq"],          periods=tmp["length"])     tmp["data"] = pd.Series(         data=tmp["data"],          index=index)              return tmp</pre>的配方中定义</li>
+				<li>使用load_data_from_json()函数加载在<a id="_idIndexMarker1792"/>生成合成时间序列数据集 : <pre><strong class="bold">time_series_data</strong> = load_data_from_json(     "tmp/<strong class="bold">all.json</strong>" )</pre>的方法<em class="italic">中生成的时间序列数据集</em></li>
+				<li>定义train_test_split()函数:<pre>def <strong class="bold">train_test_split</strong>(data, ratio=0.9):     train_length = int(len(data) * ratio)     pl = int(len(data)) - train_length     prediction_length = pl     training_dataset = data[:-prediction_length]     target_dataset = data[train_length-1:]     test_dataset = data          return {         "<strong class="bold">prediction_length</strong>": prediction_length,         "<strong class="bold">training_dataset</strong>": training_dataset,         "<strong class="bold">target_dataset</strong>": target_dataset,         "<strong class="bold">test_dataset</strong>": test_dataset     }</pre></li>
+				<li>Use the train_test_split() function:<pre>results = <strong class="bold">train_test_split</strong>(
+    time_series_data["data"]
+)
+print(results["prediction_length"])</pre><p>这应该<a id="_idIndexMarker1793"/>给我们50作为预测长度值。</p></li>
+				<li>Use matplotlib to prepare a plot:<pre>training_dataset = results["training_dataset"]
+target_dataset = results["target_dataset"]
+     
+plt.figure(figsize=(14,6))
+plt.plot(training_dataset.index, 
+         training_dataset, label="training")
+plt.plot(target_dataset.index, 
+         target_dataset, 
+         label="target")
+plt.grid(True)
+plt.xlabel("DATE")
+plt.ylabel("VALUE")    
+plt.legend()
+plt.show()</pre><p>这将呈现一个类似于图8.27 所示的图表。</p><div><img src="img/B16850_08_27.jpg" alt="Figure 8.27 – Time series plot&#13;&#10;" width="833" height="377"/></div><p class="figure-caption">图8.27–时间序列图</p><p>在<em class="italic">图8.27 </em>中，我们有训练和目标数据集。</p></li>
+				<li>定义<a id="_idIndexMarker1794"/>series _ to _ object()函数:<pre>def <strong class="bold">series_to_object</strong>(data):     return {"start": str(data.index[0]),              "target": list(data)}</pre></li>
+				<li>定义series_to_jsonline()函数:<pre>def <strong class="bold">series_to_jsonline</strong>(data):     return json.dumps(<strong class="bold">series_to_object</strong>(data))</pre></li>
+				<li>定义save_data_to_jsonlines()函数:<pre>def <strong class="bold">save_data_to_jsonlines</strong>(data, filename):      with open(filename, 'wb') as file:         t = <strong class="bold">series_to_jsonline</strong>(data)         t = t.encode("utf-8")         file.write(t)         file.write("\n".encode("utf-8"))</pre></li>
+				<li>Use the save_data_to_jsonlines() function for the training and test datasets:<pre><strong class="bold">save_data_to_jsonlines</strong>(
+    results["training_dataset"], 
+    "tmp/training.jsonl"
+)
+<strong class="bold">save_data_to_jsonlines</strong>(
+    results["test_dataset"], 
+    "tmp/test.jsonl"
+)</pre><p>这将在tmp目录中生成jsonl文件。</p></li>
+				<li>指定将存储数据的S3 <a id="_idIndexMarker1795"/>存储桶名称和前缀。确保将“&lt; insert s3 bucket name here &gt;的值替换为我们在菜谱<em class="italic">中创建的bucket的名称准备亚马逊s3 bucket和线性回归实验的训练数据集</em>来自<a href="B16850_01_Final_ASB_ePub.xhtml#_idTextAnchor020"> <em class="italic">第1章</em> </a>，<em class="italic">使用亚马逊SageMaker开始机器学习</em> : <pre>s3_bucket = '<strong class="bold">&lt;insert s3 bucket name here&gt;</strong>' prefix = 'chapter08'</pre></li>
+				<li>使用下面的命令将training.jsonl和test.jsonl文件上传到亚马逊S3 bucket:<pre>!<strong class="bold">aws s3 cp</strong> tmp/<strong class="bold">training.jsonl</strong> s3://{s3_bucket}/{prefix}/input/<strong class="bold">training.jsonl</strong> !<strong class="bold">aws s3 cp</strong> tmp/<strong class="bold">test.jsonl</strong> s3://{s3_bucket}/{prefix}/input/<strong class="bold">test.jsonl</strong></pre></li>
+				<li>使用%存储魔法存储预测长度:<pre><strong class="bold">prediction_length</strong> = results["prediction_length"] %store <strong class="bold">prediction_length</strong></pre></li>
+				<li>使用%store magic存储频率:<pre>freq = time_series_data["freq"] %store <strong class="bold">freq</strong></pre></li>
+				<li>In a similar <a id="_idIndexMarker1796"/>fashion, use the %store magic to save the training dataset time series: <pre>training_dataset = results["training_dataset"]
+%store <strong class="bold">training_dataset</strong>
+training_dataset</pre><p>这将为我们提供一组类似于图8.27 中所示的值。</p><div><img src="img/B16850_08_28.jpg" alt="Figure 8.27 – Training dataset&#13;&#10;" width="606" height="214"/></div><p class="figure-caption">图8.27–训练数据集</p><p>在<em class="italic">图8.27 </em>中，我们在训练数据集中有时间戳和值对。</p></li>
+				<li>Finally, store the target dataset time series values as well:<pre>target_dataset = results["target_dataset"]
+%store <strong class="bold">target_dataset</strong>
+target_dataset</pre><p>这将为我们提供一组类似于图8.28所示的值。</p><div><img src="img/B16850_08_29.jpg" alt="Figure 8.28 – Target dataset&#13;&#10;" width="559" height="157"/></div><p class="figure-caption">图8.28–目标数据集</p><p>在<em class="italic">图8.28 </em>中，我们有目标数据集中的时间戳和值对。</p></li>
+				<li>Finally, use <a id="_idIndexMarker1797"/>the %store magic to store the variable values for s3_bucket and prefix:<pre>%store <strong class="bold">s3_bucket</strong>
+%store <strong class="bold">prefix</strong></pre><p>此时，我们应该准备好训练和部署我们的<strong class="bold"> DeepAR </strong>模型。</p></li>
+			</ol>
+			<p>与此同时，我们先来看看这是如何工作的！</p>
+			<h2 id="_idParaDest-366"><a id="_idTextAnchor856"/>工作原理……</h2>
+			<p>为了使用以前没有见过的数据来测试和评估机器学习模型的性能，我们分割给定的数据集，并仅使用某一部分(例如，训练数据集)来训练模型，而使用另一部分来评估产生的模型。</p>
+			<p>分割数据有不同的方法<a id="_idIndexMarker1798"/>,但两种最常见的方法<a id="_idIndexMarker1799"/>涉及数据集的<strong class="bold">随机分割</strong>和<strong class="bold">顺序分割</strong>。顾名思义，<strong class="bold">随机拆分</strong>涉及随机选择一定比例的数据集，并将那些选择的记录用于测试数据集。当我们不需要保持输入数据的顺序时，随机分裂应该可以做到。另一方面，<strong class="bold">顺序拆分</strong>涉及将数据集划分为训练集和测试集，同时保持记录的顺序。这适用于时间序列数据，在这种情况下，随机分割将不起作用，因为这将使随机选择的记录失去它们的上下文和意义。也就是说，划分时间序列数据集的最合适的方式是通过顺序分割，这就是我们在本食谱中所做的。</p>
+			<h1 id="_idParaDest-367"><a id="_idTextAnchor857"/>培训和部署DeepAR模型</h1>
+			<p><a id="_idIndexMarker1800"/>预测模型的目标是根据<a id="_idIndexMarker1801"/>以前的记录预测未来的数据点。有不同的预测算法，包括ARIMA和ETS。一种利用<strong class="bold">递归神经网络</strong> ( <strong class="bold"> RNNs </strong>)预测<a id="_idIndexMarker1802"/>时间序列数据的算法是<strong class="bold"> DeepAR </strong>。在这个菜谱中，我们将使用<strong class="bold"> SageMaker Python SDK </strong>来训练和部署一个<strong class="bold"> DeepAR </strong>模型。为了<a id="_idIndexMarker1803"/>帮助我们开始使用内置的<strong class="bold"> DeepAR </strong>预测算法，我们在训练模型时将只使用单个时间序列数据集。</p>
+			<h2 id="_idParaDest-368"><a id="_idTextAnchor858"/>准备就绪</h2>
+			<p>以下是这个食谱的先决条件:</p>
+			<ul>
+				<li>该配方从<em class="italic">开始，在时序数据集</em>上执行训练测试分割。</li>
+				<li>运行<strong class="bold"> Python 3(数据科学)</strong>内核的<strong class="bold"> SageMaker Studio </strong>笔记本。</li>
+			</ul>
+			<h2 id="_idParaDest-369"><a id="_idTextAnchor859"/>怎么做……</h2>
+			<p>这个食谱的前几个步骤集中在为训练<strong class="bold"> DeepAR </strong>模型准备先决条件:</p>
+			<ol>
+				<li value="1">在my-experiments/chapter08目录中使用Python 3(数据科学)内核创建一个新的笔记本，并用这个食谱的名称对其进行重命名。当提示使用内核时，选择<strong class="bold"> Python 3(数据科学)</strong>。</li>
+				<li>导入以下先决条件:<pre>import sagemaker  import boto3 from sagemaker import get_execution_role  role = get_execution_role() session = sagemaker.Session() region_name = boto3.Session().region_name</pre></li>
+				<li>指定s3_bucket和前缀的值:<pre>%store -r <strong class="bold">s3_bucket</strong> %store -r <strong class="bold">prefix</strong></pre></li>
+				<li>为训练_ S3 _输入_位置、测试_ S3 _输入_位置和训练_ S3 _输出_位置准备<a id="_idIndexMarker1804"/>变量<a id="_idIndexMarker1805"/>值:<pre><strong class="bold">training_s3_input_location</strong> = f"s3://{s3_bucket}/{prefix}/input/<strong class="bold">training.jsonl</strong>" <strong class="bold">test_s3_input_location</strong> = f"s3://{s3_bucket}/{prefix}/input/<strong class="bold">test.jsonl</strong>" <strong class="bold">training_s3_output_location</strong> = f"s3://{s3_bucket}/{prefix}/output/"</pre></li>
+				<li>使用TrainingInput并将content_type指定为json: <pre>from sagemaker.inputs import TrainingInput train = TrainingInput(     training_s3_input_location,      content_type="json" ) test = TrainingInput(     test_s3_input_location,      content_type="json" )</pre></li>
+				<li>使用%store魔术读取prediction_length值。请注意，当我们在训练步骤中将其指定为超参数值之一时，我们将使用prediction_length值来控制我们将使用训练好的模型对未来多远进行预测:<pre>%store -r <strong class="bold">prediction_length</strong></pre></li>
+				<li>Read the freq value using the %store magic:<pre>%store -r <strong class="bold">freq</strong></pre><p>请注意，我们<a id="_idIndexMarker1806"/>将在训练步骤期间将其作为time_freq的超参数值<a id="_idIndexMarker1807"/>传递，这对应于时间序列数据的粒度。</p></li>
+				<li>将context_length值设置为等于prediction_length: <pre><strong class="bold">context_length</strong> = prediction_length</pre></li>
+				<li>Use the retrieve() function to get the ECR image URI for the built-in <strong class="bold">DeepAR</strong> algorithm:<pre>from sagemaker.image_uris import retrieve 
+container = retrieve(
+    "<strong class="bold">forecasting-deepar</strong>", 
+    region_name, 
+    "1"
+)
+container</pre><p>我们应该得到一个类似于' 522234722520 . dkr . ECR . us-east-1 . Amazon AWS . com/forecasting-deepar:1 '的值。</p><p>下一组步骤集中于使用前面步骤中准备的先决条件来训练和部署我们的<strong class="bold"> DeepAR </strong>模型:</p></li>
+				<li>使用下面的代码块<a id="_idIndexMarker1809"/>初始化<a id="_idIndexMarker1808"/>估算器对象:<pre>estimator = sagemaker.estimator.<strong class="bold">Estimator</strong>(     container,     role,      instance_count=1,      instance_type='ml.c4.2xlarge',     output_path=training_s3_output_location,     sagemaker_session=session )</pre></li>
+				<li>使用set_hyperparameters()函数:<pre>estimator.<strong class="bold">set_hyperparameters</strong>(     <strong class="bold">time_freq</strong>=freq,     <strong class="bold">context_length</strong>=str(context_length),     <strong class="bold">prediction_length</strong>=str(prediction_length),     <strong class="bold">num_cells</strong>=40,     <strong class="bold">num_layers</strong>=3,     <strong class="bold">likelihood</strong>="gaussian",     <strong class="bold">epochs</strong>=20,     <strong class="bold">mini_batch_size</strong>=32,     <strong class="bold">learning_rate</strong>=0.001,     <strong class="bold">dropout_rate</strong>=0.05,     <strong class="bold">early_stopping_patience</strong>=10 )</pre></li>
+				<li>Use the fit() function to start the training job:<pre>%%time
+<strong class="bold">data_channels</strong> = {"train": <strong class="bold">train</strong>, "test": <strong class="bold">test</strong>}
+estimator.<strong class="bold">fit</strong>(inputs=<strong class="bold">data_channels</strong>)</pre><p>这应该<a id="_idIndexMarker1810"/>产生一组<a id="_idIndexMarker1811"/>日志，类似于图8.29 中的<em class="italic">所示。</em></p><div><img src="img/B16850_08_30.jpg" alt="Figure 8.29 – Training job logs&#13;&#10;" width="622" height="291"/></div><p class="figure-caption">图8.29–培训工作日志</p><p>请注意，此步骤可能需要大约4到8分钟才能完成。</p></li>
+				<li>Use the deploy() function to deploy the DeepAR model:<pre>predictor = estimator.<strong class="bold">deploy</strong>(
+    initial_instance_count=1,
+    instance_type="ml.m4.xlarge"
+)</pre><p>完成此步骤大约需要5到10分钟。</p><p class="callout-heading">重要说明</p><p class="callout">运行deploy()函数将启动一个实例，该实例将继续运行，直到执行删除资源操作。当实例运行时，您将为它运行的时间付费。确保在完成配方<em class="italic">使用部署的DeepAR模型</em>执行概率预测后删除推理端点。</p></li>
+				<li>Use the %store magic to save the value of the endpoint name:<pre>endpoint_name = predictor.endpoint_name
+%store endpoint_name</pre><p>我们将在下一个配方中使用<a id="_idIndexMarker1812"/>变量<a id="_idIndexMarker1813"/>的值。</p></li>
+			</ol>
+			<p>现在，让我们看看这是如何工作的！</p>
+			<h2 id="_idParaDest-370"><a id="_idTextAnchor860"/>工作原理……</h2>
+			<p>在这个菜谱中，我们使用了<strong class="bold"> SageMaker Python SDK </strong>来训练和部署我们的<strong class="bold"> DeepAR </strong>模型。因为我们已经<a id="_idIndexMarker1814"/>使用其他内置算法执行了一些训练工作和部署，可以肯定地说，这个配方的大约80%与其他类似配方的工作方式非常相似。也就是说，让我们把讨论的重点放在所使用的超参数上，这样我们就可以更好地理解这个内置算法是如何工作的。</p>
+			<p>我们已经指定了几个超参数，比如context_length和prediction_length。超参数context_length一般接近prediction_length的值。context_length超参数指的是模型在进行预测之前可以看到的记录数。另一方面，超参数prediction_length指的是我们想要预测的记录数。这意味着prediction_length值越高，预测输出数据就越长。</p>
+			<p><strong class="bold"> DeepAR </strong>预测算法<a id="_idIndexMarker1815"/>使用<strong class="bold"> RNNs </strong>来预测时间序列值，这意味着可配置的超参数将围绕我们可以用神经网络结构配置的内容。例如，num_layers超参数确定了RNN中隐藏图层的数量。一般来说，我们使用的隐藏层越多，模型就越能检测到复杂的特征。</p>
+			<p class="callout-heading">小费</p>
+			<p class="callout">当然，如果我们在神经网络中使用过多的层，这可能会导致过度拟合。</p>
+			<p>接下来是dropout_rate超参数。该值影响模型对过度拟合的敏感性。也就是说，我们可以通过试验dropout_rate的不同值来防止过度拟合。还有其他超参数值，我们不会在本节中讨论，所以请随意查看<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/deepar_hyperparameters.html">https://docs . AWS . Amazon . com/sage maker/latest/DG/deepar _ hyperparameters . html</a>以了解更多信息。</p>
+			<h1 id="_idParaDest-371">使用部署的DeepAR模型执行概率预测</h1>
+			<p>在<a id="_idIndexMarker1816"/>之前的配方中，我们<a id="_idIndexMarker1817"/>使用生成的合成时序数据集训练了一个<strong class="bold"> DeepAR </strong>模型。在训练步骤之后，我们还将这个模型部署到一个实时推理端点。在这个配方中，我们将使用我们在前一个配方中部署的部署的<strong class="bold"> DeepAR </strong>模型进行推理。我们还将了解如何利用使用<strong class="bold"> DeepAR </strong>模型的优势之一——估计时间序列数据集未来状态的概率分布的能力。</p>
+			<h2 id="_idParaDest-372">正在准备中</h2>
+			<p>以下是这个食谱的先决条件:</p>
+			<ul>
+				<li>这个配方延续了<em class="italic">培训和部署DeepAR模型</em>的做法。</li>
+				<li>运行<strong class="bold"> Python 3(数据科学)</strong>内核的<strong class="bold"> SageMaker Studio </strong>笔记本。</li>
+			</ul>
+			<h2 id="_idParaDest-373"><a id="_idTextAnchor863"/>怎么做...</h2>
+			<p>该配方中的步骤集中于使用前一配方中的终点来执行概率预测:</p>
+			<ol>
+				<li value="1">在my-experiments/chapter08目录中使用Python 3(数据科学)内核创建一个<a id="_idIndexMarker1818"/>新笔记本，并将其重命名为这个<a id="_idIndexMarker1819"/>配方的名称。当提示使用内核时，选择<strong class="bold"> Python 3(数据科学)</strong>。</li>
+				<li>使用%store魔术读取端点名称、训练数据集、目标数据集、频率和预测长度的值:<pre>%store -r <strong class="bold">endpoint_name</strong> %store -r <strong class="bold">training_dataset</strong> %store -r <strong class="bold">target_dataset</strong> %store -r <strong class="bold">freq</strong> %store -r <strong class="bold">prediction_length</strong></pre></li>
+				<li>导入并准备一些先决条件，如角色和会话:<pre>import sagemaker  import boto3 from sagemaker import get_execution_role  role = get_execution_role() session = sagemaker.Session()</pre></li>
+				<li>用端点名和SageMaker会话初始化预测器对象:<pre>Predictor = sagemaker.predictor.Predictor predictor = <strong class="bold">Predictor</strong>(     endpoint_name=<strong class="bold">endpoint_name</strong>,      sagemaker_session=session )</pre></li>
+				<li>用JSONSerializer指定预测器的序列化器:<pre>predictor.serializer = sagemaker.serializers.JSONSerializer()</pre></li>
+				<li>Prepare the quantiles and configuration parameters: <pre><strong class="bold">quantiles</strong>=["0.1", "0.5", "0.9"]
+<strong class="bold">configuration</strong> = {
+    "num_samples": 100,
+    "output_types": ["quantiles"],
+    "quantiles": <strong class="bold">quantiles</strong>,
+}</pre><p>在后面的步骤中，我们<a id="_idIndexMarker1820"/>将使用由<a id="_idIndexMarker1821"/>的predict()函数返回的0.5分位数值进行<strong class="bold">确定性点预测</strong>。对于0.1和0.9分位数值，我们将<a id="_idIndexMarker1822"/>使用这些值分别作为<strong class="bold">概率预测</strong>的可能值的下限和上限。</p></li>
+				<li>定义series_to_object()函数:<pre>def <strong class="bold">series_to_object</strong>(data):     return {         "start": str(data.index[0]),          "target": list(data)     }</pre></li>
+				<li>Use the series_to_object() function to prepare the http_request_data payload to the predict() function:<pre><strong class="bold">instances</strong> = [<strong class="bold">series_to_object</strong>(training_dataset)]
+http_request_data = {
+    "instances": <strong class="bold">instances</strong>, 
+    "configuration": <strong class="bold">configuration</strong>
+}
+http_request_data</pre><p>这应该<a id="_idIndexMarker1823"/>给我们一个<a id="_idIndexMarker1824"/>类似于<em class="italic">图8.30 </em>中所示的数值字典。</p><div><img src="img/B16850_08_31.jpg" alt="Figure 8.30 – Payload to the predict() function&#13;&#10;" width="655" height="277"/></div><p class="figure-caption">图8.30-predict()函数的有效负载</p><p>我们将在下一步中使用这个值字典。</p></li>
+				<li>使用predict()函数执行预测:<pre>response = predictor.<strong class="bold">predict</strong>(http_request_data)</pre></li>
+				<li>Use the loads() function from the json library to convert the string response to a dictionary:<pre>import json
+response_data = json.loads(response)
+response_data</pre><p>这应该给我们一个类似于图8.31 所示的<a id="_idIndexMarker1825"/>嵌套结构<a id="_idIndexMarker1826"/>的值。</p><div><img src="img/B16850_08_32.jpg" alt="Figure 8.31 – Prediction results&#13;&#10;" width="650" height="260"/></div><p class="figure-caption">图8.31–预测结果</p><p>这里，我们有由推理端点返回的预测值。由于我们只将一个时间序列数据集作为有效负载传递给了predict()函数，因此我们还希望获得一组值。</p></li>
+				<li>将结果存储在single_result变量中:<pre><strong class="bold">single_result</strong> = response_data['predictions'][0]</pre></li>
+				<li>准备prediction_time变量，该变量包含预测时间序列值的开始时间:<pre>import pandas as pd <strong class="bold">prediction_time</strong> = training_dataset.index[-1] + pd.Timedelta(1, unit=freq)</pre></li>
+				<li>设置包含日期和时间值列表的prediction_index变量:<pre><strong class="bold">prediction_index</strong> = pd.<strong class="bold">date_range</strong>(     start=<strong class="bold">prediction_time</strong>,      freq=<strong class="bold">freq</strong>,      periods=<strong class="bold">prediction_length</strong> )</pre></li>
+				<li>Next, prepare<a id="_idIndexMarker1827"/> the output <a id="_idIndexMarker1828"/>variable containing the prediction results:<pre>output = pd.DataFrame(
+    data=<strong class="bold">single_result['quantiles']</strong>, 
+    index=<strong class="bold">prediction_index</strong>
+)
+output</pre><p>这应该会给我们一个类似于图8.32 中所示的数据帧。</p><div><img src="img/B16850_08_33.jpg" alt="Figure 8.32 – DataFrame containing the prediction results with quantile values&#13;&#10;" width="577" height="268"/></div><p class="figure-caption">图8.32–包含分位数预测结果的数据框架</p><p>这里，我们可以看到带有分位数值的预测结果。由于<strong class="bold"> DeepAR </strong>使用分位数值返回概率预测，分位数值决定了观察低于和高于所述分位数值的某个百分比值的机会。例如，我们有50%的机会观察到低于0.5分位数的值，有50%的机会观察到高于0.5分位数的值。这个<a id="_idIndexMarker1829"/>使得它成为<strong class="bold">确定性点预测</strong>的一个很好的选择。另一方面，我们有10%的机会观察到低于0.1分位数的值，有90%的机会观察到低于0.9分位数的值。也就是说<a id="_idIndexMarker1831"/>我们将使用0.9和0.1分位数值作为<strong class="bold">概率预测</strong>的上限值和下限值。</p><p class="callout-heading">注意</p><p class="callout">我们将在<em class="italic">如何工作……</em>部分讨论<strong class="bold">概率预测</strong>的含义。</p></li>
+				<li>Visualize the predicted values with the training dataset: <pre>import matplotlib.pyplot as plt
+%matplotlib inline
+     
+plt.figure(figsize=(14,6))
+plt.plot(target_dataset.index, 
+         target_dataset, 
+         label="target")
+plt.plot(training_dataset.index, 
+         training_dataset, 
+         label="training")
+plt.grid(True)
+plt.xlabel("DATE")
+plt.ylabel("VALUE")    
+     
+<strong class="bold">p10</strong> = output["0.1"]
+<strong class="bold">p90</strong> = output["0.9"]
+plt.<strong class="bold">fill_between</strong>(
+    p10.index, 
+    <strong class="bold">p10</strong>, 
+    <strong class="bold">p90</strong>, 
+    color="y", 
+    alpha=0.5, 
+    label="80% confidence interval"
+)
+     
+plt.<strong class="bold">plot</strong>(output["0.5"].index, 
+         output["0.5"], 
+         label="prediction median")
+plt.legend()
+plt.show()</pre><p>这应该<a id="_idIndexMarker1832"/>呈现出一个类似于图8.33 所示的图表<a id="_idIndexMarker1833"/>。</p><div><img src="img/B16850_08_34.jpg" alt="Figure 8.33 – Time series chart with predicted values&#13;&#10;" width="855" height="376"/></div><p class="figure-caption">图8.33–带有预测值的时间序列图</p><p>我们可以在<em class="italic">图8.33 </em>中看到预测值以及图表右侧的置信区间。在这里，我们可以看到来自我们的合成数据集的已知目标值或多或少落在由<strong class="bold"> DeepAR </strong>模型预测的80%置信区间内。请注意，这个80%的置信区间是使用分别具有预测的0.9和0.1分位数值的上限值和下限值获得的。</p></li>
+				<li>Finally, let's not <a id="_idIndexMarker1834"/>forget to <a id="_idIndexMarker1835"/>delete the endpoint using the delete_endpoint() function:<pre>predictor.<strong class="bold">delete_endpoint</strong>()</pre><p>此时，我们应该可以轻松使用SageMaker内置的<strong class="bold"> DeepAR预测算法</strong>。</p></li>
+			</ol>
+			<p>现在，让我们看看这是如何工作的！</p>
+			<h2 id="_idParaDest-374"><a id="_idTextAnchor864"/>工作原理……</h2>
+			<p>在这个配方中，我们成功地使用部署的<strong class="bold"> DeepAR </strong>模型来执行推理，如图所示。使用<strong class="bold"> DeepAR </strong>的一个好处是，我们能够在执行预测时执行概率预测。概率预测包括利用一系列可能的结果，而不是简单地提供平均值或中值。由于额外信息的可用性——特定事件或值发生的预测概率，这允许更好的决策。</p>
+			<p>这是如何工作的？如<em class="italic">图8.34 </em>所示，我们简单地使用predict()函数返回的0.5分位数值进行<a id="_idIndexMarker1836"/>的<strong class="bold">确定性点预测</strong>。我们预计有50%的机会观察到低于0.5分位数值的值，我们还预计有50%的机会<a id="_idIndexMarker1837"/>观察到高于0.5分位数值的值，这使其成为确定性<a id="_idIndexMarker1838"/>点预测值的良好选择。</p>
+			<div><div><img src="img/B16850_08_35.jpg" alt="Figure 8.34 – Deterministic and probabilistic forecasts&#13;&#10;" width="886" height="378"/>
+				</div>
+			</div>
+			<p class="figure-caption">图8.34–确定性和概率性预测</p>
+			<p>另一方面，对于<strong class="bold">概率预测</strong>，我们首先获得0.1和0.9分位数的值，然后将这些值分别作为可能值的下限和上限。当然，如果我们使用更小的范围，分位数值的差异将更小，窗口也将更小。当我们希望概率预测值更接近确定性点预测值时，这很有用。</p>
+			<h2 id="_idParaDest-375"><a id="_idTextAnchor865"/>亦见</h2>
+			<p>如果您正在寻找在真实数据集上使用<strong class="bold"> DeepAR预测算法</strong>的<a id="_idIndexMarker1839"/>示例和更复杂的示例，请随意查看<strong class="bold">AWS/Amazon-sage maker-examples</strong>GitHub资源库中的一些笔记本:</p>
+			<ul>
+				<li>使用<strong class="bold"> DeepAR </strong>模型预测驾驶速度违规—<a href="https://github.com/aws/amazon-sagemaker-examples/blob/master/introduction_to_applying_machine_learning/deepar_chicago_traffic_violations/deepar_chicago_traffic_violations.ipynb%20">https://github . com/AWS/Amazon-sage maker-examples/blob/master/introduction _ to _ applying _ machine _ learning/DeepAR _ Chicago _ traffic _ violations/DeepAR _ Chicago _ traffic _ violations . ipynb</a></li>
+				<li>在<a id="_idIndexMarker1840"/>电力数据集上使用<strong class="bold"> DeepAR预测算法</strong>——<a href="https://github.com/aws/amazon-sagemaker-examples/blob/master/introduction_to_amazon_algorithms/deepar_electricity/DeepAR-Electricity.ipynb%20">https://github . com/AWS/Amazon-sage maker-examples/blob/master/introduction _ to _ Amazon _ algorithms/DeepAR _ electricity/DeepAR-electricity . ipynb</a></li>
+			</ul>
+			<p>由于我们无法在本书中深入探究<strong class="bold"> DeepAR预测算法</strong>的不同特性，请随意查看此链接了解更多信息:<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/deepar.html">https://docs.aws.amazon.com/sagemaker/latest/dg/deepar.html</a>。</p>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">训练和部署图像分类器</p>
+			<p class="hidden">使用SageMaker中内置的图像分类算法</p>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><p class="hidden">训练和部署图像分类器</p>
+			<p class="hidden">使用SageMaker中内置的图像分类算法</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><p class="hidden">训练和部署图像分类器</p>
+			<p class="hidden">使用SageMaker中内置的图像分类算法</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><p class="hidden">训练和部署图像分类器</p>
+			<p class="hidden">使用SageMaker中内置的图像分类算法</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><p class="hidden">训练和部署图像分类器</p>
+			<p class="hidden">使用SageMaker中内置的图像分类算法</p>
+		</div>
+		<div><div/>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+		<div><p class="hidden">使用内置算法解决NLP、图像分类和时间序列预测问题</p>
+		</div>
+	</div>
+</body></html>

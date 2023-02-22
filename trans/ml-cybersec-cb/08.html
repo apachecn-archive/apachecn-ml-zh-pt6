@@ -1,0 +1,994 @@
+<html><head/><body>
+
+
+    
+        <title>Secure and Private AI</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">安全和私有人工智能</h1>
+                
+            
+            
+                
+<p>机器学习可以帮助我们诊断和抗击癌症，决定哪所学校最适合我们的孩子，并进行最明智的房地产投资。但你只能通过访问私人和个人数据来回答这些问题，这需要一种新颖的机器学习方法。这种方法被称为<em>安全和私有人工智能</em>，在最近几年，已经取得了长足的进步，正如你将在下面的食谱中看到的。</p>
+<p class="mce-root">本章包含以下配方:</p>
+<ul>
+<li class="mce-root">联合学习</li>
+<li class="mce-root">加密计算</li>
+<li class="mce-root">私人深度学习预测</li>
+<li class="mce-root">测试神经网络的对抗性鲁棒性</li>
+<li class="mce-root">使用张量流隐私的差分隐私</li>
+</ul>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Technical requirements</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">技术要求</h1>
+                
+            
+            
+                
+<p>以下是本章的技术先决条件:</p>
+<ul>
+<li>张量流联邦</li>
+<li>傻瓜盒子</li>
+<li>PyTorch</li>
+<li>火炬视觉</li>
+<li>TensorFlow隐私</li>
+</ul>
+<p>安装说明、代码和数据集可以在<a href="https://github.com/PacktPublishing/Machine-Learning-for-Cybersecurity-Cookbook/tree/master/Chapter08">https://github . com/packt publishing/Machine-Learning-for-cyber security-Cookbook/tree/master/chapter 08</a>找到。</p>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Federated learning</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">联合学习</h1>
+                
+            
+            
+                
+<p>在这个菜谱中，我们将使用TensorFlow联邦框架训练一个联邦学习模型。</p>
+<p>为了理解为什么联合学习是有价值的，当你写短信时，考虑一下你手机上的<em>下一个单词预测</em>模型。出于隐私原因，您不会希望将数据(即您的文本消息)发送到中央服务器来用于训练下一个单词预测器。但是有一个准确的下一个单词预测算法还是不错的。怎么办？这就是联合学习的用武之地，它是一种为解决这种隐私问题而开发的机器学习技术。<br/></p>
+<p>联合学习的核心思想是，训练数据集仍在其生产者手中，保留隐私和所有权，同时仍用于训练集中式模型。该特征在网络安全中特别有吸引力，例如，在网络安全中，从许多不同的来源收集良性和恶意样本对于创建强模型是至关重要的，但是由于隐私问题而很困难(例如，良性样本可以是个人或机密文档)。</p>
+<p>顺便提一下，由于数据隐私越来越重要(例如，GDPR法案的颁布)，联合学习已经获得了越来越多的关注。苹果和谷歌等大公司已经开始在这项技术上投入巨资。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><div><div><div><div><p>该配方的准备包括在<kbd>pip</kbd>中安装<kbd>tensorflow_federated</kbd>、<kbd>tensorflow_datasets</kbd>和<kbd>tensorflow</kbd>包。该命令如下所示:</p>
+<pre><strong>pip install tensorflow_federated==0.2.0 tensorflow-datasets tensorflow==1.13.1</strong></pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<p>我们将安装这些包的特定版本，以防止代码中的任何中断。</p>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做…</h1>
+                
+            
+            
+                
+<p>在以下步骤中，您将创建两个虚拟数据集环境，一个属于Alice，另一个属于Bob，并使用联合平均来保护数据机密性。</p>
+<ol>
+<li>导入TensorFlow并启用急切执行:</li>
+</ol>
+<pre style="padding-left: 60px">import tensorflow as tf<br/><br/>tf.compat.v1.enable_v2_behavior()</pre>
+<ol start="2">
+<li>通过导入“时尚MNIST”并将其分成两个独立的环境(Alice和Bob)来准备数据集:</li>
+</ol>
+<pre style="padding-left: 60px">import tensorflow_datasets as tfds<br/><br/>first_50_percent = tfds.Split.TRAIN.subsplit(tfds.percent[:50])<br/>last_50_percent = tfds.Split.TRAIN.subsplit(tfds.percent[-50:])<br/><br/>alice_dataset = tfds.load("fashion_mnist", split=first_50_percent)<br/>bob_dataset = tfds.load("fashion_mnist", split=last_50_percent)</pre>
+<ol start="3">
+<li>现在，定义一个<kbd>helper</kbd>函数将数据类型从integer转换为float:</li>
+</ol>
+<pre style="padding-left: 60px">def cast(element):<br/>    """Casts an image's pixels into float32."""<br/>    out = {}<br/>    out["image"] = tf.image.convert_image_dtype(element["image"], dtype=tf.float32)<br/>    out["label"] = element["label"]<br/>    return out</pre>
+<ol start="4">
+<li>然后，定义一个<kbd>helper</kbd>函数来展平要输入神经网络的数据:</li>
+</ol>
+<pre style="padding-left: 60px">def flatten(element):<br/>    """Flattens an image in preparation for the neural network."""<br/>    return collections.OrderedDict(<br/>        [<br/>            ("x", tf.reshape(element["image"], [-1])),<br/>            ("y", tf.reshape(element["label"], [1])),<br/>        ]<br/>    )</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<ol start="5">
+<li>现在，定义一个<kbd>helper</kbd>函数来预处理数据:</li>
+</ol>
+<pre style="padding-left: 60px">import collections<br/><br/>BATCH_SIZE = 32<br/><br/>def preprocess(dataset):<br/>    """Preprocesses images to be fed into neural network."""<br/>    return dataset.map(cast).map(flatten).batch(BATCH_SIZE)</pre>
+<p> </p>
+<ol start="6">
+<li>预处理数据:</li>
+</ol>
+<pre style="padding-left: 60px">preprocessed_alice_dataset = preprocess(alice_dataset)<br/>preprocessed_bob_dataset = preprocess(bob_dataset)<br/>federated_data = [preprocessed_alice_dataset, preprocessed_bob_dataset]</pre>
+<ol start="7">
+<li>现在，为我们的神经网络定义一个<kbd>loss</kbd>函数:</li>
+</ol>
+<pre style="padding-left: 60px">def custom_loss_function(y_true, y_pred):<br/>    """Custom loss function."""<br/>    return tf.reduce_mean(<br/>        tf.keras.losses.sparse_categorical_crossentropy(y_true, y_pred)<br/>    )</pre>
+<ol start="8">
+<li>定义一个函数来实例化一个简单的Keras神经网络:</li>
+</ol>
+<pre style="padding-left: 60px">from tensorflow.python.keras.optimizer_v2 import gradient_descent<br/><br/>LEARNING_RATE = 0.02<br/>def create_compiled_keras_model():<br/>    """Compiles the keras model."""<br/>    model = tf.keras.models.Sequential(<br/>        [<br/>            tf.keras.layers.Dense(<br/>                10,<br/>                activation=tf.nn.softmax,<br/>                kernel_initializer="zeros",<br/>                input_shape=(784,),<br/>            )<br/>        ]<br/>    )<br/>    model.compile(<br/>        loss=custom_loss_function,<br/>        optimizer=gradient_descent.SGD(learning_rate=LEARNING_RATE),<br/>        metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],<br/>    )<br/>    return model</pre>
+<ol start="9">
+<li>然后，创建一批虚拟样本，并定义一个函数从Keras模型返回一个联邦学习模型:</li>
+</ol>
+<pre style="padding-left: 60px">batch_of_samples = tf.contrib.framework.nest.map_structure(<br/>    lambda x: x.numpy(), iter(preprocessed_alice_dataset).next()<br/>)<br/><br/><br/>def model_instance():<br/>    """Instantiates the keras model."""<br/>    keras_model = create_compiled_keras_model()<br/>    return tff.learning.from_compiled_keras_model(keras_model, batch_of_samples)</pre>
+<ol start="10">
+<li>声明联邦平均的迭代过程，并运行计算的一个阶段:</li>
+</ol>
+<pre style="padding-left: 60px">from tensorflow_federated import python as tff<br/><br/>federated_learning_iterative_process = tff.learning.build_federated_averaging_process(<br/>    model_instance<br/>)<br/>state = federated_learning_iterative_process.initialize()<br/>state, performance = federated_learning_iterative_process.next(state, federated_data)</pre>
+<ol start="11">
+<li>然后，通过运行以下命令显示计算的指标:</li>
+</ol>
+<pre style="padding-left: 60px">performance</pre>
+<p>输出如下所示:</p>
+<pre>AnonymousTuple([(sparse_categorical_accuracy, 0.74365), (loss, 0.82071316)])</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的...</h1>
+                
+            
+            
+                
+<p>我们从导入TensorFlow并启用急切执行开始(<em>步骤1 </em>)。通常，在TensorFlow中，操作不会立即执行。相反，会构建一个计算图，最后，所有操作会一起运行。在急切执行中，计算会尽快执行。接下来，在<em>步骤2 </em>中，我们导入时尚MNIST数据集。这个数据集已经成为MNIST的事实上的替代品，提供了一些改进(比如增加了挑战)。然后，我们在Alice和Bob之间对半细分数据集。然后，我们定义一个函数，将时尚MNIST的像素值从整数转换为浮点数，用于训练我们的神经网络(<em>步骤3 </em>)，另一个函数将图像展平为单个向量(<em>步骤4 </em>)。这使我们能够将数据输入一个完全连接的神经网络。在<em>步骤5 </em>和<em>步骤6 </em>中，我们使用之前定义的便利函数对Alice和Bob的数据集进行预处理。</p>
+<p>接下来，我们定义对我们的10类分类任务有意义的损失函数(<em>步骤7 </em>)，然后定义我们的Keras神经网络以准备训练(<em>步骤8 </em>)。在<em>步骤9 </em>中，我们创建一批虚拟样本，并定义一个函数从Keras模型返回一个联合学习模型。虚拟样本批次指定了模型预期的输入形状。在<em>步骤10 </em>中，我们运行联合平均过程的一个阶段。关于该算法的细节可以在题为<em>从分散数据进行深度网络的通信高效学习</em>的论文中找到。</p>
+<p>在基本层面上，该算法在每个客户端的数据上结合局部<strong>随机梯度下降</strong> ( <strong> SGD </strong>)，然后使用执行模型平均的服务器。结果是为客户保密(在我们的例子中，是Alice和Bob)。最后，在<em>步骤11 </em>中，我们观察我们的性能，看到算法确实如预期的那样训练和提高了准确性。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Encrypted computation</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">加密计算</h1>
+                
+            
+            
+                
+<p>在本菜谱中，我们将介绍加密计算的基础知识。特别是，我们将关注一种流行的方法，称为安全多方计算。您将学习如何构建一个简单的加密计算器，可以对加密数字执行加法。这个食谱中的想法在<em>私人深度学习预测</em>食谱中会派上用场。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<p>下面的食谱除了Python之外没有任何安装要求。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做…</h1>
+                
+            
+            
+                
+<ol>
+<li>导入随机库并选择一个大质数，<kbd>P</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px">import random<br/><br/>P = 67280421310721</pre>
+<ol start="2">
+<li>为三方定义加密功能:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def encrypt(x):<br/>    """Encrypts an integer between 3 partires."""<br/>    share_a = random.randint(0, P)<br/>    share_b = random.randint(0, P)<br/>    share_c = (x - share_a - share_b) % P<br/>    return (share_a, share_b, share_c)</pre>
+<ol start="3">
+<li>加密数字变量:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">x = 17<br/>share_a, share_b, share_c = encrypt(x)<br/>print(share_a, share_b, share_c)<br/><br/>16821756678516 13110264723730 37348399908492</pre>
+<ol start="4">
+<li>给定三个份额，定义一个要解密的函数:</li>
+</ol>
+<pre style="padding-left: 60px">def decrypt(share_a, share_b, share_c):<br/>    """Decrypts the integer from 3 shares."""<br/>    return (share_a + share_b + share_c) % P</pre>
+<ol start="5">
+<li>解密加密的变量<kbd>x</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px">decrypt(share_a, share_b, share_c)</pre>
+<p style="padding-left: 60px">输出如下所示:</p>
+<pre style="padding-left: 60px">17</pre>
+<ol start="6">
+<li>定义一个将两个加密数字相加的函数:</li>
+</ol>
+<pre style="padding-left: 60px">def add(x, y):<br/>    """Addition of encrypted integers."""<br/>    z = list()<br/>    z.append((x[0] + y[0]) % P)<br/>    z.append((x[1] + y[1]) % P)<br/>    z.append((x[2] + y[2]) % P)<br/>    return z</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mceNonEditable"/>
+<ol start="7">
+<li>添加两个加密变量并解密它们的总和:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">x = encrypt(5)<br/>y = encrypt(9)<br/>decrypt(*add(x, y))<br/><br/>14</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>我们从<em>步骤1 </em>开始，导入随机库，以便在<em>步骤2 </em>中生成随机整数。我们还定义了一个大素数P，因为我们需要一个随机分布模P。在<em>步骤2 </em>中，我们定义了一个函数如何通过在三方之间分割来加密一个整数。这里x的值在三方之间随机地相加分割。所有运算都在整数模p域中进行。接下来，在<em>步骤3 </em>中，我们演示使用我们的方法加密整数的结果。进行到<em>步骤4 </em>和<em> 5 </em>，我们定义一个反向加密的函数，即解密，然后证明该操作是可逆的。在<em>第6步</em>中，我们定义了一个函数将两个加密数字(！).请注意，加密加法只是单个组件的加法，以p为模。在<em>加密深度学习预测</em>配方中，使用了PySyft的<kbd>.share(client, server,...)</kbd>命令。这个命令基本上是我们在这个食谱中使用的相同的加密过程，所以请记住，这些加密方案使用我们在这里讨论的技术。最后，在<em>步骤7 </em>中，我们展示了我们可以在加密的实体上执行计算。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Private deep learning prediction</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">私人深度学习预测</h1>
+                
+            
+            
+                
+<p>在许多情况下，公司A可能有一个训练有素的模型，它希望作为服务提供。同时，A公司可能不愿意分享这种模式，以避免其知识产权被盗。这个问题的简单解决方案是让客户将他们的数据发送给公司A，然后从它那里接收预测。然而，当客户希望保护他们数据的隐私时，这就成了一个问题。为了解决这种棘手的情况，该公司及其客户可以利用加密计算。</p>
+<p>在这个食谱中，您将学习如何与客户共享加密的预训练深度学习模型，并允许客户使用加密的模型对他们自己的私人数据进行预测。</p>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><div><div><div><div><p>这个配方的准备包括在<kbd>pip</kbd>中安装PyTorch、Torchvision和PySyft。该命令如下所示:</p>
+<pre><strong>pip install torch torchvision syft</strong></pre>
+<p>此外，一个名为<kbd>server_trained_model.pt</kbd>的预先训练好的模型已经包含在此配方中。</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做…</h1>
+                
+            
+            
+                
+<p>以下步骤利用PySyft来模拟客户端-服务器交互，其中服务器具有作为黑盒保存的预训练深度学习模型，并且客户端希望使用该模型来预测保密的数据。</p>
+<ol start="1">
+<li>导入<kbd>torch</kbd>并访问其数据集:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import torch<br/>import torch.nn as nn<br/>import torch.nn.functional as F<br/>from torchvision import datasets, transforms</pre>
+<ol start="2">
+<li>导入PySyft并将其挂在<kbd>torch</kbd>上:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import syft as sy<br/><br/>hook = sy.TorchHook(torch)<br/>client = sy.VirtualWorker(hook, id="client")<br/>server = sy.VirtualWorker(hook, id="server")<br/>crypto_provider = sy.VirtualWorker(hook, id="crypto_provider")</pre>
+<ol start="3">
+<li>定义一个简单的神经网络:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">class Net(nn.Module):<br/>    def __init__(self):<br/>        super(Net, self).__init__()<br/>        self.fc1 = nn.Linear(784, 500)<br/>        self.fc2 = nn.Linear(500, 10)<br/><br/>    def forward(self, x):<br/>        x = x.view(-1, 784)<br/>        x = self.fc1(x)<br/>        x = F.relu(x)<br/>        x = self.fc2(x)<br/>        return x</pre>
+<ol start="4">
+<li>实例化模型并加载其预训练的权重，这些权重是在MNIST上训练的:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">model = Net()<br/>model.load_state_dict(torch.load("server_trained_model.pt"))<br/>model.eval()</pre>
+<ol start="5">
+<li>加密<kbd>client</kbd>和<kbd>server</kbd>之间的网络:</li>
+</ol>
+<pre style="padding-left: 60px">model.fix_precision().share(client, server, crypto_provider=crypto_provider)</pre>
+<ol start="6">
+<li>为MNIST数据定义加载程序:</li>
+</ol>
+<pre style="padding-left: 60px">test_loader = torch.utils.data.DataLoader(<br/>    datasets.MNIST(<br/>        "data",<br/>        train=False,<br/>        download=True,<br/>        transform=transforms.Compose(<br/>            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]<br/>        ),<br/>    ),<br/>    batch_size=64,<br/>    shuffle=True,<br/>)</pre>
+<ol start="7">
+<li>利用MNIST数据加载器定义专用加载器:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">private_test_loader = []<br/>for data, target in test_loader:<br/>    private_test_loader.append(<br/>        (<br/>            data.fix_precision().share(client, server, crypto_provider=crypto_provider),<br/>            target.fix_precision().share(<br/>                client, server, crypto_provider=crypto_provider<br/>            ),<br/>        )<br/>    )</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<ol start="8">
+<li>定义一个函数来评估私有测试集:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">def test(model, test_loader):<br/>    """Test the model."""<br/>    model.eval()<br/>    n_correct_priv = 0<br/>    n_total = 0</pre>
+<ol start="9">
+<li>迭代私有数据，使用模型进行预测，解密结果，然后打印出来:</li>
+</ol>
+<pre class="mce-root">    with torch.no_grad():<br/>        for data, target in test_loader:<br/>            output = model(data)<br/>            pred = output.argmax(dim=1)<br/>            n_correct_priv += pred.eq(target.view_as(pred)).sum()<br/>            n_total += 64<br/>            n_correct = <br/>            n_correct_priv.copy().get().float_precision().long().item()<br/>            print(<br/>                "Test set: Accuracy: {}/{} ({:.0f}%)".format(<br/>                    n_correct, n_total, 100.0 * n_correct / n_total<br/>                )<br/>            )</pre>
+<ol start="10">
+<li>运行测试程序:</li>
+</ol>
+<pre style="padding-left: 60px">test(model, private_test_loader)</pre>
+<p>结果如下:</p>
+<pre>Test set: Accuracy: 63/64 (98%)<br/>Test set: Accuracy: 123/128 (96%)<br/>Test set: Accuracy: 185/192 (96%)<br/>Test set: Accuracy: 248/256 (97%)<br/>Test set: Accuracy: 310/320 (97%)<br/>Test set: Accuracy: 373/384 (97%)<br/>Test set: Accuracy: 433/448 (97%)<br/>&lt;snip&gt;<br/>Test set: Accuracy: 9668/9920 (97%)<br/>Test set: Accuracy: 9727/9984 (97%)<br/>Test set: Accuracy: 9742/10048 (97%)</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works…</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的…</h1>
+                
+            
+            
+                
+<p>我们首先导入<kbd>torch</kbd>及其数据集，以及一些相关的库(<em>步骤1 </em>)。然后我们导入<kbd>pysyft</kbd>并将其挂钩到<kbd>torch</kbd> ( <em>步骤2 </em>)。我们还为客户机和服务器创建虚拟环境，以模拟真实的数据分离。在这一步中，<kbd>crypto_provider</kbd>作为可信的第三方，用于加密和解密。在<em>步骤3 </em>中，我们定义了一个简单的神经网络，在<em>步骤4 </em>中，我们加载了它的预训练权重。请注意，在<em>步骤5 </em>中，更一般地说，每当使用<kbd>.share(...)</kbd>命令时，您应该认为共享对象是加密的，并且只有在所有相关方的协助下才可能解密。具体来说，在<em>步骤9 </em>中，测试函数执行加密评估；模型的权重、数据输入、预测和用于评分的目标都被加密。但是，为了验证模型是否正常工作，我们解密并显示其准确性。在<em>步骤5 </em>中，我们对网络进行加密，这样只有当服务器和客户端合作时，它们才能解密网络。</p>
+<p>在接下来的两步中，我们为MNIST数据定义常规和私有加载器。常规加载器只是加载MNIST数据，而私有加载器对常规加载器的输出进行加密。在<em>步骤8 </em>和<em> 9 </em>中，我们定义了一个<kbd>helper</kbd>函数来评估私有测试集。在这个函数中，我们迭代私有数据，使用模型进行预测，解密结果，然后打印出来。最后，我们应用<em>步骤8 </em>和<em> 9 </em>中定义的函数来确定模型运行良好，同时保护隐私。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Testing the adversarial robustness of neural networks</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">测试神经网络的对抗性鲁棒性</h1>
+                
+            
+            
+                
+<p>对神经网络的对抗性攻击的研究揭示了对对抗性扰动的惊人的敏感性。即使是最精确的神经网络，在不设防的情况下，也容易受到单像素攻击和人眼不可见噪声的干扰。幸运的是，该领域的最新进展提供了如何强化神经网络以应对各种敌对攻击的解决方案。一个这样的解决方案是被称为综合分析的T2的神经网络设计。该模型背后的主要思想是，它是一个贝叶斯模型。该模型不是直接预测给定输入的标签，而是使用<strong>变分自动编码器</strong> ( <strong> VAEs </strong>)学习类条件样本分布。更多信息可在<a href="https://arxiv.org/abs/1805.09190" target="_blank">https://arxiv.org/abs/1805.09190</a>找到。</p>
+<p>在本食谱中，您将为MNIST加载一个预训练的ABS网络，并学习如何测试神经网络的对抗性鲁棒性。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><div><div><div><div><div><p>以下配方已经在Python 3.6中测试过。准备这个菜谱需要在<kbd>pip</kbd>中安装Pytorch、Torchvision、SciPy、Foolbox和Matplotlib包。该命令如下所示:</p>
+<pre><strong>pip install torch torchvision scipy foolbox==1.8 matplotlib</strong></pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<p>在下面的步骤中，我们将为MNIST加载一个预训练的ABS模型和一个传统的CNN模型。我们将使用Foolbox攻击这两种模型，看看它们能在多大程度上抵御对抗性攻击:</p>
+<ol>
+<li>首先导入预训练的ABS模型:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from abs_models import models<br/>from abs_models import utils<br/><br/>ABS_model = models.get_VAE(n_iter=50)</pre>
+<ol start="2">
+<li>使用模型定义一个<kbd>convenience</kbd>函数来预测一批MNIST图像:</li>
+</ol>
+<pre style="padding-left: 60px">import numpy as np<br/><br/>def predict_on_batch(model, batch, batch_size):<br/>    """Predicts the digits of an MNIST batch."""<br/>    preds = []<br/>    labels = []<br/>    for i in range(batch_size):<br/>        point, label = utils.get_batch()<br/>        labels.append(label[0])<br/>        tensor_point = utils.n2t(point)<br/>        logits = model(tensor_point)[0]<br/>        logits = [x for x in logits]<br/>        pred = np.argmax(logits)<br/>        preds.append(int(pred))<br/>    return preds, labels</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<ol start="3">
+<li>对一批进行预测:</li>
+</ol>
+<pre style="padding-left: 60px">batch = utils.get_batch()<br/>preds, labels = predict_on_batch(ABS_model, batch, 5)<br/>print(preds)<br/>print(labels)</pre>
+<p style="padding-left: 60px">结果如下:</p>
+<pre style="padding-left: 60px">[4, 4, 9, 1, 8]<br/>[4, 4, 9, 1, 8]</pre>
+<ol start="4">
+<li>使用Foolbox包装模型，以便进行对抗性测试:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">import foolbox<br/><br/>if ABS_model.code_base == "tensorflow":<br/>    fmodel = foolbox.models.TensorFlowModel(<br/>        ABS_model.x_input, ABS_model.pre_softmax, (0.0, 1.0), channel_axis=3<br/>    )<br/>elif ABS_model.code_base == "pytorch":<br/>    ABS_model.eval()<br/>    fmodel = foolbox.models.PyTorchModel(<br/>        ABS_model, bounds=(0.0, 1.0), num_classes=10, device=utils.dev()<br/>    )</pre>
+<ol start="5">
+<li>从Foolbox导入攻击库，并选择一个MNIST图像:</li>
+</ol>
+<pre style="padding-left: 60px">from foolbox import attacks<br/><br/>images, labels = utils.get_batch(bs=1)</pre>
+<ol start="6">
+<li>选择攻击类型，在本例中为边界攻击:</li>
+</ol>
+<pre style="padding-left: 60px">attack = attacks.DeepFoolL2Attack(fmodel)<br/>metric = foolbox.distances.MSE<br/>criterion = foolbox.criteria.Misclassification()</pre>
+<ol start="7">
+<li>使用Matplotlib显示原始图像及其标签:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">from matplotlib import pyplot as plt<br/>%matplotlib inline<br/><br/>plt.imshow(images[0, 0], cmap="gray")<br/>plt.title("original image")<br/>plt.axis("off")<br/>plt.show()</pre>
+<p class="mce-root"/>
+<p style="padding-left: 60px">生成的图像如下:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/0cb4d4d5-9a8f-43b7-ad67-f60877d32b84.png" style="width:18.17em;height:18.83em;"/></p>
+<ol start="8">
+<li>使用Foolbox搜索对抗性实例:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">gradient_estimator = foolbox.gradient_estimators.CoordinateWiseGradientEstimator(0.1)<br/>fmodel = foolbox.models.ModelWithEstimatedGradients(fmodel, gradient_estimator)<br/><br/>adversary = foolbox.adversarial.Adversarial(<br/>    fmodel, criterion, images[0], labels[0], distance=metric<br/>)<br/>attack(adversary)</pre>
+<ol start="9">
+<li>展示发现的对立例子:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">plt.imshow(a.image[0], cmap="gray")<br/>plt.title("adversarial image")<br/>plt.axis("off")<br/>plt.show()<br/>print("Model prediction:", np.argmax(fmodel.predictions(adversary.image)))</pre>
+<p style="padding-left: 30px">产生的对立图像如下:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/f3113288-d9d3-4d8b-81d2-0c0179c5685f.png" style="width:17.50em;height:18.08em;"/></p>
+<ol start="10">
+<li>举例说明在MNIST训练的传统CNN模型:</li>
+</ol>
+<pre style="padding-left: 60px">from abs_models import models<br/><br/>traditional_model = models.get_CNN()</pre>
+<p style="padding-left: 60px">模型架构如下:</p>
+<pre style="padding-left: 60px">CNN(
+  (net): NN(
+    (conv_0): Conv2d(1, 20, kernel_size=(5, 5), stride=(1, 1))
+    (bn_0): BatchNorm2d(20, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (nl_0): ELU(alpha=1.0)
+    (conv_1): Conv2d(20, 70, kernel_size=(4, 4), stride=(2, 2))
+    (bn_1): BatchNorm2d(70, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (nl_1): ELU(alpha=1.0)
+    (conv_2): Conv2d(70, 256, kernel_size=(3, 3), stride=(2, 2))
+    (bn_2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (nl_2): ELU(alpha=1.0)
+    (conv_3): Conv2d(256, 10, kernel_size=(5, 5), stride=(1, 1))
+  )
+  (model): NN(
+    (conv_0): Conv2d(1, 20, kernel_size=(5, 5), stride=(1, 1))
+    (bn_0): BatchNorm2d(20, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (nl_0): ELU(alpha=1.0)
+    (conv_1): Conv2d(20, 70, kernel_size=(4, 4), stride=(2, 2))
+    (bn_1): BatchNorm2d(70, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (nl_1): ELU(alpha=1.0)
+    (conv_2): Conv2d(70, 256, kernel_size=(3, 3), stride=(2, 2))
+    (bn_2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (nl_2): ELU(alpha=1.0)
+    (conv_3): Conv2d(256, 10, kernel_size=(5, 5), stride=(1, 1))
+  )
+)</pre>
+<ol start="11">
+<li>执行健全性检查，以确保模型按预期执行:</li>
+</ol>
+<pre style="padding-left: 60px">preds, labels = predict_on_batch(traditional_model, batch, 5)<br/>print(preds)<br/>print(labels)</pre>
+<p style="padding-left: 60px">打印输出如下:</p>
+<pre style="padding-left: 60px">[7, 9, 5, 3, 3]<br/>[7, 9, 5, 3, 3]</pre>
+<ol start="12">
+<li>使用Foolbox包装传统模型:</li>
+</ol>
+<pre style="padding-left: 60px" class="mce-root">if traditional_model.code_base == "tensorflow":<br/>    fmodel_traditional = foolbox.models.TensorFlowModel(<br/>        traditional_model.x_input,<br/>        traditional_model.pre_softmax,<br/>        (0.0, 1.0),<br/>        channel_axis=3,<br/>    )<br/>elif traditional_model.code_base == "pytorch":<br/>    traditional_model.eval()<br/>    fmodel_traditional = foolbox.models.PyTorchModel(<br/>        traditional_model, bounds=(0.0, 1.0), num_classes=10, device=u.dev()<br/>    )</pre>
+<ol start="13">
+<li>攻击传统的CNN模式:</li>
+</ol>
+<pre style="padding-left: 60px">fmodel_traditional = foolbox.models.ModelWithEstimatedGradients(fmodel_traditional, GE)<br/><br/>adversarial_traditional = foolbox.adversarial.Adversarial(<br/>    fmodel_traditional, criterion, images[0], labels[0], distance=metric<br/>)<br/>attack(adversarial_traditional)</pre>
+<p class="mce-root"/>
+<ol start="14">
+<li>展示发现的对立例子:</li>
+</ol>
+<pre style="padding-left: 60px">plt.imshow(adversarial_traditional.image[0], cmap="gray")<br/>plt.title("adversarial image")<br/>plt.axis("off")<br/>plt.show()<br/>print(<br/>    "Model prediction:",<br/>    np.argmax(fmodel_traditional.predictions(adversarial_traditional.image)),<br/>)</pre>
+<p style="padding-left: 60px">产生的对立图像如下:</p>
+<p class="CDPAlignCenter CDPAlign"><img src="img/f9fbf766-8c65-4f3d-98fd-5e2f36e9fa55.png" style="width:16.33em;height:16.92em;"/></p>
+<p class="mce-root"/>
+<p class="mce-root"/>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的...</h1>
+                
+            
+            
+                
+<p>我们首先导入一个预训练的ABS模型(<em>步骤1 </em>)。在<em>步骤2 </em>和<em>步骤3 </em>中，我们定义了一个<kbd>convenience</kbd>函数来预测一批MNIST图像，并验证模型是否正常工作。接下来，我们使用Foolbox包装该模型，为测试其对抗性健壮性做准备(<em>步骤4 </em>)。请注意，Foolbox在包装后使用相同的API方便了对TensorFlow或PyTorch模型的攻击。不错！在<em>步骤5 </em>中，我们选择一个MNIST图像作为我们攻击的媒介。为了澄清，这个图像被调整和变异，直到结果欺骗了模型。在<em>步骤6 </em>中，我们选择想要实施的攻击类型。我们选择边界攻击，这是一种基于决策的攻击，从大的敌对扰动开始，然后在保持敌对的同时逐渐减少扰动。该攻击几乎不需要超参数调整，因此没有替代模型和梯度计算。有关基于决策的攻击的更多信息，请参考<a href="https://arxiv.org/abs/1712.04248" target="_blank">https://arxiv.org/abs/1712.04248</a>。</p>
+<p>此外，请注意，这里使用的度量是<strong>均方误差</strong> ( <strong> MSE </strong>)，它决定了如何评估对立示例是接近还是远离原始图像。使用的标准是错误分类，这意味着一旦目标模型错误分类图像，搜索就终止。替代标准可以包括置信水平或特定类型的错误分类。在<em>步骤7-9 </em>中，我们显示原始图像，以及从其生成的对抗示例。在接下来的两步中，我们实例化一个标准的CNN并验证它是否正常工作。在<em>步骤12-14 </em>中，我们在标准CNN上重复了之前步骤中的攻击。观察结果，我们看到该实验是一个强有力的视觉指示器，表明ABS模型比普通的CNN对对抗性扰动更鲁棒。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Differential privacy using TensorFlow Privacy</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">使用张量流隐私的差分隐私</h1>
+                
+            
+            
+                
+<p>TensorFlow Privacy(<a href="https://github.com/tensorflow/privacy" target="_blank">https://github.com/tensorflow/privacy</a>)是tensor flow家族相对较新的成员。这个Python库包括TensorFlow优化器的实现，用于训练具有<em>差分隐私</em>的机器学习模型。已被训练为差分私有的模型不会因为从其数据集中移除任何单个训练实例而发生重大变化。使用<em>ε</em>和<em>δ</em>来量化(近似)差分隐私，这给出了模型对单个训练示例中的变化的敏感程度的度量。使用隐私库很简单，只需包装熟悉的优化器(例如，RMSprop、Adam和SGD ),将它们转换成不同的私有版本。该库还提供了测量隐私保证、ε和δ的便利工具。</p>
+<p class="mce-root"/>
+<p>在这个食谱中，我们向您展示了如何使用Keras和TensorFlow Privacy为MNIST实现和训练一个差分私有深度神经网络。</p>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>Getting ready</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">做好准备</h1>
+                
+            
+            
+                
+<div><div><div><div><div><div><div><div><p>这个食谱的准备工作包括安装Keras和TensorFlow。该命令如下所示:</p>
+</div>
+</div>
+</div>
+<div><div><div><pre><strong>pip install keras tensorflow</strong></pre>
+<p>TensorFlow Privacy的安装说明可在<a href="https://github.com/tensorflow/privacy">https://github.com/tensorflow/privacy</a>找到。</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How to do it...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">怎么做...</h1>
+                
+            
+            
+                
+<ol>
+<li>首先定义几个方便的函数来预处理MNIST数据集:</li>
+</ol>
+<pre style="padding-left: 60px">import tensorflow as tf<br/><br/><br/>def preprocess_observations(data):<br/>    """Preprocesses MNIST images."""<br/>    data = np.array(data, dtype=np.float32) / 255<br/>    data = data.reshape(data.shape[0], 28, 28, 1)<br/>    return data<br/><br/><br/>def preprocess_labels(labels):<br/>    """Preprocess MNIST labels."""<br/>    labels = np.array(labels, dtype=np.int32)<br/>    labels = tf.keras.utils.to_categorical(labels, num_classes=10)</pre>
+<ol start="2">
+<li>编写一个方便的函数来加载MNIST:</li>
+</ol>
+<pre style="padding-left: 60px">def load_mnist():<br/>    """Loads the MNIST dataset."""<br/>    (X_train, y_train), (X_test, y_test) = tf.keras.datasets.mnist.load_data()<br/>    X_train = preprocess_observations(X_train)<br/>    X_test = preprocess_observations(X_test)<br/>    y_train = preprocess_labels(y_train)<br/>    y_test = preprocess_labels(y_test)<br/>    return X_train, y_train, X_test, y_test</pre>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mce-root"/>
+<p class="mceNonEditable"/>
+<p class="mceNonEditable"/>
+<p class="mceNonEditable"/>
+<ol start="3">
+<li>加载MNIST数据集:</li>
+</ol>
+<pre style="padding-left: 60px">import numpy as np<br/><br/>X_train, y_train, X_test, y_test = load_mnist()</pre>
+<p style="padding-left: 60px">训练集的大小是60 k，测试集的大小是10 k。</p>
+<p style="padding-left: 60px">4.导入差异专用优化器，并定义几个参数来控制学习率和差异专用程度:</p>
+<pre style="padding-left: 60px">from privacy.optimizers.dp_optimizer import DPGradientDescentGaussianOptimizer<br/><br/>optimizer = DPGradientDescentGaussianOptimizer(<br/>    l2_norm_clip=1.0, noise_multiplier=1.1, num_microbatches=250, learning_rate=0.15<br/>)<br/>loss = tf.keras.losses.CategoricalCrossentropy(<br/>    from_logits=True, reduction=tf.losses.Reduction.NONE<br/>)</pre>
+<ol start="5">
+<li>为了测量隐私，定义一个函数来计算ε:</li>
+</ol>
+<pre style="padding-left: 60px">from privacy.analysis.rdp_accountant import compute_rdp<br/>from privacy.analysis.rdp_accountant import get_privacy_spent<br/><br/><br/>def compute_epsilon(steps):<br/>    """Compute the privacy epsilon."""<br/>    orders = [1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64))<br/>    sampling_probability = 250 / 60000<br/>    rdp = compute_rdp(<br/>        q=sampling_probability, noise_multiplier=1.1, steps=steps, orders=orders<br/>    )<br/>    return get_privacy_spent(orders, rdp, target_delta=1e-5)[0]</pre>
+<ol start="6">
+<li>为MNIST定义标准的Keras CNN:</li>
+</ol>
+<pre style="padding-left: 60px">NN_model = tf.keras.Sequential(<br/>    [<br/>        tf.keras.layers.Conv2D(<br/>            16, 8, strides=2, padding="same", activation="relu", input_shape=(28, 28, 1)<br/>        ),<br/>        tf.keras.layers.MaxPool2D(2, 1),<br/>        tf.keras.layers.Conv2D(32, 4, strides=2, padding="valid", activation="relu"),<br/>        tf.keras.layers.MaxPool2D(2, 1),<br/>        tf.keras.layers.Flatten(),<br/>        tf.keras.layers.Dense(32, activation="relu"),<br/>        tf.keras.layers.Dense(10),<br/>    ]<br/>)</pre>
+<ol start="7">
+<li>编译<kbd>model</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px">NN_model.compile(optimizer=optimizer, loss=loss, metrics=["accuracy"])</pre>
+<ol start="8">
+<li>装配和测试<kbd>model</kbd>:</li>
+</ol>
+<pre style="padding-left: 60px">NN_model.fit(<br/>    X_train, y_train, epochs=1, validation_data=(X_test, y_test), batch_size=250<br/>)</pre>
+<ol start="9">
+<li>计算<kbd>epsilon</kbd>的价值，隐私的衡量标准:</li>
+</ol>
+<pre style="padding-left: 60px">eps = compute_epsilon(1 * 60000 // 250)</pre>
+
+
+            
+
+            
+        
+    
+
+
+
+
+
+
+    
+        <title>How it works...</title>
+        
+        <meta charset="utf-8"/>
+    
+
+    
+        
+
+                            
+                    <h1 class="header-title">它是如何工作的...</h1>
+                
+            
+            
+                
+<p>我们从准备和加载MNIST数据集开始<em>步骤1-3 </em>。接下来，在<em>步骤4 </em>中，我们导入<kbd>DPGradientDescentGaussianOptimizer</kbd>，这是一个优化器，它允许模型变成差分私有的。在这一阶段使用了许多参数，这些参数有待澄清。<kbd>l2_norm_clip</kbd>参数指的是在微型批次的单个训练数据点上计算的每个梯度的最大范数。此参数限制了优化器对单个训练点的敏感度，从而将模型推向差异隐私。<kbd>noise_multiplier</kbd>参数控制添加到渐变中的随机噪声量。一般噪音越大，私密性越大。完成这一步后，在<em>步骤5 </em>中，我们定义一个函数来计算差分隐私的ε-δ定义的ε。我们实例化一个标准的Keras神经网络(<em>步骤6 </em>，编译它(<em>步骤7 </em>，然后使用差分私有优化器在MNIST上训练它(<em>步骤8 </em>)。最后，在<em>步骤9 </em>中，我们计算epsilon的值，它测量模型的不同私有程度。该配方的典型值是大约1的ε值。</p>
+
+
+            
+
+            
+        
+    
+
+
+</body></html>

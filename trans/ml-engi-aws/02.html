@@ -1,0 +1,1175 @@
+<html><head/><body>
+
+
+
+
+
+
+
+
+
+<title>Chapter 1: Introduction to ML Engineering on AWS</title>
+
+
+
+
+
+
+
+<div><div><h1 class="chapter-number" id="_idParaDest-16"><a id="_idTextAnchor016"/> <a id="_idTextAnchor017"/> 1</h1>
+
+<h1 id="_idParaDest-17"><a id="_idTextAnchor018"/>AWS上的ML工程简介</h1>
+
+<p>我们大多数人通过在我们的<a id="_idIndexMarker000"/>笔记本电脑或家用电脑上使用样本数据集训练我们的第一个ML模型，开始了我们的<strong class="bold">机器学习</strong> ( <strong class="bold"> ML </strong>)之旅。事情有些简单，直到我们需要处理更大的数据集，并在云中运行我们的ML实验。一旦我们需要将训练好的模型部署到生产级推理端点或web服务器上，这也变得更具挑战性。在设计和构建ML系统时，有许多事情需要考虑，这些只是数据科学家和ML工程师在处理现实需求时面临的一些挑战。也就是说，当在云中执行ML实验和部署时，我们必须使用正确的平台和正确的工具集。</p>
+
+<p>在这一点上，你可能想知道为什么我们在运行我们的工作负载时还要使用云平台。<em class="italic">难道我们不能自己搭建这个平台</em>？也许你会认为建立和运营自己的数据中心是一件相对容易的事情。过去，不同的团队和公司曾尝试在其数据中心和本地硬件中建立基础架构。随着时间的推移，这些公司开始将其工作负载迁移到云，因为他们意识到管理和运营数据中心是多么困难和昂贵。一个很好的例子是网飞团队，他们将资源迁移到AWS云。迁移到云使他们能够更好地扩展，并显著提高服务可用性。</p>
+
+<p><strong class="bold">亚马逊网络服务</strong> ( <strong class="bold"> AWS </strong>)平台<a id="_idIndexMarker001"/>提供了很多服务和功能，可供世界各地的专业人士和公司用来管理云中不同类型的工作负载。在过去的几年中，AWS已经宣布并发布了大量的服务、功能和特性，它们也可以用于生产级ML实验和部署。这是由于全球迁移到云的ML工作负载的增加。当我们阅读本书的每一章时，我们将会更好地理解如何使用不同的服务来解决生产ML模型时的挑战。</p>
+
+<p>下图显示了本章的实践之旅:</p>
+
+<div><div><img alt="Figure 1.1 – Hands-on journey for this chapter&#10;&#10;" height="699" src="img/B18638_01_001.jpg" width="1299"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.1–本章的实践之旅</p>
+
+<p>在这一介绍性的章节中，我们将着重于在AWS上构建ML模型时尝试不同的选项。如上图所示，我们将使用各种<strong class="bold"> AutoML </strong>服务和解决方案来构建ML模型，这些模型可以帮助我们根据可用信息预测酒店预订是否会被取消。我们将从建立一个<strong class="bold">云9 </strong>环境开始，这将帮助我们通过浏览器中的<strong class="bold">集成开发环境</strong> ( <strong class="bold"> IDE </strong>)运行我们的代码。在这个环境中，我们将使用一个名为<strong class="bold">条件生成对抗网络</strong>的<strong class="bold">深度学习</strong>模型来生成一个真实的合成数据集。我们将使用<strong class="bold"> AWS CLI </strong>将这个数据集上传到<strong class="bold">亚马逊S3 </strong>。在Cloud9环境中，我们还将安装<strong class="bold">autoglon</strong>并运行<strong class="bold"> AutoML </strong>实验，以使用合成数据集训练并生成多个模型。最后，我们将使用<strong class="bold"> SageMaker Canvas </strong>和<strong class="bold"> SageMaker Autopilot </strong>在S3使用上传的数据集运行AutoML实验。如果你想知道这些奇特的术语是什么，请继续阅读，我们将在本章中逐一揭开它们的神秘面纱。</p>
+
+<p>在本章中，我们将讨论以下主题:</p>
+
+<ul>
+
+<li>对ML工程师的期望是什么？</li>
+
+<li>ML工程师如何充分利用AWS</li>
+
+<li>基本先决条件</li>
+
+<li>准备数据集</li>
+
+<li>带自动旋转的AutoML</li>
+
+<li>SageMaker和SageMaker Canvas入门</li>
+
+<li>使用SageMaker Canvas的无代码机器学习</li>
+
+<li>带SageMaker自动驾驶仪的AutoML</li>
+
+</ul>
+
+<p>除了使用关键的ML服务、库和工具来执行AutoML实验，这一介绍性章节将帮助我们更好地理解与本书后续章节相关的几个ML和ML工程概念。考虑到这一点，我们开始吧！</p>
+
+<h1 id="_idParaDest-18"><a id="_idTextAnchor019"/>技术要求</h1>
+
+<p>在我们开始之前，我们必须有一个AWS帐户。如果你还没有AWS账户，只需在这里创建一个账户:<a href="https://aws.amazon.com/free/">https://aws.amazon.com/free/</a>。一旦账户准备好，你就可以继续下一步了。</p>
+
+<p>每一章的Jupyter笔记本、源代码和其他文件都可以在本书的GitHub资源库中找到:<a href="https://github.com/PacktPublishing/Machine-Learning-Engineering-on-AWS">https://GitHub . com/packt publishing/Machine-Learning-Engineering-on-AWS</a>。</p>
+
+<h1 id="_idParaDest-19">对ML工程师的期望是什么？</h1>
+
+<p>ML工程<a id="_idIndexMarker002"/>涉及使用ML和<strong class="bold">软件工程</strong>的概念和技术来设计、构建和管理生产级ML系统，以及流水线。在致力于构建ML驱动的应用程序的团队中，<strong class="bold"> ML工程师</strong>通常被期望构建和操作用于训练和部署模型的ML基础设施。在某些情况下，数据科学家可能还需要处理与基础设施相关的需求，特别是在组织中ML工程师和数据科学家的角色和职责没有明确划分的情况下。</p>
+
+<p>在设计和构建ML系统和平台时，ML工程师应该考虑几件事情。这些将包括已部署的ML模型的<em class="italic">质量</em>，以及所使用的ML基础设施的<em class="italic">安全性</em>、<em class="italic">可伸缩性</em>、<em class="italic">可演进性</em>、<em class="italic">稳定性</em>和<em class="italic">总成本</em>。在这本书里，我们将讨论不同的策略和最佳实践来实现一个ML工程师的不同目标。</p>
+
+<p>ML工程师<a id="_idIndexMarker003"/>还应该能够使用各种解决方案设计和构建自动化ML工作流程。部署的模型会随着时间的推移而退化，而<strong class="bold">模型再培训</strong>对于确保部署的ML模型的质量变得至关重要。拥有自动化的ML管道有助于实现自动化的模型再训练和部署。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">如果你很想了解如何在AWS上构建定制的ML管道，那么你应该看看这本书的最后一部分:<em class="italic">设计和构建端到端的MLOps管道</em>。您应该会找到几个章节专门讨论在AWS上部署复杂的ML管道！</p>
+
+<h1 id="_idParaDest-20">ML工程师如何充分利用AWS</h1>
+
+<p>AWS平台中有许多服务和功能可供ML工程师选择。已经熟悉使用虚拟机的专业人士可以轻松地启动<strong class="bold"> EC2 </strong>实例，并在这些虚拟专用服务器内使用深度学习框架运行ML实验。ML工程师和数据工程师可以利用<strong class="bold"> AWS Glue </strong>、<strong class="bold"> Amazon EMR </strong>和<strong class="bold"> AWS Athena </strong>等服务来满足不同的数据管理和处理需求。一旦需要将ML模型部署到专用的推理端点中，就可以使用多种选项:</p>
+
+<div><div><img alt="Figure 1.2 – AWS machine learning stack&#10;&#10;" height="925" src="img/B18638_01_002.jpg" width="1619"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.2–AWS机器学习堆栈</p>
+
+<p>如前面的<a id="_idIndexMarker005"/>图所示，数据科学家、开发人员和ML工程师可以利用来自<strong class="bold"> AWS机器学习堆栈</strong>的多种服务和功能<a id="_idIndexMarker006"/>。归在<strong class="bold">人工智能服务</strong>下的服务很容易被最少ML经验的开发者使用。要使用这里列出的服务，我们需要的只是一些处理数据的经验，以及使用SDK和API所需的软件开发技能。如果我们想快速构建具有语言翻译、文本到语音和产品推荐等功能的ML驱动的应用程序，那么我们可以使用AI Services bucket下的服务轻松实现。在中间，我们有<strong class="bold"> ML服务</strong>和<a id="_idIndexMarker007"/>它们的功能，帮助解决数据科学家和ML工程师的更多定制ML需求。要使用这里列出的服务和功能，需要对ML流程有一个扎实的理解。最后一层，<strong class="bold"> ML框架和基础设施</strong>，提供了最高级别的灵活性和可定制性，因为这包括了更高级用例所需的ML基础设施和框架支持。</p>
+
+<p>那么，ML工程师如何充分利用AWS机器学习堆栈呢？随着ML工程师对AWS平台中可用的服务、功能和工具越来越熟悉，他们设计、构建和管理ML系统的能力也在提高。他们可能会从人工智能服务开始，在AWS上快速构建人工智能驱动的应用程序。随着时间的推移，这些ML工程师将利用来自较低两层的不同的服务、能力和基础设施，因为他们在处理中级ML工程需求时变得更加自如。</p>
+
+<h1 id="_idParaDest-21"><a id="_idTextAnchor022"/>基本先决条件</h1>
+
+<p>在本节中，我们将准备以下内容:</p>
+
+<ul>
+
+<li>云9环境</li>
+
+<li>S3桶</li>
+
+<li>将使用深度学习模型生成的合成数据集</li>
+
+</ul>
+
+<p>让我们开始吧。</p>
+
+<h2 id="_idParaDest-22"><a id="_idTextAnchor023"/>创建云9环境</h2>
+
+<p>在虚拟专用服务器内部执行ML实验时，更方便的选择之一是使用AWS Cloud9服务。AWS Cloud9允许开发人员、数据科学家和ML工程师使用浏览器在开发环境中管理和运行代码。代码存储在EC2实例中并在其中执行，这提供了一个与大多数开发人员相似的环境。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">运行本书中的示例时，建议使用具有有限权限的<strong class="bold">身份和访问管理</strong> ( <strong class="bold"> IAM </strong>)用户，而不是root帐户。我们将在<a href="B18638_09.xhtml#_idTextAnchor187"> <em class="italic">第9章</em> </a> <em class="italic">、安全、治理和遵从性策略</em>中详细讨论这一点以及其他安全最佳实践。如果您刚刚开始使用AWS，您可以同时继续使用root帐户。</p>
+
+<p>按照以下步骤创建一个Cloud9环境，我们将在其中生成合成数据集并运行<strong class="bold">autoglon AutoML</strong>实验:</p>
+
+<ol>
+
+<li>在搜索栏中输入<code>cloud9</code>。从结果列表中选择<strong class="bold"> Cloud9 </strong>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 1.3 – Navigating to the Cloud9 console&#10;&#10;" height="809" src="img/B18638_01_003.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.3–导航至Cloud9控制台</p>
+
+<p class="list-inset">这里我们<a id="_idIndexMarker010"/>可以看到该区域目前被设置为<code>us-west-2</code>。请确保将它更改为您希望创建资源的位置。</p>
+
+<ol>
+
+<li value="2">接下来，点击<strong class="bold">创建环境</strong>。</li>
+
+<li>在<code>mle-on-aws</code>下点击<strong class="bold">进入下一步</strong>。</li>
+
+<li>在<strong class="bold">环境类型</strong>下，选择<strong class="bold">为环境创建新的EC2实例(直接访问)</strong>。为<strong class="bold">实例类型</strong>选择<strong class="bold"> m5.large </strong>，然后为<strong class="bold">平台</strong>选择<strong class="bold"> Ubuntu Server (18.04 LTS) </strong>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 1.4 – Configuring the Cloud9 environment settings&#10;&#10;" height="941" src="img/B18638_01_004.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.4–配置Cloud9环境设置</p>
+
+<p class="list-inset">在这里，我们<a id="_idIndexMarker011"/>可以看到实例类型还有其他选项。与此同时，我们将坚持使用<strong class="bold"> m5.large </strong>，因为它应该足以运行本章中的动手解决方案。</p>
+
+<ol>
+
+<li value="5">对于<strong class="bold">节约成本设置</strong>选项，从下拉选项列表中选择<strong class="bold">四小时后</strong>。这意味着运行Cloud9环境的服务器将在4小时不活动后自动关闭。</li>
+
+<li>在<code>vpc-abcdefg (default)</code>下。对于<code>subnet-abcdefg | Default in us-west-2a</code>。</li>
+
+</ol>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">建议您使用默认的VPC，因为网络配置很简单。这将帮助您避免问题，尤其是如果您刚刚开始使用VPCs。如果您在启动Cloud9实例时遇到任何与VPC相关的问题，您可能需要检查所选子网是否已通过VPC控制台中的路由表配置配置了互联网访问。您可以尝试使用另一个子网或完全使用新的VPC来启动该实例。如果你计划创建一个新的VPC，导航到<a href="https://go.aws/3sRSigt">https://go.aws/3sRSigt</a>并创建一个带有单一公共子网的<strong class="bold"> VPC。如果这些选项都不起作用，您可以尝试在另一个地区启动Cloud9实例。我们将在<a href="B18638_09.xhtml#_idTextAnchor187"> <em class="italic">第9章</em> </a> <em class="italic">、安全、治理和合规性策略</em>中详细讨论<strong class="bold">虚拟私有云</strong> ( <strong class="bold"> VPC </strong>)网络。</strong></p>
+
+<ol>
+
+<li value="7">点击<strong class="bold">下一步</strong>。</li>
+
+<li>在查看页面上，点击<strong class="bold">创建环境</strong>。这会将您重定向到Cloud9环境，加载该环境需要一分钟左右的时间。Cloud9 <strong class="bold"> IDE </strong>如下截图所示。在这里，我们可以编写代码，运行脚本和命令，处理本书中的一些实用解决方案<a id="_idIndexMarker012"/>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 1.5 – AWS Cloud9 interface&#10;&#10;" height="816" src="img/B18638_01_005.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.5–AWS cloud 9界面</p>
+
+<p class="list-inset">使用<a id="_idIndexMarker013"/>这个IDE相当简单，因为它看起来非常类似于代码编辑器，例如<strong class="bold"> Visual Studio代码</strong>和<strong class="bold"> Sublime文本</strong>。如前面的截图所示，我们可以在顶部找到<strong class="bold">菜单栏</strong>(<strong class="bold">A</strong>)。在左侧可以找到<strong class="bold">文件树</strong>(<strong class="bold">B</strong>)。<strong class="bold">编辑器</strong>覆盖了屏幕中间的主要部分(<strong class="bold"> C </strong>)。最后，我们可以在底部找到<strong class="bold">端子</strong>(<strong class="bold">D</strong>)。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">如果这是你第一次使用AWS Cloud9，这里有一个来自AWS的4分钟介绍视频，可以帮助你入门:<a href="https://www.youtube.com/watch?v=JDHZOGMMkj8">https://www.youtube.com/watch?v=JDHZOGMMkj8</a>。</p>
+
+<p>现在我们已经准备好了Cloud9环境，是时候为它配置一个更大的存储空间了。</p>
+
+<h2 id="_idParaDest-23"><a id="_idTextAnchor024"/>增加Cloud9的存储量</h2>
+
+<p>当创建一个<a id="_idIndexMarker014"/> Cloud9实例时，附加的卷只有10GB的磁盘空间。假设我们将在这个实例中运行ML实验时安装不同的库和框架，我们将需要超过10GB的磁盘空间。我们将使用<code>boto3</code>库以编程方式调整卷的大小。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">如果这是您第一次使用<code>boto3</code>库，那么它就是用于Python的<strong class="bold">AWS SDK</strong>，它为我们提供了一种以编程方式管理AWS帐户中不同AWS资源的方法。它是一个服务级别的SDK，帮助我们列出、创建、更新和删除AWS资源，如EC2实例、S3存储桶和EBS卷。</p>
+
+<p>按照以下步骤下载并运行一些脚本，将卷磁盘空间从10GB增加到120GB:</p>
+
+<ol>
+
+<li value="1">在我们的Cloud9环境的终端中(就在屏幕底部的<code>$</code>符号之后)，运行下面的bash命令:<pre class="source-code"><strong class="bold">wget -O resize_and_reboot.py https://bit.ly/3ea96tW</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这将下载位于<a href="https://bit.ly/3ea96tW">https://bit.ly/3ea96tW</a>的脚本文件。这里，我们简单地使用了一个URL shortener，它会将缩短的链接映射到<a href="https://raw.githubusercontent.com/PacktPublishing/Machine-Learning-Engineering-on-AWS/main/chapter01/resize_and_reboot.py">https://raw . githubusercontent . com/packt publishing/Machine-Learning-Engineering-on-AWS/main/chapter 01/resize _ and _ reboot . py</a>。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">注意，当使用<code>wget</code>命令时，我们使用大的<code>O</code>标志，而不是小的<code>o</code>或零(<code>0</code>)。</p>
+
+<ol>
+
+<li value="2">我们刚刚下载的文件里面的<a id="_idIndexMarker015"/>是什么？在运行脚本之前，让我们快速检查一下文件。双击文件树(位于屏幕左侧)中的<code>resize_and_reboot.py</code>文件，在编辑器窗格中打开Python脚本文件。如下面的截图所示，<code>resize_and_reboot.py</code>脚本有三个主要部分。第一个代码块着重于导入运行脚本所需的先决条件。第二个代码块关注于使用<code>boto3</code>库调整所选EC2实例的大小。它使用<code>describe_volumes()</code>方法获取当前实例的卷ID，然后使用<code>modify_volume()</code>方法将卷大小更新为120GB。最后一部分包含一行代码，它只是重启EC2实例。这行代码使用<code>os.system()</code>方法运行<code>sudo reboot</code> shell命令:</li>
+
+</ol>
+
+<div><div><img alt="Figure 1.6 – The resize_and_reboot.py script file&#10;&#10;" height="880" src="img/B18638_01_006.jpg" width="1617"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.6–resize _ and _ reboot . py脚本文件</p>
+
+<p class="list-inset">你可以在本书的GitHub资源库中找到<code>resize_and_reboot.py</code>脚本文件:<a href="https://github.com/PacktPublishing/Machine-Learning-Engineering-on-AWS/blob/main/chapter01/resize_and_reboot.py">https://GitHub . com/packt publishing/Machine-Learning-Engineering-on-AWS/blob/main/chapter 01/resize _ and _ reboot . py</a>。注意，为了让这个脚本工作，必须设置环境变量<code>EC2_INSTANCE_ID</code>来选择正确的目标实例。我们将在运行<code>resize_and_reboot.py</code>脚本之前设置这个环境变量。</p>
+
+<ol>
+
+<li value="3">接下来，在终端中运行下面的<a id="_idIndexMarker016"/>命令:<pre class="source-code"><strong class="bold">python3 -m pip install --user --upgrade boto3</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这将使用<code>pip</code>升级<code>boto3</code>的版本。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">如果这是你第一次使用<code>pip</code>，那就是Python的包安装程序。使用命令行安装不同的包和库非常方便。</p>
+
+<p class="list-inset">你可以使用<code>python3 -m pip show boto3</code>来检查你正在使用的版本。本书假设您使用的是版本<code>1.20.26</code>或更高版本。</p>
+
+<ol>
+
+<li value="4">其余的<a id="_idIndexMarker017"/>语句关注于从实例元数据服务获取Cloud9环境的<code>instance_id</code>,并将该值存储在<code>EC2_INSTANCE_ID</code>变量中。让我们在终端中运行下面的:<pre class="source-code"><strong class="bold">TARGET_METADATA_URL=http://169.254.169.254/latest/meta-data/instance-id</strong></pre> <pre class="source-code"><strong class="bold">export EC2_INSTANCE_ID=$(curl -s $TARGET_METADATA_URL)</strong></pre> <pre class="source-code"><strong class="bold">echo $EC2_INSTANCE_ID</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这应该给我们一个EC2实例ID，其格式类似于<code>i-01234567890abcdef</code>。</p>
+
+<ol>
+
+<li value="5">现在我们已经为<code>EC2_INSTANCE_ID</code>环境变量设置了适当的值，我们可以运行下面的命令:<pre class="source-code"><strong class="bold">python3 resize_and_reboot.py</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这将使用<code>wget</code>命令运行我们之前下载的Python脚本。使用<code>boto3</code>执行卷大小调整操作后，脚本将重启实例。当Cloud9环境的EC2实例重新启动时，您应该会在<a id="_idIndexMarker018"/>页面的顶部看到一个<strong class="bold">重新连接… </strong>通知。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">实例重启后，可以随意运行<code>lsblk</code>命令。这应该有助于验证Cloud9环境实例的卷大小已经调整到120GB。</p>
+
+<p>既然我们已经成功地将卷的大小调整到120GB，我们应该能够处理下一组解决方案，而不必担心我们的Cloud9环境中的磁盘空间问题。</p>
+
+<h2 id="_idParaDest-24"><a id="_idTextAnchor025"/>安装Python先决条件</h2>
+
+<p>按照以下步骤在Cloud9环境中安装和更新几个Python包:</p>
+
+<ol>
+
+<li value="1">在我们的Cloud9环境的终端中(就在屏幕底部的<code>$</code>标志之后)，运行以下命令来更新<code>pip</code>、<code>setuptools</code>和<code>wheel</code> : <pre class="source-code"><strong class="bold">python3 -m pip install -U pip</strong></pre>、<pre class="source-code"><strong class="bold">python3 -m pip install -U setuptools wheel</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">升级这些版本将有助于我们确保其他安装步骤顺利进行。本书假设你使用的是以下版本或更高版本:<code>pip</code>-<code>21.3.1</code>、<code>setuptools</code>-<code>59.6.0</code>、<code>wheel</code>-<code>0.37.1</code>。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">要检查版本，您可以在终端中使用<code>python3 -m pip show &lt;package&gt;</code>命令。只需用包的名称替换<code>&lt;package&gt;</code>。这方面的一个例子是<code>python3 -m pip show wheel</code>。如果你想安装一个特定版本的软件包，你可以使用<code>python3 -m pip install -U &lt;package&gt;==&lt;version&gt;</code>。比如要安装<code>wheel</code>版本<code>0.37.1</code>，可以运行<code>python3 -m pip install -U wheel==0.37.1</code>。</p>
+
+<ol>
+
+<li value="2">接下来，通过运行以下命令安装<code>ipython</code>。<strong class="bold"> IPython </strong>提供了许多方便的实用程序，帮助专业人员交互式地使用Python。我们将在稍后的<em class="italic">执行您的第一个AutoGluon AutoML实验</em>部分看到使用IPython有多容易:<pre class="source-code"><strong class="bold">python3 -m pip install ipython</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">本书假设您使用的是<code>ipython</code>–<code>7.16.2</code>或更高版本。</p>
+
+<ol>
+
+<li value="3">现在，让我们安装<code>ctgan</code>。CTGAN允许我们利用<strong class="bold">生成对抗网络</strong> ( <strong class="bold"> GAN </strong>)深度学习模型来生成合成数据集。在我们安装了Python先决条件:<pre class="source-code"><strong class="bold">python3 -m pip install ctgan==0.5.0</strong></pre>之后，我们将在<em class="italic">使用深度学习模型生成合成数据集</em>一节中对此进行讨论</li>
+
+</ol>
+
+<p class="list-inset">本书<a id="_idIndexMarker020"/>假设你用的是<code>ctgan</code>–<code>0.5.0</code>。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">完成此步骤可能需要大约5到10分钟。一边等，一边说CTGAN是什么。<strong class="bold"> CTGAN </strong>是一个开放的<a id="_idIndexMarker021"/>源库，它使用深度学习来学习现有数据集的属性，并生成一个新的数据集，其列、值和属性与原始数据集相似。要了解更多信息，请随意查看它的GitHub <a id="_idIndexMarker022"/>页面:https://github.com/sdv-dev/CTGAN<a href="https://github.com/sdv-dev/CTGAN"/>。</p>
+
+<ol>
+
+<li value="4">最后，通过运行以下命令安装<code>pandas_profiling</code>。这使得<a id="_idIndexMarker023"/>我们可以轻松地为我们的数据集生成一个概要报告，这将有助于我们的<strong class="bold">探索性数据分析</strong> ( <strong class="bold"> EDA </strong>)工作。在生成合成数据集<pre class="source-code"><strong class="bold">python3 -m pip install pandas_profiling</strong></pre>之后，我们将在<em class="italic">探索性数据分析</em>部分看到这一点</li>
+
+</ol>
+
+<p class="list-inset">这本书假设你正在使用<code>pandas_profiling</code>–<code>3.1.0</code>或更高版本。</p>
+
+<p>现在我们已经完成了Python先决条件的安装，我们可以开始使用深度学习模型生成一个真实的合成数据集了！</p>
+
+<h1 id="_idParaDest-25"><a id="_idTextAnchor026"/>准备数据集</h1>
+
+<p>在这一章中，我们将<a id="_idIndexMarker024"/>建立多个ML模型，这些模型将<em class="italic">根据可用信息</em>预测酒店预订是否会被取消。酒店取消会给酒店业主和经理带来很多问题，所以尝试预测哪些预订会被取消是我们ML技能的一个很好的应用。</p>
+
+<p>在我们开始ML实验之前，我们需要一个可以在训练ML模型时使用的数据集。我们将从<em class="italic">努诺·安东尼奥</em>、<em class="italic">安娜·德·阿尔梅达</em>和<em class="italic">路易斯·努内斯</em>生成一个类似于<em class="italic">酒店预订需求</em>数据集的真实合成数据集。</p>
+
+<p>合成数据集<a id="_idIndexMarker025"/>总共有21列。以下是一些栏目:</p>
+
+<ul>
+
+<li><code>is_cancelled</code>:表示<a id="_idIndexMarker026"/>酒店预订是否取消</li>
+
+<li><code>lead_time</code> : [ <em class="italic">到达日期</em>–[<em class="italic">预订日期</em> ]</li>
+
+<li><code>adr</code>:平均日费率</li>
+
+<li><code>adults</code>:成年人数量</li>
+
+<li><code>days_in_waiting_list</code>:预订在得到确认之前在等候名单上停留的天数</li>
+
+<li><code>assigned_room_type</code>:分配的房间类型</li>
+
+<li><code>total_of_special_requests</code>:客户提出的特殊要求总数<a id="_idIndexMarker027"/></li>
+
+</ul>
+
+<p>我们不会详细讨论每个字段，但这应该有助于我们了解哪些数据可供我们使用。有关更多信息，您可以在<a href="https://www.kaggle.com/jessemostipak/hotel-booking-demand">https://www.kaggle.com/jessemostipak/hotel-booking-demand</a>和<a href="https://www.sciencedirect.com/science/article/pii/S2352340918315191">https://www . science direct . com/science/article/pii/s 2352340918315191</a>找到该数据集的原始版本。</p>
+
+<h2 id="_idParaDest-26"><a id="_idTextAnchor027"/>使用深度学习模型生成合成数据集</h2>
+
+<p><a id="_idIndexMarker029"/> ML的<a id="_idIndexMarker028"/>酷应用之一是让<strong class="bold">深度学习</strong>模型“吸收”现有数据集的属性，并生成具有类似字段和属性集的新数据集。我们将使用预训练的<strong class="bold">生成对抗网络</strong> ( <strong class="bold">甘</strong>)模型来生成合成数据集。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout"><strong class="bold">生成建模</strong>涉及<a id="_idIndexMarker030"/>从输入数据集的值中学习模式，然后用于生成一个具有相似值集的新数据集。当涉及到生成建模时，GANs很受欢迎。例如，研究论文专注于如何使用GANs来生成“deepfakes”，即从源数据集生成逼真的人类图像。</p>
+
+<p>生成和使用合成数据集有很多好处，包括:</p>
+
+<ul>
+
+<li>生成比用于训练模型的原始数据集大得多的数据集的能力</li>
+
+<li>匿名化原始数据集中任何敏感信息的能力</li>
+
+<li>能够在数据生成后获得更清晰的数据集版本</li>
+
+</ul>
+
+<p>也就是说，让我们通过在我们的Cloud9环境的终端中运行以下命令来开始生成合成数据集(就在屏幕底部的<code>$</code>符号之后):</p>
+
+<ol>
+
+<li value="1">从我们在<em class="italic">安装Python先决条件</em>一节中<a id="_idIndexMarker032"/>停止的地方继续<a id="_idIndexMarker031"/>，运行以下命令在当前工作目录中创建一个名为<code>tmp</code>的空目录:<pre class="source-code">mkdir -p <strong class="bold">tmp</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">注意，这与<code>/tmp</code>目录不同。</p>
+
+<ol>
+
+<li value="2">接下来，让我们使用<code>wget</code>命令:<pre class="source-code">wget -O <strong class="bold">utils.py</strong> https://bit.ly/3CN4owx</pre>下载<code>utils.py</code>文件</li>
+
+</ol>
+
+<p class="list-inset"><code>utils.py</code>文件包含<code>block()</code>函数，它将帮助我们读取脚本生成的日志并对其进行故障排除。</p>
+
+<ol>
+
+<li value="3">运行以下命令，将预构建的GAN模型下载到Cloud9环境中:<pre class="source-code">wget -O <strong class="bold">hotel_bookings.gan.pkl</strong> https://bit.ly/3CHNQFT</pre></li>
+
+</ol>
+
+<p class="list-inset">在这里，我们有一个序列化的pickle文件，其中包含深度学习模型的属性。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">有多种保存和加载ML模型的方法。其中一个选择是使用<strong class="bold"> Pickle </strong>模块<a id="_idIndexMarker033"/>来序列化一个Python对象并将其存储在一个文件中。这个文件稍后可以被加载并反序列化回一个具有类似属性集的Python对象。</p>
+
+<ol>
+
+<li value="4">使用<code>touch</code>命令:<pre class="source-code">touch <strong class="bold">data_generator.py</strong></pre>创建一个空的<code>data_generator.py</code>脚本文件</li>
+
+</ol>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">在继续之前，确保<code>data_generator.py</code>、<code>hotel_bookings.gan.pkl</code>和<code>utils.py</code>文件在同一个目录中，以便合成数据生成器脚本工作。</p>
+
+<ol>
+
+<li value="5">双击文件树中的<code>data_generator.py</code>文件(位于Cloud9环境的左侧<a id="_idIndexMarker034"/>)以<a id="_idIndexMarker035"/>在编辑器窗格中打开空的Python脚本文件。</li>
+
+<li>添加下面几行代码来导入运行脚本所需的先决条件:<pre class="source-code">from ctgan import <strong class="bold">CTGANSynthesizer</strong></pre> <pre class="source-code">from pandas_profiling import <strong class="bold">ProfileReport</strong></pre> <pre class="source-code">from utils import block, debug</pre></li>
+
+<li>接下来，我们添加下面几行代码来加载预先训练好的GAN模型:<pre class="source-code">with <strong class="bold">block</strong>('LOAD CTGAN'):</pre> <pre class="source-code">    pkl = './hotel_bookings.gan.pkl'</pre> <pre class="source-code">    gan = <strong class="bold">CTGANSynthesizer.load(pkl)</strong></pre> <pre class="source-code">    print(<strong class="bold">gan.__dict__</strong>)</pre></li>
+
+<li>在终端中运行以下命令(就在屏幕底部的<code>$</code>符号之后)来测试脚本中的初始代码块是否按预期工作:<pre class="source-code">python3 <strong class="bold">data_generator.py</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这将为我们提供一组日志，类似于下面的屏幕截图所示:</p>
+
+<div><div><img alt="Figure 1.7 – GAN model successfully loaded by the script&#10;&#10;" height="722" src="img/B18638_01_007.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.7–脚本成功加载GAN模型</p>
+
+<p class="list-inset">在这里，我们<a id="_idIndexMarker036"/>可以看到使用<code>CTGANSynthesizer.load()</code>方法成功加载了<a id="_idIndexMarker037"/>预训练GAN模型。在这里，我们还可以看到<code>block</code>(来自我们之前下载的<code>utils.py</code>文件)做了什么来提高我们日志的可读性。它只是帮助标记代码块执行的开始和结束，以便我们可以轻松地调试我们的脚本。</p>
+
+<ol>
+
+<li value="9">让我们回到编辑器窗格(我们正在编辑<code>data_generator.py</code>)并添加下面几行代码:<pre class="source-code">with block('GENERATE SYNTHETIC DATA'):</pre> <pre class="source-code">    synthetic_data = <strong class="bold">gan.sample</strong>(10000)</pre> <pre class="source-code">    print(synthetic_data)</pre></li>
+
+</ol>
+
+<p class="list-inset">当我们稍后运行脚本时，这些代码行将生成<code>10000</code>记录，并将它们存储在<code>synthetic_data</code>变量中。</p>
+
+<ol>
+
+<li value="10">接下来，让我们添加下面的代码块，它将把生成的数据保存到<code>tmp</code>目录下的一个CSV文件中:<pre class="source-code">with block('SAVE TO CSV'):</pre> <pre class="source-code">    target_location = "tmp/bookings.all.csv"</pre> <pre class="source-code">    print(target_location)</pre> <pre class="source-code">    synthetic_data.to_csv(</pre> <pre class="source-code">        target_location, </pre> <pre class="source-code">        index=False</pre> <pre class="source-code">    )</pre></li>
+
+<li>最后，让我们添加下面几行代码来完成脚本:<pre class="source-code">with block('GENERATE PROFILE REPORT'):</pre> <pre class="source-code">    profile = <strong class="bold">ProfileReport</strong>(synthetic_data)</pre> <pre class="source-code">    target_location = "tmp/profile-report.xhtml"</pre> <pre class="source-code">    profile.to_file(target_location)</pre></li>
+
+</ol>
+
+<p class="list-inset">这段代码将分析合成数据集，并生成一个分析报告来帮助我们分析数据集的属性。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">你可以在这里找到<code>data_generator.py</code>文件的副本:<a href="https://github.com/PacktPublishing/Machine-Learning-Engineering-on-AWS/blob/main/chapter01/data_generator.py">https://github . com/packt publishing/Machine-Learning-Engineering-on-AWS/blob/main/chapter 01/data _ generator . py</a>。</p>
+
+<ol>
+
+<li value="12">一切准备就绪后，让我们在终端中运行以下命令(就在屏幕底部的<code>$</code>符号之后):<pre class="source-code">python3 <strong class="bold">data_generator.py</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">脚本完成大约需要一分钟左右的时间。运行该脚本应该会给我们一组日志，类似于下面的屏幕截图所示:</p>
+
+<div><div><img alt="Figure 1.8 – Logs generated by data_generator.py&#10;&#10;" height="960" src="img/B18638_01_008.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.8-由data_generator.py生成的日志</p>
+
+<p class="list-inset">正如我们<a id="_idIndexMarker040"/>可以看到的，运行<a id="_idIndexMarker041"/><code>data_generator.py</code>脚本会生成多个日志块，这应该会使我们在脚本运行时容易读取和调试发生的事情。除了加载CTGAN模型，脚本还将使用深度学习模型(<code>tmp</code>目录(<code>tmp/bookings.all.csv</code> ) ( <code>pandas_profiling</code> ( <strong class="bold"> C </strong>)生成合成数据集。</p>
+
+<p>那不是很容易吗？在进入下一节之前，可以随意使用文件树(位于Cloud9环境的左侧)来检查存储在<code>tmp</code>目录中的生成文件。</p>
+
+<h2 id="_idParaDest-27"><a id="_idTextAnchor028"/>探索性数据分析</h2>
+
+<p>此时，我们应该有一个包含<code>10000</code>行的<a id="_idIndexMarker042"/>合成数据集。您可能想知道我们的数据是什么样的。我们的数据集包含无效值吗？我们需要担心丢失记录吗？我们必须对我们的数据集有一个很好的理解，因为在我们做任何模型训练工作之前，我们可能需要首先清理和处理数据。在数据集可用于训练ML模型之前，EDA是分析数据集的关键步骤。有不同的方法来分析数据集和生成报告——使用<code>pandas_profiling</code>是执行EDA的一种更快的方法。</p>
+
+<p>也就是说，让我们检查由<code>pandas_profiling</code> Python库生成的报告。右击文件树(位于Cloud9环境的左侧)中的<code>tmp/profile-report.xhtml</code>，然后从选项列表中选择<strong class="bold">预览</strong>。我们应该会找到类似如下的报告:</p>
+
+<div><div><img alt="Figure 1.9 – Generated report&#10;&#10;" height="882" src="img/B18638_01_009.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.9-生成的报告</p>
+
+<p>报告有多个部分:<strong class="bold">概述</strong>，<strong class="bold">变量</strong>，<strong class="bold">交互</strong>，<strong class="bold">相关性</strong> <strong class="bold">缺失值</strong>，以及<strong class="bold">样本</strong>。在<strong class="bold">概述</strong>部分，我们可以找到数据集统计数据和变量类型的快速总结。这包括变量的数量、记录(观察)的数量、缺失单元格的数量、重复行的数量以及其他相关的统计数据。在<strong class="bold">变量</strong>部分，我们可以找到数据集中每个变量(列)的统计数据和值的分布。在<strong class="bold">交互</strong>和<strong class="bold">相关性</strong>部分，我们可以看到关于数据集中变量潜在关系的不同模式和观察结果。在<strong class="bold">缺失值</strong>部分，我们可以看到是否有需要处理的缺失值的列<a id="_idIndexMarker043"/>。最后，在<strong class="bold">示例</strong>部分，我们可以看到数据集的前10行和后10行。</p>
+
+<p>在进入下一部分之前，请随意通读报告。</p>
+
+<h2 id="_idParaDest-28"><a id="_idTextAnchor029"/>训练-测试分割</h2>
+
+<p>现在我们已经完成了<a id="_idIndexMarker044"/>表演EDA，接下来我们做什么？假设我们的数据是干净的，并准备好进行模型训练，我们是否只是使用生成的所有10，000条记录来训练和构建我们的ML模型？在我们训练二元分类器模型之前，我们必须将数据集分成训练集和测试集:</p>
+
+<div><div><img alt="Figure 1.10 – Train-test split&#10;&#10;" height="888" src="img/B18638_01_010.jpg" width="1463"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.10–列车测试分离</p>
+
+<p>如我们所见，<strong class="bold">训练集</strong>是<a id="_idIndexMarker045"/>用于建立模型并在训练阶段更新其参数。<strong class="bold">测试集</strong>随后用于评估模型的最终版本，其数据<a id="_idIndexMarker046"/>之前未见过。此处未显示的是<strong class="bold">验证集</strong>，其<a id="_idIndexMarker047"/>用于评估模型，以在<a id="_idIndexMarker048"/>模型训练阶段微调<strong class="bold">超参数</strong>。在实践中，将数据集划分为训练集、验证集和测试集的比率通常在<strong class="bold"> 60:20:20 </strong>左右，其中训练集获得大多数记录。在本章中，我们不再需要将训练集进一步划分为更小的训练集和验证集，因为AutoML工具和服务会自动为我们完成这项工作。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">在继续本节的动手解决方案之前，我们必须了解什么是超参数和参数。<code>y = m * x</code>，其中<code>m</code>为参数，<code>x</code>为单一预测变量，<code>y</code>为目标变量。例如，如果我们要测试取消(<code>y</code>)和收入(<code>x</code>)之间的关系，那么<code>m</code>就是定义这种关系的参数。如果<code>m</code>为正值，取消订单会随着收入的增加而增加。如果是负数，取消的数量会随着收入的增加而减少。另一方面，<strong class="bold">超参数</strong>是在模型训练前调整的<a id="_idIndexMarker050"/>可配置值。这些变量影响我们选择的ML模型如何“模拟”这种关系。每个ML模型都有自己的超参数集，这取决于所使用的算法。一旦我们在<a href="B18638_02.xhtml#_idTextAnchor041"> <em class="italic">第2章</em> </a>、<em class="italic">深度学习AMIs </em>和<a href="B18638_03.xhtml#_idTextAnchor060"> <em class="italic">第3章</em> </a>、<em class="italic">深度学习容器</em>中再看几个例子，这些概念就更有意义了。</p>
+
+<p>现在，让我们创建一个脚本来帮助我们<a id="_idIndexMarker051"/>执行训练测试分割:</p>
+
+<ol>
+
+<li value="1">在我们的Cloud9环境的终端中(就在屏幕底部的<code>$</code>符号之后)，运行下面的命令来创建一个名为<code>train_test_split.py</code>的空文件:<pre class="source-code">touch <strong class="bold">train_test_split.py</strong></pre></li>
+
+<li>使用文件树(位于Cloud9环境的左侧)，双击<code>train_test_split.py</code>文件，在编辑器窗格中打开该文件。</li>
+
+<li>在编辑器窗格中，添加以下代码行以导入运行脚本的先决条件:<pre class="source-code">import pandas as pd</pre> <pre class="source-code">from utils import block, debug</pre> <pre class="source-code">from sklearn.model_selection import train_test_split</pre></li>
+
+<li>添加以下代码块，它将读取CSV文件的内容并将其存储在<code>DataFrame</code> : <pre class="source-code">with block('LOAD CSV'):</pre> <pre class="source-code">    generated_df = pd.<strong class="bold">read_csv</strong>('tmp/bookings.all.csv')</pre>中</li>
+
+<li>接下来，让我们使用scikit-learn中的<code>train_test_split()</code>函数将我们生成的数据集分成训练集和测试集:<pre class="source-code">with block('TRAIN-TEST SPLIT'):</pre><pre class="source-code">    train_df, test_df = <strong class="bold">train_test_split</strong>(</pre><pre class="source-code">        generated_df, </pre><pre class="source-code">        test_size=0.3, </pre><pre class="source-code">        random_state=0</pre><pre class="source-code">    )</pre><pre class="source-code">    print(train_df)</pre><pre class="source-code">    print(test_df)</pre></li>
+
+<li>最后，添加以下代码行，将训练集和测试集保存到<code>tmp</code>目录中各自的CSV <a id="_idIndexMarker052"/>文件中:<pre class="source-code">with block('SAVE TO CSVs'):</pre> <pre class="source-code">    train_df.<strong class="bold">to_csv</strong>('tmp/<strong class="bold">bookings.train.csv</strong>', </pre> <pre class="source-code">                    index=False)</pre> <pre class="source-code">    test_df.<strong class="bold">to_csv</strong>('tmp/<strong class="bold">bookings.test.csv</strong>', </pre> <pre class="source-code">                   index=False)</pre></li>
+
+</ol>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">你可以在这里找到<code>train_test_split.py</code>文件的副本:<a href="https://github.com/PacktPublishing/Machine-Learning-Engineering-on-AWS/blob/main/chapter01/train_test_split.py">https://github . com/packt publishing/Machine-Learning-Engineering-on-AWS/blob/main/chapter 01/train _ test _ split . py</a>。</p>
+
+<ol>
+
+<li value="7">现在我们已经完成了脚本文件，让我们在终端中运行下面的命令(就在屏幕底部的<code>$</code>符号之后):<pre class="source-code">python3 <strong class="bold">train_test_split.py</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这将生成一组日志，类似于下面的屏幕截图所示:</p>
+
+<div><div><img alt="Figure 1.11 – Train-test split logs&#10;&#10;&#10;&#10;&#10;&#10;" height="762" src="img/B18638_01_011.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.11–列车测试分割日志</p>
+
+<p class="list-inset">在这里，我们可以看到<a id="_idIndexMarker053"/>我们的训练数据集包含7000条记录，而测试集包含3000条记录。</p>
+
+<p>有了这个，我们可以上传我们的数据集到亚马逊S3。</p>
+
+<h2 id="_idParaDest-29"><a id="_idTextAnchor030"/>将数据集上传到亚马逊S3</h2>
+
+<p>亚马逊S3是AWS的<a id="_idIndexMarker054"/>对象存储服务，在这里<a id="_idIndexMarker055"/>我们可以存储不同类型的文件，比如数据集CSV文件和输出工件。当使用AWS的不同服务时，需要注意的是，这些服务有时需要将输入数据和文件首先存储在S3存储桶中，或者存储在使用另一个服务创建的资源中。</p>
+
+<p>将数据集上传到S3应该很容易。继续我们在<em class="italic">列车测试分割</em>部分中停止的地方，我们将在终端中运行以下命令:</p>
+
+<ol>
+
+<li value="1">在终端中运行以下命令。这里，我们将创建一个新的S3存储桶，其中包含我们将在本章中使用的数据。确保将值<code>&lt;INSERT BUCKET NAME HERE&gt;</code>替换为在所有AWS用户中全局唯一的存储段名称:<pre class="source-code">BUCKET_NAME="<strong class="bold">&lt;INSERT BUCKET NAME HERE&gt;</strong>"</pre> <pre class="source-code">aws s3 mb s3://$BUCKET_NAME</pre></li>
+
+</ol>
+
+<p class="list-inset">有关S3桶命名规则的更多信息，请随时查看<a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.xhtml">https://docs . AWS . Amazon . com/Amazon S3/latest/user guide/bucket naming grules . XHTML</a>。</p>
+
+<ol>
+
+<li value="2">既然已经创建了<a id="_idIndexMarker056"/> S3存储桶，让我们<a id="_idIndexMarker057"/>使用<strong class="bold">AWS CLI</strong>:<pre class="source-code">S3=<strong class="bold">s3://$BUCKET_NAME/datasets/bookings</strong></pre><pre class="source-code">TRAIN=<strong class="bold">bookings.train.csv</strong></pre><pre class="source-code">TEST=<strong class="bold">bookings.test.csv</strong></pre><pre class="source-code">aws s3 cp <strong class="bold">tmp/bookings.train.csv</strong> <strong class="bold">$S3/$TRAIN</strong></pre><pre class="source-code">aws s3 cp <strong class="bold">tmp/bookings.test.csv</strong> <strong class="bold">$S3/$TEST</strong></pre>上传训练和测试数据集</li>
+
+</ol>
+
+<p>现在一切都准备好了，我们可以开始激动人心的部分了！是时候我们使用各种解决方案和服务进行多种自动实验了。</p>
+
+<h1 id="_idParaDest-30"><a id="_idTextAnchor031"/>带自动旋转的AutoML</h1>
+
+<p>之前，我们讨论了什么是<strong class="bold">超参数</strong>。当训练和调整ML模型时，重要的是<a id="_idIndexMarker058"/>我们<a id="_idIndexMarker059"/>知道ML模型的性能取决于算法、训练数据和训练模型时使用的超参数配置。其他输入配置参数也可能会影响模型的性能，但是我们现在只关注这三个参数。团队不是训练单个模型，而是使用各种超参数配置构建多个模型。超参数配置的变化和调整会影响模型的性能——有些会导致更好的性能，而有些会导致更差的性能。尝试超参数配置的所有可能组合需要时间，尤其是在模型调整过程不是自动化的情况下。</p>
+
+<p>在过去的几年里，一些库、框架和服务已经允许团队充分利用<strong class="bold">自动化机器学习</strong> ( <strong class="bold"> AutoML </strong>)来自动化ML过程的不同部分。最初，AutoML工具专注于自动化<strong class="bold">超参数优化</strong> ( <strong class="bold"> HPO </strong>)过程，以获得<a id="_idIndexMarker061"/>超参数值的最佳组合。在运行训练作业时，我们不需要花费数小时(甚至数天)手动尝试不同的超参数组合，我们只需要配置、运行并等待这个自动化程序来帮助我们找到最佳的超参数值集。多年来，专注于自动化超参数优化的几个工具和库可供ML从业者使用。过了一段时间，ML工作流的其他方面和过程被自动化并包含在AutoML管道中。</p>
+
+<p>有几个工具和服务可用于AutoML，其中一个最受欢迎的选项是<strong class="bold">自动登录</strong>。有了<strong class="bold"> AutoGluon </strong>，我们可以使用不同的算法训练多个模型，并且只用几行代码就可以对它们进行评估:</p>
+
+<div><div><img alt="Figure 1.12 – AutoGluon leaderboard – models trained using a variety of algorithms&#10;&#10;" height="381" src="img/B18638_01_012.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.12–自动登录排行榜–使用各种算法训练的模型</p>
+
+<p>与前面截图中的<a id="_idIndexMarker062"/>类似，我们也可以使用排行榜来比较生成的模型。在本章中，我们将对表格数据集使用AutoGluon。但是，需要注意的是，AutoGluon还支持对文本和图像数据执行AutoML任务。</p>
+
+<h2 id="_idParaDest-31"><a id="_idTextAnchor032"/>设置和安装自动旋转</h2>
+
+<p>在使用自动旋翼之前，我们需要安装它。完成安装过程大约需要一分钟时间:</p>
+
+<ol>
+
+<li value="1">在安装AutoGluon之前，在终端中运行以下命令来安装和更新先决条件:<pre class="source-code">python3 -m pip install -U <strong class="bold">"mxnet&lt;2.0.0"</strong></pre> <pre class="source-code">python3 -m pip install <strong class="bold">numpy</strong></pre> <pre class="source-code">python3 -m pip install <strong class="bold">cython</strong></pre> <pre class="source-code">python3 -m pip install pyOpenSSL --upgrade</pre></li>
+
+</ol>
+
+<p class="list-inset">本书假设你使用的是以下版本或更高版本:<code>mxnet</code>–<code>1.9.0</code>、<code>numpy</code>–<code>1.19.5</code>、<code>cython</code>–<code>0.29.26</code>。</p>
+
+<ol>
+
+<li value="2">接下来，运行以下命令来安装<code>autogluon</code> : <pre class="source-code">python3 -m pip install <strong class="bold">autogluon</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">本书假设<a id="_idIndexMarker064"/>你正在使用<code>autogluon</code>版本<code>0.3.1</code>或更高版本。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">完成此步骤可能需要大约5到10分钟。请随意喝杯咖啡或茶！</p>
+
+<p>在我们的Cloud9环境中安装了AutoGluon之后，让我们继续进行我们的第一个AutoGluon AutoML实验。</p>
+
+<h2 id="_idParaDest-32">进行你的第一次自动旋转实验</h2>
+
+<p>如果你<a id="_idIndexMarker065"/>用过<code>fit()</code>和<code>predict()</code>。请遵循以下步骤:</p>
+
+<ol>
+
+<li value="1">首先，在终端中运行以下命令:<pre class="source-code"><strong class="bold">ipython</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这将打开<strong class="bold">IPython</strong><strong class="bold">Read-Eval-Print-Loop</strong>(<strong class="bold">REPL</strong>)/interactive shell。我们将像使用<strong class="bold"> Python shell </strong>一样使用它。</p>
+
+<ol>
+
+<li value="2">在控制台内，键入(或复制)以下代码块。确保在输入右括号<pre class="source-code">from autogluon.tabular import (</pre> <pre class="source-code">    <strong class="bold">TabularDataset</strong>,</pre> <pre class="source-code">    <strong class="bold">TabularPredictor</strong></pre> <pre class="source-code">)</pre>后按<em class="italic">回车</em></li>
+
+<li>现在，让我们<a id="_idIndexMarker066"/>通过运行下面的语句将保存在<code>bookings.train.csv</code>和<code>bookings.test.csv</code>文件中的合成数据分别加载到<code>train_data</code>和<code>test_data</code>变量中:<pre class="source-code">train_loc = 'tmp/bookings.train.csv'</pre> <pre class="source-code">test_loc = 'tmp/bookings.test.csv'</pre> <pre class="source-code"><strong class="bold">train_data</strong> = TabularDataset(train_loc)</pre> <pre class="source-code"><strong class="bold">test_data</strong> = TabularDataset(test_loc)</pre></li>
+
+</ol>
+
+<p class="list-inset">由于自动生成的父类<code>TabularDataset</code>是一个熊猫数据帧，我们可以在<code>train_data</code>和<code>test_data</code>上使用不同的方法，例如<code>head()</code>、<code>describe()</code>、<code>memory_usage()</code>等等。</p>
+
+<ol>
+
+<li value="4">接下来，运行下面几行代码:<pre class="source-code">label = '<strong class="bold">is_cancelled</strong>'</pre> <pre class="source-code">save_path = '<strong class="bold">tmp</strong>'</pre> <pre class="source-code">tp = TabularPredictor(label=label, path=save_path)</pre> <pre class="source-code">predictor = tp.<strong class="bold">fit</strong>(train_data)</pre></li>
+
+</ol>
+
+<p class="list-inset">这里，我们将<code>is_cancelled</code>指定为AutoML任务的目标变量，将<code>tmp</code>目录指定为存储生成模型的位置。这段代码将使用我们提供的训练数据，使用不同的算法来训练多个模型。AutoGluon将自动检测到我们正在处理一个二元分类问题，并使用各种ML算法生成多个二元分类器模型。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">在<code>tmp/models</code>目录中，我们应该找到<code>CatBoost</code>、<code>ExtraTreesEntr</code>和<code>ExtraTreesGini</code>，以及对应于AutoML任务中使用的算法的其他目录。每个目录都包含一个包含序列化模型的<code>model.pkl</code>文件。为什么我们有多个模型？在幕后，AutoGluon使用各种算法以及超参数值的不同组合运行大量训练实验，以产生“最佳”模型。“最佳”模型是使用特定的评估标准选择的，该评估标准有助于确定哪个模型比其他模型表现得更好。例如，如果使用的评估指标是<em class="italic">准确度</em>，那么准确度分数为90%的模型(每10次尝试得到9个正确答案)比准确度分数为80%的模型(每10次尝试得到8个正确答案)更“好”。也就是说，一旦生成并评估了模型，AutoGluon就会选择具有最高评估度量值的模型(例如，<em class="italic"> accuracy </em>)并将其标记为“最佳模型”</p>
+
+<ol>
+
+<li value="5">现在我们已经准备好了“最佳模型”，接下来我们做什么？下一步是我们使用测试数据集来评估“最佳模型”。也就是说，让我们通过移除目标标签:<pre class="source-code"><strong class="bold">y_test</strong> = test_data[label]</pre> <pre class="source-code"><strong class="bold">test_data_no_label</strong> = test_data.drop(columns=[label])</pre>来准备用于推断的<a id="_idIndexMarker067"/>测试数据集</li>
+
+<li>一切准备就绪后，让我们使用<code>predict()</code>方法来预测作为有效负载提供的测试数据集的<code>is_cancelled</code>列值:<pre class="source-code"><strong class="bold">y_pred</strong> = predictor.<strong class="bold">predict</strong>(test_data_no_label)</pre></li>
+
+<li>现在我们已经有了实际的<em class="italic"> y </em>值(<code>y_test</code>)和预测的<em class="italic"> y </em>值(<code>y_pred</code>)，让我们使用<code>evaluate_predictions()</code>方法:<pre class="source-code">predictor.<strong class="bold">evaluate_predictions</strong>(</pre> <pre class="source-code">    y_true=<strong class="bold">y_test</strong>, </pre> <pre class="source-code">    y_pred=<strong class="bold">y_pred</strong>, </pre> <pre class="source-code">    auxiliary_metrics=True</pre> <pre class="source-code">)</pre>快速检查训练好的模型的性能</li>
+
+</ol>
+
+<p class="list-inset">前面的代码块应该产生类似于下面的性能指标值:</p>
+
+<pre class="list-inset1 source-code">{'<strong class="bold">accuracy</strong>': 0.691...,
+
+ '<strong class="bold">balanced_accuracy</strong>': 0.502...,
+
+ '<strong class="bold">mcc</strong>': 0.0158...,
+
+ '<strong class="bold">f1</strong>': 0.0512...,
+
+ '<strong class="bold">precision</strong>': 0.347...,
+
+ '<strong class="bold">recall</strong>': 0.0276...}</pre>
+
+<p class="list-inset">在这一步中，我们使用各种公式来比较目标列的实际值和预测值，这些公式用于比较这些值之间的接近程度。这里，训练模型的目标是在看不见的数据上尽可能“犯最少的错误”。更好的模型通常在性能指标上有更好的得分，如<strong class="bold">准确性</strong>、<strong class="bold">马修斯相关系数</strong> ( <strong class="bold"> MCC </strong>)和<strong class="bold"> F1得分</strong>。我们不会在这里详细讨论模型性能指标是如何工作的。如需更多信息，请随时查看https://bit.ly/3zn2crv。</p>
+
+<ol>
+
+<li value="8">现在我们已经<a id="_idIndexMarker068"/>完成了快速实验，让我们退出<strong class="bold"> IPython </strong> shell: <pre class="source-code">exit()</pre></li>
+
+</ol>
+
+<p>使用自动旋转仪我们可以做更多的事情，但是这应该有助于我们理解使用自动旋转仪进行自动实验是多么容易。我们还可以使用其他方法，比如<code>leaderboard()</code>、<code>get_model_best()</code>和<code>feature_importance()</code>，所以请随时查看<a href="https://auto.gluon.ai/stable/index.xhtml">https://auto.gluon.ai/stable/index.xhtml</a>了解更多信息。</p>
+
+<h1 id="_idParaDest-33"><a id="_idTextAnchor034"/>sage maker和SageMaker Studio入门</h1>
+
+<p>在AWS上执行ML和ML工程时，专业人员应该考虑使用<strong class="bold"> Amazon SageMaker </strong>的一个或多个功能和特性。如果这是你第一次了解SageMaker，这是一个完全管理的ML服务，有助于显著加快准备、培训、评估和部署ML模型的过程。</p>
+
+<p>如果您想知道这些功能是什么，请查看<em class="italic">图1.2 </em>中<strong class="bold"> ML服务</strong>下标记的一些功能，这些功能来自<em class="italic">ML工程师如何充分利用AWS </em>部分。在本书的不同章节中，我们将讨论SageMaker的几个功能。与此同时，我们将从SageMaker Studio开始，因为在我们处理SageMaker Canvas和SageMaker Autopilot示例之前，我们需要首先设置它。</p>
+
+<h2 id="_idParaDest-34"><a id="_idTextAnchor035"/>加入SageMaker Studio</h2>
+
+<p>SageMaker Studio为ML从业者提供了一个功能丰富的IDE。SageMaker Studio的一个伟大之处是它与SageMaker的其他功能紧密集成，这允许我们通过使用界面来管理不同的SageMaker资源。</p>
+
+<p>为了更好地了解它的外观和工作原理，让我们继续设置和配置SageMaker Studio:</p>
+
+<ol>
+
+<li value="1">在<a id="_idIndexMarker073"/>AWS控制台的<a id="_idIndexMarker072"/>搜索栏中，输入<code>sagemaker studio</code>。在<strong class="bold">功能</strong>下选择<strong class="bold"> SageMaker工作室</strong>。</li>
+
+<li>选择<strong class="bold">标准设置</strong>，如下截图所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 1.13 – Setup SageMaker Domain&#10;&#10;" height="491" src="img/B18638_01_013.jpg" width="1114"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.13–设置SageMaker域</p>
+
+<p class="list-inset">正如我们<a id="_idIndexMarker074"/>所看到的，<strong class="bold">标准设置</strong>应该给我们更多的<a id="_idIndexMarker075"/>配置选项来调整<strong class="bold">快速设置</strong>。在点击<strong class="bold">配置</strong>按钮之前，确保您使用的是S3桶以及训练和测试数据集所在的同一区域。</p>
+
+<ol>
+
+<li value="3">在<strong class="bold">认证</strong>下，选择<strong class="bold"> AWS身份和访问管理(IAM) </strong>。对于<strong class="bold">权限下的默认执行角色</strong>，选择<strong class="bold">新建角色</strong>。选择<strong class="bold">任意一个S3斗</strong>。然后，点击<strong class="bold">创建角色</strong>。</li>
+
+<li>在<code>us-west-2a</code>下)，类似于下面的截图所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 1.14 – Network and Storage Section&#10;&#10;" height="596" src="img/B18638_01_014.jpg" width="684"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.14–网络和存储部分</p>
+
+<p class="list-inset">在这里，我们<a id="_idIndexMarker076"/>还通过选择<strong class="bold">公共互联网Only </strong>将SageMaker域配置为<a id="_idIndexMarker077"/>使用默认的SageMaker互联网访问。在<strong class="bold">加密密钥</strong>下，我们通过选择<strong class="bold">无自定义加密</strong>保持不变。查看配置，然后点击<strong class="bold">下一步</strong>。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">请注意，对于生产环境，需要进一步检查和升级最后几个步骤中指定的安全配置。与此同时，这应该可以解决问题，因为我们正在处理一个样本数据集。我们将在第9章  <em class="italic">、安全、治理和合规性策略</em>中详细讨论如何保护环境。</p>
+
+<ol>
+
+<li value="5">在<strong class="bold">工作室设置</strong>下，保持一切不变，点击<strong class="bold">下一步</strong>。</li>
+
+<li>同样，在<strong class="bold">通用设置</strong> | <strong class="bold"> RStudio工作台</strong>下，点击<strong class="bold">提交</strong>。</li>
+
+</ol>
+
+<p>一旦<a id="_idIndexMarker078"/>完成这些步骤，您应该会看到<strong class="bold">准备SageMaker域</strong>加载<a id="_idIndexMarker079"/>消息。完成此步骤大约需要3到5分钟。一旦完成，您应该会看到一个通知，说明SageMaker域已经就绪。</p>
+
+<h2 id="_idParaDest-35"><a id="_idTextAnchor036"/>将用户添加到现有的SageMaker域</h2>
+
+<p>现在<a id="_idIndexMarker080"/>我们的<strong class="bold"> SageMaker域</strong>已经准备好了，让我们<a id="_idIndexMarker081"/>创建一个用户。创建用户非常简单。那么，让我们开始吧:</p>
+
+<ol>
+
+<li value="1">在<strong class="bold"> SageMaker域/控制面板</strong>页面，点击<strong class="bold">添加用户</strong>。</li>
+
+<li>在<strong class="bold">名称</strong>下指定用户的名称。在<strong class="bold">默认执行角色</strong>下，选择您在上一步中创建的执行角色。点击下一个的<strong class="bold">。</strong></li>
+
+<li>在<strong class="bold">工作室设置</strong> | <strong class="bold"> SageMaker项目和JumpStart </strong>下，点击<strong class="bold">下一步。</strong></li>
+
+<li>在<strong class="bold"> RStudio设置</strong> | <strong class="bold"> Rstudio工作台</strong>下，点击<strong class="bold">提交。</strong></li>
+
+</ol>
+
+<p>这应该可以暂时解决问题。在<a href="B18638_09.xhtml#_idTextAnchor187"> <em class="italic">第9章</em> </a> <em class="italic">、安全、治理和法规遵从性策略</em>中，我们将回顾如何改进此处的配置以提高我们环境的安全性。</p>
+
+<h1 id="_idParaDest-36"><a id="_idTextAnchor037"/>使用SageMaker Canvas的无代码机器学习</h1>
+
+<p>在<a id="_idIndexMarker082"/>我们继续使用更加<a id="_idIndexMarker083"/>全面的SageMaker功能集来执行ML实验和部署之前，让我们从使用<strong class="bold"> SageMaker Canvas </strong>构建一个模型开始。SageMaker Canvas的一大优点是，构建模型并使用它们进行预测不需要任何编码工作。当然，<strong class="bold"> SageMaker Autopilot </strong>会有<a id="_idIndexMarker084"/>更强大、更灵活的功能，但是SageMaker Canvas应该可以帮助业务分析师、数据科学家和初级ML工程师理解ML过程，并立即开始构建模型。</p>
+
+<p>由于我们的数据集已经上传到S3桶，我们可以开始构建和训练我们的第一个SageMaker画布模型:</p>
+
+<ol>
+
+<li value="1">在<strong class="bold"> SageMaker域/控制面板</strong>页面，找到我们刚刚创建的用户所在的行，点击<strong class="bold">启动应用</strong>。从下拉菜单的可用选项列表中选择<strong class="bold">画布</strong>，如下图所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 1.15 – Launching SageMaker Canvas&#10;&#10;" height="661" src="img/B18638_01_015.jpg" width="1589"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.15–启动SageMaker画布</p>
+
+<p class="list-inset">正如我们所见，我们<a id="_idIndexMarker085"/>可以从<strong class="bold"> SageMaker域/控制面板</strong>页面启动SageMaker <a id="_idIndexMarker086"/> Canvas。我们也可以在这里启动SageMaker Studio，我们将在本章的后面进行介绍。</p>
+
+<ol>
+
+<li value="2">点击<strong class="bold">新型号</strong>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 1.16 – The SageMaker Canvas Models page&#10;&#10;" height="1096" src="img/B18638_01_016.jpg" width="1346"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.16–sage maker画布模型页面</p>
+
+<p class="list-inset">这里，我们有SageMaker Canvas <strong class="bold"> Models </strong>页面，它应该列出我们已经训练过的模型。由于我们尚未进行任何培训，我们应该会看到<strong class="bold">您尚未创建任何模型</strong>消息。</p>
+
+<ol>
+
+<li value="3">在<a id="_idIndexMarker087"/>的<code>first-model</code>处点击<strong class="bold">创建</strong>。</li>
+
+<li>当您看到<strong class="bold">入门</strong>向导窗口时，点击<strong class="bold">跳过介绍</strong>。</li>
+
+<li>点击S3桶<code>Amazon S3/&lt;S3 BUCKET&gt;/datasets/bookings</code>文件夹中的<code>booking.train.csv</code>和<code>booking.test.csv</code>文件。</li>
+
+</ol>
+
+<div><div><img alt="Figure 1.17 – Choose files to import&#10;&#10;" height="982" src="img/B18638_01_017.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.17–选择要导入的文件</p>
+
+<p class="list-inset">选择需要的CSV文件，如前面截图所示，点击<strong class="bold">导入数据</strong>。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">请注意，如果您的帐户中有大量S3存储桶，您可能很难找到我们在<em class="italic">将数据集上传到S3 </em>部分创建的S3存储桶。请随意使用位于右手边的搜索框(带有<strong class="bold">搜索亚马逊S3 </strong>占位符)，就在列出不同S3桶和资源的表格上方。</p>
+
+<ol>
+
+<li value="6">一旦<a id="_idIndexMarker089"/>文件被导入，点击包含<code>bookings.train.csv</code>的行的单选按钮<a id="_idIndexMarker090"/>。点击<strong class="bold">选择数据集</strong>。</li>
+
+<li>在<strong class="bold">目标列</strong>字段的下拉选项列表中的<code>is_cancelled</code>。</li>
+
+<li>接下来，点击<strong class="bold">预览模型</strong>(在<strong class="bold">快速构建</strong>按钮下)，如下图所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 1.18 – The Build tab&#10;&#10;" height="499" src="img/B18638_01_018.jpg" width="810"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.18–构建选项卡</p>
+
+<p class="list-inset">几分钟后，我们应该会得到大约70%的估计准确率。请注意，在这一步中，您可能会得到一组不同的数字。</p>
+
+<ol>
+
+<li value="9">点击<strong class="bold">快速构建</strong>，等待模型准备就绪。</li>
+
+</ol>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">此步骤可能需要15分钟才能完成。在等待的同时，让我们快速讨论一下<strong class="bold">快速构建</strong>和<strong class="bold">标准构建</strong>的区别。快速构建使用较少的记录进行训练，通常持续大约2到15分钟，而标准构建持续更长时间，通常大约2到4小时。需要注意的是，使用快速构建训练的模型不能与SageMaker Studio中的其他数据科学家或ML工程师共享。另一方面，使用标准构建训练的模型可以在构建完成后共享。</p>
+
+<ol>
+
+<li value="10">一旦<a id="_idIndexMarker091"/>结果可用，您<a id="_idIndexMarker092"/>可以通过点击以下截图中突出显示的选项卡来打开<strong class="bold">评分</strong>选项卡:</li>
+
+</ol>
+
+<div><div><img alt="Figure 1.19 – The Analyze tab&#10;&#10;" height="504" src="img/B18638_01_019.jpg" width="810"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.19–分析选项卡</p>
+
+<p class="list-inset">我们应该会看到一个快速图表，显示用于分析模型的记录数量，以及模型做出的正确预测和错误预测的数量。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">至此，我们已经构建了一个ML模型，可以用来预测预订是否会被取消。由于本例中的准确率只有70%左右，我们期望该模型每10次尝试能得到大约7个正确答案。在<a href="B18638_11.xhtml#_idTextAnchor231"> <em class="italic">第十一章</em> </a> <em class="italic">中，带SageMaker流水线的机器学习流水线</em>，我们将训练出这个模型的改进版本，准确率在88%左右。</p>
+
+<ol>
+
+<li value="11">一旦我们检查完<strong class="bold">分析</strong>选项卡中的不同数字和图表，我们可以点击<strong class="bold">预测</strong>按钮继续。</li>
+
+<li>点击<code>bookings.test.csv</code>并点击<strong class="bold">生成预测</strong>。</li>
+
+<li>一旦<a id="_idIndexMarker093"/>的<strong class="bold">状态</strong>列值设置为<strong class="bold">就绪</strong>，将<a id="_idIndexMarker094"/>悬停在该行的<strong class="bold">状态</strong>列上，点击3个点(悬停在该行上后会出现)，然后从选项列表中选择<strong class="bold">预览</strong>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 1.20 – Batch prediction results&#10;&#10;" height="984" src="img/B18638_01_020.jpg" width="1639"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.20–批量预测结果</p>
+
+<p class="list-inset">我们应该会看到一个值表，类似于前面截图中显示的内容。在第一列中，我们应该有测试数据集每一行的<code>is_cancelled</code>字段的预测值。在第二列中，我们应该找到预测正确的概率。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">注意，我们也可以通过点击<strong class="bold">预测目标值</strong>下的<strong class="bold">单次预测</strong>后提供的界面进行单次预测。</p>
+
+<ol>
+
+<li value="14">最后，让我们<a id="_idIndexMarker095"/>注销我们的会话。点击左侧工具条<a id="_idIndexMarker096"/>中的<strong class="bold">账户</strong>图标，选择<strong class="bold">注销</strong>选项。</li>
+
+</ol>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">确保在使用SageMaker Canvas后总是注销当前会话，以避免任何意外费用。更多信息请访问<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/canvas-log-out.xhtml">https://docs . AWS . Amazon . com/sage maker/latest/DG/canvas-log-out . XHTML</a>。</p>
+
+<p>那不是很容易吗？既然我们对如何使用SageMaker Canvas有了一个很好的想法，让我们使用SageMaker Autopilot运行一个AutoML实验。</p>
+
+<h1 id="_idParaDest-37"><a id="_idTextAnchor038"/>带SageMaker自动驾驶仪的AutoML</h1>
+
+<p><strong class="bold"> SageMaker Autopilot </strong>允许<a id="_idIndexMarker097"/> ML从业者构建高质量的ML模型，而无需编写一行代码。当然，使用<strong class="bold"> SageMaker Python SDK </strong>以编程方式配置、运行和管理SageMaker自动驾驶实验是可能的，但是<a id="_idIndexMarker098"/>我们将专注于使用SageMaker Studio接口来运行AutoML实验。在开始配置我们的第一个自动驾驶实验之前，让我们看看幕后发生了什么:</p>
+
+<div><div><img alt="Figure 1.21 – AutoML with SageMaker Autopilot&#10;&#10;&#10;&#10;&#10;&#10;" height="400" src="img/B18638_01_021.jpg" width="884"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.21–带SageMaker自动驾驶仪的AutoML</p>
+
+<p>在前面的<a id="_idIndexMarker099"/>图中，我们可以看到运行AutoML实验时SageMaker自动驾驶仪执行的不同步骤。它从<strong class="bold">数据预处理</strong>步骤开始，并继续进行<strong class="bold">生成候选模型</strong>(流水线和算法对)步骤。然后，它继续执行<strong class="bold">特征工程</strong>和<strong class="bold">模型调整</strong>步骤，这将从不同的模型族、超参数值和模型性能度量值中产生多个训练模型。自动驾驶作业将生成的具有最佳性能指标值的模型标记为“最佳模型”。接下来，生成两个报告:<strong class="bold">可解释性报告</strong>和<strong class="bold">洞察力报告</strong>。最后，模型被部署到一个推理端点。</p>
+
+<p>让我们更深入地了解一下每一步都发生了什么:</p>
+
+<ul>
+
+<li><strong class="bold">数据预处理</strong>:自动清理数据，自动补齐缺失值。</li>
+
+<li><strong class="bold">候选定义生成</strong>:生成多个“候选定义”(由一个数据处理作业和一个训练作业组成)，这些定义都将在数据集上使用。</li>
+
+<li><strong class="bold">特征工程</strong>:这里，数据转换被应用于执行自动化的特征工程。</li>
+
+<li><strong class="bold">模型调整</strong>:SageMaker的<strong class="bold">自动模型调整</strong>(超参数调整)功能用于使用各种超参数配置值生成多个模型，以找到“最佳模型”</li>
+
+<li><strong class="bold">可解释性报告生成</strong>:利用<a id="_idIndexMarker100"/> SHAP值来帮助解释所生成模型的行为的模型可解释性报告，是使用<strong class="bold"> SageMaker Clarify </strong>提供的工具生成的(SageMaker的另一个功能集中在AI <strong class="bold">公平性</strong>和<strong class="bold">可解释性</strong>)。我们将在稍后的第9章 、<em class="italic">安全、治理和遵从策略</em>中更深入地探讨这个主题。</li>
+
+<li><strong class="bold"> Insights报告生成</strong>:生成了Insights报告，其中包含了标量指标等数据见解，有助于我们更好地理解数据集。</li>
+
+<li><strong class="bold">模型部署</strong>:将最佳模型部署到专用的推理端点。这里，目标度量的值用于确定在模型调整步骤期间训练的所有模型中哪一个是最佳模型。</li>
+
+</ul>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">如果您想知道AutoML解决方案是否会完全“取代”数据科学家，那么对您的问题的快速回答将是“不会”或“不会很快”ML流程的某些特定领域需要数据科学家掌握领域知识。AutoML解决方案有助于为数据科学家和ML实践者提供一个良好的起点。例如，白盒AutoML解决方案(如SageMaker Autopilot)可以生成脚本和笔记本，数据科学家和ML从业者可以修改这些脚本和笔记本，以产生定制和复杂的数据处理、实验和部署流程和管道。</p>
+
+<p>现在我们对自动驾驶实验中发生的事情有了更好的了解，让我们运行我们的第一个自动驾驶实验:</p>
+
+<ol>
+
+<li value="1">在<strong class="bold">控制面板</strong>页面，点击<strong class="bold">启动应用</strong>下拉菜单，从下拉选项列表中选择<strong class="bold">工作室</strong>，如下图所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 1.22 – Opening SageMaker Studio&#10;&#10;" height="667" src="img/B18638_01_022.jpg" width="1495"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.22–打开SageMaker工作室</p>
+
+<p class="list-inset">请注意，如果这是您第一次打开<a id="_idIndexMarker101"/>sage maker Studio，加载它可能需要大约5分钟。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">AWS会定期发布SageMaker Studio的更新和升级。为了确保您使用的是最新版本，请确保关闭并更新SageMaker Studio和Studio应用程序。更多信息请访问<a href="https://docs.aws.amazon.com/sagemaker/latest/dg/studio-tasks-update.xhtml">https://docs . AWS . Amazon . com/sage maker/latest/DG/studio-tasks-update . XHTML</a>。</p>
+
+<ol>
+
+<li value="2">打开<strong class="bold">文件</strong>菜单，点击<strong class="bold">新建</strong>子菜单下的<strong class="bold">实验</strong>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 1.23 – Using the File menu to create a new experiment&#10;&#10;&#10;&#10;&#10;&#10;" height="550" src="img/B18638_01_023.jpg" width="1382"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.23–使用文件菜单创建新实验</p>
+
+<p class="list-inset">这里，我们在<strong class="bold">新</strong>子菜单下有多个选项。我们将在本书中探讨其他选项。</p>
+
+<p>在下一组<a id="_idIndexMarker102"/>步骤中，我们将配置自动驾驶仪实验，类似于以下截图所示:</p>
+
+<div><div><img alt="Figure 1.24 – Configuring the Autopilot experiment&#10;&#10;" height="836" src="img/B18638_01_024.jpg" width="1635"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.24–配置自动驾驶仪实验</p>
+
+<p class="list-inset">在这里，我们可以看到在运行自动驾驶实验之前可用的不同配置选项。请注意，实际的自动驾驶仪实验设置表单只有一列，而不是两列。</p>
+
+<ol>
+
+<li value="1">指定<a id="_idIndexMarker103"/><code>first-automl-job</code>)。</li>
+
+<li>在<code>bookings.train.csv</code>下，我们通过点击<strong class="bold">浏览</strong>上传。</li>
+
+<li>在<strong class="bold">目标</strong>下拉菜单中选择<strong class="bold"> is_cancelled </strong>。点击<strong class="bold">下一步:训练方法</strong>。</li>
+
+<li>其他一切保持不变，然后点击<strong class="bold">下一步</strong> : <strong class="bold">部署和高级设置</strong>。</li>
+
+<li>确保<strong class="bold">自动展开</strong>？配置设置为是。</li>
+
+</ol>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">您可以选择将<strong class="bold">自动部署</strong>配置设置为<strong class="bold">否</strong>，这样自动驾驶作业就不会创建推理端点。如果您已经将此设置为<strong class="bold"> Yes </strong>，请确保您删除了不使用的推理端点。</p>
+
+<ol>
+
+<li value="6">在<strong class="bold">高级设置</strong> ( <strong class="bold">可选</strong> ) <strong class="bold"> &gt;运行时间</strong>下，将<strong class="bold">最大候选值</strong>设置为<strong class="bold"> 20 </strong>(或者，将<strong class="bold">最大试验运行时间分钟数</strong>和<strong class="bold">最大作业运行时间分钟数</strong>设置为<strong class="bold"> 20 </strong>)。点击<strong class="bold">下一步:审核并创建</strong>。</li>
+
+</ol>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">设置<code>20</code>的值意味着Autopilot将只训练和考虑20个候选模型来完成这项自动驾驶工作。当然，我们可以将其设置为一个更高的数字，这将增加找到具有更高评估指标分数的候选人的机会(例如，一个表现更好的模型)。然而，这将意味着自动驾驶需要更长的时间来运行，因为我们将运行更多的培训工作。因为我们只是在测试这个功能，所以我们应该同时设置好<code>20</code>。</p>
+
+<ol>
+
+<li value="7">查看<a id="_idIndexMarker104"/>我们在前面步骤中设置的所有配置参数，并点击<strong class="bold">创建实验</strong>。当询问您是否要自动部署最佳型号时，点击<strong class="bold">确认</strong>。AutoML作业启动后，我们应该会看到类似于以下内容的加载屏幕:</li>
+
+</ol>
+
+<div><div><img alt="Figure 1.25 – Waiting for the AutoML job to complete&#10;&#10;" height="617" src="img/B18638_01_025.jpg" width="1649"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.25–等待AutoML作业完成</p>
+
+<p class="list-inset">在这里，我们可以看到自动驾驶作业包括以下步骤:</p>
+
+<ol>
+
+<li><strong class="bold">预处理</strong></li>
+
+<li><strong class="bold">候选人定义生成</strong></li>
+
+<li><strong class="bold">特征工程</strong></li>
+
+<li><strong class="bold">模型调整</strong></li>
+
+<li><strong class="bold">生成可说明性报告</strong></li>
+
+<li><strong class="bold">生成的洞察报告</strong></li>
+
+<li><strong class="bold">部署模型</strong></li>
+
+</ol>
+
+<p class="list-inset">如果我们已经将<strong class="bold">自动部署</strong>配置设置为<strong class="bold">是，</strong>最佳模型会自动部署到一个全天候运行的推理端点中。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">完成此步骤可能需要大约30分钟到1小时。请随意喝杯咖啡或茶！</p>
+
+<p class="list-inset">大约一个小时后，我们应该会看到一个试验列表，以及由多个培训工作生成的几个模型，如下面的屏幕截图所示:</p>
+
+<div><div><img alt="Figure 1.26 – Autopilot job results&#10;&#10;" height="927" src="img/B18638_01_026.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.26-自动驾驶仪工作结果</p>
+
+<p class="list-inset">我们还应该看到页面右上方有两个按钮:<strong class="bold">打开候选生成笔记本</strong>和<strong class="bold">打开数据探索笔记本</strong>。由于这两个笔记本是在过程的早期生成的，我们可能会在实验开始后大约10到15分钟看到按钮出现。</p>
+
+<ol>
+
+<li value="8">点击<strong class="bold">打开候选生成笔记本</strong>和<strong class="bold">打开数据探索笔记本</strong>按钮，打开SageMaker <a id="_idIndexMarker106"/>自动驾驶仪生成的笔记本；</li>
+
+</ol>
+
+<div><div><img alt="Figure 1.27 – The Data Exploration Report (left) and the Candidate Definition Notebook (right)&#10;&#10;" height="657" src="img/B18638_01_027.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.27–数据探索报告(左)和候选定义笔记本(右)</p>
+
+<p class="list-inset">在这里，我们可以看到左侧的<strong class="bold">数据探索报告</strong>和右侧的<strong class="bold">候选定义笔记本</strong>。<strong class="bold">数据探索报告</strong>帮助数据科学家和ML工程师识别给定数据集中的问题。它包含一个列分析报告，显示缺失值的百分比，以及一些计数统计和描述性统计。另一方面，<strong class="bold">候选定义笔记本</strong>包含建议的ML算法，以及规定的超参数范围。除此之外，它还包含训练步骤开始前的推荐预处理步骤。</p>
+
+<p class="list-inset">这些生成的笔记本的伟大之处在于，我们可以根据需要修改这些笔记本的某些部分。这使得SageMaker Autopilot易于初学者使用，同时仍然允许中级用户定制AutoML过程的某些部分。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">如果你想了解更多关于SageMaker Autopilot的信息，包括AutoML实验生成的输出工件，可以查看《用亚马逊SageMaker Cookbook 学习机器》一书<em class="italic">的<a href="B18638_06.xhtml#_idTextAnchor132"> <em class="italic">第六章</em> </a>、<em class="italic"> SageMaker训练和调试解决方案</em>。您应该可以在那里找到几个关注使用<strong class="bold"> SageMaker Python SDK </strong>以编程方式运行和管理自动驾驶实验的方法。</em></p>
+
+<ol>
+
+<li value="9">导航<a id="_idIndexMarker107"/>回到包含自动驾驶作业结果的选项卡。右击带有<strong class="bold">最佳模型</strong>标签的行，并从上下文菜单的选项中选择<strong class="bold">在模型细节中打开</strong>。这将打开一个类似于以下屏幕截图所示的页面:</li>
+
+</ol>
+
+<div><div><img alt="Figure 1.28 – The model details page&#10;&#10;" height="947" src="img/B18638_01_028.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图1.28–模型详细信息页面</p>
+
+<p class="list-inset">在这里，我们可以看到<strong class="bold"> reserved_room_type、lead_time和adr </strong>是影响酒店预订被取消几率的最重要特征。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">请注意，您可能会得到与本部分不同的结果。</p>
+
+<p class="list-inset">我们还应该在型号详情页面上看到以下信息:</p>
+
+<ul>
+
+<li>问题类型</li>
+
+<li>使用的算法</li>
+
+<li>输入和输出工件的位置</li>
+
+<li>模型度量值</li>
+
+<li>用于训练模型的超参数值</li>
+
+</ul>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">确保删除运行SageMaker Autopilot实验后创建的推断端点。要找到正在运行的推理端点，只需导航到<a href="https://us-west-2.console.aws.amazon.com/sagemaker/home?region=us-west-2#/endpoints">https://us-west-2.console.aws.amazon.com/sagemaker/home?region=us-west-2#/endpoints </a>并手动删除未使用的资源。注意，所提供的链接假设推断端点已经在<strong class="bold">俄勒冈州</strong> ( <strong class="bold"> us-west-2 </strong>)地区创建。我们现在将跳过使用推断端点执行样本预测。我们将在<a href="B18638_07.xhtml#_idTextAnchor151"> <em class="italic">第7章</em> </a>、<em class="italic"> SageMaker部署解决方案</em>中讨论这一点以及部署策略。</p>
+
+<p>此时，我们应该很好地掌握了如何使用几个AutoML解决方案，如<strong class="bold">autoglon</strong>、<strong class="bold"> SageMaker Canvas </strong>和<strong class="bold"> SageMaker Autopilot </strong>。正如我们在本节的动手解决方案中看到的，当使用SageMaker Autopilot来影响寻找最佳模型的过程时，我们有大量的选项。如果我们更喜欢选项更少的简单UI，那么我们可能会使用SageMaker Canvas。如果我们更愿意通过代码来开发和设计ML解决方案，那么我们也可以考虑使用AutoGluon。</p>
+
+<h1 id="_idParaDest-38"><a id="_idTextAnchor039"/>摘要</h1>
+
+<p>在这一章中，我们使用AWS上的各种服务、功能和工具进行了多次AutoML实验。这包括在Cloud9环境中使用AutoGluon以及SageMaker Canvas和SageMaker Autopilot来运行AutoML实验。本章介绍的解决方案也帮助我们更好地理解了基本的ML和ML工程概念。我们能够看到ML过程中的一些步骤，如EDA、训练-测试分离、模型训练、评估和预测。</p>
+
+<p>在下一章中，我们将重点关注<strong class="bold"> AWS深度学习AMIs </strong>如何帮助加速ML实验过程。我们还将进一步了解AWS定价如何适用于EC2实例，以便我们能够更好地管理在云中运行ML工作负载的总成本。</p>
+
+<h1 id="_idParaDest-39"><a id="_idTextAnchor040"/>延伸阅读</h1>
+
+<p>有关本章涵盖的主题的更多信息，请查阅以下资源:</p>
+
+<ul>
+
+<li><em class="italic">自动引导:文本、图像和表格数据的自动引导</em>(<a href="https://auto.gluon.ai/stable/index.xhtml">https://auto.gluon.ai/stable/index.xhtml</a>)</li>
+
+<li><em class="italic">用亚马逊sage maker auto pilot</em>(https://docs . AWS . Amazon . com/sage maker/latest/DG/auto pilot-Automate-model-development . XHTML)实现模型开发自动化</li>
+
+<li>SageMaker帆布定价(https://aws.amazon.com/sagemaker/canvas/pricing/)</li>
+
+<li><em class="italic">用亚马逊SageMaker Cookbook进行机器学习</em>，作者约书亚·李北·拉特(<a href="https://www.amazon.com/Machine-Learning-Amazon-SageMaker-Cookbook/dp/1800567030/">https://www . Amazon . com/Machine-Learning-Amazon-sage maker-Cookbook/DP/1800567030/</a>)</li>
+
+</ul>
+
+</div>
+
+<div><div/>
+
+</div>
+
+</div>
+
+
+
+</body></html>

@@ -1,0 +1,230 @@
+<html><head/><body>
+	
+		<title>B17761_11_Final_JM_ePub</title>
+		
+	
+<!-- kobo-style -->
+
+<style type="text/css" id="koboSpanStyle">.koboSpan { -webkit-text-combine: inherit; }</style>
+
+
+	
+		<div><p><a id="_idTextAnchor153"/></p>
+			<h1 id="_idParaDest-152">第11章:用Flask应用程序部署模型</h1>
+			<p>在本书的整个过程中，我们探索了许多健壮的机器学习模型在乳腺癌检测、科学主题建模、蛋白质分类和分子特性预测等领域的发展。在每一个教程中，我们都准备并验证了我们的模型，以使它们具有最佳的预测能力。我们现在将从新模型的开发转向为我们的最终用户部署经过训练的模型。</p>
+			<p>在这一章中，我们将探索web应用程序准备中最流行的框架之一:<strong class="bold"> Flask </strong>。我们将使用Flask准备一个web应用程序来为最终用户提供我们的模型，我们还将准备一个<strong class="bold">应用程序编程接口</strong> ( <strong class="bold"> API </strong>)来为其他web应用程序提供我们的预测。</p>
+			<p>在本章中，我们将讨论以下主题:</p>
+			<ul>
+				<li>理解API框架</li>
+				<li>使用Flask和Visual Studio代码</li>
+				<li>使用Flask作为API和web应用程序</li>
+				<li>教程–使用Flask部署预训练模型</li>
+			</ul>
+			<p>记住这些目标，让我们开始吧！</p>
+			<h1 id="_idParaDest-153"><a id="_idTextAnchor155"/>了解API框架</h1>
+			<p>无论您是登录您的电子邮件帐户、浏览社交媒体，还是登录在线零售商，我们每天都使用网络应用来完成各种任务。例如，假设用户在本地计算机上滚动浏览电子实验室笔记本。当用户登录并看到他们的数据时，使用API(即<em class="italic">应用编程接口</em>，不要与<em class="italic">活性药物成分</em>相混淆)检索该信息。一旦在后端为用户检索到数据，它就会在一个漂亮的<strong class="bold">用户界面</strong> ( <strong class="bold"> UI </strong>)中填充<a id="_idIndexMarker1127"/>前端，该界面允许用户与数据进行交互，进行更改，并保存数据。在<a id="_idIndexMarker1128"/>中，我们可以以多种方式使用web应用程序和API，例如传输数据、与他人交流，甚至进行预测，如图<em class="italic">图11.1 </em>所示:</p>
+			<div><div><img src="img/B17761_11_001.jpg" alt="Figure 11.1 – Some examples of web application functionality&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图11.1-web应用程序功能的一些例子</p>
+			<p>有了所有这些能力，API和它们的对等物提供了web应用空间中的主要工具，用于创建ui来提供数据和进行预测。有许多有用的<strong class="bold"> web应用程序框架</strong>可用于一系列编程语言，如图<em class="italic">图11.2 </em>所示:</p>
+			<div><div><img src="img/B17761_11_002.jpg" alt="Figure 11.2 – Some examples of web application frameworks&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图11.2-web应用程序框架的一些例子</p>
+			<p>出于本章的目的，我们将关注一个更流行的机器学习<a id="_idIndexMarker1130"/>部署框架:Flask(<a href="https://github.com/pallets/flask">https://github.com/pallets/flask</a>)。相对于它的同类产品，Flask可以被认为是一个<strong class="bold">微型网络框架</strong>——它完全用Python编写并且高度抽象，允许用户<a id="_idIndexMarker1131"/>几乎没有困难地开始模型部署过程。</p>
+			<p>当我们开始使用Flask框架部署模型时，问自己谁将是我们应用程序的最终用户是很重要的。在许多情况下，使用我们之前训练的模型的预测将由同事和利益相关者进行。因此，拥有一个可用的用户界面是很重要的。另一方面，我们部署的模型可能不是一个人需要的，而是一个软件或另一个web应用程序需要以编程方式与之交互。在这种情况下，将不需要UI——然而，我们<a id="_idIndexMarker1133"/>将需要一种有组织的方式(例如<strong class="bold"> JSON </strong>)来处理两个系统之间的数据传输。我们可以在<em class="italic">图11.3 </em>中看到这两种情况的描述:</p>
+			<div><div><img src="img/B17761_11_003.jpg" alt="Figure 11.3 – The two general types of web applications&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图11.3–web应用程序的两种一般类型</p>
+			<p>在这两种情况下，我们都可以使用Flask来适应这两种情况。Flask框架<a id="_idIndexMarker1134"/>提供了各种各样的架构——简单的和复杂的——允许用户选择最适合他们需求的模式。Flask APIs，以类似于它们的对手如<strong class="bold"> Django </strong>、<strong class="bold"> Node.js </strong>和<strong class="bold"> Spring </strong>的<a id="_idIndexMarker1135"/>方式，通常都以类似的方式使用URL进行操作。对于后端API<a id="_idIndexMarker1137"/>和前端ui，我们可以使用URL来组织我们如何开发应用程序。例如，用户可以登录网站查看和编辑其个人资料中的数据，而API可以允许外部实体与模型进行交互，如图<em class="italic">图11.4 </em>所示:</p>
+			<div><div><img src="img/B17761_11_004.jpg" alt="Figure 11.4 – The two general types of web applications with examples&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption"> </p>
+			<p class="figure-caption">图11.4–两种通用类型的web应用程序及其示例</p>
+			<p>为了与网络应用程序进行交互，用户需要发出一个HTTP请求，这通常是在用户不知情的情况下进行的。这些请求中的每一个通常都与一个URL相关联，允许用户完成一项任务。四种HTTP请求类型如图11.5所示:</p>
+			<div><div><img src="img/B17761_11_005.jpg" alt="Figure 11.5 – The four HTTP request types&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图11.5–四种HTTP请求类型</p>
+			<p>例如，如果导航到<code>www.website.com/profile</code>的用户想要检索他们的个人资料的细节，他们将使用<code>GET</code>请求。另一方面，一个使用<a id="_idIndexMarker1140"/>API对一段文本进行分类的应用程序会使用<code>POST</code>请求将文本发送到<a href="http://www.website.com/api/classify">www.website.com/api/classify</a>。在web应用程序的范围内，这些URL路径被称为<em class="italic">路由</em>，它们允许开发人员和数据科学家更好地组织他们的部署模型。在下一节中，我们将看到如何在Flask框架中更具体地使用路由。</p>
+			<h1 id="_idParaDest-154"><a id="_idTextAnchor156"/>使用Flask和Visual Studio代码</h1>
+			<p>Flask是Python语言中最常用和最通用的web应用之一。它的抽象和<strong class="bold">高级框架</strong>使得所有级别的用户都可以很容易地立即建立和运行<a id="_idIndexMarker1143"/>实现。在本节的<a id="_idIndexMarker1144"/>课程中，我们将学习Flask应用程序的不同组件，并在我们的机器上本地部署一个简单的模型。</p>
+			<p>在我们开始使用Flask之前，我们需要一个集成开发环境 ( <strong class="bold"> IDE </strong>)。到目前为止，我们几乎只在<strong class="bold"> Jupyter Notebook </strong>中训练和开发模型。说到实现，我们将需要另一种类型的IDE来配合工作。有很多Python IDEs我们可以使用，比如<strong class="bold"> PyCharm </strong>、<strong class="bold"> Spyder </strong>，或者<strong class="bold">Visual Studio</strong><strong class="bold">Code</strong>(<strong class="bold">VSC</strong>)。我个人认为VSC是最友好的用户界面，因此，我们将在这一节中把它作为主要的IDE。你可以从他们的网站(<a href="https://code.visualstudio.com/download">https://code.visualstudio.com/download</a>)或者使用<strong class="bold">蟒蛇</strong>下载VSC。</p>
+			<p>继续并<a id="_idIndexMarker1149"/>开始安装过程，这可能需要几分钟。等待时，在本地计算机上创建一个名为<code>flask-test</code>的新文件夹。一旦安装过程完成，打开VSC。您可以通过几个简单的步骤打开刚刚创建的文件夹:</p>
+			<ol>
+				<li>点击顶部菜单上的<strong class="bold">文件</strong>。</li>
+				<li>点击<strong class="bold">打开文件夹</strong>。</li>
+				<li>导航到您的目录并点击<strong class="bold">选择文件夹</strong>。</li>
+			</ol>
+			<p>现在您应该可以在<code>app.py</code>中看到您的目录名，方法是在explorer窗格中右键单击并选择<strong class="bold"> New File </strong>。</p>
+			<p><code>app.py</code>文件是Flask在其框架中使用的<a id="_idIndexMarker1152"/>主文件。应用程序中的所有内容都包含在该文件中，或者从该文件中引用。尽管其内容取决于用户的具体实现，但该文件通常包含四个主要部分:</p>
+			<ol>
+				<li value="1">导入库、数据和其他资源</li>
+				<li>实例化应用程序并声明其他有用的功能</li>
+				<li>为应用程序声明路由</li>
+				<li>Running the <code>__name__ == "__main__" driver</code> piece of code<p>我们可以在<em class="italic">图11.6 </em>中看到这些组件的图示:</p></li>
+			</ol>
+			<div><div><img src="img/B17761_11_006.jpg" alt="Figure 11.6 – The main components of a Flask application&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图11.6–烧瓶应用程序的主要组件</p>
+			<p>现在让我们继续用一些代码填充<code>app.py</code>。这通常分四个主要部分完成:</p>
+			<ol>
+				<li value="1">我们将从从<code>flask</code>库:<pre>from flask import Flask</pre>导入<code>Flask</code>类开始</li>
+				<li>接下来，我们需要创建一个Flask应用程序的实例:<pre>app = Flask(__name__)</pre></li>
+				<li>我们现在可以使用app对象为我们的应用程序创建路线。当与路线交互时，路线通过直接执行其下的功能<a id="_idIndexMarker1154"/>来操作<a id="_idIndexMarker1153"/>。我们来做一个简单的返回<code>"Hello Biotech World!"</code> : <pre>@app.route('/') def biotech():     return "Hello Biotech World!"</pre>的</li>
+				<li>Finally, we will need a driver for the application that can fulfill using <code>if __name__ == '__main__'</code>. We will also set the <code>debug</code> parameter as <code>True</code> to help us address any potential issues, and we will set the <code>port</code> value to <code>8080</code>:<pre>if __name__ == '__main__':
+    app.run(debug=True, port=8080)</pre><p>在VSC的命令行中，继续运行Python应用程序:</p><pre><code>http://localhost:8080/</code>. Upon reaching this URL, you should be greeted by our previous message. Please note that the <code>localhost</code> URL is a link only accessible locally on your computer and is not available to others. The concept of routes should be familiar to us from the many websites we have used in the past. We can break down a URL into its smaller components, as depicted in <em class="italic">Figure 11.7</em>:</pre></li>
+			</ol>
+			<div><div><img src="img/B17761_11_007.jpg" alt="Figure 11.7 – The main components of a URL&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图11.7-URL的主要组成部分</p>
+			<p>在我们的例子中，我们目前正在编辑应用程序的路径或端点。Flask应用程序可以处理许多路径和端点，为开发人员提供了极大的灵活性。</p>
+			<p>您可以通过在命令行中按下<em class="italic"> CTRL </em> + <em class="italic"> C </em>来停止应用程序的运行，这将会暂停进程。过程暂停后，继续通过复制当前路线的<a id="_idIndexMarker1157"/>和其正下方的功能来创建<a id="_idIndexMarker1156"/>第二条路线。给路径一个值<code>/lifescience</code>(而不仅仅是<code>/</code>)，并给它的函数一个惟一的名字，比如<code>lifescience</code>。接下来，更改返回值，再次运行应用程序，并导航到<code>http://localhost:8080/lifescience</code>。如果一切顺利，您应该可以看到您的新邮件！</p>
+			<p class="callout-heading">路线和功能</p>
+			<p class="callout">请注意路线必须是唯一的——这意味着Flask中不能有多条路线指向<code>/biotech</code>。同样，route下面的函数在其名称上也必须是唯一的。</p>
+			<p>在部署我们的模型时，我们将使用类似的架构。然而，return语句通常包含供人们使用的UI或供应用程序使用的数据。在下一节中，我们将通过使用一个<strong class="bold">自然语言处理</strong> ( <strong class="bold"> NLP </strong>)用例来更深入地探讨这个问题。</p>
+			<h1 id="_idParaDest-155"><a id="_idTextAnchor157"/>使用Flask作为API和web应用程序</h1>
+			<p>在<a href="B17761_09_Final_JM_ePub.xhtml#_idTextAnchor132"> <em class="italic">第9章</em> </a>、<em class="italic">自然语言处理</em>中，我们探索了使用<code>transformers</code>库<a id="_idIndexMarker1159"/>运行文本相似度<a id="_idIndexMarker1160"/>搜索引擎的目的。通过使用这项技术，我们<a id="_idIndexMarker1161"/>可以探索其他模型和实现，比如<strong class="bold">情感分析</strong>、<strong class="bold">文本分类</strong>等等。当谈到NLP时，一种特别的<a id="_idIndexMarker1162"/>模型获得了很大的吸引力<a id="_idIndexMarker1163"/>是<strong class="bold">摘要</strong>模型。</p>
+			<p>我们可以<a id="_idIndexMarker1164"/>把摘要模型看作是设计<a id="_idIndexMarker1165"/>的任务，把几段文字简化成几个句子，从而允许用户减少阅读所需的时间。幸运的是，我们可以使用<code>transformers</code>库实现一个现成的摘要模型，并将其安装在我们的<code>app.py</code>文件中。我们不仅需要迎合人类用户(通过使用UI)，还需要迎合可能对使用我们的模型感兴趣的web应用程序(API)。为了适应这两种情况，我们的项目总共需要三个文件:</p>
+			<ul>
+				<li><code>app.py</code>:这是Flask框架和所有NLP模型被实例化的主文件。</li>
+				<li><code>styles.css</code>:这是一个CSS文件，允许我们设计用户界面。</li>
+				<li><code>index.html</code>:这是一个HTML文件，带有一个预先构建的用户界面页面，用户可以与之交互。</li>
+			</ul>
+			<p>为了更好地组织，让我们将CSS文件添加到名为<code>styles</code>的目录<a id="_idIndexMarker1166"/>中，将HTML文件添加到名为<code>templates</code>的目录<a id="_idIndexMarker1167"/>中。</p>
+			<p>当使用新的Flask应用程序时，当涉及到我们通过<code>pip</code>安装的库时，我们通常希望有一个<em class="italic">空白的石板</em>。换句话说，每个Flask应用程序应该有自己的<em class="italic">虚拟环境</em>，在这里我们只安装应用程序需要和使用的库。我们可以使用<code>virtualenv</code>来完成这个任务，讽刺的是，它可以使用<code>pip</code>来安装。</p>
+			<p>安装完成后，我们可以在命令行上使用<code>virtualenv</code>为这个名为<code>.venv</code>的项目创建一个新环境:</p>
+			<pre>$ python38 virtualenv .venv</pre>
+			<p>您可以随意命名您的虚拟环境，但是大多数用户通常默认使用前面命令中的<a id="_idIndexMarker1168"/>名称。当您在当前工作目录中看到一个带有指定名称<a id="_idIndexMarker1171"/>的新<a id="_idIndexMarker1170"/>目录时，您将知道这个<a id="_idIndexMarker1169"/>命令成功了。我们现在需要<em class="italic">激活</em>环境，根据你使用的系统类型，这可能有点棘手。<strong class="bold"> Windows </strong>用户可以使用以下命令激活他们的环境:</p>
+			<pre>&gt; .\.venv\Scripts\activate</pre>
+			<p>另一方面，<strong class="bold"> Linux </strong>和<strong class="bold"> Mac </strong>用户可以通过以下命令激活他们的环境:</p>
+			<pre>$ source .venv\bin\activate</pre>
+			<p>如果环境的名称出现在命令行当前工作目录的左侧，则可以确认该环境已被激活。继续安装<code>flask</code>和<code>transformers</code>，因为我们在当前环境中需要这些库。</p>
+			<p>设置好环境并包括所讨论的三个文件后，我们应该有一个如图<em class="italic">图11.8 </em>所示的目录结构:</p>
+			<div><div><img src="img/B17761_11_008.jpg" alt="Figure 11.8 – The current folder structure of this project in VSC&#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图11.8-VSC项目的当前文件夹结构</p>
+			<p>现在项目结构已经就绪，让我们给<code>app.py</code>添加一些代码。我们可以从导入这个应用程序中需要的一些库开始:</p>
+			<pre>from flask import Flask, jsonify, request, render_template 
+import json
+from transformers import pipeline
+import re</pre>
+			<p>现在<a id="_idIndexMarker1172"/>库已经导入，我们可以实例化<code>Flask</code>应用程序的一个实例<a id="_idIndexMarker1173"/>，就像之前的<a id="_idIndexMarker1174"/>一样。但是，这次我们需要指定<a id="_idIndexMarker1175"/>模板文件夹:</p>
+			<pre>app = Flask(__name__, template_folder='templates')</pre>
+			<p>应用程序实例化后，我们现在可以从transformers <code>pipeline</code>类创建summarizer模型的实例:</p>
+			<pre>summarizer = pipeline("summarization")</pre>
+			<p>接下来，我们可以添加我们的<em class="italic">路线</em>。我们将首先创建一个到我们主页的路径，该路径使用<code>index.html</code>文件显示UI:</p>
+			<pre>@app.route('/')
+def home():
+    return render_template('index.html')</pre>
+			<p>然后我们需要添加两条路线:一条用于UI，另一条用于API。根据框架、行业和用例的不同，有许多不同的最佳实践。在大多数情况下，<code>api</code>端点通常以<code>api</code>开头，以区别于其他端点。让我们先为UI创建一条路线:</p>
+			<pre>@app.route('/prediction', methods = ["POST"])
+def ui_prediction():
+    """
+    A function that takes a JSON with two fields: "text" &amp; "maxlen"
+    Returns: the summarized text of the paragraphs.
+    """
+    print(request.form.values())
+    paragraphs = request.form.get("paragraphs")
+    paragraphs = re.sub("\d+", "", paragraphs)
+    maxlen = int(request.form.get("maxlen"))
+    summary = summarizer(paragraphs, max_length=maxlen, min_length=49, do_sample=False)
+    return render_template('index.html', prediction_text = '" {} "'.format(summary[0]["summary_text"])), 200</pre>
+			<p>注意<a id="_idIndexMarker1176"/>在这个函数中，我们使用<code>request.form.get</code>函数从UI的表单中检索值。此外，我们使用<a id="_idIndexMarker1177"/>一些正则表达式来清理文本，<a id="_idIndexMarker1178"/>然后我们使用<a id="_idIndexMarker1179"/>摘要器模型来总结内容。最后，我们返回摘要和<code>index.html</code>文件。</p>
+			<p>现在让我们为api创建第二条路线:</p>
+			<pre>@app.route('/api/prediction', methods = ["POST"])
+def api_prediction():
+    """
+    A function that takes a JSON with two fields: "text" &amp; "maxlen"
+    Returns: the summarized text of the paragraphs.
+    """
+    query = json.loads(request.data)
+    paragraphs = re.sub("\d+", "", query["text"])
+    maxlen = query["maxlen"]
+    minlen = query["minlen"]
+    summary = summarizer(paragraphs, max_length=maxlen, min_length=minlen, do_sample=False)
+    return jsonify(summary), 200</pre>
+			<p>请注意，除了获取输入数据、清理内容并汇总之外，我们还可以直接从<code>JSON</code>对象中获取<code>maxlen</code>和<code>minlen</code>参数。</p>
+			<p>最后，我们可以继续执行代码:</p>
+			<pre>if __name__ == '__main__':
+    app.run(debug=True)</pre>
+			<p>至此，我们<a id="_idIndexMarker1180"/>已经成功开发了Flask <a id="_idIndexMarker1181"/>应用程序。部署后，您应该能够<a id="_idIndexMarker1182"/>导航到<code>http://localhost:5000/</code>并开始<a id="_idIndexMarker1183"/>总结文本段落！我们可以在<em class="italic">图11.9 </em>中看到一个应用示例:</p>
+			<div><div><img src="img/B17761_11_009.jpg" alt="Figure 11.9 – A screenshot of the summarizer web application &#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图11.9–summarizer web应用程序的屏幕截图</p>
+			<p>另外，我们<a id="_idIndexMarker1184"/>可以使用<code>POST</code>之类的应用程序请求，添加URL，然后以字典的形式添加数据和应用程序/JSON的内容类型:</p>
+			<pre>{
+    "text" : "Biotechnology is a broad area of biology, involving the use of living systems and organisms to develop or make products. 
+                              …
+ molecular biology, biochemistry, cell biology, embryology, genetics, microbiology) and conversely provides methods to support and perform basic research in biology.",
+    "maxlen" : 60,
+    "minlen" : 30
+}</pre>
+			<p>随着应用程序的运行，我们成功地创建了一个使用Flask <a id="_idIndexMarker1185"/>来满足人类用户和其他web <a id="_idIndexMarker1186"/>应用程序的解决方案。在本书的最后一章，我们将把这个应用程序部署到云中。然而，这样做的最重要的步骤之一是提供需要安装的库的列表。假设我们已经建立了一个虚拟环境，我们可以很容易地通过<code>pip</code>将这些库的列表转移到一个<code>requirements.txt</code>文件中:</p>
+			<pre>$ pip freeze &gt; requirements.txt</pre>
+			<p>这样，您现在应该会看到一个与<code>app.py</code>在同一个目录中的<code>requirements.txt</code>文件。确保您使用的环境只包含您计划使用的库是很重要的。这有助于保持应用程序的轻便和快速使用。在下一节中，我们将看到一个更深入的应用程序，它使用了一个以前训练过的模型，该模型与我们在本书前面看到的乳腺癌数据集有关。</p>
+			<h1 id="_idParaDest-156"><a id="_idTextAnchor158"/>教程–使用Flask部署预训练模型</h1>
+			<p>在前面创建Flask应用程序的例子中，我们看到了如何结合使用<a id="_idIndexMarker1189"/>应用程序和预测<a id="_idIndexMarker1190"/>模型来为最终用户部署解决方案。但是，我们部署的模型是开箱即用的解决方案，而不是我们自己开发的模型。在本节中，我们将再次在Flask应用程序中部署一个模型；但是，我们使用的是基于我们在<a href="B17761_05_Final_JM_ePub.xhtml#_idTextAnchor082"> <em class="italic">第五章</em></a><em class="italic">理解机器学习</em>中看到的癌症数据集的模型。</p>
+			<p>如果你还记得，这个模型背后的主要思想是对给定的肿瘤进行多次测量，并基于这些测量，确定可能的诊断，从而产生<code>Malignant</code>或<code>Benign</code>。在这个应用程序中，我们将使用户能够与经过训练的模型进行交互，并输入模型将用来进行预测的测量值。考虑到这一点，我们开始吧！</p>
+			<p>与之前一样，继续添加一个新文件夹和一个新的虚拟环境来安装相关的库。</p>
+			<p>使用与前面相同的目录架构和过程，我们可以从导入相关的库开始。注意，我们已经在这里添加了<code>pickle</code>库，因为我们将需要使用我们之前创建的<em class="italic">腌</em>模型:</p>
+			<pre>from flask import Flask, jsonify, request, render_template 
+import json
+import pickle
+import pandas as pd
+from sklearn.preprocessing import StandardScaler</pre>
+			<p>我们的下一步涉及导入我们训练的两个模型-实际分类模型和我们用于数据的标准定标器模型:</p>
+			<pre>loaded_scaler= pickle.load(open("./models/ch10_scaler.pickle",'rb'))
+loaded_clf= pickle.load(open("./models/ch10_rfc_clf.pickle",'rb'))</pre>
+			<p>然后，我们可以定义一个<code>predict_diagnosis</code>函数，在以后开发路线时清理我们的代码。该函数将以列表、定标器模型和分类模型的形式获取输入数据:</p>
+			<pre>def predict_diagnosis(inputData, scaler, model):
+    """
+    Function that takes a list of measurements, scales them, and returns a prediction
+    """
+    inputDataDF = pd.DataFrame([inputData])
+    scaledInputData = scaler.transform(inputDataDF)
+    prediction = model.predict(scaledInputData)
+    return prediction[0]</pre>
+			<p>接下来，我们将实例化Flask应用程序，同时指定<code>template</code>文件夹:</p>
+			<pre>app = Flask(__name__, template_folder='templates')</pre>
+			<p>有了这些项目的照顾，我们可以专注于我们的路线。首先，我们将创建一条用户首先看到的<code>home</code>路线:</p>
+			<pre>@app.route('/')
+def home():
+    return render_template('index.html')</pre>
+			<p>接下来，我们将需要一条<code>prediction</code>路线，就像之前一样。这里唯一的区别是输入值的数量会更多，因为我们现在使用了更多的功能:</p>
+			<pre>@app.route('/prediction', methods = ["POST"])
+def prediction():
+    print(request.form.values())
+    radius_mean = request.form.get("radius_mean")
+    texture_mean = request.form.get("texture_mean")
+    smoothness_mean = request.form.get("smoothness_mean")
+    texture_se = request.form.get("texture_se")
+    smoothness_se = request.form.get("smoothness_se")
+    symmetry_se = request.form.get("symmetry_se")
+    input_features = [radius_mean, texture_mean, smoothness_mean, texture_se, smoothness_se, symmetry_se]
+    prediction = predict_diagnosis(input_features, loaded_scaler, loaded_clf)
+    prediction = "Malignant" if prediction == "M" else "Benign"
+    
+    return render_template('index.html', prediction_text = '" {} "'.format(prediction))</pre>
+			<p>最后，我们可以继续运行应用程序:</p>
+			<pre>if __name__ == '__main__':
+    app.run(debug=False, port=5000)</pre>
+			<p>运行<a id="_idIndexMarker1193"/>模型并在web浏览器中导航<a id="_idIndexMarker1194"/>到localhost，应用程序将会出现。继续尝试使用用户界面进行一些预测，其示例显示在<em class="italic">图11.10 </em>中:</p>
+			<div><div><img src="img/B17761_11_0010.jpg" alt="Figure 11.10 – A screenshot of the breast cancer web application &#10;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图11.10–乳腺癌网络应用程序的屏幕截图</p>
+			<p>我们可以看到，该模型能够接受我们的输入数据，运行预测，并将结果返回给用户。这里我们没有做的一件事是为其他web应用程序创建一个API路由来与我们的模型交互。作为一项挑战，继续创建这条路由，以前面的总结应用程序为例。</p>
+			<h1 id="_idParaDest-157"><a id="_idTextAnchor159"/>摘要</h1>
+			<p>在这一章中，我们避开了模型的开发，更多地关注于如何部署模型来与web应用程序交互。我们研究了通过API进行数据传输的想法，也了解了一些最常见的框架。我们研究了最常见的Python web应用程序框架之一Flask。使用Flask，我们开发了一个NLP摘要模型，允许人类用户和其他web应用程序与它交互并使用它的功能。此外，我们还学习了如何部署之前训练过的模型，比如来自<code>scikit-learn</code>的模型。</p>
+			<p>在每一个例子中，当我们开发它们的框架和功能时，我们在本地发布我们的模型。在下一章中，我们将通过使用<strong class="bold"> Docker </strong>容器和<strong class="bold"> AWS </strong>将我们的模型部署到云中，使我们的模型对其他人可用。</p>
+		</div>
+	
+</body></html>

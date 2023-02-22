@@ -1,0 +1,1421 @@
+<html><head/><body>
+
+
+
+
+
+
+
+
+
+<title>Chapter 4: Serverless Data Management on AWS</title>
+
+
+
+
+
+
+
+<div><div><h1 class="chapter-number" id="_idParaDest-75"><a id="_idTextAnchor078"/> <a id="_idTextAnchor079"/> <a id="_idTextAnchor080"/> 4</h1>
+
+<h1 id="_idParaDest-76"><a id="_idTextAnchor081"/>AWS上的无服务器数据管理</h1>
+
+<p>企业通常利用在数据库中收集和存储用户信息以及交易数据的系统。一个很好的例子是一家电子商务初创公司，它有一个web应用程序，客户可以在其中创建一个帐户，并使用他们的信用卡进行在线购物。存储在几个生产数据库中的用户资料、交易数据和购买历史可以用来构建一个<strong class="bold">产品推荐引擎</strong>，这个引擎<a id="_idIndexMarker325"/>可以帮助推荐客户可能也想购买的产品。然而，在分析这些存储的数据并使用<a id="_idIndexMarker326"/>来训练<strong class="bold">机器学习</strong> ( <strong class="bold"> ML </strong>)模型之前，必须将其合并并加入到<strong class="bold">集中式数据存储</strong>中，以便<a id="_idIndexMarker327"/>可以使用各种工具和服务对其进行转换和处理。对于这些类型的用例，<a id="_idIndexMarker328"/>经常使用几个选项，但是<a id="_idIndexMarker329"/>我们将在本章中关注其中的两个—<strong class="bold">数据仓库</strong>和<strong class="bold">数据湖</strong>。</p>
+
+<p>当<a id="_idIndexMarker330"/>涉及到<strong class="bold">数据存储</strong>和<strong class="bold">数据管理</strong>时，数据仓库和数据湖扮演着至关重要的角色。当生成报告时，没有数据仓库或数据湖的公司可能会直接在运行的应用程序的生产数据库中执行查询。不建议使用这种方法，因为它可能会导致连接到数据库的应用程序的服务降级甚至意外停机。这将不可避免地影响销售数字，因为客户将无法使用电子商务应用程序在线购买产品。数据仓库和数据湖帮助我们处理和分析大量数据，这些数据可能来自连接到正在运行的应用程序的多个较小的数据库。如果您有建立数据仓库或数据湖的经验，那么您可能知道管理这类环境的总体成本、稳定性和性能需要技能、经验和耐心。无服务器服务已经开始帮助我们满足这些需求，这是一件好事。</p>
+
+<p>在本章中，我们将关注数据管理，并使用各种<em class="italic">无服务器</em>服务来管理和查询我们的数据。我们将首先准备一些先决条件，包括一个新的IAM用户、一个VPC和一个存储样本数据集的S3存储桶。一旦先决条件准备就绪，我们将使用<strong class="bold">红移无服务器</strong>来设置和配置无服务器数据仓库。之后我们会用<strong class="bold"> AWS湖形成</strong>、<strong class="bold"> AWS胶水</strong>、<strong class="bold">亚马逊雅典娜</strong>准备一个无服务器的数据湖。</p>
+
+<p>在本章中，我们将讨论以下主题:</p>
+
+<ul>
+
+<li>无服务器数据管理入门</li>
+
+<li>准备必要的先决条件</li>
+
+<li>使用Amazon Redshift无服务器运行大规模分析</li>
+
+<li>建立湖泊形态</li>
+
+<li>使用亚马逊雅典娜在亚马逊S3查询数据</li>
+
+</ul>
+
+<p>此时，您可能想知道这些服务是什么，以及这些服务是如何使用的。在继续之前，让我们先快速讨论一下无服务器数据管理是如何工作的！</p>
+
+<h1 id="_idParaDest-77"><a id="_idTextAnchor082"/>技术要求</h1>
+
+<p>开始之前，我们必须准备好以下内容:</p>
+
+<ul>
+
+<li>网络浏览器(最好是Chrome或Firefox)</li>
+
+<li>访问本书前几章中使用的AWS帐户</li>
+
+</ul>
+
+<p>每一章的Jupyter笔记本、源代码和其他文件都可以在本书的GitHub资源库中找到:<a href="https://github.com/PacktPublishing/Machine-Learning-Engineering-on-AWS">https://GitHub . com/packt publishing/Machine-Learning-Engineering-on-AWS</a>。</p>
+
+<h1 id="_idParaDest-78"><a id="_idTextAnchor083"/>无服务器数据管理入门</h1>
+
+<p>几年前，开发人员、数据科学家和ML工程师不得不花费数小时甚至数天来建立数据管理和数据工程所需的基础设施。如果需要分析存储在S3的大型数据集，数据科学家和ML工程师团队会执行以下步骤:</p>
+
+<ol>
+
+<li>启动并配置EC2实例集群。</li>
+
+<li>将数据从S3拷贝到连接到EC2实例的卷。</li>
+
+<li>使用安装在EC2实例中的一个或多个应用程序对数据执行查询。</li>
+
+</ol>
+
+<p>这种方法的一个已知挑战是供应的资源可能最终未被充分利用。如果数据查询操作的时间表是不可预测的，那么管理正常运行时间、成本和设置的计算规范也是很棘手的。除此之外，系统管理员和DevOps工程师需要花时间管理集群中安装的应用程序的安全性、稳定性、性能和配置。</p>
+
+<p>如今，在这些类型的场景和用例中使用<strong class="bold">无服务器</strong>和托管服务更加实际。如下图所示，我们将有更多时间专注于我们需要做的事情，因为在使用无服务器服务时，我们不再需要担心服务器和<a id="_idIndexMarker333"/>基础设施管理:</p>
+
+<div><div><img alt="Figure 4.1 – Serverless versus not serverless&#10;&#10;" height="457" src="img/B18638_04_001.jpg" width="1081"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.1–无服务器与非无服务器</p>
+
+<p>我们所说的<em class="italic">实际工作</em>是什么意思？以下是数据分析师、数据科学家和数据工程师需要在服务器管理之外开展工作的快速列表:</p>
+
+<ul>
+
+<li>生成图表和报告。</li>
+
+<li>分析趋势和模式。</li>
+
+<li>检测并解决数据完整性问题。</li>
+
+<li>将数据存储与商业智能工具集成。</li>
+
+<li>向管理层提出建议。</li>
+
+<li>使用该数据来训练ML模型。</li>
+
+</ul>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">当使用无服务器服务时，我们也只为我们使用的服务付费。这意味着我们不会为计算资源不运行的空闲时间付费。如果我们同时设置了试运行环境和生产环境，我们可以确信试运行环境的成本只是生产环境设置的一小部分，因为生产环境中的资源会有更高的预期利用率。</p>
+
+<p>在处理以下<em class="italic">无服务器</em>数据管理<a id="_idIndexMarker335"/>和数据处理需求时，我们可以利用<a id="_idIndexMarker334"/>不同的AWS服务:</p>
+
+<ul>
+
+<li><strong class="bold">无服务器数据仓库</strong>:亚马逊红移无服务器</li>
+
+<li><strong class="bold">无服务器数据湖</strong> : AWS Lake Formation、AWS Glue和Amazon Athena</li>
+
+<li><strong class="bold">无服务器流处理</strong>:亚马逊Kinesis、AWS Lambda、DynamoDB</li>
+
+<li><strong class="bold">无服务器分布式数据处理</strong>:亚马逊EMR无服务器</li>
+
+</ul>
+
+<p>请注意，这只是冰山一角，我们可以使用更多的无服务器服务来满足我们的需求。在这一章中，我们将着重于建立和查询一个<strong class="bold">无服务器数据仓库</strong>和一个<strong class="bold">无服务器数据湖</strong>。在我们进行这些之前，首先，让我们准备好先决条件。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">此时，您可能想知道何时使用数据湖，何时使用数据仓库。当被查询和处理的数据是预先定义的关系数据时，最好使用数据仓库。存储在数据仓库中的数据质量也应该很高。也就是说，数据仓库被用作数据的“真实来源”,通常用于涉及批量报告和商业智能的用例。另一方面，当被查询和处理的数据涉及来自不同数据源的关系和非关系数据时，最好使用数据湖。存储在数据湖中的数据可能包括原始数据和干净数据。除此之外，数据存储在数据湖中，在数据捕获期间，您不必担心数据结构和模式。最后，数据湖可以用于涉及ML、预测性<a id="_idIndexMarker338"/>分析和<strong class="bold">探索性数据分析</strong> ( <strong class="bold"> EDA </strong>)的用例。由于数据湖和数据仓库服务于不同的目的，一些组织利用这两个选项来满足他们的数据管理需求。</p>
+
+<h1 id="_idParaDest-79"><a id="_idTextAnchor084"/>准备必要的先决条件</h1>
+
+<p>在本节中，我们将确保在本章中继续设置我们的数据仓库和数据湖之前，准备好以下先决条件:</p>
+
+<ul>
+
+<li>本地机器上的文本编辑器(例如，VS代码)</li>
+
+<li>拥有创建和管理我们将在本章中使用的资源的权限的IAM用户</li>
+
+<li>我们将在VPC发布Redshift无服务器终端</li>
+
+<li>一个新的S3桶，我们的数据将使用AWS CloudShell上传</li>
+
+</ul>
+
+<p>在本章中，我们将在<code>us-west-2</code>区域创建和管理我们的资源。在继续下一步之前，请确保您已经设置了正确的区域。</p>
+
+<h2 id="_idParaDest-80"><a id="_idTextAnchor085"/>在本地机器上打开文本编辑器</h2>
+
+<p>确保您的本地机器上有一个打开的文本编辑器(例如，<a id="_idIndexMarker342"/>，<strong class="bold"> VS代码</strong>)。我们将把一些字符串值复制到文本编辑器中，供本章稍后使用。以下是我们将在本章后面部分复制的值:</p>
+
+<ul>
+
+<li>IAM登录链接、用户名和密码(<em class="italic">准备必要的先决条件</em> &gt; <em class="italic">创建IAM用户</em>)</li>
+
+<li>VPC ID ( <em class="italic">准备必要的先决条件</em> &gt; <em class="italic">创建新VPC </em>)</li>
+
+<li>当前设置为默认角色的已创建IAM角色的名称(<em class="italic">使用Amazon红移无服务器大规模运行分析</em> &gt; <em class="italic">设置红移无服务器端点</em>)</li>
+
+<li>AWS帐户ID ( <em class="italic">使用Amazon Redshift无服务器大规模运行分析</em> &gt; <em class="italic">将数据卸载到S3 </em>)</li>
+
+</ul>
+
+<p>如果你没有<a id="_idIndexMarker343"/>安装<a id="_idIndexMarker344"/> VS代码<a id="_idIndexMarker345"/>，你可以<a id="_idIndexMarker346"/>使用<strong class="bold">文本编辑</strong>、<strong class="bold">记事本</strong>、<strong class="bold">记事本++ </strong>或<strong class="bold"> GEdit </strong>，这取决于你在本地机器上安装的<a id="_idIndexMarker347"/>。</p>
+
+<h2 id="_idParaDest-81"><a id="_idTextAnchor086"/>创建IAM用户</h2>
+
+<p>请务必<a id="_idIndexMarker348"/>注意，如果我们<a id="_idIndexMarker349"/>直接使用root帐户，我们在<strong class="bold">红移无服务器</strong>中运行查询时可能会遇到问题。也就是说，我们将在这一部分创建一个IAM用户。该IAM用户将被配置为具有执行本章中所有动手解决方案所需的适当权限集。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">确保在创建新的IAM用户时使用root帐户。</p>
+
+<p>按照以下步骤从IAM控制台创建IAM用户:</p>
+
+<ol>
+
+<li value="1">使用搜索栏导航到IAM控制台，如以下屏幕截图所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.2 – Navigating to the IAM console&#10;&#10;" height="598" src="img/B18638_04_002.jpg" width="999"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.2–导航到IAM控制台</p>
+
+<p class="list-inset">在<a id="_idIndexMarker350"/>搜索栏中键入<code>iam</code>后，我们必须从搜索结果列表中选择<strong class="bold"> IAM </strong>服务。</p>
+
+<ol>
+
+<li value="2">在工具条中找到<strong class="bold">访问管理</strong>然后点击<strong class="bold">用户</strong>导航到<strong class="bold">用户</strong>列表页面。</li>
+
+<li>在屏幕的右上角，找到并点击<strong class="bold">添加用户</strong>按钮。</li>
+
+<li>在<strong class="bold">设置用户详细信息</strong>页面上，使用类似于下面截图的配置添加一个新用户:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.3 – Creating a new IAM user&#10;&#10;" height="654" src="img/B18638_04_003.jpg" width="1026"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.3–创建新的IAM用户</p>
+
+<p class="list-inset">这里，我们将<code>mle-ch4-user</code>设置为<strong class="bold">用户名</strong>字段的值。在<strong class="bold">选择AWS访问类型</strong>下，我们确保在<strong class="bold">选择AWS凭证类型</strong>下勾选了<strong class="bold">密码-AWS管理控制台访问</strong>复选框。对于<strong class="bold">控制台密码</strong>，我们选择<strong class="bold">自动生成密码</strong>。对于<strong class="bold">要求密码重置</strong>，我们<a id="_idIndexMarker351"/>取消勾选<strong class="bold">用户必须在下次登录</strong>时创建新密码。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">更安全的配置需要在IAM用户帐户首次登录时重置密码。但是，我们将在本章中跳过这一步，以减少总的步骤数。</p>
+
+<ol>
+
+<li value="5">点击<strong class="bold">下一步:权限</strong>按钮。</li>
+
+<li>在<strong class="bold">设置权限</strong>页面，选择<strong class="bold">直接附加现有策略</strong>。</li>
+
+<li>使用搜索过滤器找到并选中以下托管策略的复选框:<ul><li><strong class="bold">亚马逊3全权限</strong></li>
+
+<li><strong class="bold">amazonredshiftfullacess</strong></li>
+
+<li><strong class="bold">amazonvcpcfullaccess</strong></li>
+
+<li><strong class="bold">awscloudshellfullacess</strong></li>
+
+<li><strong class="bold">awsglueconsolefullacess</strong></li>
+
+<li><strong class="bold">亚马逊全接入</strong></li>
+
+<li><strong class="bold"> IAMFullAccess </strong></li>
+
+</ul></li>
+
+</ol>
+
+<p class="list-inset">在下面的截图中可以看到一个<a id="_idIndexMarker352"/>的例子:</p>
+
+<div><div><img alt="Figure 4.4 – Attaching existing policies directly&#10;&#10;" height="685" src="img/B18638_04_004.jpg" width="990"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.4-直接附加现有策略</p>
+
+<p class="list-inset">这些是由AWS准备和管理的策略，目的是让AWS帐户用户能够方便、轻松地管理IAM权限。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">请注意，我们在本章中的权限配置可以进一步改进。在管理生产级别帐户的IAM权限时，请确保您实践了<a id="_idIndexMarker353"/>最小权限<strong class="bold">原则</strong>。这意味着IAM身份应该只具有执行其任务的最小权限集，这包括在使用服务时授予对特定资源的特定操作的粒度访问权限。有关更多信息，请随时查看第9章 、<em class="italic">安全、治理和合规性策略</em>。</p>
+
+<ol>
+
+<li value="8">选择受管策略后，单击<strong class="bold">下一步:标记</strong>按钮。</li>
+
+<li>在<strong class="bold">添加标签(可选)</strong>页面上，点击<strong class="bold">下一步:查看</strong>。</li>
+
+<li>在<strong class="bold">审核</strong>页面，点击<strong class="bold">创建用户</strong>按钮。</li>
+
+<li>您应该<a id="_idIndexMarker354"/>看到一个成功通知，以及新用户的登录链接和凭证。将登录链接(例如，<code>https://&lt;account&gt;.signin.aws.amazon.com/console</code>)、用户名和密码复制到本地机器上的文本编辑器中(例如，Visual Studio代码)。之后单击关闭按钮。</li>
+
+</ol>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">不要与任何人共享登录链接、用户名和密码。如果我们在创建时为IAM用户配置了权限，拥有这些凭据的IAM用户可以轻松接管整个帐户。</p>
+
+<ol>
+
+<li value="12">点击成功通知中的<code>mle-ch4-user</code>，导航至用户详细信息页面。</li>
+
+<li><strong class="bold">添加内嵌策略</strong>，如以下截图所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.5 – Adding an inline policy&#10;&#10;" height="481" src="img/B18638_04_005.jpg" width="916"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.5–添加内嵌策略</p>
+
+<p class="list-inset">除了<a id="_idIndexMarker355"/>直接附加的受管策略之外，我们还将附加一个内联策略。我们将在下一步自定义使用内联策略配置的权限。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">有关托管策略和内联策略的更多信息，请查看<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_managed-vs-inline.xhtml">https://docs . AWS . Amazon . com/IAM/latest/user guide/access _ policies _ managed-vs-inline . XHTML</a>。</p>
+
+<ol>
+
+<li value="14">在<strong class="bold">创建策略</strong>页面，导航到<strong class="bold"> JSON </strong>选项卡，如下图所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.6 – Creating a policy using the JSON editor&#10;&#10;" height="761" src="img/B18638_04_006.jpg" width="1183"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.6–使用JSON编辑器创建策略</p>
+
+<p class="list-inset">在前面截图中突出显示的策略编辑器中，指定以下JSON <a id="_idIndexMarker356"/>配置:</p>
+
+<pre class="list-inset1 source-code">{
+
+    "Version": "2012-10-17",
+
+    "Statement": [
+
+        {
+
+            "Effect": "Allow",
+
+            "Action": "<strong class="bold">redshift-serverless</strong>:*",
+
+            "Resource": "*"
+
+        },
+
+        {
+
+            "Effect": "Allow",
+
+            "Action": "<strong class="bold">sqlworkbench</strong>:*",
+
+            "Resource": "*"
+
+        },
+
+        {
+
+            "Effect": "Allow",
+
+            "Action": "<strong class="bold">lakeformation</strong>:*",
+
+            "Resource": "*"
+
+        }
+
+    ]
+
+}</pre>
+
+<p class="list-inset">这个策略<a id="_idIndexMarker357"/>赋予了<a id="_idIndexMarker358"/>我们的IAM用户创建和管理<strong class="bold">红移无服务器</strong>、<strong class="bold">湖泊形成</strong>和<strong class="bold"> SQL工作台</strong>(一个SQL查询工具)资源的权限。如果没有<a id="_idIndexMarker359"/>这个额外的<a id="_idIndexMarker360"/>内联策略，我们在本章后面使用红移无服务器时会遇到问题。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">你可以在官方的GitHub资源库中找到这个内联策略的副本:<a href="https://github.com/PacktPublishing/Machine-Learning-Engineering-on-AWS/blob/main/chapter04/inline-policy">https://GitHub . com/packt publishing/Machine-Learning-Engineering-on-AWS/blob/main/chapter 04/inline-policy</a>。</p>
+
+<ol>
+
+<li value="15">接下来，点击<strong class="bold">查看策略</strong>。</li>
+
+<li>将<code>custom-inline-policy</code>作为<strong class="bold">名称</strong>字段的值。然后，点击<strong class="bold">创建策略</strong>。</li>
+
+</ol>
+
+<p>此时，<code>mle-ch4-user</code> IAM用户应该附加了八个策略:七个AWS管理的策略和一个内联策略。在本章结束之前，该IAM用户应该拥有足够的权限来执行所有操作。</p>
+
+<p>接下来，我们将使用我们复制到本地计算机的文本编辑器中的凭据登录，并测试我们是否可以成功登录:</p>
+
+<ol>
+
+<li value="1">通过执行以下操作，退出AWS管理控制台会话:<ol><li>点击屏幕右上角的你的名字</li>
+
+<li>点击<strong class="bold">登出</strong>按钮</li>
+
+</ol></li>
+
+<li>导航到登录链接(格式类似于<code>https://&lt;account&gt;.signin.aws.amazon.com/console</code>)。确保您用AWS帐户的帐户ID或别名替换了<code>&lt;account&gt;</code>( T47 ):</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.7 – Sign in as IAM user&#10;&#10;" height="554" src="img/B18638_04_007.jpg" width="956"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.7–以IAM用户身份登录</p>
+
+<p class="list-inset">这应该会将您重定向到以IAM用户身份登录的<strong class="bold">页面，类似于前面截图中的内容。输入<strong class="bold">账号ID </strong>、<strong class="bold"> IAM用户名</strong>和<strong class="bold">密码</strong>值，然后点击<strong class="bold">签到</strong>按钮。</strong></p>
+
+<p>那不是很容易吗？现在<a id="_idIndexMarker362"/>我们已经成功创建了IAM用户，我们可以创建一个新的VPC了。这个VPC将在我们创建红移无服务器端点时使用。</p>
+
+<h2 id="_idParaDest-82"><a id="_idTextAnchor087"/>创建新VPC</h2>
+
+<p><strong class="bold">亚马逊虚拟私有云</strong> ( <strong class="bold"> VPC </strong>)使<a id="_idIndexMarker363"/>我们能够为我们的资源创建和配置隔离的虚拟网络。在本节中，我们将从头开始创建一个新的VPC，即使当前区域中已经有一个。这允许我们的Redshift无服务器实例在其自己的隔离网络中启动，这允许网络与其他现有的VPC分开配置和保护。</p>
+
+<p>创建和配置VPC有多种方法。更快的方法之一是使用<strong class="bold"> VPC向导</strong>，它<a id="_idIndexMarker364"/>能让我们在几分钟内建立一个新的VPC。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">在继续之前，请确保您以<code>mle-ch4-user</code> IAM用户身份登录。</p>
+
+<p>按照以下步骤使用<strong class="bold"> VPC向导</strong>创建一个新的VPC:</p>
+
+<ol>
+
+<li value="1">使用菜单栏中的区域下拉菜单导航到选择的区域。在本章中，我们将假设我们将在<code>us-west-2</code>区域创建和管理我们的资源。</li>
+
+<li>通过执行以下操作导航到VPC控制台:<ol><li>在AWS管理控制台的搜索栏中输入<code>VPC</code></li>
+
+<li>在搜索结果列表下选择<strong class="bold"> VPC </strong>服务</li>
+
+</ol></li>
+
+<li>接下来，点击<strong class="bold">启动VPC向导/创建VPC </strong>按钮。这将重定向到<strong class="bold">创建VPC </strong>向导，如下图所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.8 – The Create VPC wizard&#10;&#10;" height="803" src="img/B18638_04_008.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.8–创建VPC向导</p>
+
+<p class="list-inset">在这里，我们可以看到，使用VPC向导，只需点击几下鼠标，就可以创建和配置相关的VPC资源。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">您可能希望进一步定制和保护这个VPC设置，但这超出了本章的范围。有关更多信息，请查看<a href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-best-practices.xhtml">https://docs . AWS . Amazon . com/VPC/latest/user guide/VPC-security-best-practices . XHTML</a>。</p>
+
+<ol>
+
+<li value="4">在VPC向导中，保留除以下内容之外的所有内容不变:<ul><li><code>mle-ch4-vpc</code></li>
+
+<li><strong class="bold">可用区域数量</strong> : <strong class="bold"> 3 </strong></li>
+
+<li><strong class="bold">公共子网数量</strong> : <strong class="bold"> 3 </strong></li>
+
+<li><strong class="bold">私有子网数量</strong> : <strong class="bold"> 0 </strong></li>
+
+<li><strong class="bold"> NAT网关($) </strong> : <strong class="bold">无</strong></li>
+
+</ul></li>
+
+<li>一旦你完成了VPC的配置，点击页面底部的<strong class="bold">创建VPC </strong>按钮。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">创建VPC可能需要大约1到2分钟的时间。</p>
+
+<ol>
+
+<li value="6">点击<strong class="bold">查看VPC </strong>。</li>
+
+<li>将VPC ID(例如，<code>vpc-abcdefghijklmnop</code>)复制到本地机器上的编辑器中(例如，Visual Studio代码)。</li>
+
+</ol>
+
+<p>既然已经创建了<a id="_idIndexMarker366"/>所需的VPC资源，我们可以继续处理最后一组先决条件。</p>
+
+<h2 id="_idParaDest-83"><a id="_idTextAnchor088"/>将数据集上传到S3</h2>
+
+<p>在<a href="B18638_01.xhtml#_idTextAnchor017"> <em class="italic">第一章</em> </a>、<em class="italic">AWS上的ML工程介绍</em>中，我们用<a id="_idIndexMarker367"/>一个<strong class="bold"> AWS Cloud9 </strong>环境<a id="_idIndexMarker368"/>上传<a id="_idIndexMarker369"/>一个样本<a id="_idIndexMarker370"/>数据集到<strong class="bold">亚马逊S3 </strong>。在本章中，我们将<a id="_idIndexMarker371"/>使用<strong class="bold"> AWS CloudShell </strong>来上传和下载来自S3的数据。如果这是您第一次听说AWS CloudShell，它是一个基于浏览器的Shell，我们可以在其中运行不同的命令来管理我们的资源。有了CloudShell，我们可以使用AWS CLI运行命令，而不必担心基础设施管理。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">在继续之前，请确保您使用的是创建VPC资源的同一区域。本章假设我们正在<a id="_idIndexMarker372"/>使用<code>us-west-2</code>区域。同时，请确保您以<code>mle-ch4-user</code> IAM用户的身份登录。</p>
+
+<p>按照以下步骤使用CloudShell和AWS CLI将我们的样本数据集上传到S3:</p>
+
+<ol>
+
+<li value="1">点击下面截图中突出显示的按钮，导航到<strong class="bold"> CloudShell </strong>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.9 – Launching CloudShell&#10;&#10;" height="59" src="img/B18638_04_009.jpg" width="430"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.9–启动CloudShell</p>
+
+<p class="list-inset">您可以在AWS管理控制台的右上角找到此按钮。您还可以使用搜索栏导航到CloudShell控制台。</p>
+
+<ol>
+
+<li value="2">如果看到<strong class="bold">欢迎使用AWS CloudShell </strong>弹出窗口，点击<strong class="bold">关闭</strong>按钮。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout"><code>[cloudshell-user@ip-XX-XX-XX-XX ~]$</code>可能需要一两分钟。</p>
+
+<ol>
+
+<li value="3">在终端控制台运行<a id="_idIndexMarker373"/>下面的<a id="_idIndexMarker374"/>单行<code>wget</code>命令(在<strong class="bold"> $ </strong>符号之后)下载一个包含100，000条预订记录的CSV文件:<pre class="source-code"><strong class="bold">wget https://bit.ly/3L6FsRg -O synthetic.bookings.100000.csv</strong></pre></li>
+
+<li>接下来，使用<code>head</code>命令:<pre class="source-code"><strong class="bold">head synthetic.bookings.100000.csv</strong></pre>检查下载的文件</li>
+
+</ol>
+
+<p class="list-inset">这将产生CSV文件的前几行，类似于下面的屏幕截图:</p>
+
+<div><div><img alt="Figure 4.10 – Results after using the head command&#10;&#10;" height="209" src="img/B18638_04_010.jpg" width="793"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.10–使用head命令后的结果</p>
+
+<p class="list-inset">正如我们所见，<code>head</code>命令显示了<code>synthetic.bookings.100000.csv</code>文件的前10行。这里，我们在第一行中有包含CSV文件的所有列名的标题。</p>
+
+<p class="list-inset">请注意，该数据集类似于我们在第1章 、<em class="italic">AWS上的ML工程简介</em>中使用的<a href="B18638_01.xhtml#_idTextAnchor017"> <em class="italic">酒店预订数据集。唯一的主要区别是<a id="_idIndexMarker375"/>我们将在本章中使用的CSV文件包含100，000条记录，因为我们想测试从数据仓库和数据湖中查询数据的速度。</em></a></p>
+
+<ol>
+
+<li value="5">使用<code>aws s3 mb</code>命令创建一个新的S3桶。确保将<code>&lt;INSERT BUCKET NAME&gt;</code>替换为全球唯一的存储桶名称——所有其他AWS用户以前从未使用过的S3存储桶名称:<pre class="source-code"><strong class="bold">BUCKET_NAME=&lt;INSERT BUCKET NAME&gt;</strong></pre> <pre class="source-code"><strong class="bold">aws s3 mb s3://$BUCKET_NAME</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">有关S3桶命名规则的更多信息，请查看<a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.xhtml">https://docs . AWS . Amazon . com/Amazon S3/latest/user guide/bucket naming grules . XHTML</a>。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">确保记住在此步骤中创建的铲斗的名称。我们将在本章的不同解决方案和示例中使用这个S3桶。</p>
+
+<ol>
+
+<li value="6">将您创建的S3存储桶的名称复制到本地机器上的文本编辑器中。</li>
+
+<li>使用<code>aws s3 cp</code>命令上传<code>synthetic.bookings.100000.csv</code>文件:<pre class="source-code"><strong class="bold">FILE=synthetic.bookings.100000.csv</strong></pre> <pre class="source-code"><strong class="bold">aws s3 cp $FILE s3://$BUCKET_NAME/input/$FILE</strong></pre></li>
+
+</ol>
+
+<p>现在所有的<a id="_idIndexMarker377"/>和<a id="_idIndexMarker378"/>先决条件都准备好了，我们可以使用<strong class="bold">红移无服务器</strong>来加载和查询我们的数据。</p>
+
+<h1 id="_idParaDest-84"><a id="_idTextAnchor089"/>使用Amazon Redshift无服务器运行大规模分析</h1>
+
+<p>数据仓库在数据管理、数据分析和数据工程中起着至关重要的作用。数据工程师和ML工程师花时间构建数据仓库，以<a id="_idIndexMarker381"/>处理涉及<strong class="bold">批量报告</strong>和<strong class="bold">商业智能</strong>的项目<a id="_idIndexMarker382"/>。</p>
+
+<div><div><img alt="Figure 4.11 – Data warehouse&#10;&#10;" height="513" src="img/B18638_04_011.jpg" width="1152"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.11-数据仓库</p>
+
+<p>如上图所示，数据仓库包含来自不同关系数据源(如PostgreSQL和MySQL数据库)的组合数据。当查询数据以满足报告和商业智能需求时，它通常作为唯一的真实来源。在ML实验中，数据仓库可以作为干净数据的来源，我们可以从中提取用于构建和训练ML模型的数据集。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">在生成报告时，企业和初创企业可能会直接在运行web应用程序所使用的生产数据库上执行查询。值得注意的是，这些查询可能会导致连接到数据库的web应用程序意外停机(因为数据库可能会“忙于”处理额外的查询)。为了避免这种情况，建议将应用程序数据库中的数据连接并加载到一个中央数据仓库，在那里可以安全地运行查询。这意味着我们可以生成自动化报告，并对数据副本执行读取查询，而无需担心任何意外停机。</p>
+
+<p>如果你需要在AWS上建立一个数据仓库，Amazon Redshift是可用的主要选项之一。随着<a id="_idIndexMarker384"/>宣布<strong class="bold">亚马逊红移无服务器</strong>，数据工程师和ML工程师不再需要担心基础设施管理。与非无服务器的同类产品和替代产品相比，当数据仓库空闲且未被使用时，是不收费的。</p>
+
+<h2 id="_idParaDest-85"><a id="_idTextAnchor090"/>设置红移无服务器端点</h2>
+
+<p>开始<a id="_idIndexMarker385"/>和设置红移无服务器很容易。我们需要做的就是导航到红移控制台，并创建一个新的红移无服务器端点。当创建一个新的红移无服务器端点时，我们需要担心的是VPC和IAM用户，这是我们在本章的<em class="italic">准备必要的先决条件</em>一节中准备的。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">在继续之前，请确保您使用的是创建S3时段和VPC资源的同一区域。本章假设我们使用的是<code>us-west-2</code>区域。同时，请确保您以<code>mle-ch4-user</code> IAM用户的身份登录。</p>
+
+<p>按照以下步骤设置我们的Redshift无服务器端点:</p>
+
+<ol>
+
+<li value="1">导航到AWS管理控制台搜索栏中的<code>redshift</code>，然后从结果列表中选择<strong class="bold">红移</strong>服务。</li>
+
+<li>接下来，点击<strong class="bold">尝试亚马逊红移无服务器</strong>按钮。</li>
+
+<li>在<code>Customize settings</code>上</li>
+
+<li><code>dev</code></li>
+
+<li><strong class="bold">管理员用户凭证</strong> &gt; <strong class="bold">自定义管理员用户凭证</strong> : <em class="italic">【未选中】</em></li>
+
+
+
+<li>在<strong class="bold">权限</strong>下，打开<strong class="bold">管理IAM角色</strong>下拉菜单，然后从选项列表中选择<strong class="bold">创建IAM角色</strong>。</li>
+
+<li>在<strong class="bold">创建默认IAM角色</strong>弹出窗口中，选择<strong class="bold">任意S3桶</strong>。</li>
+
+</ol>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">请注意，一旦我们需要配置我们的设置以供生产使用，就需要进一步保护这个配置。理想情况下，红移被配置为只访问有限的一组S3桶。</p>
+
+<ol>
+
+<li value="6">点击<strong class="bold">将IAM角色创建为默认角色</strong>按钮。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">您应该会看到类似于<strong class="bold">的通知消息:IAM角色AmazonRedshift-CommandsAccessRole-xxxxxxxxxxxxxxxxxx已成功创建并设置为默认值。</strong>点击<strong class="bold">后创建IAM角色为默认</strong>按钮。确保将当前设置为默认角色的已创建IAM角色的名称复制到本地计算机上的文本编辑器中。</p>
+
+<ol>
+
+<li value="7">接下来，对<strong class="bold">网络和安全</strong>使用以下配置设置:<ul><li><strong class="bold">虚拟专用云(VPC) </strong>:通过选择适当的VPC ID，使用您在本章中创建的VPC。</li>
+
+<li><strong class="bold"> VPC安全组</strong>:使用默认的VPC安全组。</li>
+
+<li><strong class="bold">子网</strong>:勾选下拉菜单中可用选项列表中的所有子网。</li>
+
+</ul></li>
+
+<li>点击<strong class="bold">保存配置</strong>按钮。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">完成此步骤可能需要3到5分钟。在等待安装完成时，您应该会看到一个弹出窗口。与此同时，你可以喝杯咖啡或茶！</p>
+
+<ol>
+
+<li value="9">一旦设置完成，点击<strong class="bold">继续</strong>按钮关闭弹出窗口。</li>
+
+</ol>
+
+<p>那不是很容易吗？在这一点上，你可能会担心与我们现在拥有的<strong class="bold">红移无服务器</strong>设置相关的成本。这里很酷的一点是，当我们的无服务器数据仓库空闲时，计算能力是免费的。请注意，根据存储的数据，我们仍将收取存储费用。完成本章中的动手解决方案后，请确保删除此设置并执行相关的AWS资源清理步骤，以避免任何意外费用。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">有关Redshift无服务器计费的更多信息，请随时查看<a href="https://docs.amazonaws.cn/en_us/redshift/latest/mgmt/serverless-billing.xhtml">https://docs . Amazon AWS . cn/en _ us/Redshift/latest/mgmt/server less-billing . XHTML</a>。</p>
+
+<h2 id="_idParaDest-86"><a id="_idTextAnchor091"/>打开红移查询编辑器v2</h2>
+
+<p>有不同的<a id="_idIndexMarker388"/>方式来访问我们已配置和准备好的Redshift无服务器端点。更方便的方法之一是使用<strong class="bold">红移查询编辑器</strong>，我们可以使用web浏览器访问它。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">在继续之前，请确保您使用的是创建S3时段和VPC资源的同一区域。本章假设我们使用的是<code>us-west-2</code>区域。同时，请确保您以<code>mle-ch4-user</code> IAM用户的身份登录。</p>
+
+<p>让我们打开红移查询编辑器，看看我们可以做些什么:</p>
+
+<ol>
+
+<li value="1">在<strong class="bold">无服务器仪表板</strong>区域，点击<strong class="bold">查询数据</strong>，如下图所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.12 – Locating the Query data button in the Serverless dashboard&#10;&#10;" height="548" src="img/B18638_04_012.jpg" width="1049"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.12–在无服务器仪表板中定位查询数据按钮</p>
+
+<p class="list-inset">在这里，我们可以看到<strong class="bold">查询数据</strong>按钮位于<strong class="bold">无服务器仪表板</strong>页面的右上角附近。点击<strong class="bold">查询数据</strong>按钮将打开<strong class="bold">红移查询编辑器v2 </strong>服务(在一个新的标签页中)，如以下截图所示:</p>
+
+<div><div><img alt="Figure 4.13 – Redshift query editor v2&#10;&#10;" height="726" src="img/B18638_04_013.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.13–红移查询编辑器v2</p>
+
+<p class="list-inset">使用红移<a id="_idIndexMarker389"/>查询编辑器很简单。我们可以使用左侧边栏中的选项来管理我们的资源，并且可以在右侧的编辑器中运行SQL查询。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果您在单击<strong class="bold">查询数据</strong>按钮后无法打开红移查询编辑器v2，请确保您的浏览器没有阻止打开新窗口或弹出窗口。</p>
+
+<ol>
+
+<li value="2">点击<strong class="bold">无服务器</strong>连接资源的箭头符号，如下图所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.14 – Connecting to the Serverless resource&#10;&#10;" height="188" src="img/B18638_04_014.jpg" width="331"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.14–连接到无服务器资源</p>
+
+<p class="list-inset">当红移查询<a id="_idIndexMarker390"/>编辑器连接到红移无服务器端点时，您应该会看到一个<strong class="bold">连接到无服务器</strong>通知。</p>
+
+<p>一旦建立了连接，我们就可以继续创建表了。</p>
+
+<h2 id="_idParaDest-87"><a id="_idTextAnchor092"/>创建表格</h2>
+
+<p>在Amazon Redshift中创建<a id="_idIndexMarker391"/>表有不同的方法。按照以下步骤，使用CSV文件作为表模式的参考来创建表:</p>
+
+<ol>
+
+<li value="1">从官方的GitHub库下载<code>synthetic.bookings.10.csv</code>文件到你的本地机器。可以在这里访问包含10个样本行的CSV文件:<a href="https://raw.githubusercontent.com/PacktPublishing/Machine-Learning-Engineering-on-AWS/main/chapter04/synthetic.bookings.10.csv">https://raw . githubusercontent . com/packt publishing/Machine-Learning-Engineering-on-AWS/main/chapter 04/synthetic . bookings . 10 . CSV</a>。</li>
+
+<li>在<strong class="bold">红移查询编辑器v2 </strong>中，点击<strong class="bold"> +创建</strong>下拉菜单，然后从选项列表中选择<strong class="bold">表</strong>。</li>
+
+<li>在<strong class="bold">创建表</strong>弹出窗口中，将<strong class="bold">模式</strong>下拉值设置为<strong class="bold">公共</strong>并将<strong class="bold">表</strong>字段值设置为<strong class="bold">预订</strong>。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">模式用于管理和分组数据库对象和表。默认情况下，新创建的数据库将拥有<code>PUBLIC</code>模式。在本章中，我们不会创建一个新的模式，而只是使用默认的<code>PUBLIC</code>模式。</p>
+
+<ol>
+
+<li value="4">点击本地机器上的<code>synthetic.bookings.10.csv</code>文件:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.15 – Load from CSV&#10;&#10;" height="667" src="img/B18638_04_015.jpg" width="938"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.15–从CSV加载</p>
+
+<p class="list-inset">在这里，我们可以从<a id="_idIndexMarker392"/>看到<strong class="bold"> Load from CSV </strong>选项使用存储在所选CSV文件中的记录来推断将用于配置和创建新表的列名、数据类型和编码。</p>
+
+<ol>
+
+<li value="5">点击<strong class="bold">创建表格</strong>。您应该会看到一个通知，说明<strong class="bold">预订表已成功创建</strong>。</li>
+
+</ol>
+
+<p>请注意，用作创建表的参考的CSV文件在理想情况下应该是更大的完整数据集的子集。在我们的例子中，我们使用了一个包含10条记录的CSV文件，这些记录来自包含100，000条记录的原始CSV文件。</p>
+
+<h2 id="_idParaDest-88"><a id="_idTextAnchor093"/>从S3加载数据</h2>
+
+<p>现在我们的<a id="_idIndexMarker393"/>表已经准备好了，我们可以将存储在S3的数据加载到我们的表中。按照以下步骤使用<strong class="bold">红移查询编辑器v2 </strong>从S3加载数据:</p>
+
+<ol>
+
+<li value="1">点击<strong class="bold">加载数据</strong>按钮(在<strong class="bold"> +创建</strong>下拉菜单旁边)。应该会出现一个类似如下的弹出窗口:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.16 – Loading data from S3&#10;&#10;" height="617" src="img/B18638_04_016.jpg" width="694"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.16–从S3加载数据</p>
+
+<p class="list-inset">在这里，我们可以看到用于从S3加载数据的不同配置选项。</p>
+
+<ol>
+
+<li value="2">打开<strong class="bold"> S3 URI </strong>下的<strong class="bold"> S3文件位置</strong>下拉菜单，从可用选项列表中选择<strong class="bold"> us-west-2 </strong>。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">该设置假设我们在执行本章的动手解决方案时使用的是<code>us-west-2</code>区域。如果S3文件位于其他地区，请随意更改。</p>
+
+<ol>
+
+<li value="3">接下来，点击我们在本章中创建的S3桶<a id="_idIndexMarker394"/>的<strong class="bold">输入</strong>文件夹中的<code>synthetic.bookings.100000.csv</code>文件:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.17 – Choose archive in S3&#10;&#10;" height="487" src="img/B18638_04_017.jpg" width="996"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.17–选择S3的存档</p>
+
+<p class="list-inset">选择<code>synthetic.bookings.100000.csv</code>文件后，点击<strong class="bold">选择</strong>按钮。</p>
+
+<ol>
+
+<li value="4">打开<strong class="bold">选择IAM角色</strong>下拉菜单，选择与您在<em class="italic">设置红移无服务器端点</em>部分复制到本地机器上的文本编辑器中的IAM角色同名的IAM角色。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果您无法将IAM角色复制到本地机器的文本编辑器中，您可以打开一个新的选项卡并导航到<code>default</code> <strong class="bold">名称空间配置</strong>页面(在AWS管理控制台中)。您应该在<strong class="bold">安全和加密</strong>选项卡中找到IAM角色(在<strong class="bold">角色类型</strong>下标记为<strong class="bold">默认</strong>)。</p>
+
+<ol>
+
+<li value="5">在<strong class="bold">高级设置</strong>下，点击<strong class="bold">数据转换参数</strong>。确保<strong class="bold">忽略标题行</strong>的复选框<em class="italic">被选中</em>。点击<strong class="bold">完成</strong>。</li>
+
+<li>点击<strong class="bold">选择一个模式</strong>，然后从下拉选项列表中选择<strong class="bold"> public </strong>。接下来，点击<strong class="bold">选择一张桌子</strong>，然后从下拉<a id="_idIndexMarker395"/>选项列表中选择<strong class="bold">预订</strong>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.18 – Loading data from the S3 bucket&#10;&#10;" height="706" src="img/B18638_04_018.jpg" width="808"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.18–从S3存储桶加载数据</p>
+
+<p class="list-inset">此时，您应该有一组类似于前面屏幕截图所示的配置参数。</p>
+
+<ol>
+
+<li value="7">点击<strong class="bold">加载数据</strong>按钮。这将关闭<strong class="bold">加载数据</strong>窗口，并自动运行加载数据操作。</li>
+
+</ol>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">您可以在查询编辑器中运行<code>SELECT * FROM sys_load_error_detail;</code> SQL语句来解决您可能遇到的任何问题或错误。</p>
+
+<p>完成最后一步可能需要大约1到2分钟。如果在<a id="_idIndexMarker396"/>运行加载数据操作后没有遇到任何问题，您可以继续查询数据库！</p>
+
+<h2 id="_idParaDest-89"><a id="_idTextAnchor094"/>查询数据库</h2>
+
+<p>既然<a id="_idIndexMarker397"/>已经成功地将CSV文件从S3存储桶加载到我们的Redshift无服务器表中，那么让我们将重点放在使用SQL语句执行查询上:</p>
+
+<ol>
+
+<li value="1">点击<strong class="bold"> + </strong>按钮(位于第一页签左侧)，然后选择<strong class="bold">笔记本</strong>，如下图:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.19 – Creating a new SQL Notebook&#10;&#10;" height="543" src="img/B18638_04_019.jpg" width="1028"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.19–创建新的SQL笔记本</p>
+
+<p class="list-inset"><strong class="bold"> SQL笔记本</strong>帮助组织和记录使用红移查询编辑器运行的多个SQL查询的结果。</p>
+
+<ol>
+
+<li value="2">运行以下SQL语句:<pre class="source-code"><strong class="bold">SELECT * FROM dev.public.bookings;</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">确保点击<strong class="bold">运行</strong>按钮，如下图所示:</p>
+
+<div><div><img alt="Figure 4.20 – Running the SQL query&#10;&#10;" height="120" src="img/B18638_04_020.jpg" width="881"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.20–运行SQL查询</p>
+
+<p class="list-inset">这应该<a id="_idIndexMarker398"/>返回一组结果，类似于下面的截图:</p>
+
+<div><div><img alt="Figure 4.21 – The Add SQL button&#10;&#10;" height="509" src="img/B18638_04_021.jpg" width="1144"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.21–添加SQL按钮</p>
+
+<p class="list-inset">在这里，我们应该在运行查询后最多只获得100条记录，因为<strong class="bold">限制100条</strong>复选框已将<em class="italic">切换到</em>上。</p>
+
+<ol>
+
+<li value="3">之后点击<strong class="bold">添加SQL </strong>按钮，在当前结果集下创建一个新的SQL单元格。</li>
+
+<li>接下来，在新的SQL单元格中运行下面的SQL语句:<pre class="source-code"><strong class="bold">SELECT COUNT(*) FROM dev.public.bookings WHERE is_cancelled = 0;</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">运行查询后，我们应该得到结果<code>66987</code>。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">您可以运行<code>SELECT * FROM sys_load_error_detail;</code> SQL语句来排查和调试任何问题。</p>
+
+<ol>
+
+<li value="5">让我们尝试查看至少有一次取消的客人取消的预订。也就是说，让我们在一个新的SQL单元格中运行下面的SQL语句:<pre class="source-code"><strong class="bold">SELECT * FROM dev.public.bookings WHERE is_cancelled = 1 AND previous_cancellations &gt; 0;</strong></pre></li>
+
+<li>让我们回顾一下等待名单上的天数<a id="_idIndexMarker399"/>超过50天的客人取消的预订:<pre class="source-code"><strong class="bold">SELECT * FROM dev.public.bookings WHERE is_cancelled = 1 AND days_in_waiting_list &gt; 50;</strong></pre></li>
+
+<li>请注意，我们还可以使用类似下面的查询来检查<strong class="bold">数据完整性问题</strong>:<pre class="source-code"><strong class="bold">SELECT booking_changes, has_booking_changes, * </strong></pre><pre class="source-code"><strong class="bold">FROM dev.public.bookings </strong></pre><pre class="source-code"><strong class="bold">WHERE </strong></pre><pre class="source-code"><strong class="bold">(booking_changes=0 AND has_booking_changes='True') </strong></pre><pre class="source-code"><strong class="bold">OR </strong></pre><pre class="source-code"><strong class="bold">(booking_changes&gt;0 AND has_booking_changes='False');</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">使用这个查询，我们应该能够列出<code>booking_changes</code>列值与<code>has_booking_changes</code>列值不匹配的记录。</p>
+
+<ol>
+
+<li value="8">同样，我们可以使用下面的查询找到其他与数据完整性有关的记录:<pre class="source-code"><strong class="bold">SELECT total_of_special_requests, has_special_requests, * </strong></pre> <pre class="source-code"><strong class="bold">FROM dev.public.bookings </strong></pre> <pre class="source-code"><strong class="bold">WHERE </strong></pre> <pre class="source-code"><strong class="bold">(total_of_special_requests=0 AND has_special_requests='True') </strong></pre> <pre class="source-code"><strong class="bold">OR </strong></pre> <pre class="source-code"><strong class="bold">(total_of_special_requests&gt;0 AND has_special_requests='False');</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">通过这个查询，我们<a id="_idIndexMarker400"/>应该能够列出<code>total_of_special_requests</code>列值与<code>has_special_requests</code>列值不匹配的记录。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">在使用数据训练ML模型之前，应该解决这些类型的数据完整性问题。</p>
+
+<ol>
+
+<li value="9">我们还可以创建包含预计算结果集的物化视图，这有助于加速重复查询:<pre class="source-code"><strong class="bold">CREATE MATERIALIZED VIEW data_integrity_issues</strong> <strong class="bold">AS</strong></pre><pre class="source-code"><strong class="bold">SELECT * </strong></pre><pre class="source-code"><strong class="bold">FROM dev.public.bookings </strong></pre><pre class="source-code"><strong class="bold">WHERE</strong></pre><pre class="source-code"><strong class="bold">(booking_changes=0 AND has_booking_changes='True') </strong></pre><pre class="source-code"><strong class="bold">OR </strong></pre><pre class="source-code"><strong class="bold">(booking_changes&gt;0 AND has_booking_changes='False')</strong></pre><pre class="source-code"><strong class="bold">OR</strong></pre><pre class="source-code"><strong class="bold">(total_of_special_requests=0 AND has_special_requests='True') </strong></pre><pre class="source-code"><strong class="bold">OR </strong></pre><pre class="source-code"><strong class="bold">(total_of_special_requests&gt;0 AND has_special_requests='False');</strong></pre></li>
+
+<li>最后，我们可以使用下面的查询来查询物化视图中预先计算的数据:<pre class="source-code"><strong class="bold">SELECT booking_changes, has_booking_changes, total_of_special_requests, has_special_requests FROM data_integrity_issues;</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这将为我们提供一个记录列表，其中包含<code>total_of_special_requests</code>列值与<code>has_special_requests</code>列值不匹配的记录，以及<code>booking_changes</code>列值与<code>has_booking_changes</code>列<a id="_idIndexMarker401"/>值不匹配的记录。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">关于这个主题的更多信息，请随时查看<a href="https://docs.aws.amazon.com/redshift/latest/dg/materialized-view-overview.xhtml">https://docs . AWS . Amazon . com/redshift/latest/DG/materialized-view-overview . XHTML</a>。</p>
+
+<p>随意运行其他SQL查询来探索存储在<em class="italic"> bookings </em>表中的数据。</p>
+
+<h2 id="_idParaDest-90"><a id="_idTextAnchor095"/>将数据卸载到S3</h2>
+
+<p>最后，我们将<a id="_idIndexMarker402"/>将存储在<em class="italic"> bookings </em>表中的数据复制并卸载到亚马逊S3。这里，我们将配置并使用<code>UNLOAD</code>命令来并行执行该操作，分割数据，并将其存储在S3的几个文件中。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">一旦数据被卸载到亚马逊S3，我们就可以使用可以直接从S3加载数据的服务、工具和库对这些数据执行其他操作。在我们的例子中，我们将在下一节中使用卸载的数据文件，<em class="italic">设置湖形成</em>，并且<a id="_idIndexMarker403"/>使用<strong class="bold"> AWS胶水</strong>沿着<a id="_idIndexMarker404"/>与<strong class="bold"> Amazon Athena </strong>一起处理数据文件。</p>
+
+<p>按照以下步骤将存储在我们的Redshift无服务器表中的数据卸载到S3存储桶中:</p>
+
+<ol>
+
+<li value="1">打开屏幕右上角的菜单(<code>mle-ch4-user@&lt;ACCOUNT ALIAS&gt;</code>)。通过单击以下<a id="_idIndexMarker405"/>屏幕截图中突出显示的框来复制帐户ID。将复制的帐户ID值保存到本地计算机上的文本编辑器中:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.22 – Copying the account ID&#10;&#10;" height="403" src="img/B18638_04_022.jpg" width="394"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.22–复制帐户ID</p>
+
+<p class="list-inset">请注意，在复制到本地机器上的文本编辑器时，帐户ID应该没有破折号。</p>
+
+<ol>
+
+<li value="2">在<strong class="bold">红移查询编辑器v2 </strong>中，点击<strong class="bold">添加SQL </strong>按钮，然后在新的SQL单元格中运行以下SQL语句:<pre class="source-code">UNLOAD ('SELECT * FROM dev.public.bookings;') </pre> <pre class="source-code">TO 's3://<strong class="bold">&lt;INSERT BUCKET NAME&gt;</strong>/unloaded/'</pre> <pre class="source-code">IAM_ROLE 'arn:aws:iam::<strong class="bold">&lt;ACCOUNT ID&gt;</strong>:role/service-role/<strong class="bold">&lt;ROLE NAME&gt;</strong>'</pre> <pre class="source-code">FORMAT AS CSV DELIMITER ',' </pre> <pre class="source-code">PARALLEL ON</pre> <pre class="source-code">HEADER;</pre></li>
+
+</ol>
+
+<p class="list-inset">请确保替换以下值:</p>
+
+<ul>
+
+<li><code>&lt;INSERT BUCKET NAME&gt;</code>使用我们在<em class="italic">上传数据集到S3 </em>部分创建的存储桶的名称</li>
+
+<li><code>&lt;ACCOUNT ID&gt;</code>用AWS账户的账户ID</li>
+
+<li><code>&lt;ROLE NAME&gt;</code>使用您在<em class="italic">设置红移无服务器端点</em>一节中复制到本地机器上的文本编辑器中的IAM角色名称</li>
+
+</ul>
+
+<p class="list-inset">由于<code>PARALLEL ON</code>是在运行<code>UNLOAD</code>命令时指定的，所以这个<code>UNLOAD</code>操作会将存储在<em class="italic">预订</em>表中的数据拆分，并将其并行存储在多个<a id="_idIndexMarker406"/>文件中。</p>
+
+<ol>
+
+<li value="3">点击下面截图中突出显示的按钮，导航至<strong class="bold"> AWS CloudShell </strong>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.23 – Launching CloudShell&#10;&#10;" height="66" src="img/B18638_04_023.jpg" width="468"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.23–启动CloudShell</p>
+
+<p class="list-inset">我们可以在AWS管理控制台的右上角找到这个按钮。您还可以使用搜索栏导航到CloudShell控制台。</p>
+
+<ol>
+
+<li value="4">运行以下命令来列出我们的S3 bucket的<code>unloaded</code>文件夹中的文件。确保将<code>&lt;INSERT BUCKET NAME&gt;</code>替换为我们在<em class="italic">上传数据集到S3 </em>部分中创建的bucket的名称:<pre class="source-code"><strong class="bold">BUCKET_NAME=&lt;INSERT BUCKET NAME&gt;</strong></pre> <pre class="source-code"><strong class="bold">aws s3 ls s3://$BUCKET_NAME/unloaded/</strong></pre></li>
+
+<li>使用<code>tmp</code>命令:<pre class="source-code"><strong class="bold">mv * /tmp</strong></pre>将当前工作目录下的所有文件移动到<code>/tmp</code>目录下</li>
+
+<li>使用<code>aws s3 cp</code>命令下载存储在S3存储区<code>unloaded</code>文件夹中的文件副本:<pre class="source-code"><strong class="bold">aws s3 cp s3://$BUCKET_NAME/unloaded/ . --recursive</strong></pre></li>
+
+<li>使用<code>ls</code>命令检查已下载文件的文件名:<pre class="source-code"><strong class="bold">ls</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这将产生一个文件名列表，类似于下面的截图:</p>
+
+<div><div><img alt="Figure 4.24 – Results after using the ls command&#10;&#10;" height="261" src="img/B18638_04_024.jpg" width="1248"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.24–使用ls命令后的结果</p>
+
+<p class="list-inset">在这里，我们可以看到在<em class="italic">将数据卸载到S3 </em>部分中执行的<code>UNLOAD</code>操作将<em class="italic">预订</em>表的副本分割并存储在几个文件中。</p>
+
+<ol>
+
+<li value="8">使用<code>head</code>命令检查每个下载文件的前几行:<pre class="source-code"><strong class="bold">head *</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这将产生如下所示的输出:</p>
+
+<div><div><img alt="Figure 4.25 – Results after using the head command&#10;&#10;" height="554" src="img/B18638_04_025.jpg" width="1349"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.25–使用head命令后的结果</p>
+
+<p class="list-inset">在这里，我们可以看到每个输出文件都有一个标题，标题中有每一列的对应名称。</p>
+
+<p>现在我们已经完成了从红移<em class="italic">预订</em>表到我们的S3存储桶的卸载，我们将<a id="_idIndexMarker408"/>继续使用AWS Lake Formation设置我们的数据湖！</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">在Amazon Redshift和Amazon Redshift Serverless中，我们可以使用更多功能。这包括性能调优技术(显著提高缓慢查询的速度)、<strong class="bold">红移ML </strong>(我们可以使用<a id="_idIndexMarker409"/>来训练ML模型，并使用SQL <a id="_idIndexMarker410"/>语句进行推理)，以及<strong class="bold">红移频谱</strong>(我们可以使用它直接从存储在S3存储桶中的文件中查询数据)。这些话题超出了本书的范围，所以请随意查看<a href="https://docs.aws.amazon.com/redshift/index.xhtml">https://docs.aws.amazon.com/redshift/index.xhtml</a>了解更多信息。</p>
+
+<h1 id="_idParaDest-91"><a id="_idTextAnchor096"/>建立湖泊形态</h1>
+
+<p>现在，是时候让<a id="_idIndexMarker411"/>仔细看看如何在AWS上建立我们的无服务器数据湖了！在开始之前，让我们定义什么是数据湖，数据湖中存储的是什么类型的数据。<strong class="bold">数据湖</strong>是一个<a id="_idIndexMarker412"/>集中式数据存储，包含来自不同数据源的各种结构化、半结构化和非结构化数据。如下图所示，数据可以存储在数据湖中，而不必担心结构和格式。在数据湖中存储数据时，我们可以使用各种文件类型，比如JSON、CSV和Apache Parquet。除此之外，数据湖可能包括原始数据和经过处理的(干净的)数据:</p>
+
+<div><div><img alt="Figure 4.26 – Getting started with data lakes&#10;&#10;" height="472" src="img/B18638_04_026.jpg" width="1097"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.26–数据湖入门</p>
+
+<p>ML工程师和<a id="_idIndexMarker413"/>数据科学家可以使用数据湖作为构建和训练ML模型的数据源。由于存储在数据湖中的数据可能是原始数据和干净数据的混合，因此在它可以用于ML需求之前，需要额外的数据处理、数据清理和数据转换步骤。</p>
+
+<p>如果您计划在AWS中建立和管理数据湖，那么<strong class="bold"> AWS Lake Formation </strong>是一个不错的选择！AWS Lake Formation是一项服务，它使用AWS上的各种<a id="_idIndexMarker414"/>服务<a id="_idIndexMarker415"/>来帮助建立和保护数据湖，例如<strong class="bold">亚马逊S3 </strong>、<strong class="bold"> AWS Glue </strong>和<strong class="bold">亚马逊雅典娜</strong>。由于我们在AWS Lake Formation中使用了<em class="italic">无服务器</em>服务，因此在建立数据湖时，我们不必担心管理任何服务器。</p>
+
+<h2 id="_idParaDest-92"><a id="_idTextAnchor097"/>创建数据库</h2>
+
+<p>类似于<a id="_idIndexMarker416"/>数据库如何在红移和其他服务中工作，如<strong class="bold">关系数据库服务</strong> ( <strong class="bold"> RDS </strong>)，<strong class="bold"> AWS湖形成</strong>数据库可以包含一个或多个表。但是，在创建表之前，我们需要创建一个新的数据库。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">在继续之前，请确保您使用的是创建S3时段和VPC资源的同一区域。本章假设我们使用的是<code>us-west-2</code>区域。同时，请确保您以<code>mle-ch4-user</code> IAM用户的身份登录。</p>
+
+<p>按照以下步骤在AWS Lake Formation中创建新数据库:</p>
+
+<ol>
+
+<li value="1">通过在AWS管理控制台的搜索框中键入<code>lake formation</code>，然后从结果列表中选择<strong class="bold"> AWS湖形成</strong>，导航到AWS湖形成控制台。</li>
+
+<li>在<strong class="bold">欢迎来到湖泊编队</strong>弹出窗口中，确保<strong class="bold">添加我自己</strong>复选框被<em class="italic">选中</em>。点击<strong class="bold">开始</strong>按钮。</li>
+
+<li>在侧边栏中，找到并点击<strong class="bold">数据目录</strong>下的<strong class="bold">数据库</strong>。</li>
+
+<li>点击位于<strong class="bold">数据库</strong>页面右上角的<strong class="bold">创建数据库</strong>按钮<a id="_idIndexMarker418"/>。</li>
+
+<li>作为<strong class="bold">名称</strong>字段的值。保持其他一切不变，然后单击<strong class="bold">创建数据库</strong>按钮:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.27 – Creating a Lake Formation database&#10;&#10;" height="576" src="img/B18638_04_027.jpg" width="1012"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.27–创建湖泊形成数据库</p>
+
+<p class="list-inset">您应该会看到一个成功通知，说明您的数据库已经成功创建。您可以忽略前面截图中显示的<strong class="bold">未知错误</strong>消息通知。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout"><strong class="bold">未知错误</strong>消息很可能是由于当前IAM用户执行操作所允许的有限权限造成的。</p>
+
+<p>现在我们<a id="_idIndexMarker419"/>已经创建了我们的湖泊形成数据库，让我们继续使用AWS Glue Crawler创建一个表格。</p>
+
+<h2 id="_idParaDest-93"><a id="_idTextAnchor098"/>使用AWS Glue Crawler创建表格</h2>
+
+<p><strong class="bold"> AWS Glue </strong>是<a id="_idIndexMarker420"/>一个无服务器<strong class="bold">提取-转换-加载</strong> ( <strong class="bold"> ETL </strong>)服务<a id="_idIndexMarker421"/>，为数据集成提供不同的相关组件和能力。在本章中，我们将使用<strong class="bold"> AWS胶水</strong>的一个组件——AWS胶水爬虫:</p>
+
+<div><div><img alt="Figure 4.28 – How an AWS Glue Crawler works&#10;&#10;" height="314" src="img/B18638_04_028.jpg" width="1108"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.28–AWS Glue Crawler如何工作</p>
+
+<p>如上图所示，<strong class="bold"> AWS Glue Crawler </strong>处理存储在目标数据存储中的文件，然后根据所处理文件的结构和内容推断出一个模式。该模式用于在<strong class="bold"> AWS粘合数据目录</strong>中创建一个或一组表格。当直接在S3查询数据时，这些<a id="_idIndexMarker422"/>表可以被诸如<strong class="bold"> Amazon Athena </strong>这样的服务使用。</p>
+
+<p>记住这些，让我们继续创建AWS Glue Crawler:</p>
+
+<ol>
+
+<li value="1">点击侧边栏中的<strong class="bold">表格</strong>，导航至<strong class="bold">表格</strong>列表页面。</li>
+
+<li>接下来，点击<strong class="bold">使用爬虫创建表格</strong>按钮(位于页面的左上角)。这将在新标签中打开<strong class="bold"> AWS胶水控制台</strong>。</li>
+
+<li>点击<strong class="bold">爬虫</strong> ( <strong class="bold">遗留</strong>)，如下图突出显示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.29 – Navigating to the Crawlers page&#10;&#10;" height="599" src="img/B18638_04_029.jpg" width="1640"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.29-导航到爬网程序页面</p>
+
+<p class="list-inset">如我们所见，我们可以使用屏幕左侧的侧边栏导航到<strong class="bold">爬虫</strong>页面。</p>
+
+<ol>
+
+<li value="4">点击<strong class="bold">添加爬虫</strong>按钮，创建一个新的爬虫。</li>
+
+<li>将<code>mle-ch4-crawler</code>作为<strong class="bold">爬虫名称上</strong>字段的值。然后，点击<strong class="bold">下一个</strong>。</li>
+
+<li>在<strong class="bold">添加爬虫</strong> &gt; <strong class="bold">指定爬虫源类型</strong>页面，选择<strong class="bold">数据存储</strong>为<strong class="bold">爬虫源类型</strong>。在<strong class="bold">重复抓取S3数据存储</strong>下，选择<strong class="bold">抓取所有文件夹</strong>。然后，点击下一个的<strong class="bold">。</strong></li>
+
+<li>在<strong class="bold">添加爬虫</strong> &gt; <strong class="bold">添加数据存储</strong>页面，点击文件夹图标，为<strong class="bold">包含路径</strong>字段设置S3路径位置。这应该打开<strong class="bold">选择S3路径</strong>弹出<a id="_idIndexMarker424"/>窗口，如下图所示:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.30 – Choose S3 path&#10;&#10;" height="550" src="img/B18638_04_030.jpg" width="628"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.30-选择S3路径</p>
+
+<p class="list-inset">找到并切换我们在本章的<em class="italic">准备基本先决条件</em>一节中创建的S3存储桶中的<code>unloaded</code>文件夹的复选框。<a id="_idTextAnchor099"/>之后点击<strong class="bold">选择</strong>按钮。</p>
+
+<p class="callout-heading">重要说明</p>
+
+<p class="callout">如果您跳过了本章的<em class="italic">红移无服务器入门</em>部分，您可以在S3桶中创建一个空的<code>unloaded</code>文件夹，然后将<code>synthetic.bookings.100000.csv</code>文件上传到<code>unloaded</code>文件夹。您可以使用AWS管理控制台或通过AWS CLI使用S3存储桶的<code>input</code>文件夹来手动完成此操作。</p>
+
+<ol>
+
+<li value="8">设置<code>100</code>。</li>
+
+<li>在继续之前，确保您在<strong class="bold">添加数据存储</strong>页面上设置的配置类似于我们在下面截图中的<a id="_idIndexMarker425"/>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.31 – Adding a data store&#10;&#10;" height="756" src="img/B18638_04_031.jpg" width="538"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.31–添加数据存储</p>
+
+<p class="list-inset">查看完数据存储配置后，单击下一步的<strong class="bold">。</strong></p>
+
+<ol>
+
+<li value="10">在<strong class="bold">添加爬虫</strong> &gt; <strong class="bold">添加另一个数据存储</strong>页面，选择<strong class="bold">否</strong>选项。之后点击<strong class="bold">下一个</strong>按钮。</li>
+
+<li>在<code>ch4-iam</code>上作为<code>AWSGlueServiceRole-ch4-iam</code>下的输入字段值。之后，点击<strong class="bold">下一个</strong>。</li>
+
+<li>在<strong class="bold">添加爬虫</strong> &gt; <strong class="bold">为该爬虫创建时间表</strong>页面上，从<strong class="bold">频率</strong>下的下拉选项列表中选择<strong class="bold">按需运行</strong>。之后点击<strong class="bold">下一个</strong>按钮。</li>
+
+<li>在<a id="_idIndexMarker426"/>的<strong class="bold">添加爬虫</strong> &gt; <strong class="bold">配置爬虫的输出</strong>页面，从<strong class="bold">数据库</strong>下的下拉选项列表中选择我们已经创建的数据库(例如<strong class="bold"> mle-ch4-db </strong>)。之后点击<strong class="bold">下一个</strong>按钮。</li>
+
+<li>点击<strong class="bold">完成</strong>使用指定的配置参数创建AWS Glue crawler。</li>
+
+<li>让我们通过导航到<strong class="bold">爬虫</strong>页面(新界面/不是<strong class="bold">遗留</strong>页面)来运行爬虫，选择爬虫，然后单击<strong class="bold">运行</strong>按钮:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.32 – Running the crawler&#10;&#10;" height="587" src="img/B18638_04_032.jpg" width="1650"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.32–导航到爬网程序页面</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">完成此步骤可能需要大约1到3分钟。</p>
+
+<ol>
+
+<li value="16">导航回到<strong class="bold">湖形成</strong>控制台(使用搜索框)。</li>
+
+<li>导航到由我们的AWS Glue crawler生成的<code>unloaded</code>表:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.33 – Refreshing the Tables list page&#10;&#10;" height="213" src="img/B18638_04_033.jpg" width="1253"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.33–刷新表格列表页面</p>
+
+<p class="list-inset">点击<a id="_idIndexMarker427"/>刷新按钮后，您应该在表列表中看到<code>unloaded</code>表。</p>
+
+<ol>
+
+<li value="18">点击<strong class="bold">已卸载</strong>链接，导航至<strong class="bold">表格详情</strong>页面:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.34 – Table details and Schema of the unloaded table&#10;&#10;" height="628" src="img/B18638_04_034.jpg" width="1033"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.34–卸载表的表详细信息和模式</p>
+
+<p class="list-inset">如前面的截图所示，我们应该看到<strong class="bold">表细节</strong>和<strong class="bold">模式</strong>信息。</p>
+
+<ol>
+
+<li value="19">打开<strong class="bold">动作</strong>下拉菜单，从选项列表中选择<strong class="bold">查看数据</strong>。这将打开<strong class="bold">预览数据</strong>弹出窗口，通知我们将被带到Athena控制台。点击<strong class="bold">确定</strong>按钮继续。</li>
+
+</ol>
+
+<p>那不是很容易吗？请注意<a id="_idIndexMarker428"/>我们只是触及了<a id="_idIndexMarker429"/>我们能用<strong class="bold"> AWS胶水</strong>做的事情的表面。更多信息，请查看<a href="https://docs.aws.amazon.com/glue/latest/dg/what-is-glue.xhtml">https://docs . AWS . Amazon . com/glue/latest/DG/what-is-glue . XHTML</a>。</p>
+
+<h1 id="_idParaDest-94"><a id="_idTextAnchor100"/>使用亚马逊雅典娜查询亚马逊S3的数据</h1>
+
+<p><strong class="bold"> Amazon Athena </strong>是一个<a id="_idIndexMarker430"/>无服务器<a id="_idIndexMarker431"/>查询<a id="_idIndexMarker432"/>服务，允许我们使用SQL语句从存储在S3的文件中查询数据。有了Amazon Athena，我们不必担心基础设施管理，它会自动扩展以处理我们的查询:</p>
+
+<div><div><img alt="Figure 4.35 – How Amazon Athena works&#10;&#10;" height="550" src="img/B18638_04_035.jpg" width="828"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.35-亚马逊雅典娜如何工作</p>
+
+<p>如果您要自己设置，您可能需要使用应用程序<a id="_idIndexMarker433"/>设置EC2实例集群，比如<strong class="bold"> Presto </strong>。除此之外，您还需要自己管理这个<a id="_idIndexMarker436"/> EC2集群设置的总体成本、安全性、性能和<a id="_idIndexMarker434"/>稳定性<a id="_idIndexMarker435"/>。</p>
+
+<h2 id="_idParaDest-95"><a id="_idTextAnchor101"/>设置查询结果位置</h2>
+
+<p>如果<strong class="bold">在你运行第一个查询之前，你需要在亚马逊S3设置一个查询结果位置</strong>通知<a id="_idIndexMarker437"/>出现在<strong class="bold">编辑器</strong>页面，这意味着你必须在亚马逊Athena <strong class="bold">设置</strong>页面进行快速配置更改，以便Athena可以在每次有查询时将查询结果存储在指定的S3桶位置。这些查询结果随后显示在Athena控制台的UI中。</p>
+
+<p>按照以下步骤设置查询结果位置，我们的Amazon Athena查询将存储在该位置:</p>
+
+<ol>
+
+<li value="1">如果您在运行第一个查询之前看到了<strong class="bold">，您需要在亚马逊S3 </strong>通知中设置一个查询结果位置，点击<strong class="bold">查看设置</strong>导航到<strong class="bold">设置</strong>页面。否则，您可以点击<strong class="bold">设置</strong>选项卡，如下图所示:</li>
+
+</ol>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">f</p>
+
+<div><div><img alt="Figure 4.36 – Navigating to the Settings tab&#10;&#10;" height="118" src="img/B18638_04_036.jpg" width="524"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.36–导航至设置选项卡</p>
+
+<ol>
+
+<li value="2">点击位于<strong class="bold">查询结果和加密设置</strong>窗格<a id="_idIndexMarker438"/>右上角的<strong class="bold">管理</strong>:</li>
+
+</ol>
+
+<div><div><img alt="Figure 4.37 – Managing the query result and encryption settings&#10;&#10;" height="371" src="img/B18638_04_037.jpg" width="1185"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.37–管理查询结果和加密设置</p>
+
+<ol>
+
+<li value="3">在<strong class="bold">管理设置</strong>中的<strong class="bold">查询结果位置和加密</strong>下，点击<strong class="bold">浏览S3 </strong>，定位到您在本章创建的S3桶。打开单选按钮并点击<strong class="bold">选择</strong>按钮。</li>
+
+<li>点击<strong class="bold">保存</strong>按钮。</li>
+
+</ol>
+
+<p>既然我们已经为Amazon Athena完成了查询结果位置的配置，我们可以开始运行我们的查询了。</p>
+
+<h2 id="_idParaDest-96"><a id="_idTextAnchor102"/>使用Athena运行SQL查询</h2>
+
+<p>一切准备就绪后，我们可以开始使用SQL语句查询存储在S3的数据。在本节中，我们将检查我们的数据，并运行一些查询来检查现有的数据完整性问题。</p>
+
+<p>按照以下步骤查询存储在S3时段中的数据:</p>
+
+<ol>
+
+<li value="1">点击<strong class="bold">编辑器</strong>选项卡，导航回<strong class="bold">编辑器</strong>页面。</li>
+
+<li>在<strong class="bold">编辑器的</strong>选项卡中，运行以下查询:<pre class="source-code"><strong class="bold">SELECT * FROM "AwsDataCatalog"."mle-ch4-db"."unloaded" limit 10;</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">确保您点击了<strong class="bold">运行</strong>按钮，如下图所示:</p>
+
+<div><div><img alt="Figure 4.38 – Running the SQL query&#10;&#10;" height="412" src="img/B18638_04_038.jpg" width="945"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.38–运行SQL查询</p>
+
+<p class="list-inset">这将返回一组类似于下面截图的结果。请注意，Amazon Athena可能会在每次运行相同的查询时返回不同的结果集。您可以在查询中添加一个<code>ORDER BY</code>子句，以确保使用相同查询时返回的结果的一致性:</p>
+
+<div><div><img alt="Figure 4.39 – Athena query results&#10;&#10;" height="564" src="img/B18638_04_039.jpg" width="1017"/>
+
+</div>
+
+</div>
+
+<p class="IMG---Caption" lang="en-US" xml:lang="en-US">图4.39–Athena查询结果</p>
+
+<p class="list-inset">在这里，我们可以<a id="_idIndexMarker441"/>看到<a id="_idIndexMarker442"/>我们的查询在不到半秒的时间内被处理。如果我们在没有<code>LIMIT</code>子句的情况下运行相同的查询，运行时间可能会超过一秒钟。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout"><strong class="bold">性能调优</strong>不在本书的讨论范围之内，但是您可以随意查看<a href="https://aws.amazon.com/blogs/big-data/top-10-performance-tuning-tips-for-amazon-athena/">https://AWS . Amazon . com/blogs/big-data/top-10-Performance-tuning-tips-for-Amazon-Athena/</a>以获得关于这个主题的更多信息。</p>
+
+<ol>
+
+<li value="3">运行以下查询来计算未取消的预订数:<pre class="source-code"><strong class="bold">SELECT COUNT(*) FROM "AwsDataCatalog"."mle-ch4-db"."unloaded" WHERE is_cancelled=0;</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这应该会给我们一个<code>66987</code>的结果，这个结果应该与我们执行类似的红移无服务器查询时得到的结果相同(在<em class="italic">使用Amazon红移无服务器大规模运行分析</em>一节中)。</p>
+
+<ol>
+
+<li value="4">接下来，让我们列出至少有一次先前取消的客人取消的预订:<pre class="source-code"><strong class="bold">SELECT * </strong></pre> <pre class="source-code"><strong class="bold">FROM "AwsDataCatalog"."mle-ch4-db"."unloaded" </strong></pre> <pre class="source-code"><strong class="bold">WHERE is_cancelled=1 AND previous_cancellations &gt; 0 </strong></pre> <pre class="source-code"><strong class="bold">LIMIT 100;</strong></pre></li>
+
+<li>让我们也回顾一下等待名单上天数超过50天的客人取消的预订:<pre class="source-code"><strong class="bold">SELECT * </strong></pre> <pre class="source-code"><strong class="bold">FROM "AwsDataCatalog"."mle-ch4-db"."unloaded" </strong></pre> <pre class="source-code"><strong class="bold">WHERE is_cancelled=1 AND days_in_waiting_list &gt; 50 </strong></pre> <pre class="source-code"><strong class="bold">LIMIT 100;</strong></pre></li>
+
+<li>注意，<a id="_idIndexMarker443"/>我们<a id="_idIndexMarker444"/>也可以使用类似下面的查询来检查<strong class="bold">数据完整性问题</strong>:<pre class="source-code"><strong class="bold">SELECT booking_changes, has_booking_changes, * </strong></pre><pre class="source-code"><strong class="bold">FROM "AwsDataCatalog"."mle-ch4-db"."unloaded" </strong></pre><pre class="source-code"><strong class="bold">WHERE </strong></pre><pre class="source-code"><strong class="bold">(booking_changes=0 AND has_booking_changes=true) </strong></pre><pre class="source-code"><strong class="bold">OR </strong></pre><pre class="source-code"><strong class="bold">(booking_changes&gt;0 AND has_booking_changes=false)</strong></pre><pre class="source-code"><strong class="bold">LIMIT 100;</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">使用这个查询，我们应该能够列出<code>booking_changes</code>列值与<code>has_booking_changes</code>列值不匹配的记录。</p>
+
+<ol>
+
+<li value="7">同样，我们可以使用下面的查询找到其他与数据完整性有关的记录:<pre class="source-code"><strong class="bold">SELECT total_of_special_requests, has_special_requests, *  </strong></pre><pre class="source-code"><strong class="bold">FROM "AwsDataCatalog"."mle-ch4-db"."unloaded" </strong></pre><pre class="source-code"><strong class="bold">WHERE </strong></pre><pre class="source-code"><strong class="bold">(total_of_special_requests=0 AND has_special_requests=true) </strong></pre><pre class="source-code"><strong class="bold">OR </strong></pre><pre class="source-code"><strong class="bold">(total_of_special_requests&gt;0 AND has_special_requests=false)</strong></pre><pre class="source-code"><strong class="bold">LIMIT 100;</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">使用这个<a id="_idIndexMarker445"/>查询，我们<a id="_idIndexMarker446"/>应该能够列出<code>total_of_special_requests</code>列值与<code>has_special_requests</code>列值不匹配的记录。</p>
+
+<ol>
+
+<li value="8">我们还可以创建一个可以被以后查询引用的视图:<pre class="source-code"><strong class="bold">CREATE OR REPLACE VIEW data_integrity_issues AS</strong></pre><pre class="source-code"><strong class="bold">SELECT * </strong></pre><pre class="source-code"><strong class="bold">FROM "AwsDataCatalog"."mle-ch4-db"."unloaded" </strong></pre><pre class="source-code"><strong class="bold">WHERE</strong></pre><pre class="source-code"><strong class="bold">(booking_changes=0 AND has_booking_changes=true) </strong></pre><pre class="source-code"><strong class="bold">OR </strong></pre><pre class="source-code"><strong class="bold">(booking_changes&gt;0 AND has_booking_changes=false)</strong></pre><pre class="source-code"><strong class="bold">OR</strong></pre><pre class="source-code"><strong class="bold">(total_of_special_requests=0 AND has_special_requests=true) </strong></pre><pre class="source-code"><strong class="bold">OR </strong></pre><pre class="source-code"><strong class="bold">(total_of_special_requests&gt;0 AND has_special_requests=false);</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">注意视图<em class="italic">不</em>包含任何数据——每次视图被另一个查询引用时，视图中定义的查询都会运行。</p>
+
+<ol>
+
+<li value="9">也就是说，让我们运行一个示例查询，它引用我们在上一步中准备的视图:<pre class="source-code"><strong class="bold">SELECT booking_changes, has_booking_changes, </strong></pre> <pre class="source-code"><strong class="bold">total_of_special_requests, has_special_requests </strong></pre> <pre class="source-code"><strong class="bold">FROM data_integrity_issues </strong></pre> <pre class="source-code"><strong class="bold">LIMIT 100;</strong></pre></li>
+
+</ol>
+
+<p class="list-inset">这将为我们提供一个记录列表，其中包含<code>total_of_special_requests</code>列值与<code>has_special_requests</code>列值不匹配的记录，以及<code>booking_changes</code>列值<a id="_idIndexMarker447"/>列值<a id="_idIndexMarker448"/>与<code>has_booking_changes</code>列值不匹配的记录。</p>
+
+<p class="callout-heading">注意</p>
+
+<p class="callout">如果您想知道我们是否可以使用<strong class="bold">boto 3</strong>(Python的AWS SDK)以编程方式查询我们在S3的数据<a id="_idIndexMarker449"/>，那么答案是<em class="italic">是的</em>。我们甚至可以使用Amazon Athena和Amazon SageMaker直接在SQL语句中使用部署的ML模型生成预测。有关这个主题的更多信息，请查看《亚马逊SageMaker Cookbook 的<em class="italic">机器学习一书的<a href="B18638_04.xhtml#_idTextAnchor079"> <em class="italic">第4章</em> </a>、<em class="italic">AWS上的无服务器数据管理</em>。您还可以在这里找到如何使用Python和boto3运行Athena和Athena ML查询的快速示例:<a href="https://bit.ly/36AiPpR">https://bit.ly/36AiPpR</a>。</em></p>
+
+<p><em class="italic">那不是很容易吗？在AWS上建立一个<strong class="bold">无服务器数据湖</strong>很容易，只要我们使用正确的工具和服务。在继续下一章之前，请确保您已经查看了<a id="_idIndexMarker452"/>并删除了您在本章中创建的所有资源。</em></p>
+
+<h1 id="_idParaDest-97"><a id="_idTextAnchor103"/>总结</h1>
+
+<p>在本章中，我们能够更深入地了解几个帮助组织实现无服务器数据管理的AWS服务。使用<strong class="bold">无服务器</strong>服务时，我们不再需要担心基础设施管理，这有助于我们专注于我们需要做的事情。</p>
+
+<p>我们能够利用<strong class="bold">亚马逊红移无服务器</strong>来准备无服务器数据仓库。我们还能够使用<strong class="bold"> AWS Lake Formation </strong>、<strong class="bold"> AWS Glue </strong>和<strong class="bold"> Amazon Athena </strong>从无服务器数据湖中创建和查询数据。有了这些<em class="italic">无服务器</em>服务，我们能够在几分钟内加载和查询数据。</p>
+
+<h1 id="_idParaDest-98"><a id="_idTextAnchor104"/>延伸阅读</h1>
+
+<p>有关本章涵盖的主题的更多信息，请随时查阅以下资源:</p>
+
+<ul>
+
+<li><em class="italic">你的VPC的安全最佳实践</em>(<a href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-best-practices.xhtml">https://docs . AWS . Amazon . com/VPC/latest/user guide/VPC-Security-best-practices . XHTML</a>)</li>
+
+<li><em class="italic">介绍Amazon Redshift server less</em>(<a href="https://aws.amazon.com/blogs/aws/introducing-amazon-redshift-serverless-run-analytics-at-any-scale-without-having-to-manage-infrastructure/">https://AWS . Amazon . com/blogs/AWS/Introducing-Amazon-Redshift-server less-run-analytics-at-any-scale-without have-to-manage-infra structure/</a>)</li>
+
+<li><em class="italic">AWS湖编队中的安全</em>(<a href="https://docs.aws.amazon.com/lake-formation/latest/dg/security.xhtml">https://docs . AWS . Amazon . com/Lake-Formation/latest/DG/Security . XHTML</a>)</li>
+
+</ul>
+
+</div>
+
+<div><div/>
+
+</div>
+
+</div>
+
+
+
+</body></html>

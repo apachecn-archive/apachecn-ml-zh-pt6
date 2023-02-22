@@ -1,0 +1,153 @@
+<html><head/><body>
+
+
+	
+		<title>B16783_08_Final_SB_epub</title>
+		
+	
+	
+		<div><h1 id="_idParaDest-111"><em class="italic"> <a id="_idTextAnchor131"/>第八章</em>:用MLflow训练模型</h1>
+			<p>在本章中，您将了解如何使用MLflow创建生产就绪型培训工作。在更大的范围内，我们将重点关注如何从我们在前面章节中看到的笔记本环境中的培训工作转移到创建培训工作的标准化格式和蓝图。</p>
+			<p>具体来说，我们将了解本章的以下部分:</p>
+			<ul>
+				<li>使用MLflow创建您的培训项目</li>
+				<li>实施培训工作</li>
+				<li>评估模型</li>
+				<li>在模型注册中心部署模型</li>
+				<li>为您的培训工作创建Docker图像</li>
+			</ul>
+			<p>是时候添加pyStock <strong class="bold">机器学习</strong> ( <strong class="bold"> ML </strong>)平台培训基础设施，将在<a href="B16783_03_Final_SB_epub.xhtml#_idTextAnchor066"> <em class="italic">第3章</em></a><em class="italic">中开发的工作台中创建的<strong class="bold">概念验证</strong>模型带到生产环境</em>。</p>
+			<p>在本章中，您将开发一个定期运行或由数据集到达触发时运行的培训项目。培训项目的主要输出是一个新的模型，它作为输出生成，并以不同的细节在模型注册中心注册。</p>
+			<p>以下是培训工作流程的概述:</p>
+			<div><div><img src="img/image0014.jpg" alt="Figure 8.1 – Training workflow&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图8.1–培训工作流程</p>
+			<p><em class="italic">图8.1 </em>在较高层次上描述了一般流程，通过该流程，训练数据集到达，训练作业开始。培训作业生成一个模型，该模型最终被评估并部署到模型注册中心。上游系统现在能够使用新部署的模型部署推理<strong class="bold">应用程序编程接口</strong>(<strong class="bold">API</strong>)或批处理作业。</p>
+			<h1 id="_idParaDest-112"><a id="_idTextAnchor132"/>技术要求</h1>
+			<p>对于本章，您将需要以下先决条件:</p>
+			<ul>
+				<li>最新版本的Docker安装在您的机器上。如果您还没有安装，请按照<a href="https://docs.docker.com/get-docker/">https://docs.docker.com/get-docker/</a>上的说明进行操作。</li>
+				<li>安装了最新版本的Docker Compose请按照<a href="https://docs.docker.com/compose/install/">https://docs.docker.com/compose/install/</a>上的说明操作。</li>
+				<li>在命令行访问Git，按照<a href="https://git-scm.com/book/en/v2/Getting-Started-Installing-Git">https://Git-SCM . com/book/en/v2/Getting-Started-Installing-Git</a>所述进行安装。</li>
+				<li>访问Bash终端(Linux或Windows)。</li>
+				<li>访问浏览器。</li>
+				<li>Python 3.5以上版本已安装。</li>
+				<li>按照MLflow 中的<a href="B16783_04_Final_SB_epub.xhtml#_idTextAnchor081"> <em class="italic">第4章</em> </a>、<em class="italic">实验管理中的描述，在本地安装您的ML库的最新版本</em></li>
+			</ul>
+			<h1 id="_idParaDest-113"><a id="_idTextAnchor133"/>使用MLflow创建您的培训项目</h1>
+			<p>你从一位基于<a id="_idIndexMarker274"/>XG boost模型<a id="_idIndexMarker275"/>的数据科学家那里收到一份规格说明<a id="_idIndexMarker273"/>，准备从<strong class="bold">概念验证</strong>进入<a id="_idIndexMarker276"/>生产阶段。</p>
+			<p>我们可以查看最初的Jupyter笔记本，数据科学家最初从其中注册了模型，这是开始创建ML工程管道的起点。在笔记本电脑上完成最初的原型制作和培训后，他们就可以开始生产了。</p>
+			<p>一些公司直接自己生产笔记本电脑，这肯定是可能的，但由于以下原因，这变得不可能:</p>
+			<ul>
+				<li>笔记本很难版本化。</li>
+				<li>很难对代码进行单元测试。</li>
+				<li>对于长时间运行的测试是不可靠的。</li>
+			</ul>
+			<p>通过这三个不同的阶段，我们确保了训练数据生成过程<a id="_idIndexMarker277"/>的可再现性以及该过程不同<a id="_idIndexMarker278"/>步骤的可见性和清晰分离。</p>
+			<p>我们首先将MLflow项目组织成步骤，并为管道的每个组件创建占位符，如下所示:</p>
+			<ol>
+				<li>在你的本地机器上创建一个新文件夹，命名为<code>pystock-training</code>。添加<code>MLProject</code>文件，如下:<pre>name: pystock_training conda_env: conda.yaml entry_points:   main:     data_file: path     command: "python main.py"   train_model:     command: "python train_model.py"   evaluate_model:     command: "python evaluate_model.py "   register_model:     command: "python register_model.py"</pre></li>
+				<li>在<code>conda.yaml</code>文件:<pre>name: pystock-training channels:   - defaults dependencies:   - python=3.8   - numpy   - scipy   - pandas   - cloudpickle   - pip:     - git+git://github.com/mlflow/mlflow     - sklearn     - pandas_datareader     - great-expectations==0.13.15     - pandas-profiling     - xgboost</pre>后增加<a id="_idIndexMarker279"/>的<a id="_idIndexMarker280"/></li>
+				<li>你现在可以添加一个样本文件到文件夹中，以确保项目的基本结构是工作的，如下:<pre>import mlflow import click import os def _run(entrypoint, parameters={}, source_version=None, use_cache=True):     print("Launching new run for entrypoint=%s and parameters=%s" % (entrypoint, parameters))     submitted_run = mlflow.run(".", entrypoint, parameters=parameters)     return mlflow.tracking.MlflowClient().get_run(submitted_run.run_id) @click.command() def workflow():     with mlflow.start_run(run_name ="pystock-training") as active_run:         mlflow.set_tag("mlflow.runName", "pystock-training")         _run("train_model")         _run("evaluate_model")                 _run("register_model")          if __name__=="__main__":     workflow()</pre></li>
+				<li>Test the basic structure by running the following command:<pre>mlflow run.</pre><p>这个命令将基于由您的<code>conda.yaml</code>文件创建的环境<a id="_idIndexMarker284"/>构建<a id="_idIndexMarker283"/>您的项目，并运行您刚刚创建的基本项目。它应该会出错，因为我们需要添加丢失的文件。</p></li>
+			</ol>
+			<p>在这个阶段，我们有了将在本章中构建的数据管道的MLflow项目的基本模块。接下来，您将填写Python文件来训练数据。</p>
+			<h1 id="_idParaDest-114"><a id="_idTextAnchor134"/>实施培训工作</h1>
+			<p>我们将使用前一章中产生的训练数据<a id="_idIndexMarker285"/>。这里假设一个独立的作业填充特定文件夹中的数据管道。在本书的GitHub资源库中，可以查看https://GitHub . com/packt publishing/Machine-Learning-Engineering-with-ml flow/blob/master/chapter 08/psy stock-training/data/training/data . CSV中的数据。</p>
+			<p>我们现在将创建一个<code>train_model.py</code>文件，它将负责加载训练数据以适应并生成一个模型。测试预测将被生成并保存在环境中，以便工作流的其他步骤可以使用这些数据来评估模型。</p>
+			<p>本节中生成的文件可从以下链接获得:</p>
+			<p>https://github . com/packt publishing/Machine-Learning-Engineering-with-ml flow/blob/master/chapter 08/psy stock-training/train _ model . py<a href="https://github.com/PacktPublishing/Machine-Learning-Engineering-with-Mlflow/blob/master/chapter_8/psytock-training/train_model.py  ">:</a></p>
+			<ol>
+				<li value="1">我们将从导入相关的包开始。在这种情况下，我们将需要<code>pandas</code>来处理数据，<code>xgboost</code>来运行训练算法，并且——显然——需要m <code>lflow</code>来跟踪和记录数据运行。下面是你需要做的代码:<pre>import pandas as pd import mlflow import xgboost as xgb import mlflow.xgboost from sklearn.model_selection import train_test_split</pre></li>
+				<li>接下来，您应该添加一个函数来执行从<code>sklearn</code>到<code>train_test_split</code>的数据分割。我们为测试和训练数据分别选择了33/67%的分割。我们指定<code>random_state</code>参数，以便<a id="_idIndexMarker286"/>使过程可重复，如下:<pre>def train_test_split_pandas(pandas_df,t_size=0.33,r_state=42):     X=pandas_df.iloc[:,:-1]     Y=pandas_df.iloc[:,-1]     X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=t_size, random_state=r_state)     return X_train, X_test, y_train, y_test</pre></li>
+				<li>此函数返回训练和测试数据集以及每个数据集的目标。我们依靠<code>xgboost</code>矩阵<code>xgb.Dmatrix</code>数据格式来有效地加载训练<a id="_idIndexMarker287"/>和测试数据，并提供给<code>xgboost.train</code>方法。代码如下面的代码片段所示:<pre>if __name__ == "__main__":     THRESHOLD = 0.5     mlflow.xgboost.autolog()     with mlflow.start_run(run_name="train_model") as run:         mlflow.set_tag("mlflow.runName", "train_model")         pandas_df=pd.read_csv("data/training/data.csv")         pandas_df.reset_index(inplace=True)         X_train, X_test, y_train, y_test = train_test_split_pandas(pandas_df)         train_data = xgb.DMatrix(X_train, label=y_train)         test_data =  xgb.DMatrix(X_test)         model = xgb.train(dtrain=train_data,params={})        </pre></li>
+				<li>我们也利用这一时刻，用<code>model.predict</code>方法产生测试预测。执行一些数据转换来离散股票上涨或下跌的概率，并将其转换为<code>0</code>(不上涨)或<code>1</code>(上涨)，如下:<pre>        y_probas=model.predict(test_data)          y_preds = [1 if  y_proba &gt; THRESHOLD else 0. for y_proba in y_probas]</pre></li>
+				<li>作为最后一个<a id="_idIndexMarker288"/>步骤，我们将保持对<code>result</code>变量的测试预测。我们删除索引，以便在运行<code>result.to_csv</code>命令时，保存的<code>pandas</code>数据帧不包含索引，如下:<pre>        test_prediction_results = pd.DataFrame(data={'y_pred':y_preds,'y_test':y_test})         result = test_prediction_results.reset_index(drop=True)                  result.to_csv("data/predictions/test_predictions.csv")    </pre></li>
+				<li>您可以通过运行<a id="_idIndexMarker289"/>以下命令来查看您的MLflow <strong class="bold">用户界面</strong> ( <strong class="bold"> UI </strong>)以查看记录的指标:<pre> mlflow ui</pre></li>
+			</ol>
+			<p>您应该能够查看您的MLflow UI，可在下面的屏幕截图中查看，您可以在其中看到持久模型和刚刚训练的模型的不同模型信息:</p>
+			<div><div><img src="img/image0025.jpg" alt="Figure 8.2 – Training model&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图8.2–培训模型</p>
+			<p>在这个阶段，我们将我们的模型<a id="_idIndexMarker290"/>保存并持久化在我们的MLflow安装的工件上。接下来，我们将向我们的工作流添加一个新的步骤，以生成刚刚生成的模型的指标。</p>
+			<h1 id="_idParaDest-115"><a id="_idTextAnchor135"/>评估模型</h1>
+			<p>我们现在将继续为我们的模型收集评估指标<a id="_idIndexMarker291"/>，以添加到模型的元数据中。</p>
+			<p>我们将处理<code>evaluate_model.py</code>文件。您可以通过在一个空文件中工作或转到https://github . com/packt publishing/Machine-Learning-Engineering-with-ml flow/blob/master/chapter 08/psy stock-training/evaluate _ model . py来继续操作。操作如下:</p>
+			<ol>
+				<li value="1">Import the relevant<a id="_idIndexMarker292"/> packages—<code>pandas</code> and <code>mlflow—f</code>or reading and running the steps, respectively. We will rely on importing a selection of model-evaluation metrics available in <code>sklearn</code> for classification algorithms, as follows:<pre>import pandas as pd
+import mlflow
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import  \
+    classification_report, \
+    confusion_matrix, \
+    accuracy_score, \
+    auc, \
+    average_precision_score, \
+    balanced_accuracy_score, \
+    f1_score, \
+    fbeta_score, \
+    hamming_loss, \
+    jaccard_score, \
+    log_loss, \
+    matthews_corrcoef, \
+    precision_score, \
+    recall_score, \
+    zero_one_loss</pre><p>在这个阶段，我们已经导入了下一部分需要提取的指标所需的所有函数。</p></li>
+				<li>Next, you should add a <code>classification_metrics</code> function to generate metrics based on a <code>df</code> parameter. The assumption is that the DataFrame has two columns: <code>y_pred</code>, which<a id="_idIndexMarker293"/> is the target<a id="_idIndexMarker294"/> predicted by the training model, and <code>y_test</code>, which is the target present on the training data file. Here is the code you will need:<pre>def classification_metrics(df:None):
+    metrics={}
+    metrics["accuracy_score"]=accuracy_score(df["y_pred"], df["y_test"]  )
+    metrics["average_precision_score"]=average_precision_score( df["y_pred"], df["y_test"]  )
+    metrics["f1_score"]=f1_score( df["y_pred"], df["y_test"]  )
+    metrics["jaccard_score"]=jaccard_score( df["y_pred"], df["y_test"]  )
+    metrics["log_loss"]=log_loss( df["y_pred"], df["y_test"]  )
+    metrics["matthews_corrcoef"]=matthews_corrcoef( df["y_pred"], df["y_test"]  )
+    metrics["precision_score"]=precision_score( df["y_pred"], df["y_test"]  )
+    metrics["recall_score"]=recall_score( df["y_pred"], df["y_test"] )
+    metrics["zero_one_loss"]=zero_one_loss( df["y_pred"], df["y_test"]  )
+    return metrics</pre><p>前面的函数根据预测值和测试预测生成一个<code>metrics</code>字典。</p></li>
+				<li>在创建了这个生成指标的函数之后，我们需要使用<code>start_run</code>，由此我们基本上读取预测测试文件并运行指标。我们在<code>mlflow.log_metrics</code>方法中发布<a id="_idIndexMarker295"/>所有的度量，同时记录多个度量的字典。代码如下面的代码片段所示:<pre>if __name__ == "__main__":     with mlflow.start_run(run_name="evaluate_model") as run:         mlflow.set_tag("mlflow.runName", "evaluate_model")         df=pd.read_csv("data/predictions/test_predictions.csv")         metrics = classification_metrics(df)         mlflow.log_metrics(metrics)    </pre></li>
+				<li>我们可以再次<a id="_idIndexMarker297"/>查看MLflow <a id="_idIndexMarker298"/> UI，在这里我们可以看到不同的指标刚刚被保存下来。您可以在这里查看输出:</li>
+			</ol>
+			<div><div><img src="img/image0035.jpg" alt="Figure 8.3 – Training model metrics persisted&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图8.3–持续的培训模型指标</p>
+			<p>在这个阶段，我们有一个培训工作的模型评估<a id="_idIndexMarker299"/>，为模型实现者/部署者提供度量和信息。我们现在将<a id="_idIndexMarker300"/>转移到培训过程的最后一步，即在MLflow模型注册表中注册模型，以便它可以部署到生产中。</p>
+			<h1 id="_idParaDest-116"><a id="_idTextAnchor136"/>在模型注册中心部署模型</h1>
+			<p>接下来，您应该<a id="_idIndexMarker301"/>添加<code>register_model.py</code>函数<a id="_idIndexMarker302"/>在模型注册表中注册模型。</p>
+			<p>这就像用模型的<strong class="bold">统一资源标识符</strong> ( <strong class="bold"> URI </strong>)和模型名称执行<code>mlflow.register_model</code>方法一样简单。基本上，如果模型<a id="_idIndexMarker303"/>不存在，它将被创建。如果它已经在注册表中，将会添加一个新版本，允许部署工具查看模型并跟踪培训工作<a id="_idIndexMarker304"/>和指标。它还允许决定是否将模型<a id="_idIndexMarker305"/>投入生产。您需要的代码如下面的代码片段所示<a id="_idTextAnchor137"/>:</p>
+			<pre>import mlflow
+if __name__ == "__main__":
+    
+    with mlflow.start_run(run_name="register_model") as run:
+        mlflow.set_tag("mlflow.runName", "register_model")
+        model_uri = "runs:/{}/sklearn-model".format(run.info.run_id)
+        result = mlflow.register_model(model_uri, "training-model-psystock")
+        </pre>
+			<p>在下面的屏幕截图中，显示了注册的模型，我们可以根据我们的工作流更改状态并进入试运行或生产状态:</p>
+			<div><div><img src="img/image0045.jpg" alt="Figure 8.4 – Registered model&#13;&#10;"/>
+				</div>
+			</div>
+			<p class="figure-caption">图8.4-注册模型</p>
+			<p>注册了<a id="_idIndexMarker306"/>我们的模型后，我们现在将继续准备我们培训工作的Docker映像，该映像<a id="_idIndexMarker307"/>可以在公共云环境或Kubernetes集群中使用。</p>
+			<h1 id="_idParaDest-117"><a id="_idTextAnchor138"/>为您的培训工作创建Docker图像</h1>
+			<p>在许多<a id="_idIndexMarker308"/>环境中，Docker映像是模型开发人员向更专业的系统基础设施团队交付培训工作时最关键的交付物。该项目包含在存储库的以下文件夹中:https://github . com/packt publishing/Machine-Learning-Engineering-with-ml flow/tree/master/chapter 08/psy stock-training-docker。在接下来的<a id="_idIndexMarker309"/>步骤中，我们将为生成的代码生成一个随时可以部署的Docker映像:</p>
+			<ol>
+				<li value="1">你需要在项目的根文件夹下设置一个Docker文件，如下面的代码片段所示:<pre>FROM continuumio/miniconda3:4.9.2 RUN apt-get update &amp;&amp; apt-get install build-essential -y RUN pip install \     mlflow==1.18.0 \     pymysql==1.0.2 \     boto3 COPY ./training_project /src WORKDIR /src</pre></li>
+				<li>我们将通过运行以下命令开始构建和训练映像:<pre>docker build -t psystock_docker_training_image .</pre></li>
+				<li>您可以运行您的映像，指定<a id="_idIndexMarker310"/>您的跟踪服务器<code>$TRACKING_SERVER_URI</code>值以达到<a href="http://host.docker.internal:5000">http://host . docker . internal:5000</a>，如下面的代码片段中的<a id="_idIndexMarker312"/>所示:<pre>docker run -e MLflow_TRACKING_SERVER=$TRACKING_SERVER_URI psystock_docker_training_image</pre></li>
+			</ol>
+			<p>在此阶段，我们已经完成了完整培训工作流程的所有步骤。在下一章中，我们将继续在生产环境中部署平台的不同组件，利用到目前为止创建的所有MLflow项目。</p>
+			<h1 id="_idParaDest-118"><a id="_idTextAnchor139"/>总结</h1>
+			<p>在本章中，我们介绍了使用MLflow创建生产培训流程的概念和不同功能。</p>
+			<p>我们从设置MLflow培训项目的基本模块开始，并在整个章节中依次培训模型、评估已培训模型和注册已培训模型。我们还深入研究了为您的培训工作创建一个现成的图像。</p>
+			<p>这是架构的一个重要组成部分，它将允许我们为生产中的ML系统构建一个端到端的生产系统。在下一章中，我们将部署不同的组件，并说明模型的部署过程。</p>
+			<h1 id="_idParaDest-119"><a id="_idTextAnchor140"/>延伸阅读</h1>
+			<p>为了加深您的知识，您可以参考以下链接中的官方文档:</p>
+			<p><a href="https://www.mlflow.org/docs/latest/projects.html">https://www.mlflow.org/docs/latest/projects.html</a></p>
+		</div>
+	
+
+</body></html>
