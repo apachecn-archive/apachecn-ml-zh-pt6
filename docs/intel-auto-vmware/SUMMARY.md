@@ -10,7 +10,7 @@
 	+   [六、基于 ML 的智能日志管理](08.md)
 	+   [七、云计算中的 ML 即服务](09.md)
 	+   [八、基于 ML 的 Skyline 规则引擎](10.md)
-	+   [九、采用 vRealize 代码流的DevOps](11.md)
+	+   [九、采用 vRealize 代码流的 DevOps](11.md)
 	+   [十、使用 ML 转变 VMware IT 运维](12.md)
 +   [第三部分：通过 ML 处理大数据、HPC、IoT 和 Coud 应用可扩展性](13.md)
 	+   [十一、物联网网络转型](14.md)
